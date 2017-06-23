@@ -43,43 +43,56 @@ function parse_epanet_data(data_string)
       end
 
       if contains(line,"JUNCTIONS")
-         matrix_block,index = parse_blocks(line,data_lines,index)
+         regular = 1 #lines_contain semicolon at the end
+         matrix_block,index = parse_blocks(line,data_lines,index,regular)
          push!(parsed_blocks,matrix_block)
       end
 
       if contains(line,"RESERVOIRS")
-         matrix_block,index = parse_blocks(line,data_lines,index)
+         regular=1
+         matrix_block,index = parse_blocks(line,data_lines,index,regular)
          push!(parsed_blocks,matrix_block)
      end
       
      
       if contains(line,"TANKS")
-         matrix_block,index = parse_blocks(line,data_lines,index)
+         regular=1
+         matrix_block,index = parse_blocks(line,data_lines,index,regular)
          push!(parsed_blocks,matrix_block)
      end
 
      
       if contains(line,"PIPES")
-         matrix_block,index = parse_blocks(line,data_lines,index)
+         regular=1
+         matrix_block,index = parse_blocks(line,data_lines,index,regular)
          push!(parsed_blocks,matrix_block)
      end
 
 
      
       if contains(line,"PUMPS")
-         matrix_block,index = parse_blocks(line,data_lines,index)
+         regular=1
+         matrix_block,index = parse_blocks(line,data_lines,index,regular)
          push!(parsed_blocks,matrix_block)
      end
 
      
       if contains(line,"VALVES")
-         matrix_block,index = parse_blocks(line,data_lines,index)
+         regular=1
+         matrix_block,index = parse_blocks(line,data_lines,index,regular)
          push!(parsed_blocks,matrix_block)    
+      end
+      
+      if contains(line,"COORDINATES")
+         regular=0
+         matrix_block,index = parse_blocks(line,data_lines,index,regular)
+         #println(matrix_block)
+         push!(parsed_blocks,matrix_block)
       end
       
       index += 1
    end
-   
+   #println(parsed_blocks )
    for parsed_block in parsed_blocks
       #
       #
@@ -169,7 +182,12 @@ function parse_epanet_data(data_string)
 
          for pump_row in parsed_block["data"]
             if length(pump_row)!=0
-               pump_data = Dict{AbstractString,Any}()
+               pump_data = Dict{AbstractString,Any}(
+                     "index" => parse(Int,pump_row[1]),
+                     "node1" => parse(Int,pump_row[2]),
+                     "node2" => parse(Int,pump_row[3]),
+                     "parameters" => parse(Float64,pump_row[4])
+                    )                             
 
             end
 
@@ -177,7 +195,7 @@ function parse_epanet_data(data_string)
          end
 
          case["pump"] = pumps
-      elseif parsed_block["name"] == " valves"
+      elseif parsed_block["name"] == "valves"
          valves = []
          
          for valve_row in parsed_block["data"]
@@ -190,7 +208,23 @@ function parse_epanet_data(data_string)
 
          case["valve"] = valves
 
+      elseif parsed_block["name"] == "coordinates"
+         coordinates = []
 
+         for coord_row in parsed_block["data"]
+            if length(coord_row)!=0
+               coord_data = Dict{AbstractString,Any}(
+                     "node" => parse(Int,coord_row[1]),
+                     "x-coord" => parse(Float64,coord_row[2]),
+                     "y-coord" => parse(Float64,coord_row[3])
+                    )
+                                                    
+            end
+
+            push!(coordinates,coord_data)
+         end
+         
+         case["coordinate"] = coordinates
         
       end#elif_end
       
@@ -202,7 +236,7 @@ end#func end
 #*****************************************************************************************
 #Parse a block (say Junctions, Pipes etc.)
 #*****************************************************************************************
-function parse_blocks(line,data_lines,index)
+function parse_blocks(line,data_lines,index,regular)
    block_lines = []
    block_name = strip(replace(replace(line,'[',' '),']',' '))
    index = index+1
@@ -210,20 +244,38 @@ function parse_blocks(line,data_lines,index)
    #println(column_names)
    index = index+1
 
-
-
-
+ 
    while(line!="")
       line = strip(data_lines[index])
+
       push!(block_lines,line)
       index +=1
    end
+  #******************************************************
+  #When lines don't end with ';'
+   
+   if (regular==0)&&(length(block_lines)!=0)
+      l = size(block_lines)[1]
+      block_lines1 = []
+      for i in 1:l-1
+         #println(block_lines[i,:])
+         line1 = (join(hcat(block_lines[i,:],";")))
+         push!(block_lines1,line1)
+         #block_lines = join(hcat(block_lines[i,:],";"))
+      end
+      block_lines = block_lines1
 
+   end
+   #***************************************************
+   #println(block_lines)
    block_data = join(block_lines,' ')
-   block_dat = replace(strip(block_data),'\t',' ')
+   block_data = replace(strip(block_data),'\t',' ')
+   #println(block_data)
    block_data_rows = split(block_data,';')
-   block_data_rows = block_data_rows[1:length(block_data_rows)-1]
 
+   #println(block_data_rows)
+   block_data_rows = block_data_rows[1:length(block_data_rows)-1]
+   #println(block_data_rows)
    matrix_block = []
    empty_warning = 0
 
