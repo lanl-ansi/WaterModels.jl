@@ -7,9 +7,92 @@
 
 function parse_epanet(file_string)
    data_string = readstring(open(file_string))
-   data = parse_epanet_data(data_string)
+   epdata = parse_epanet_data(data_string)
+   data = change_data_organization(epdata)
    ##
    #print_with_color(:red,"Warning to coder : Blocks after VALVES yet to be parsed \n")
+   return data
+end
+
+
+#This function changes the data organization (eg: say pipes, pumps, valves combined etc.)
+function change_data_organization(epdata)
+   data = Dict{AbstractString,Any}()
+   #mapping junctions with corresponding coordinates
+   #******************************************************************************************************************
+   #Note : string(symbol) can be used to convert a symbol to string (useful when index is a string instead of number"#
+   #******************************************************************************************************************
+   junctions = []
+   id = 1
+   
+   for junc in epdata["junction"]
+      junc_data = Dict{AbstractString,Any}()
+      for coord in epdata["coordinate"]
+         if junc["index"]==coord["node"]
+            junc_data["name"] = junc["index"]
+            junc_data["index"] = id
+            junc_data["x_coord"] = coord["x-coord"]
+            junc_data["y_coord"] = coord["y-coord"]
+            junc_data["elevation"] = junc["elevation"]
+            junc_data["demand"] = junc["demand"]
+         end
+      end
+      push!(junctions,junc_data)                                 
+#      println(junc["index"])
+   id+=1
+
+   end
+   data["junction"] = junctions
+
+   connections = []
+   id = 1
+   for pipe_rows in epdata["pipe"]
+      connect_data = Dict{AbstractString,Any}(
+            "index" => id,
+            #"index" => pipe_rows["index"],
+            "type" => "pipe",
+            "f_junction" => pipe_rows["f_junction"],
+            "t_junction" => pipe_rows["t_junction"],
+            "length" => pipe_rows["length"],
+            "diameter" => pipe_rows["diameter"],
+            "roughness" => pipe_rows["roughness"],
+            "minorloss" => pipe_rows["minorloss"],
+            "status" => pipe_rows["status"],
+           )
+      push!(connections,connect_data)
+      id+=1;
+   end
+   for pump_rows in epdata["pump"]
+      connect_data = Dict{AbstractString,Any}(
+            "index" => id,
+            #"index" => pump_rows["index"],
+            "type" => "pump",
+            "f_junction" => pump_rows["f_junction"],
+            "t_junction" => pump_rows["t_junction"],
+            "parameters" => pump_rows["parameters"]
+             )
+      push!(connections,connect_data)
+      id+=1;
+   end
+
+   for valve_rows in epdata["valve"]
+      connect_data = Dict{AbstractString,Any}(
+            "index" => id,
+            #"index" => valve_rows["index"],
+            "type" => "valve",
+            "f_junction" => valve_rows["f_junction"],
+            "t_junction" => valve_rows["t_junction"],
+            "diameter" => valve_rows["diameter"],
+            "type" => valve_rows["type"],
+            "setting" => valve_rows["setting"],
+            "minorloss" => valve_rows["minorloss"],
+           )
+      push!(connections,connect_data)
+      id+=1;
+   end
+   data["connection"] = connections
+
+
    return data
 end
 
@@ -100,7 +183,7 @@ function parse_epanet_data(data_string)
          junctions = []
 
          for junc_row in parsed_block["data"]
-
+            println(junc_row)
             if length(junc_row)!=0
                
                junc_data = Dict{AbstractString,Any}(
@@ -163,12 +246,13 @@ function parse_epanet_data(data_string)
             if length(pipe_row)!=0
                pipe_data = Dict{AbstractString,Any}(
                      "index" => parse(Int,pipe_row[1]),
-                     "nodel1" => parse(Int,pipe_row[2]),
-                     "node2" => parse(Int,pipe_row[3]),
+                     "f_junction" => parse(Int,pipe_row[2]),
+                     "t_junction" => parse(Int,pipe_row[3]),
                      "length" => parse(Float64,pipe_row[4]),
                      "diameter" => parse(Float64,pipe_row[5]),
                      "roughness" => parse(Float64,pipe_row[6]),
-                     "minorloss" => parse(Float64,pipe_row[7])
+                     "minorloss" => parse(Float64,pipe_row[7]),
+                     "status" => parse(pipe_row[8])
                     )
             end
 
@@ -184,8 +268,8 @@ function parse_epanet_data(data_string)
             if length(pump_row)!=0
                pump_data = Dict{AbstractString,Any}(
                      "index" => parse(Int,pump_row[1]),
-                     "node1" => parse(Int,pump_row[2]),
-                     "node2" => parse(Int,pump_row[3]),
+                     "f_junction" => parse(Int,pump_row[2]),
+                     "t_junction" => parse(Int,pump_row[3]),
                      "parameters" => parse(Float64,pump_row[4])
                     )                             
 
@@ -200,7 +284,15 @@ function parse_epanet_data(data_string)
          
          for valve_row in parsed_block["data"]
             if length(valve_row)! = 0
-               valve_data = Dict{AbstractString,Any}()
+               valve_data = Dict{AbstractString,Any}(
+                     "index" => parse(Int,valve_row[1]),
+                     "f_junction" => parse(Int,valve_row[2]),
+                     "t_junction" => parse(Int,valve_row[3]),
+                     "diameter" => parse(Float64,valve_row[4]),
+                     "type" => parse(Float64,valve_row[5]),
+                     "setting" => parse(Float64,valve_row[6]),
+                     "minorloss" => parse(Float64,valve_row[7])
+                     )
             end
 
             push!(valves,valve_data)
