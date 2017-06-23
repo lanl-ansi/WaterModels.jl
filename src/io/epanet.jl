@@ -183,7 +183,7 @@ function parse_epanet_data(data_string)
          junctions = []
 
          for junc_row in parsed_block["data"]
-            println(junc_row)
+            #println(junc_row)
             if length(junc_row)!=0
                
                junc_data = Dict{AbstractString,Any}(
