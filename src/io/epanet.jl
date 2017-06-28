@@ -4,18 +4,21 @@
 #                                                                       #
 #########################################################################
 
-
+#************************************************************
+#Input : .inp file from epanet                              #
+#Output: Dictionary in the desired format for WaterModels.jl#
+#************************************************************
 function parse_epanet(file_string)
    data_string = readstring(open(file_string))
    epdata = parse_epanet_data(data_string)
    data = change_data_organization(epdata)
-   ##
-   #print_with_color(:red,"Warning to coder : Blocks after VALVES yet to be parsed \n")
    return data
 end
 
 
-#This function changes the data organization (eg: say pipes, pumps, valves combined etc.)
+#*****************************************************************************************
+#This function changes the data organization (eg: say pipes, pumps, valves combined etc.)#
+#*****************************************************************************************
 function change_data_organization(epdata)
    data = Dict{AbstractString,Any}()
    #mapping junctions with corresponding coordinates
@@ -96,6 +99,10 @@ function change_data_organization(epdata)
    return data
 end
 
+
+#*****************************************************************************************
+#Parses data strings from EPANET .inp files#
+#*****************************************************************************************
 
 function parse_epanet_data(data_string)
 
