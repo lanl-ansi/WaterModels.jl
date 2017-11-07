@@ -1,0 +1,396 @@
+{
+    "junction": {
+        "4": {
+            "x_coord": 431.0,
+            "head": 0.0,
+            "demand": 88.2,
+            "type": "regular",
+            "index": 4,
+            "y_coord": 2000.0
+        },
+        "1": {
+            "x_coord": 610.0,
+            "head": 300.0,
+            "type": "reservoir",
+            "index": 1,
+            "y_coord": 2716.0
+        },
+        "12": {
+            "x_coord": 748.0,
+            "head": 0.0,
+            "demand": 117.1,
+            "type": "regular",
+            "index": 12,
+            "y_coord": 1570.0
+        },
+        "20": {
+            "x_coord": 1061.0,
+            "head": 0.0,
+            "demand": 170.0,
+            "type": "regular",
+            "index": 20,
+            "y_coord": 1131.0
+        },
+        "2": {
+            "x_coord": 528.0,
+            "head": 0.0,
+            "demand": 92.4,
+            "type": "regular",
+            "index": 2,
+            "y_coord": 2468.0
+        },
+        "6": {
+            "x_coord": 443.0,
+            "head": 0.0,
+            "demand": 88.2,
+            "type": "regular",
+            "index": 6,
+            "y_coord": 1582.0
+        },
+        "11": {
+            "x_coord": 732.0,
+            "head": 0.0,
+            "demand": 170.0,
+            "type": "regular",
+            "index": 11,
+            "y_coord": 1334.0
+        },
+        "13": {
+            "x_coord": 780.0,
+            "head": 0.0,
+            "demand": 117.1,
+            "type": "regular",
+            "index": 13,
+            "y_coord": 1781.0
+        },
+        "5": {
+            "x_coord": 427.0,
+            "head": 0.0,
+            "demand": 88.2,
+            "type": "regular",
+            "index": 5,
+            "y_coord": 1793.0
+        },
+        "15": {
+            "x_coord": 687.0,
+            "head": 0.0,
+            "demand": 92.4,
+            "type": "regular",
+            "index": 15,
+            "y_coord": 2403.0
+        },
+        "16": {
+            "x_coord": 963.0,
+            "head": 0.0,
+            "demand": 170.0,
+            "type": "regular",
+            "index": 16,
+            "y_coord": 716.0
+        },
+        "14": {
+            "x_coord": 695.0,
+            "head": 0.0,
+            "demand": 92.4,
+            "type": "regular",
+            "index": 14,
+            "y_coord": 2122.0
+        },
+        "7": {
+            "x_coord": 455.0,
+            "head": 0.0,
+            "demand": 88.2,
+            "type": "regular",
+            "index": 7,
+            "y_coord": 1395.0
+        },
+        "8": {
+            "x_coord": 533.0,
+            "head": 0.0,
+            "demand": 88.2,
+            "type": "regular",
+            "index": 8,
+            "y_coord": 1224.0
+        },
+        "17": {
+            "x_coord": 317.0,
+            "head": 0.0,
+            "demand": 57.5,
+            "type": "regular",
+            "index": 17,
+            "y_coord": 505.0
+        },
+        "10": {
+            "x_coord": 553.0,
+            "head": 0.0,
+            "demand": 1.0,
+            "type": "regular",
+            "index": 10,
+            "y_coord": 915.0
+        },
+        "19": {
+            "x_coord": 1419.0,
+            "head": 0.0,
+            "demand": 117.1,
+            "type": "regular",
+            "index": 19,
+            "y_coord": 1594.0
+        },
+        "9": {
+            "x_coord": 642.0,
+            "head": 0.0,
+            "demand": 170.0,
+            "type": "regular",
+            "index": 9,
+            "y_coord": 1074.0
+        },
+        "18": {
+            "x_coord": 1110.0,
+            "head": 0.0,
+            "demand": 117.1,
+            "type": "regular",
+            "index": 18,
+            "y_coord": 1574.0
+        },
+        "3": {
+            "x_coord": 496.0,
+            "head": 0.0,
+            "demand": 92.4,
+            "type": "regular",
+            "index": 3,
+            "y_coord": 2240.0
+        }
+    },
+    "connection": {
+        "4": {
+            "length": 8300.0,
+            "minorloss": 0.0,
+            "f_junction": 4,
+            "status": "open",
+            "t_junction": 5,
+            "diameter": 180.0,
+            "type": "pipe",
+            "index": 4,
+            "roughness": 100.0
+        },
+        "1": {
+            "length": 11600.0,
+            "minorloss": 0.0,
+            "f_junction": 1,
+            "status": "open",
+            "t_junction": 2,
+            "diameter": 180.0,
+            "type": "pipe",
+            "index": 1,
+            "roughness": 100.0
+        },
+        "12": {
+            "length": 12200.0,
+            "minorloss": 0.0,
+            "f_junction": 13,
+            "status": "open",
+            "t_junction": 12,
+            "diameter": 204.0,
+            "type": "pipe",
+            "index": 12,
+            "roughness": 100.0
+        },
+        "20": {
+            "length": 38400.0,
+            "minorloss": 0.0,
+            "f_junction": 20,
+            "status": "open",
+            "t_junction": 16,
+            "diameter": 60.0,
+            "type": "pipe",
+            "index": 20,
+            "roughness": 100.0
+        },
+        "2": {
+            "length": 19800.0,
+            "minorloss": 0.0,
+            "f_junction": 2,
+            "status": "open",
+            "t_junction": 3,
+            "diameter": 180.0,
+            "type": "pipe",
+            "index": 2,
+            "roughness": 100.0
+        },
+        "6": {
+            "length": 19100.0,
+            "minorloss": 0.0,
+            "f_junction": 6,
+            "status": "open",
+            "t_junction": 7,
+            "diameter": 180.0,
+            "type": "pipe",
+            "index": 6,
+            "roughness": 100.0
+        },
+        "11": {
+            "length": 14500.0,
+            "minorloss": 0.0,
+            "f_junction": 12,
+            "status": "open",
+            "t_junction": 11,
+            "diameter": 204.0,
+            "type": "pipe",
+            "index": 11,
+            "roughness": 100.0
+        },
+        "13": {
+            "length": 24100.0,
+            "minorloss": 0.0,
+            "f_junction": 14,
+            "status": "open",
+            "t_junction": 13,
+            "diameter": 204.0,
+            "type": "pipe",
+            "index": 13,
+            "roughness": 100.0
+        },
+        "5": {
+            "length": 8600.0,
+            "minorloss": 0.0,
+            "f_junction": 5,
+            "status": "open",
+            "t_junction": 6,
+            "diameter": 180.0,
+            "type": "pipe",
+            "index": 5,
+            "roughness": 100.0
+        },
+        "15": {
+            "length": 15500.0,
+            "minorloss": 0.0,
+            "f_junction": 1,
+            "status": "open",
+            "t_junction": 15,
+            "diameter": 204.0,
+            "type": "pipe",
+            "index": 15,
+            "roughness": 100.0
+        },
+        "16": {
+            "length": 26400.0,
+            "minorloss": 0.0,
+            "f_junction": 10,
+            "status": "open",
+            "t_junction": 17,
+            "diameter": 72.0,
+            "type": "pipe",
+            "index": 16,
+            "roughness": 100.0
+        },
+        "14": {
+            "length": 21100.0,
+            "minorloss": 0.0,
+            "f_junction": 15,
+            "status": "open",
+            "t_junction": 14,
+            "diameter": 204.0,
+            "type": "pipe",
+            "index": 14,
+            "roughness": 100.0
+        },
+        "21": {
+            "length": 26400.0,
+            "minorloss": 0.0,
+            "f_junction": 9,
+            "status": "open",
+            "t_junction": 16,
+            "diameter": 72.0,
+            "type": "pipe",
+            "index": 21,
+            "roughness": 100.0
+        },
+        "7": {
+            "length": 9600.0,
+            "minorloss": 0.0,
+            "f_junction": 7,
+            "status": "open",
+            "t_junction": 8,
+            "diameter": 132.0,
+            "type": "pipe",
+            "index": 7,
+            "roughness": 100.0
+        },
+        "8": {
+            "length": 12500.0,
+            "minorloss": 0.0,
+            "f_junction": 8,
+            "status": "open",
+            "t_junction": 9,
+            "diameter": 132.0,
+            "type": "pipe",
+            "index": 8,
+            "roughness": 100.0
+        },
+        "17": {
+            "length": 31200.0,
+            "minorloss": 0.0,
+            "f_junction": 12,
+            "status": "open",
+            "t_junction": 18,
+            "diameter": 72.0,
+            "type": "pipe",
+            "index": 17,
+            "roughness": 100.0
+        },
+        "10": {
+            "length": 11200.0,
+            "minorloss": 0.0,
+            "f_junction": 11,
+            "status": "open",
+            "t_junction": 9,
+            "diameter": 204.0,
+            "type": "pipe",
+            "index": 10,
+            "roughness": 100.0
+        },
+        "19": {
+            "length": 14400.0,
+            "minorloss": 0.0,
+            "f_junction": 11,
+            "status": "open",
+            "t_junction": 20,
+            "diameter": 60.0,
+            "type": "pipe",
+            "index": 19,
+            "roughness": 100.0
+        },
+        "9": {
+            "length": 9600.0,
+            "minorloss": 0.0,
+            "f_junction": 9,
+            "status": "open",
+            "t_junction": 10,
+            "diameter": 180.0,
+            "type": "pipe",
+            "index": 9,
+            "roughness": 100.0
+        },
+        "18": {
+            "length": 24000.0,
+            "minorloss": 0.0,
+            "f_junction": 18,
+            "status": "open",
+            "t_junction": 19,
+            "diameter": 60.0,
+            "type": "pipe",
+            "index": 18,
+            "roughness": 100.0
+        },
+        "3": {
+            "length": 7300.0,
+            "minorloss": 0.0,
+            "f_junction": 3,
+            "status": "open",
+            "t_junction": 4,
+            "diameter": 180.0,
+            "type": "pipe",
+            "index": 3,
+            "roughness": 100.0
+        }
+    }
+}

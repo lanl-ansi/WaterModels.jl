@@ -1,0 +1,13 @@
+Data
+
+Either use 
+
+WaterModels.parse_epanet("filename.inp",0)  
+or
+WaterModels.parse_epanet("filename.inp",1)  //Creates a json file too
+
+or
+
+WaterModels.parse_json("filename.json")
+
+WaterModels.parse_file("filename.json")

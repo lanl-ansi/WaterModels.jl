@@ -3,56 +3,93 @@
 # This file provides functions for interfacing with EPANET data files   #
 #                                                                       #
 #########################################################################
-
+using JSON
 #************************************************************
 #Input : .inp file from epanet                              #
 #Output: Dictionary in the desired format for WaterModels.jl#
 #************************************************************
-function parse_epanet(file_string)
+function parse_epanet(file_string,val)
+  println(basename(file_string))
    data_string = readstring(open(file_string))
    epdata = parse_epanet_data(data_string)
-   data = change_data_organization(epdata)
+   data = data_reorganizer(epdata)
+
+   if val ==1
+     json_writer(basename(file_string),data)
+   end
    return data
+
 end
+
+
+#Run it to write a json file **********************
+function json_writer(file_name,data)
+  write_file = replace(file_name,"inp","json")
+  open(write_file, "w") do f
+      JSON.print(f,data,4)
+  end
+end
+
 
 
 #*****************************************************************************************
 #This function changes the data organization (eg: say pipes, pumps, valves combined etc.)#
 #*****************************************************************************************
-function change_data_organization(epdata)
-   data = Dict{AbstractString,Any}()
+function data_reorganizer(epdata)
+  #  data = Dict{AbstractString,Any}()
+  data = Dict{String,Any}()
    #mapping junctions with corresponding coordinates
    #******************************************************************************************************************
    #Note : string(symbol) can be used to convert a symbol to string (useful when index is a string instead of number"#
    #******************************************************************************************************************
-   junctions = []
-   id = 1
-   
+  #  junctions = []
+  # data["junction"] = Dict{AbstractString,Any}()
+  data["junction"] = Dict{String,Any}()
+  #  id = 1
+
    for junc in epdata["junction"]
+
       junc_data = Dict{AbstractString,Any}()
       for coord in epdata["coordinate"]
          if junc["index"]==coord["node"]
-            junc_data["name"] = junc["index"]
-            junc_data["index"] = id
+            # junc_data["name"] = junc["index"]
+            junc_data["index"] = junc["index"]
             junc_data["x_coord"] = coord["x-coord"]
             junc_data["y_coord"] = coord["y-coord"]
-            junc_data["elevation"] = junc["elevation"]
+            junc_data["head"] = junc["elevation"]
             junc_data["demand"] = junc["demand"]
+            junc_data["type"] = "regular"
          end
       end
-      push!(junctions,junc_data)                                 
-#      println(junc["index"])
-   id+=1
+      data["junction"]["$(junc_data["index"])"] = junc_data
 
+  #  id+=1
    end
-   data["junction"] = junctions
 
-   connections = []
-   id = 1
+   for reserv in epdata["reservoir"]
+     junc_data = Dict{AbstractString,Any}()
+     for coord in epdata["coordinate"]
+       if reserv["index"]==coord["node"]
+        #  junc_data["name"] = reserv["index"]
+         junc_data["index"] = reserv["index"]
+         junc_data["x_coord"] = coord["x-coord"]
+         junc_data["y_coord"] = coord["y-coord"]
+         junc_data["head"] = reserv["head"]
+         junc_data["type"] = "reservoir"
+       end
+     end
+     data["junction"]["$(junc_data["index"])"] = junc_data
+    #  push!(junctions,junc_data)
+   end
+
+# data["connection"] = Dict{AbstractString,Any}()
+  data["connection"] = Dict{String,Any}()
+  #  connections = []
+  #  id = 1
    for pipe_rows in epdata["pipe"]
       connect_data = Dict{AbstractString,Any}(
-            "index" => id,
-            #"index" => pipe_rows["index"],
+            # "index" => id,
+            "index" => pipe_rows["index"],
             "type" => "pipe",
             "f_junction" => pipe_rows["f_junction"],
             "t_junction" => pipe_rows["t_junction"],
@@ -60,10 +97,11 @@ function change_data_organization(epdata)
             "diameter" => pipe_rows["diameter"],
             "roughness" => pipe_rows["roughness"],
             "minorloss" => pipe_rows["minorloss"],
-            "status" => pipe_rows["status"],
+            "status" => lowercase(string(pipe_rows["status"])),
            )
-      push!(connections,connect_data)
-      id+=1;
+      data["connection"]["$(connect_data["index"])"] = connect_data
+      # push!(connections,connect_data)
+      # id+=1;
    end
    for pump_rows in epdata["pump"]
       connect_data = Dict{AbstractString,Any}(
@@ -74,7 +112,8 @@ function change_data_organization(epdata)
             "t_junction" => pump_rows["t_junction"],
             "parameters" => pump_rows["parameters"]
              )
-      push!(connections,connect_data)
+      # push!(connections,connect_data)
+      data["connection"]["$(connect_data["index"])"] = connect_data
       id+=1;
    end
 
@@ -90,10 +129,10 @@ function change_data_organization(epdata)
             "setting" => valve_rows["setting"],
             "minorloss" => valve_rows["minorloss"],
            )
-      push!(connections,connect_data)
+      # push!(connections,connect_data)
+      data["connection"]["$(connect_data["index"])"] = connect_data
       id+=1;
    end
-   data["connection"] = connections
 
 
    return data
@@ -113,7 +152,7 @@ function parse_epanet_data(data_string)
    )
 
 
-   parsed_blocks = []  
+   parsed_blocks = []
    last_index = length(data_lines)
    index = 1
    while index <= last_index
@@ -128,7 +167,7 @@ function parse_epanet_data(data_string)
          index = index + 1
          line = strip(data_lines[index])
          case["title"] = strip(line)
-         index = index+1 
+         index = index+1
 
       end
 
@@ -143,15 +182,15 @@ function parse_epanet_data(data_string)
          matrix_block,index = parse_blocks(line,data_lines,index,regular)
          push!(parsed_blocks,matrix_block)
      end
-      
-     
+
+
       if contains(line,"TANKS")
          regular=1
          matrix_block,index = parse_blocks(line,data_lines,index,regular)
          push!(parsed_blocks,matrix_block)
      end
 
-     
+
       if contains(line,"PIPES")
          regular=1
          matrix_block,index = parse_blocks(line,data_lines,index,regular)
@@ -159,27 +198,27 @@ function parse_epanet_data(data_string)
      end
 
 
-     
+
       if contains(line,"PUMPS")
          regular=1
          matrix_block,index = parse_blocks(line,data_lines,index,regular)
          push!(parsed_blocks,matrix_block)
      end
 
-     
+
       if contains(line,"VALVES")
          regular=1
          matrix_block,index = parse_blocks(line,data_lines,index,regular)
-         push!(parsed_blocks,matrix_block)    
+         push!(parsed_blocks,matrix_block)
       end
-      
+
       if contains(line,"COORDINATES")
          regular=0
          matrix_block,index = parse_blocks(line,data_lines,index,regular)
          #println(matrix_block)
          push!(parsed_blocks,matrix_block)
       end
-      
+
       index += 1
    end
    #println(parsed_blocks )
@@ -192,7 +231,7 @@ function parse_epanet_data(data_string)
          for junc_row in parsed_block["data"]
             #println(junc_row)
             if length(junc_row)!=0
-               
+
                junc_data = Dict{AbstractString,Any}(
                      "index" => parse(Int, junc_row[1]),
                      "elevation" => parse(Float64, junc_row[2]),
@@ -202,10 +241,10 @@ function parse_epanet_data(data_string)
             if length(junc_row)>3
                junc_data["pattern"] = parse(Float64,junc_row[4])
             end
-            
+
             push!(junctions,junc_data)
          end
-      
+
          case["junction"] = junctions
          #
       elseif parsed_block["name"] == "reservoirs"
@@ -243,9 +282,9 @@ function parse_epanet_data(data_string)
          end
 
          case["tank"] = tanks
-         
-      
-     
+
+
+
       elseif parsed_block["name"] == "pipes"
          pipes = []
 
@@ -265,7 +304,7 @@ function parse_epanet_data(data_string)
 
             push!(pipes,pipe_data)
          end
-         
+
          case["pipe"] = pipes
 
       elseif parsed_block["name"] == "pumps"
@@ -278,7 +317,7 @@ function parse_epanet_data(data_string)
                      "f_junction" => parse(Int,pump_row[2]),
                      "t_junction" => parse(Int,pump_row[3]),
                      "parameters" => parse(Float64,pump_row[4])
-                    )                             
+                    )
 
             end
 
@@ -288,7 +327,7 @@ function parse_epanet_data(data_string)
          case["pump"] = pumps
       elseif parsed_block["name"] == "valves"
          valves = []
-         
+
          for valve_row in parsed_block["data"]
             if length(valve_row)! = 0
                valve_data = Dict{AbstractString,Any}(
@@ -317,19 +356,19 @@ function parse_epanet_data(data_string)
                      "x-coord" => parse(Float64,coord_row[2]),
                      "y-coord" => parse(Float64,coord_row[3])
                     )
-                                                    
+
             end
 
             push!(coordinates,coord_data)
          end
-         
+
          case["coordinate"] = coordinates
-        
+
       end#elif_end
-      
+
    end#for end
 
-   return case 
+   return case
 end#func end
 
 #*****************************************************************************************
@@ -343,7 +382,7 @@ function parse_blocks(line,data_lines,index,regular)
    #println(column_names)
    index = index+1
 
- 
+
    while(line!="")
       line = strip(data_lines[index])
 
@@ -352,7 +391,7 @@ function parse_blocks(line,data_lines,index,regular)
    end
   #******************************************************
   #When lines don't end with ';'
-   
+
    if (regular==0)&&(length(block_lines)!=0)
       l = size(block_lines)[1]
       block_lines1 = []
@@ -385,7 +424,7 @@ function parse_blocks(line,data_lines,index,regular)
       end
       push!(matrix_block,row_items)
    end
-  
+
    if size(matrix_block,1)==0
       println("Warning : All fields in $block_name are empty")
    elseif empty_warning == 1
@@ -394,7 +433,7 @@ function parse_blocks(line,data_lines,index,regular)
    end
 
    block_dict = Dict("name" => lowercase(block_name), "data" => matrix_block, "column_names"=>column_names)
-     
+
    index = index-1
    return block_dict,index
 end
@@ -446,5 +485,3 @@ function split_line(ep_line::AbstractString)
         return split(ep_line)
     end
 end
-
-
