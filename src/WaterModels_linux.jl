@@ -7,7 +7,7 @@ using MathProgBase
 using JuMP
 using Compat
 
-#include("io/epanet.jl")
+include("io/epanet.jl")
 include("io/json.jl")
 include("io/common.jl")
 
