@@ -78,7 +78,9 @@ function data_reorganizer(epdata)
                 junc_data["type"] = "reservoir"
             end
         end
-        data["junction"]["$(junc_data["index"])"] = junc_data
+        if length(junc_data)>0
+            data["junction"]["$(junc_data["index"])"] = junc_data
+        end
         #  push!(junctions,junc_data)
     end
     
@@ -105,8 +107,8 @@ function data_reorganizer(epdata)
     end
     for pump_rows in epdata["pump"]
         connect_data = Dict{AbstractString,Any}(
-        "index" => id,
-        #"index" => pump_rows["index"],
+        #"index" => id,
+        "index" => pump_rows["index"],
         "type" => "pump",
         "f_junction" => pump_rows["f_junction"],
         "t_junction" => pump_rows["t_junction"],
@@ -114,13 +116,13 @@ function data_reorganizer(epdata)
         )
         # push!(connections,connect_data)
         data["connection"]["$(connect_data["index"])"] = connect_data
-        id+=1;
+        #id+=1;
     end
     
     for valve_rows in epdata["valve"]
         connect_data = Dict{AbstractString,Any}(
-        "index" => id,
-        #"index" => valve_rows["index"],
+        #"index" => id,
+        "index" => valve_rows["index"],
         "type" => "valve",
         "f_junction" => valve_rows["f_junction"],
         "t_junction" => valve_rows["t_junction"],
@@ -131,7 +133,7 @@ function data_reorganizer(epdata)
         )
         # push!(connections,connect_data)
         data["connection"]["$(connect_data["index"])"] = connect_data
-        id+=1;
+        #id+=1;
     end
     
     
