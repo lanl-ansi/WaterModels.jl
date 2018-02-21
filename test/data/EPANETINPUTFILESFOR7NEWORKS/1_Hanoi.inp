@@ -103,7 +103,9 @@
 
 
 
+
 [RULES]
+
 
 
 
@@ -160,6 +162,9 @@
  Viscosity          	1
  Trials             	40
  Accuracy           	0.000001
+ CHECKFREQ          	2
+ MAXCHECK           	10
+ DAMPLIMIT          	0
  Unbalanced         	Continue 10
  Pattern            	1
  Demand Multiplier  	1.0

@@ -878,7 +878,6 @@
 
 [TAGS]
 
-
 [DEMANDS]
 ;Junction        	Demand      	Pattern         	Category
 
@@ -912,6 +911,7 @@
 								
 								
 
+
 [RULES]
 								
 								
@@ -932,6 +932,7 @@
 								
 								
 								
+
 
 [ENERGY]
  Global Efficiency  	75
@@ -982,6 +983,8 @@
 [OPTIONS]
  Units              	LPS
  Headloss           	D-W
+ Specific Gravity   	1
+ Viscosity          	1
  Trials             	300
  Accuracy           	0.001
  CHECKFREQ          	2
