@@ -150,7 +150,7 @@ function build_ref(data::Dict{String,Any})
     ref = Dict{Symbol,Any}()
     for (key, item) in data
         if isa(item, Dict)
-            item_lookup = Dict([(parse(Int, k), v) for (k,v) in item])
+            item_lookup = Dict([(parse(k), v) for (k,v) in item])
             ref[Symbol(key)] = item_lookup
         else
             ref[Symbol(key)] = item
@@ -186,9 +186,9 @@ function build_ref(data::Dict{String,Any})
     # for entry in [ref[:connection]; ref[:ne_connection]]
     for entry in [ref[:connection]]
         for (idx, connection) in entry
-            i = connection["f_junction"]
-            j = connection["t_junction"]
-            ref[:parallel_connections][(min(i,j), max(i,j))] = []
+            i = string(connection["f_junction"])
+            j = string(connection["t_junction"])
+            ref[:parallel_connections][(parse(min(i,j)), parse(max(i,j)))] = []
             # ref[:all_parallel_connections][(min(i,j), max(i,j))] = []
         end
     end
@@ -197,11 +197,11 @@ function build_ref(data::Dict{String,Any})
     # ref[:junction_ne_connections] = Dict(i => [] for (i,junction) in ref[:junction])
 
     for (idx, connection) in ref[:connection]
-        i = connection["f_junction"]
-        j = connection["t_junction"]
-        push!(ref[:junction_connections][i], idx)
-        push!(ref[:junction_connections][j], idx)
-        push!(ref[:parallel_connections][(min(i,j), max(i,j))], idx)
+        i = string(connection["f_junction"])
+        j = string(connection["t_junction"])
+        push!(ref[:junction_connections][parse(i)], idx)
+        push!(ref[:junction_connections][parse(j)], idx)
+        push!(ref[:parallel_connections][(parse(min(i,j)), parse(max(i,j)))], idx)
         # push!(ref[:all_parallel_connections][(min(i,j), max(i,j))], idx)
     end
 
