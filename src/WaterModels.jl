@@ -7,25 +7,52 @@ using MathProgBase
 using JuMP
 using Compat
 
-include("io\\epanet.jl")
-include("io\\json.jl")
-include("io\\common.jl")
+if is_linux() || is_apple()
+    include("io/epanet.jl")
+    include("io/json.jl")
+    include("io/common.jl")
+    
+    
+    
+    include("core/base.jl")
+    include("core/data.jl")
+    include("core/variable.jl")
+    include("core/constraint.jl")
+    # include("core/objective.jl")
+    include("core/solution.jl")
+    
+    include("form/minlp.jl")
+    include("form/misocp.jl")
+    
+    include("prob/wf.jl")
+    # include("prob/ne.jl")
+    # include("prob/ls.jl")
+    # include("prob/nels.jl")
+    # include("prob/nelsfd.jl")
+end
+
+if is_windows()
+    include("io\\epanet.jl")
+    include("io\\json.jl")
+    include("io\\common.jl")
 
 
-include("core\\base.jl")
-include("core\\data.jl")
-include("core\\variable.jl")
-include("core\\constraint.jl")
-# include("core\\objective.jl")
-include("core\\solution.jl")
+    include("core\\base.jl")
+    include("core\\data.jl")
+    include("core\\variable.jl")
+    include("core\\constraint.jl")
+    # include("core\\objective.jl")
+    include("core\\solution.jl")
 
-include("form\\minlp.jl")
-include("form\\misocp.jl")
+    include("form\\minlp.jl")
+    include("form\\misocp.jl")
 
-include("prob\\wf.jl")
-# include("prob\\ne.jl")
-# include("prob\\ls.jl")
-# include("prob\\nels.jl")
-# include("prob\\nelsfd.jl")
+    include("prob\\wf.jl")
+    # include("prob\\ne.jl")
+    # include("prob\\ls.jl")
+    # include("prob\\nels.jl")
+    # include("prob\\nelsfd.jl")
+end
 
 end
+
