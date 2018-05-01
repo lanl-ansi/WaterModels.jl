@@ -1,0 +1,32 @@
+language: julia
+os:
+  - linux
+  - osx
+julia:
+  - 0.6
+  - nightly
+matrix:
+  allow_failures:
+    - julia: nightly
+cache:
+ directories:
+   - /home/travis/.julia
+addons:
+  apt_packages:
+    - gfortran
+
+before_install:
+    # Don't keep an old version of the code in the cache.
+  - julia -e 'if "WaterModels" in keys(Pkg.installed()) Pkg.rm("WaterModels"); Pkg.rm("WaterModels") end'
+  - julia -e 'Pkg.update()' # Make sure we get the latest version of METADATA.
+  - julia -e 'if !("Coverage" in keys(Pkg.installed())) Pkg.add("Coverage") end'
+  - julia -e 'if !("Documenter" in keys(Pkg.installed())) Pkg.add("Documenter") end'
+
+script:
+  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+  - julia -e 'Pkg.clone(pwd())'
+  - julia -e 'Pkg.test("WaterModels", coverage=true)'
+
+after_success:
+  - julia -e  'using Coverage; cd(Pkg.dir("WaterModels")); LCOV.writefile("lcov.info", process_folder(".")); run(pipeline(`curl -s https://codecov.io/bash`, `bash`))'
+  - julia -e 'cd(Pkg.dir("WaterModels")); include(joinpath("docs", "make.jl"))'
