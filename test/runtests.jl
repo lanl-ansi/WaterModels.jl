@@ -1,0 +1,29 @@
+using WaterModels
+using InfrastructureModels
+using Memento
+
+# Suppress warnings during testing.
+setlevel!(getlogger(InfrastructureModels), "error")
+setlevel!(getlogger(WaterModels), "error")
+
+using Cbc
+using Ipopt
+using SCS
+using Pajarito
+using Juniper
+
+using Base.Test
+
+# default setup for solvers
+ipopt_solver = IpoptSolver(tol=1e-6, print_level=0)
+cbc_solver = CbcSolver()
+juniper_solver = JuniperSolver(IpoptSolver(tol=1e-4, print_level=0), mip_solver=cbc_solver, log_levels=[])
+pajarito_solver = PajaritoSolver(mip_solver=cbc_solver, cont_solver=ipopt_solver, log_level=0)
+scs_solver = SCSSolver(max_iters=1000000, verbose=0)
+
+
+@testset "WaterModels" begin
+
+include("opf.jl")
+
+end
