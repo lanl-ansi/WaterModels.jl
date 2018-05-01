@@ -1,26 +1,23 @@
-# Definitions for running a feasible water flow
+# Definitions for running a feasible water flow.
+# Note that this particular formulation assumes the binary variable implementation of flow direction.
+# We would need to do some abstraction to support the absolute value formulation.
 
-# Note that this particular formulation assumes the binary variable implementation of flow direction
-# We would need to do some abstraction to support the absolute value formulation
+export run_feasibility
 
-export run_wf
-
-# entry point into running the water flow feasability problem
-function run_wf(file, model_constructor, solver; kwargs...)
-    return run_generic_model(file, model_constructor, solver, post_wf; kwargs...)
+function run_feasibility(file, model_constructor, solver; kwargs...)
+    return run_generic_model(file, model_constructor, solver, post_feasibility; kwargs...)
 end
 
 ""
-function run_soc_wf(file, solver; kwargs...)
-    return run_wf(file, MISOCPWaterModel, solver; kwargs...)
+function run_soc_feasibility(file, solver; kwargs...)
+    return run_feasibility(file, MISOCPWaterModel, solver; kwargs...)
 end
 
 # construct the water flow feasbility problem
-function post_wf{T}(wm::GenericWaterModel{T})
+function post_feasibility{T}(wm::GenericWaterModel{T})
     # variable_pressure_sqr(wm)
 
     variable_head(wm)
-    # variable_head(wm)
     variable_flux(wm)
     variable_connection_direction(wm)
     # variable_flux_square(wm)

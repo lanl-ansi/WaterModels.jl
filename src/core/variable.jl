@@ -15,7 +15,7 @@ end
 
 " variables associated with flux "
 function variable_flux{T}(wm::GenericWaterModel{T})
-    # max_flow = wm.ref[:max_flow]
+    max_flow = wm.ref[:max_flow]
     wm.var[:f] = @variable(wm.model, [i in keys(wm.ref[:connection])], basename="f", lowerbound=-max_flow, upperbound=max_flow, start = getstart(wm.ref[:connection], i, "f_start", 0))
 end
 

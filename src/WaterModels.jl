@@ -15,24 +15,11 @@ import Compat: @__MODULE__
 const LOGGER = getlogger(@__MODULE__)
 setlevel!(LOGGER, "info")
 
-# Register the module level logger at runtime so the logger can be accessed via `getlogger(PowerModels)`
+# Register the module level logger at runtime so the logger can be accessed via `getlogger(WaterModels)`
 # NOTE: If this line is not included, then the precompiled `WaterModels.LOGGER` won't be registered at runtime.
 __init__() = Memento.register(LOGGER)
 
-include("io/epanet.jl")
-include("io/json.jl")
 include("io/common.jl")
-
-include("core/data.jl")
-include("core/base.jl")
-include("core/variable.jl")
-include("core/constraint.jl")
-include("core/objective.jl")
-include("core/solution.jl")
-
-include("form/minlp.jl")
-include("form/misocp.jl")
-
-include("prob/wf.jl")
+include("io/epanet.jl")
 
 end
