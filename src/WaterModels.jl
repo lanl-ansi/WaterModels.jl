@@ -21,5 +21,6 @@ __init__() = Memento.register(LOGGER)
 
 include("io/common.jl")
 include("io/epanet.jl")
+include("core/base.jl")
 
 end
