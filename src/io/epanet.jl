@@ -10,25 +10,39 @@ function parse_epanet_file(path::String)
     file_contents = readstring(open(path))
     lines = split(file_contents, '\n')
     epanet_dict = Dict()
-    section = nothing
-    headings = nothing
+    section = headings = nothing
     headings_exist = false
 
-    for line in lines
+    for (i, line) in enumerate(lines)
         if ismatch(r"^\s*\[(.*)\]", line) # If a section heading.
             section = lowercase(strip(line, ['[', ']']))
+            headings_exist = ismatch(r"^;", lines[i+1])
+            if !headings_exist
+                epanet_dict["$section"] = Dict()
+            end
         elseif ismatch(r"^;", line) # If a section heading.
             headings = split(lowercase(strip(line, [';'])))
             epanet_dict["$section"] = Dict(h => [] for h = headings)
         elseif length(line) == 0
             continue
         else
-            data = split(lowercase(line))
-            for (i, heading) in enumerate(headings)
-	        append!(epanet_dict["$section"]["$heading"], data[i])
+            if headings_exist
+                data = split(lowercase(strip(line, [';'])))
+                for (j, heading) in enumerate(headings)
+		    if j <= length(data)
+	                push!(epanet_dict["$section"]["$heading"], data[j])
+		    else
+	                push!(epanet_dict["$section"]["$heading"], "")
+		    end
+                end
+            else
+                data = split(lowercase(line))
+		epanet_dict["$section"][data[1]] = data[2:end]
             end
         end
     end
+
+    println(JSON.json(epanet_dict, 4))
 
     return 0 #file_contents
 end
