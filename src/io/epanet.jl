@@ -8,6 +8,7 @@
 
 function parse_epanet_file(path::String)
     file_contents = readstring(open(path))
+    file_contents = replace(file_contents, "\t", "    ")
     lines = split(file_contents, '\n')
     epanet_dict = Dict()
     section = headings = nothing
@@ -36,15 +37,14 @@ function parse_epanet_file(path::String)
 		    end
                 end
             else
-                data = split(lowercase(line))
-		epanet_dict["$section"][data[1]] = data[2:end]
+		heading = strip(split(line, "  ")[1])
+                data = split(lowercase(strip(replace(line, heading, ""))))
+		epanet_dict["$section"][lowercase(heading)] = data
             end
         end
     end
 
-    println(JSON.json(epanet_dict, 4))
-
-    return 0 #file_contents
+    return epanet_dict
 end
 
 #function data_reorganizer(epdata)
