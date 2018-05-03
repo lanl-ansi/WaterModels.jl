@@ -25,7 +25,7 @@ before_install:
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   - julia -e 'Pkg.clone(pwd())'
-  - julia -e 'Pkg.test("WaterModels", coverage=true)'
+  - julia -e 'Pkg.test("WaterModels", coverage = true)'
 
 after_success:
   - julia -e  'using Coverage; cd(Pkg.dir("WaterModels")); LCOV.writefile("lcov.info", process_folder(".")); run(pipeline(`curl -s https://codecov.io/bash`, `bash`))'
