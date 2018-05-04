@@ -47,22 +47,22 @@ mutable struct GenericWaterModel{T<:AbstractWaterFormulation}
     ext::Dict{Symbol, Any}
 end
 
-function GenericWaterModel(data::Dict{String, Any};
+function GenericWaterModel(data::Dict{String, Any}, T::DataType;
                            ext = Dict{String, Any}(),
                            setting = Dict{String,Any}(),
                            solver = JuMP.UnsetSolver())
-    ref = Dict{Symbol, Any}(:nw ) #nothing
+    ref = Dict{Symbol, Any}(:nw => Dict{Int, Any}())
     var = Dict{Symbol, Any}(:nw => Dict{Int, Any}())
     con = Dict{Symbol, Any}(:nw => Dict{Int, Any}())
-    cnw = minimum([k for k in keys(ref[:nw])])
+    cnw = 1 #minimum([k for k in keys(ref[:nw])])
 
     for nw_id in keys(ref[:nw])
         var[:nw][nw_id] = Dict{Symbol, Any}()
         con[:nw][nw_id] = Dict{Symbol, Any}()
     end
 
-    wm = GenericWaterModel(Model(solver = solver), data, setting,
-                           Dict{String, Any}(), ref, var, con, cnw, ext)
+    wm = GenericWaterModel{T}(Model(solver = solver), data, setting,
+                              Dict{String, Any}(), ref, var, con, cnw, ext)
 
     return wm
 end
@@ -73,7 +73,6 @@ end
 
 function build_generic_model(path::String, model_constructor; kwargs...)
     data = WaterModels.parse_file(path)
-    println(data)
     return build_generic_model(data, model_constructor; kwargs...)
 end
 

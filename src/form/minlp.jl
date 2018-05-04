@@ -3,10 +3,10 @@
 export
     MINLPWaterModel, StandardMINLPForm
 ""
-@compat abstract type AbstractMINLPForm <: AbstractWaterFormulation end
+abstract type AbstractMINLPForm <: AbstractWaterFormulation end
 
 ""
-@compat abstract type StandardMINLPForm <: AbstractMINLPForm end
+abstract type StandardMINLPForm <: AbstractMINLPForm end
 
 const MINLPWaterModel = GenericWaterModel{StandardMINLPForm}
 
