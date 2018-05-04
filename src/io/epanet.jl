@@ -45,5 +45,6 @@ function parse_epanet_file(path::String)
         end
     end
 
+    epanet_dict["multinetwork"] = false
     return epanet_dict
 end

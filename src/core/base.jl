@@ -51,7 +51,7 @@ function GenericWaterModel(data::Dict{String, Any}, T::DataType;
                            ext = Dict{String, Any}(),
                            setting = Dict{String,Any}(),
                            solver = JuMP.UnsetSolver())
-    ref = Dict{Symbol, Any}(:nw => Dict{Int, Any}())
+    ref = build_ref(data)
     var = Dict{Symbol, Any}(:nw => Dict{Int, Any}())
     con = Dict{Symbol, Any}(:nw => Dict{Int, Any}())
     cnw = 1 #minimum([k for k in keys(ref[:nw])])
@@ -74,6 +74,46 @@ end
 function build_generic_model(path::String, model_constructor; kwargs...)
     data = WaterModels.parse_file(path)
     return build_generic_model(data, model_constructor; kwargs...)
+end
+
+"""
+Returns a dict that stores commonly used pre-computed data from of the data dictionary,
+primarily for converting data-types, filtering out deactivated components, and storing
+system-wide values that need to be computed globally.
+
+Some of the common keys include:
+
+* `:max_flow` (see `max_flow(data)`),
+* `:connection` -- the set of connections that are active in the network (based on the component status values),
+* `:pipe` -- the set of connections that are pipes (based on the component type values),
+* `:short_pipe` -- the set of connections that are short pipes (based on the component type values),
+* `:compressor` -- the set of connections that are compressors (based on the component type values),
+* `:valve` -- the set of connections that are valves (based on the component type values),
+* `:control_valve` -- the set of connections that are control valves (based on the component type values),
+* `:resistor` -- the set of connections that are resistors (based on the component type values),
+* `:parallel_connections` -- the set of all existing connections between junction pairs (i,j),
+* `:all_parallel_connections` -- the set of all existing and new connections between junction pairs (i,j),
+* `:junction_connections` -- the set of all existing connections of junction i,
+* `:junction_ne_connections` -- the set of all new connections of junction i,
+* `junction[degree]` -- the degree of junction i using existing connections (see `add_degree`)),
+* `junction[all_degree]` -- the degree of junction i using existing and new connections (see `add_degree`)),
+* `connection[pd_min,pd_max]` -- the max and min square pressure difference (see `add_pd_bounds_swr`)),
+
+If `:ne_connection` does not exist, then an empty reference is added
+If `status` does not exist in the data, then 1 is added
+If `construction cost` does not exist in the `:ne_connection`, then 0 is added
+"""
+function build_ref(data::Dict{String, Any})
+    refs = Dict{Symbol, Any}()
+    nws = refs[:nw] = Dict{Int, Any}()
+
+    if data["multinetwork"]
+        nws_data = data["nw"]
+    else
+        nws_data = Dict{String, Any}("0" => data)
+    end
+
+    return refs
 end
 
 #" Set the solver "
