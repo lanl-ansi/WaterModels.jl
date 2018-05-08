@@ -45,6 +45,13 @@ function parse_epanet_file(path::String)
         end
     end
 
+    # Correct the type of the title entry within the dictionary.
+    if length(keys(epanet_dict["title"])) > 0
+        epanet_dict["title"] = first(keys(epanet_dict["title"]))
+    else
+        epanet_dict["title"] = ""
+    end
+
     epanet_dict["multinetwork"] = false
     return epanet_dict
 end
