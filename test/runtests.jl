@@ -6,15 +6,16 @@ using Memento
 setlevel!(getlogger(InfrastructureModels), "error")
 setlevel!(getlogger(WaterModels), "error")
 
-using Ipopt
+using JuMP, AmplNLWriter
 using Base.Test
 
 # Solver setups.
-ipopt_solver = IpoptSolver(tol = 1.0e-6, print_level = 0)
+bonmin = AmplNLSolver("bonmin", ["bonmin.nlp_log_level=0"])
 
 # Perform the tests.
 @testset "WaterModels" begin
 
 include("data.jl")
+include("feasibility.jl")
 
 end
