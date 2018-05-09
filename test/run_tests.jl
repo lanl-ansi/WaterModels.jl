@@ -14,6 +14,6 @@ bonmin = AmplNLSolver("bonmin", ["bonmin.nlp_log_level=0"])
 
 # Perform the tests.
 @testset "WaterModels" begin
-	include("data.jl")
-	#include("feasibility.jl")
+	#include("data.jl")
+	include("feasibility.jl")
 end

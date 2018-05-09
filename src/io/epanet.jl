@@ -52,6 +52,30 @@ function parse_epanet_file(path::String)
         epanet_dict["title"] = ""
     end
 
+    # Parse relevant data into a more structured format.
+    epanet_dict["junctions"] = parse_junctions(epanet_dict["junctions"])
+
     epanet_dict["multinetwork"] = false
+
     return epanet_dict
+end
+
+function allequal(x) 
+    return all(y->y == x[1], x)
+end
+
+function parse_junctions(data::Dict{String, Array})
+    # Specify the data types for the junction data.
+    columns = Dict("demand" => Float64, "elev" => Float64,
+                   "id" => String, "pattern" => String)
+
+    # Ensure the arrays describing junction data are all of equal lengths.
+    @assert(allequal([length(data[column]) for column in keys(columns)]))
+
+    # Build an array of junction dictionaries with the correct data types.
+    num_junctions = length(data["id"])
+    #junctions = [Dict(c => parse(v, data[c][i]) for (c, v) in columns) for i = 1:num_junctions]
+    #println(junctions)
+
+    return data
 end
