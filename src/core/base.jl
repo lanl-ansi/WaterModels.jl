@@ -54,7 +54,7 @@ function GenericWaterModel(data::Dict{String, Any}, T::DataType;
     ref = build_ref(data)
     var = Dict{Symbol, Any}(:nw => Dict{Int, Any}())
     con = Dict{Symbol, Any}(:nw => Dict{Int, Any}())
-    cnw = 1 #minimum([k for k in keys(ref[:nw])])
+    cnw = minimum(keys(ref[:nw]))
 
     for nw_id in keys(ref[:nw])
         var[:nw][nw_id] = Dict{Symbol, Any}()
@@ -67,18 +67,47 @@ function GenericWaterModel(data::Dict{String, Any}, T::DataType;
     return wm
 end
 
-function build_generic_model(data::Dict{String, Any}, model_constructor; kwargs...)
-    return model_constructor(data; kwargs...)
+function build_generic_model(data::Dict{String, Any}, model_constructor, post_method; kwargs...)
+    wm = model_constructor(data; kwargs...)
+    post_method(wm)
+    return wm
 end
 
-function build_generic_model(path::String, model_constructor; kwargs...)
+function build_generic_model(path::String, model_constructor, post_method; kwargs...)
     data = WaterModels.parse_file(path)
-    return build_generic_model(data, model_constructor; kwargs...)
+    return build_generic_model(data, model_constructor, post_method; kwargs...)
+end
+
+function run_generic_model(path::String, model_constructor, solver, post_method; solution_builder = get_solution, kwargs...)
+    wm = build_generic_model(path, model_constructor, post_method; kwargs...)
+    return solve_generic_model(wm, solver; solution_builder = solution_builder)
+end
+
+function solve_generic_model(wm::GenericWaterModel, solver; solution_builder = get_solution)
+    setsolver(wm.model, solver)
+    status, solve_time = solve(wm)
+    return build_solution(wm, status, solve_time; solution_builder = solution_builder)
+end
+
+function JuMP.setsolver(wm::GenericWaterModel, solver::MathProgBase.AbstractMathProgSolver)
+    setsolver(wm.model, solver)
+end
+
+function JuMP.solve(wm::GenericWaterModel)
+    status, solve_time, solve_bytes_alloc, sec_in_gc = @timed solve(wm.model)
+
+    try
+        solve_time = getsolvetime(wm.model)
+    catch
+        warn(LOGGER, "There was an issue with getsolvetime() on the solver, falling back on @timed.  This is not a rigorous timing value.");
+    end
+
+    return status, solve_time
 end
 
 """
-Returns a dict that stores commonly used pre-computed data from of the data dictionary,
-primarily for converting data-types, filtering out deactivated components, and storing
+Returns a dict that stores commonly-used, precomputed data from of the data dictionary,
+primarily for converting data types, filtering out deactivated components, and storing
 system-wide values that need to be computed globally.
 
 Some of the common keys include:
@@ -118,17 +147,25 @@ function build_ref(data::Dict{String, Any})
         ref = nws[nw_id] = Dict{Symbol, Any}()
 
         for (key, item) in nw_data
-            if isa(item, Dict)
-                item_lookup = Dict([(parse(Int, k), v) for (k, v) in item])
-                ref[Symbol(key)] = item_lookup
-            else
-                ref[Symbol(key)] = item
-            end
+            ref[Symbol(key)] = item
+            #if isa(item, Dict)
+            #    item_lookup = Dict([(parse(String, k), v) for (k, v) in item])
+            #    ref[Symbol(key)] = item_lookup
+            #else
+            #    ref[Symbol(key)] = item
+            #end
         end
+
+        #println(ref[:pipes])
+
+        ref[:arcs_from] = [(id, arc["node1"], arc["node2"]) for (id, arc) in ref[:pipes]]
+        ref[:arcs_to] = [(id, to, from) for (id, from, to) in ref[:arcs_from]]
+        ref[:arcs] = [ref[:arcs_from]; ref[:arcs_to]]
     end
 
     return refs
 end
+
 
 #" Set the solver "
 #function JuMP.setsolver(wm::GenericWaterModel, solver::MathProgBase.AbstractMathProgSolver)

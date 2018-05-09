@@ -21,7 +21,13 @@ __init__() = Memento.register(LOGGER)
 
 include("io/common.jl")
 include("io/epanet.jl")
+
 include("core/base.jl")
+include("core/variable.jl")
+include("core/solution.jl")
+
 include("form/minlp.jl")
+
+include("prob/feasibility.jl")
 
 end

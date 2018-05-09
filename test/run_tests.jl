@@ -10,7 +10,10 @@ using JuMP, AmplNLWriter
 using Base.Test
 
 # Solver setups.
-bonmin = AmplNLSolver("bonmin", ["bonmin.nlp_log_level=0"])
+options = ["bonmin.bb_log_level=0","bonmin.fp_log_level=0",
+           "bonmin.lp_log_level=0","bonmin.milp_log_level=0",
+           "bonmin.nlp_log_level=0","bonmin.oa_log_level=0"]
+bonmin = AmplNLSolver("bonmin", options)
 
 # Perform the tests.
 @testset "WaterModels" begin

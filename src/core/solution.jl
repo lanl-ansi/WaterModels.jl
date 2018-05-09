@@ -8,22 +8,18 @@ function build_solution{T}(wm::GenericWaterModel{T}, status, solve_time; objecti
 
     sol = solution_builder(wm)
 
-    solution = Dict{AbstractString,Any}(
+    solution = Dict{AbstractString, Any}(
         "solver" => string(typeof(wm.model.solver)),
         "status" => status,
         "objective" => objective,
         "objective_lb" => guard_getobjbound(wm.model),
         "solve_time" => solve_time,
         "solution" => sol,
-        "machine" => Dict(
-            "cpu" => Sys.cpu_info()[1].model,
-            "memory" => string(Sys.total_memory()/2^30, " Gb")
-            ),
-        "data" => Dict(
-            "junction_count" => length(wm.ref[:junction]),
-            "connection_count" => length(wm.ref[:connection])
-            )
-        )
+        "machine" => Dict("cpu" => Sys.cpu_info()[1].model,
+                          "memory" => string(Sys.total_memory()/2^30, " Gb")),
+        #"data" => Dict("junction_count" => length(wm.ref[:junction]),
+        #               "connection_count" => length(wm.ref[:connection]))
+    )
 
     wm.solution = solution
 
@@ -38,8 +34,8 @@ end
 " Get all the solution values "
 function get_solution{T}(wm::GenericWaterModel{T})
     sol = init_solution(wm)
-    add_junction_pressure_setpoint(sol, wm)
-    add_connection_flow_setpoint(sol, wm)
+    #add_junction_pressure_setpoint(sol, wm)
+    #add_connection_flow_setpoint(sol, wm)
     return sol
 end
 
