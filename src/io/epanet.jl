@@ -45,37 +45,48 @@ function parse_epanet_file(path::String)
         end
     end
 
-    # Correct the type of the title entry within the dictionary.
-    if length(keys(epanet_dict["title"])) > 0
-        epanet_dict["title"] = first(keys(epanet_dict["title"]))
-    else
-        epanet_dict["title"] = ""
-    end
-
     # Parse relevant data into a more structured format.
-    epanet_dict["junctions"] = parse_junctions(epanet_dict["junctions"])
+    dict = Dict{String, Any}()
+    dict["title"] = parse_title(epanet_dict["title"])
+    dict["junctions"] = parse_junctions(epanet_dict["junctions"])
+    dict["pipes"] = parse_pipes(epanet_dict["pipes"])
+    dict["multinetwork"] = false
 
-    epanet_dict["multinetwork"] = false
-
-    return epanet_dict
+    return dict
 end
 
 function allequal(x) 
     return all(y->y == x[1], x)
 end
 
+function parse_general(dtype::Type, data::Any)
+    return dtype == String ? data : parse(dtype, data)
+end
+
+function parse_title(data::Dict{String, Any})
+    return length(keys(data)) > 0 ? first(keys(data)) : ""
+end
+
 function parse_junctions(data::Dict{String, Array})
     # Specify the data types for the junction data.
-    columns = Dict("demand" => Float64, "elev" => Float64,
-                   "id" => String, "pattern" => String)
+    columns = Dict("demand" => Float64, "elev" => Float64, "id" => String, "pattern" => String)
 
     # Ensure the arrays describing junction data are all of equal lengths.
     @assert(allequal([length(data[column]) for column in keys(columns)]))
 
-    # Build an array of junction dictionaries with the correct data types.
-    num_junctions = length(data["id"])
-    #junctions = [Dict(c => parse(v, data[c][i]) for (c, v) in columns) for i = 1:num_junctions]
-    #println(junctions)
+    # Return an array of junction dictionaries with the correct data types.
+    return [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["id"])]
+end
 
-    return data
+function parse_pipes(data::Dict{String, Array})
+    # Specify the data types for the junction data.
+    columns = Dict("diameter" => Float64, "id" => String, "length" => Float64,
+                   "minorloss" => Float64, "node1" => String, "node2" => String,
+                   "roughness" => Float64, "status" => String)
+
+    # Ensure the arrays describing junction data are all of equal lengths.
+    @assert(allequal([length(data[column]) for column in keys(columns)]))
+
+    # Return an array of junction dictionaries with the correct data types.
+    return [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["id"])]
 end

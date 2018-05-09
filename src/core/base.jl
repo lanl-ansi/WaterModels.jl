@@ -113,22 +113,20 @@ function build_ref(data::Dict{String, Any})
         nws_data = Dict{String, Any}("0" => data)
     end
 
-    #for (n, nw_data) in nws_data
-    #    nw_id = parse(Int, n)
-    #    ref = nws[nw_id] = Dict{Symbol, Any}()
+    for (n, nw_data) in nws_data
+        nw_id = parse(Int, n)
+        ref = nws[nw_id] = Dict{Symbol, Any}()
 
-    #    for (key, item) in nw_data
-    #        println(key, item)
-    #        if isa(item, Dict)
-    #            item_lookup = Dict([(parse(Int, k), v) for (k, v) in item])
-    #            ref[Symbol(key)] = item_lookup
-    #        else
-    #            ref[Symbol(key)] = item
-    #        end
-    #    end
-    #end
+        for (key, item) in nw_data
+            if isa(item, Dict)
+                item_lookup = Dict([(parse(Int, k), v) for (k, v) in item])
+                ref[Symbol(key)] = item_lookup
+            else
+                ref[Symbol(key)] = item
+            end
+        end
+    end
 
-    #println(refs)
     return refs
 end
 
