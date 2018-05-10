@@ -30,7 +30,6 @@ before_install:
   # Install dependencies on OSX, if required.
   - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then brew update; fi
   - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then brew install autoconf; fi
-  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then brew install wget; fi
   - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then brew upgrade gcc; fi
   - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then brew install gcc; fi
   - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then brew link --overwrite --dry-run gcc; fi
@@ -46,6 +45,7 @@ install:
   # Compile additional (unpackaged) requirements.
   - source ci/install.sh
   - export PATH="${PATH}:${PWD}/bin"
+  - echo ${PATH}
   - cd "$TRAVIS_BUILD_DIR"
 
 script:
