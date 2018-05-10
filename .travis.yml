@@ -28,10 +28,14 @@ addons:
 
 before_install:
   # Install dependencies on OSX, if required.
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install autoconf; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install gcc; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install wget; fi
+  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then
+      brew update || true
+      brew install autoconf || true
+      brew upgrade gcc || brew install gcc || true
+      brew link --overwrite --dry-run gcc || true
+      brew link --overwrite gcc || true
+      brew link --overwrite wget || true
+    fi
 
   # Don't keep an old version of the code in the cache.
   - julia -e 'if "WaterModels" in keys(Pkg.installed()) Pkg.rm("WaterModels"); Pkg.rm("WaterModels") end'
