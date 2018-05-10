@@ -7,4 +7,4 @@ cd Lapack && ./get.Lapack && cd ..
 cd Metis && ./get.Metis && cd ..
 cd Mumps && ./get.Mumps && cd ..
 cd .. && mkdir build && cd build && ../configure
-make && make install && export PATH="${PATH}:${PWD}/bin"
+make && make install
