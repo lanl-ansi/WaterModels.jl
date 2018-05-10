@@ -1,5 +1,4 @@
-#!/bin/bash
-
+#!/bin/sh
 # Obtain and compile Bonmin.
 wget https://www.coin-or.org/Tarballs/Bonmin/Bonmin-1.8.6.tgz
 tar -xzf Bonmin-1.8.6.tgz && rm Bonmin-1.8.6.tgz && cd Bonmin-1.8.6/ThirdParty
