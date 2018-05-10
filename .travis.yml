@@ -13,14 +13,22 @@ cache:
    - /home/travis/.julia
 addons:
   apt_packages:
+    - automake
+    - autotools-dev
+    - gcc
     - gfortran
+    - g++
+    - wget
 
 before_install:
-    # Don't keep an old version of the code in the cache.
+  # Don't keep an old version of the code in the cache.
   - julia -e 'if "WaterModels" in keys(Pkg.installed()) Pkg.rm("WaterModels"); Pkg.rm("WaterModels") end'
   - julia -e 'Pkg.update()' # Make sure we get the latest version of METADATA.
   - julia -e 'if !("Coverage" in keys(Pkg.installed())) Pkg.add("Coverage") end'
   - julia -e 'if !("Documenter" in keys(Pkg.installed())) Pkg.add("Documenter") end'
+
+install:
+  - source ci/install.sh
 
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
