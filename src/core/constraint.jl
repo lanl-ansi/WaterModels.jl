@@ -2,6 +2,15 @@
 # This file defines commonly-used constraints for water systems models.
 ########################################################################
 
+function constraint_flow_conservation{T}(wm::GenericWaterModel{T}, id, n::Int = wm.cnw)
+    arcs_from = collect(keys(filter((i, pipe) -> pipe["node1"] == id, wm.ref[:nw][n][:pipes])))
+    arcs_to = collect(keys(filter((i, pipe) -> pipe["node2"] == id, wm.ref[:nw][n][:pipes])))
+    demand = wm.ref[:nw][n][:junctions][id]["demand"]
+    to_vars = Array{JuMP.Variable}([wm.var[:nw][n][:q][parse(Int, a)] for a in arcs_to])
+    from_vars = Array{JuMP.Variable}([wm.var[:nw][n][:q][parse(Int, a)] for a in arcs_from])
+    @constraint(wm.model, sum(to_vars) - sum(from_vars) == demand)
+end
+
 # Flow conservation constraint at a junction.
 #"`p[f_idx]^2 + q[f_idx]^2 <= rate_a^2`"
 #function constraint_flow_conservation(wm::GenericWaterModel, id::String, f_idx, rate_a)

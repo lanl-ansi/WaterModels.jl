@@ -148,15 +148,7 @@ function build_ref(data::Dict{String, Any})
 
         for (key, item) in nw_data
             ref[Symbol(key)] = item
-            #if isa(item, Dict)
-            #    item_lookup = Dict([(parse(String, k), v) for (k, v) in item])
-            #    ref[Symbol(key)] = item_lookup
-            #else
-            #    ref[Symbol(key)] = item
-            #end
         end
-
-        #println(ref[:pipes])
 
         ref[:arcs_from] = [(id, arc["node1"], arc["node2"]) for (id, arc) in ref[:pipes]]
         ref[:arcs_to] = [(id, to, from) for (id, from, to) in ref[:arcs_from]]

@@ -3,8 +3,30 @@
 ########################################################################
 
 function variable_flow{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
-    wm.var[:nw][n][:q] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:arcs])], basename = "$(n)_q", start = 0.0)
+    wm.var[:nw][n][:q] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:arcs])],
+                                   basename = "q_$(n)", start = 0.0)
 end
+
+function variable_flow_direction{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
+    wm.var[:nw][n][:yp] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:arcs])],
+                                    category = :Int, basename = "yp_$(n)",
+                                    lowerbound = 0, upperbound = 1, start = 0)
+    wm.var[:nw][n][:yn] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:arcs])],
+                                    category = :Int, basename = "yn_$(n)",
+                                    lowerbound = 0, upperbound = 1, start = 0)
+end
+
+function variable_head{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
+    wm.var[:nw][n][:h] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:junctions])],
+                                   lowerbound = wm.ref[:nw][n][:junctions][id]["elev"],
+                                   basename = "h_$(n)", start = 0.0)
+end
+
+#function variable_head{T}(wm::GenericWaterModel{T})
+#    wm.var[:nw][n][:q] = @variable(wm.model, [i in keys(wm.ref[:junction])], basename="h", lowerbound=wm.ref[:junction][i]["head"], start = getstart(wm.ref[:junction], i, "h_start", wm.ref[:junction][i]["head"]))
+#    # wm.var[:h] = @variable(wm.model, [i in keys(wm.ref[:junction])], basename="h", lowerbound=wm.ref[:junction][i]["elevation"]^2, upperbound=wm.ref[:junction][i]["pmax"]^2, start = getstart(wm.ref[:junction], i, "h_start", wm.ref[:junction][i]["pmin"]^2))
+#    wm.var[:h] = @variable(wm.model, [i in keys(wm.ref[:junction])], basename="h", lowerbound=wm.ref[:junction][i]["head"], start = getstart(wm.ref[:junction], i, "h_start", wm.ref[:junction][i]["head"]))
+#end
 
 #"extracts the start value"
 #function getstart(set, item_key, value_key, default = 0.0)

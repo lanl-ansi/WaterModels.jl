@@ -76,30 +76,32 @@ function parse_junctions(data::Dict{String, Array})
     @assert(allequal([length(data[column]) for column in keys(columns)]))
 
     # Return an array of junction dictionaries with the correct data types.
-    return [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["id"])]
+    arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["id"])]
+    return Dict{String, Any}(data["id"][i] => arr[i] for i = 1:length(arr))
 end
 
 function parse_pipes(data::Dict{String, Array})
-    # Specify the data types for the junction data.
+    # Specify the data types for the pipe data.
     columns = Dict("diameter" => Float64, "id" => String, "length" => Float64,
                    "minorloss" => Float64, "node1" => String, "node2" => String,
                    "roughness" => Float64, "status" => String)
 
-    # Ensure the arrays describing junction data are all of equal lengths.
+    # Ensure the arrays describing pipe data are all of equal lengths.
     @assert(allequal([length(data[column]) for column in keys(columns)]))
 
-    # Return a dictionary of junction dictionaries with the correct data types.
+    # Return a dictionary of pipe dictionaries with the correct data types.
     arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["id"])]
     return Dict{String, Any}(data["id"][i] => arr[i] for i = 1:length(arr))
 end
 
 function parse_reservoirs(data::Dict{String, Array})
-    # Specify the data types for the junction data.
+    # Specify the data types for the reservoir data.
     columns = Dict("head" => Float64, "id" => String, "pattern" => String)
 
-    # Ensure the arrays describing junction data are all of equal lengths.
+    # Ensure the arrays describing reservoir data are all of equal lengths.
     @assert(allequal([length(data[column]) for column in keys(columns)]))
 
-    # Return an array of junction dictionaries with the correct data types.
-    return [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["id"])]
+    # Return an array of reservoir dictionaries with the correct data types.
+    arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["id"])]
+    return Dict{String, Any}(data["id"][i] => arr[i] for i = 1:length(arr))
 end

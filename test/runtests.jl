@@ -11,10 +11,7 @@ setlevel!(getlogger(InfrastructureModels), "error")
 setlevel!(getlogger(WaterModels), "error")
 
 # Solver setup.
-options = ["bonmin.bb_log_level=0","bonmin.fp_log_level=0",
-           "bonmin.lp_log_level=0","bonmin.milp_log_level=0",
-           "bonmin.nlp_log_level=0","bonmin.oa_log_level=0"]
-solver = AmplNLSolver("bonmin", options)
+solver = AmplNLSolver("bonmin")
 
 # Perform the tests.
 @testset "WaterModels" begin

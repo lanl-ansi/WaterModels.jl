@@ -23,6 +23,7 @@ include("io/common.jl")
 include("io/epanet.jl")
 
 include("core/base.jl")
+include("core/constraint.jl")
 include("core/variable.jl")
 include("core/solution.jl")
 
