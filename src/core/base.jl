@@ -150,9 +150,7 @@ function build_ref(data::Dict{String, Any})
             ref[Symbol(key)] = item
         end
 
-        ref[:arcs_from] = [(id, arc["node1"], arc["node2"]) for (id, arc) in ref[:pipes]]
-        ref[:arcs_to] = [(id, to, from) for (id, from, to) in ref[:arcs_from]]
-        ref[:arcs] = [ref[:arcs_from]; ref[:arcs_to]]
+        ref[:arcs] = [(id, arc["node1"], arc["node2"]) for (id, arc) in ref[:pipes]]
     end
 
     return refs

@@ -2,8 +2,38 @@
 # This file defines commonly-used variables for water systems models.
 ########################################################################
 
+function lambda(ref, id)
+    # Diameter assumes original units of millimeters.
+    diameter = ref[:pipes][string(id)]["diameter"] / 1000.0
+
+    # Length assumes original units of meters.
+    length = ref[:pipes][id]["length"]
+
+    # The roughness coefficient is unitless.
+    roughness = ref[:pipes][id]["roughness"]
+
+    # Use standard gravitational acceleration on earth.
+    g = 9.80665
+
+    # Compute lambda.
+    lambda = (8.0 * length) / (pi^2 * g * diameter^5) * roughness
+end
+
+function max_flow(ref, id)
+    # Diameter assumes original units of millimeters.
+    diameter = ref[:pipes][string(id)]["diameter"] / 1000.0
+
+    # A literature-based guess at v_max (meters per second).
+    v_max = 10.0
+
+    # Return the maximum flow.
+    return (pi / 4.0) * v_max * diameter^2
+end
+
 function variable_flow{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
     wm.var[:nw][n][:q] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:arcs])],
+                                   lowerbound = -max_flow(wm.ref[:nw][n], id),
+                                   upperbound = max_flow(wm.ref[:nw][n], id),
                                    basename = "q_$(n)", start = 0.0)
 end
 
