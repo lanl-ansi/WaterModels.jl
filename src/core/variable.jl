@@ -1,10 +1,12 @@
+export lambda
+
 ########################################################################
 # This file defines commonly-used variables for water systems models.
 ########################################################################
 
 function lambda(ref, id)
     # Diameter assumes original units of millimeters.
-    diameter = ref[:pipes][string(id)]["diameter"] / 1000.0
+    diameter = ref[:pipes][id]["diameter"] / 1000.0
 
     # Length assumes original units of meters.
     length = ref[:pipes][id]["length"]
@@ -16,12 +18,12 @@ function lambda(ref, id)
     g = 9.80665
 
     # Compute lambda.
-    lambda = (8.0 * length) / (pi^2 * g * diameter^5) * roughness
+    return (8.0 * length) / (pi^2 * g * diameter^5) * roughness
 end
 
 function max_flow(ref, id)
     # Diameter assumes original units of millimeters.
-    diameter = ref[:pipes][string(id)]["diameter"] / 1000.0
+    diameter = ref[:pipes][id]["diameter"] / 1000.0
 
     # A literature-based guess at v_max (meters per second).
     v_max = 10.0
@@ -31,25 +33,47 @@ function max_flow(ref, id)
 end
 
 function variable_flow{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
-    wm.var[:nw][n][:q] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:arcs])],
+    wm.var[:nw][n][:q] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:pipes])],
                                    lowerbound = -max_flow(wm.ref[:nw][n], id),
                                    upperbound = max_flow(wm.ref[:nw][n], id),
-                                   basename = "q_$(n)", start = 0.0)
+                                   start = max_flow(wm.ref[:nw][n], id),
+                                   basename = "q_$(n)")
 end
 
 function variable_flow_direction{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
-    wm.var[:nw][n][:yp] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:arcs])],
+    # Create variables that correspond to flow moving from i to j.
+    wm.var[:nw][n][:yp] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:pipes])],
                                     category = :Int, basename = "yp_$(n)",
-                                    lowerbound = 0, upperbound = 1, start = 0)
-    wm.var[:nw][n][:yn] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:arcs])],
+                                    lowerbound = 0, upperbound = 1, start = 1)
+
+    # Create variables that correspond to flow moving from j to i.
+    wm.var[:nw][n][:yn] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:pipes])],
                                     category = :Int, basename = "yn_$(n)",
                                     lowerbound = 0, upperbound = 1, start = 0)
 end
 
 function variable_head{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
-    wm.var[:nw][n][:h] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:junctions])],
-                                   lowerbound = wm.ref[:nw][n][:junctions][id]["elev"],
-                                   basename = "h_$(n)", start = 0.0)
+    # Create head variables that correspond to regular junctions.
+    junction_vars = @variable(wm.model, [id in keys(wm.ref[:nw][n][:junctions])],
+                              lowerbound = wm.ref[:nw][n][:junctions][id]["elev"],
+                              start = wm.ref[:nw][n][:junctions][id]["elev"],
+                              basename = "h_$(n)")
+
+    # Create head variables that correspond to reservoirs.
+    reservoir_vars = @variable(wm.model, [id in keys(wm.ref[:nw][n][:reservoirs])],
+                               lowerbound = wm.ref[:nw][n][:reservoirs][id]["head"],
+                               upperbound = wm.ref[:nw][n][:reservoirs][id]["head"],
+                               start = wm.ref[:nw][n][:reservoirs][id]["head"],
+                               basename = "h_$(n)")
+
+    # TODO: Merge the above variable arrays.
+    return junction_vars
+
+    # Concatenate the two sets of variables.
+    #wm.var[:nw][n][:h] = merge(junction_vars, reservoir_vars)
+    #println(typeof(junction_vars))
+    #println(typeof(reservoir_vars))
+    #println(typeof(wm.var[:nw][n][:h]))
 end
 
 #function variable_head{T}(wm::GenericWaterModel{T})

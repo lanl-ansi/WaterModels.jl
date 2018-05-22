@@ -1,4 +1,4 @@
-export GenericWaterModel, build_generic_model
+export GenericWaterModel, build_generic_model, ids
 
 ""
 abstract type AbstractWaterFormulation end
@@ -149,13 +149,13 @@ function build_ref(data::Dict{String, Any})
         for (key, item) in nw_data
             ref[Symbol(key)] = item
         end
-
-        ref[:arcs] = [(id, arc["node1"], arc["node2"]) for (id, arc) in ref[:pipes]]
     end
 
     return refs
 end
 
+ids(wm::GenericWaterModel, key::Symbol) = ids(wm, wm.cnw, key)
+ids(wm::GenericWaterModel, n::Int, key::Symbol) = keys(wm.ref[:nw][n][key])
 
 #" Set the solver "
 #function JuMP.setsolver(wm::GenericWaterModel, solver::MathProgBase.AbstractMathProgSolver)

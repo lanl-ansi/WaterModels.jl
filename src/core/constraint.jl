@@ -2,15 +2,60 @@
 # This file defines commonly-used constraints for water systems models.
 ########################################################################
 
-function constraint_flow_conservation{T}(wm::GenericWaterModel{T}, id, n::Int = wm.cnw)
-    arcs_from = collect(keys(filter((i, pipe) -> pipe["node1"] == id, wm.ref[:nw][n][:pipes])))
-    arcs_to = collect(keys(filter((i, pipe) -> pipe["node2"] == id, wm.ref[:nw][n][:pipes])))
+function constraint_flow_conservation{T}(wm::GenericWaterModel{T}, i, n::Int = wm.cnw)
+    # Add the flow conservation constraints for junction nodes.
+    arcs_from = collect(keys(filter((id, pipe) -> pipe["node1"] == i, wm.ref[:nw][n][:pipes])))
+    arcs_to = collect(keys(filter((id, pipe) -> pipe["node2"] == i, wm.ref[:nw][n][:pipes])))
+    to_vars = Array{JuMP.Variable}([wm.var[:nw][n][:q][a] for a in arcs_to])
+    from_vars = Array{JuMP.Variable}([wm.var[:nw][n][:q][a] for a in arcs_from])
 
-    # Demand assumes original units of cubic meters per hour.
-    demand = 0.000277778 * wm.ref[:nw][n][:junctions][id]["demand"]
-    to_vars = Array{JuMP.Variable}([wm.var[:nw][n][:q][parse(Int, a)] for a in arcs_to])
-    from_vars = Array{JuMP.Variable}([wm.var[:nw][n][:q][parse(Int, a)] for a in arcs_from])
-    @constraint(wm.model, sum(to_vars) - sum(from_vars) == demand)
+    if haskey(wm.ref[:nw][n][:junctions], i)
+        # Demand assumes original units of cubic meters per hour.
+        demand = 0.000277778 * wm.ref[:nw][n][:junctions][i]["demand"]
+        @constraint(wm.model, sum(to_vars) - sum(from_vars) == demand)
+    elseif haskey(wm.ref[:nw][n][:reservoirs], i)
+        # Demand assumes original units of cubic meters per hour.
+        # TODO: Does this estimate of demand need to account for friction?
+        all_demands = [junction["demand"] for junction in values(wm.ref[:nw][n][:junctions])]
+        sum_demand = 0.000277778 * sum(all_demands)
+        @constraint(wm.model, sum(to_vars) - sum(from_vars) >= -sum_demand)
+        @constraint(wm.model, sum(to_vars) - sum(from_vars) <= sum_demand)
+    end
+end
+
+function constraint_potential_flow_coupling{T}(wm::GenericWaterModel{T}, i, n::Int = wm.cnw)
+    # Get the nodes connecting the arc.
+    arcs_to = collect(keys(filter((id, pipe) -> pipe["node2"] == i, wm.ref[:nw][n][:pipes])))
+
+    for a in arcs_to
+        # Get indicies needed to select variables.
+        j = wm.ref[:nw][n][:pipes][a]["node1"]
+
+        # Collect variables needed for the constraint.
+        q = wm.var[:nw][n][:q][a]
+        y_p = wm.var[:nw][n][:yp][a]
+        y_n = wm.var[:nw][n][:yn][a]
+        println(wm.var[:nw][n][:h][i])
+        #h_i = wm.var[:nw][n][:h][i]
+        #h_j = wm.var[:nw][n][:h][j]
+
+        ## Add the constraint.
+        #lambda_val = lambda(wm.ref[:nw][n], id)
+        #@NLconstraint(wm.model, (y_p - y_n) * (h_i - h_j) == lambda_val * q * q)
+    end
+
+    #i = wm.ref[:nw][n][:pipes][i]["node1"]
+
+    ## Collect variables needed for the constraint.
+    #y_p = wm.var[:nw][n][:yp][id]
+    #y_n = wm.var[:nw][n][:yp][id]
+    #h_i = wm.var[:nw][n][:h][i]
+    #h_j = wm.var[:nw][n][:h][j]
+    #q = wm.var[:nw][n][:q][id]
+
+    ## Add the constraint.
+    #lambda_val = lambda(wm.ref[:nw][n], id)
+    #@NLconstraint(wm.model, (y_p - y_n) * (h_i - h_j) == lambda_val * q * q)
 end
 
 # Flow conservation constraint at a junction.

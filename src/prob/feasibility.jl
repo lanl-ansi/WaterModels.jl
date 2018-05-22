@@ -6,11 +6,12 @@ end
 
 function post_feasibility(wm::GenericWaterModel)
     variable_flow(wm)
-    variable_flow_direction(wm)
     variable_head(wm)
+    variable_flow_direction(wm)
 
-    for id in keys(wm.ref[:nw][0][:junctions])
+    for id in [collect(ids(wm, :junctions)); collect(ids(wm, :reservoirs))]
         constraint_flow_conservation(wm, id)
+        constraint_potential_flow_coupling(wm, id)
     end
 
     writeLP(wm.model, "test.lp", genericnames = false)
