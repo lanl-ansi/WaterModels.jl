@@ -1,32 +1,13 @@
-export lambda
-
 ########################################################################
 # This file defines commonly-used variables for water systems models.
 ########################################################################
-
-function lambda(ref, id)
-    # Diameter assumes original units of millimeters.
-    diameter = ref[:pipes][id]["diameter"] / 1000.0
-
-    # Length assumes original units of meters.
-    length = ref[:pipes][id]["length"]
-
-    # The roughness coefficient is unitless.
-    roughness = ref[:pipes][id]["roughness"]
-
-    # Use standard gravitational acceleration on earth.
-    g = 9.80665
-
-    # Compute lambda.
-    return (8.0 * length) / (pi^2 * g * diameter^5) * roughness
-end
 
 function max_flow(ref, id)
     # Diameter assumes original units of millimeters.
     diameter = ref[:pipes][id]["diameter"] / 1000.0
 
     # A literature-based guess at v_max (meters per second).
-    v_max = 10.0
+    v_max = 1.0e6
 
     # Return the maximum flow.
     return (pi / 4.0) * v_max * diameter^2
@@ -53,27 +34,25 @@ function variable_flow_direction{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
 end
 
 function variable_head{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
-    # Create head variables that correspond to regular junctions.
-    junction_vars = @variable(wm.model, [id in keys(wm.ref[:nw][n][:junctions])],
-                              lowerbound = wm.ref[:nw][n][:junctions][id]["elev"],
-                              start = wm.ref[:nw][n][:junctions][id]["elev"],
-                              basename = "h_$(n)")
+    # Set up required data to initialize junction variables.
+    junction_ids = [key for key in keys(wm.ref[:nw][n][:junctions])]
+    junction_lbs = Dict(id => wm.ref[:nw][n][:junctions][id]["elev"] for id in junction_ids)
+    junction_ubs = Dict(id => 1.0e6 for id in junction_ids)
 
-    # Create head variables that correspond to reservoirs.
-    reservoir_vars = @variable(wm.model, [id in keys(wm.ref[:nw][n][:reservoirs])],
-                               lowerbound = wm.ref[:nw][n][:reservoirs][id]["head"],
-                               upperbound = wm.ref[:nw][n][:reservoirs][id]["head"],
-                               start = wm.ref[:nw][n][:reservoirs][id]["head"],
-                               basename = "h_$(n)")
+    # Set up required data to initialize reservoir variables.
+    reservoir_ids = [key for key in keys(wm.ref[:nw][n][:reservoirs])]
+    reservoir_lbs = Dict(id => wm.ref[:nw][n][:reservoirs][id]["head"] for id in reservoir_ids)
+    reservoir_ubs = Dict(id => wm.ref[:nw][n][:reservoirs][id]["head"] for id in reservoir_ids)
 
-    # TODO: Merge the above variable arrays.
-    return junction_vars
+    # Create arrays comprising both types of components.
+    ids = [junction_ids; reservoir_ids]
+    lbs = merge(junction_lbs, reservoir_lbs)
+    ubs = merge(junction_ubs, reservoir_ubs)
 
-    # Concatenate the two sets of variables.
-    #wm.var[:nw][n][:h] = merge(junction_vars, reservoir_vars)
-    #println(typeof(junction_vars))
-    #println(typeof(reservoir_vars))
-    #println(typeof(wm.var[:nw][n][:h]))
+    # Add the head variables to the model.
+    wm.var[:nw][n][:h] = @variable(wm.model, [i in ids], lowerbound = lbs[i],
+                                   upperbound = ubs[i], start = lbs[i],
+                                   basename = "h_$(n)")
 end
 
 #function variable_head{T}(wm::GenericWaterModel{T})
