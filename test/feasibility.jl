@@ -4,15 +4,15 @@
     #    @test solution["status"] == :LocalOptimal
     #end
 
-    #@testset "foss_poly_1" begin
-    #    solution = run_feasibility("../test/data/epanet/foss_poly_1.inp", GenericWaterModel{StandardMINLPForm}, solver)
-    #    @test solution["status"] == :LocalOptimal
-    #end
+    @testset "foss_poly_1" begin
+        solution = run_feasibility("../test/data/epanet/foss_poly_1.inp", GenericWaterModel{StandardMINLPForm}, solver)
+        @test solution["status"] == :LocalOptimal
+    end
 
-    #@testset "hanoi_extended" begin
-    #    solution = run_feasibility("../test/data/epanet/hanoi_extended.inp", GenericWaterModel{StandardMINLPForm}, solver)
-    #    @test solution["status"] == :LocalOptimal
-    #end
+    @testset "hanoi_extended" begin
+        solution = run_feasibility("../test/data/epanet/hanoi_extended.inp", GenericWaterModel{StandardMINLPForm}, solver)
+        @test solution["status"] == :LocalOptimal
+    end
 
     @testset "hanoi" begin
         solution = run_feasibility("../test/data/epanet/hanoi.inp", GenericWaterModel{StandardMINLPForm}, solver)

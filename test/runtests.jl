@@ -11,7 +11,6 @@ setlevel!(getlogger(WaterModels), "error")
 
 # Solver setup.
 solver = AmplNLSolver("couenne")
-#solver = IpoptSolver()
 
 # Perform the tests.
 @testset "WaterModels" begin

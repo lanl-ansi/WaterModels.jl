@@ -95,7 +95,6 @@ end
 
 function JuMP.solve(wm::GenericWaterModel)
     status, solve_time, solve_bytes_alloc, sec_in_gc = @timed solve(wm.model)
-    #status, solve_time, solve_bytes_alloc, sec_in_gc = @timed solve(wm.model, relaxation = true)
 
     try
         solve_time = getsolvetime(wm.model)
