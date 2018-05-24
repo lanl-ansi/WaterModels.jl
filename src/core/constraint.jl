@@ -16,7 +16,7 @@ function compute_lambda(ref, id)
     g = 9.80665
 
     # Use the Prandtl-Kármán friction factor.
-    f_s = (2.0 * log10(roughness / (3.71 * diameter)))^2
+    f_s = (2.0 * log(roughness / (3.71 * diameter)))^(-2)
 
     # Return lambda.
     return (8.0 * length) / (pi^2 * g * diameter^5) * f_s
@@ -36,18 +36,18 @@ function constraint_flow_conservation{T}(wm::GenericWaterModel{T}, i, n::Int = w
     elseif haskey(wm.ref[:nw][n][:reservoirs], i)
         all_demands = [junction["demand"] for junction in values(wm.ref[:nw][n][:junctions])]
         sum_demand = 0.000277778 * sum(all_demands)
-        @constraint(wm.model, sum(in_vars) - sum(out_vars) <= sum_demand)
-        @constraint(wm.model, sum(in_vars) - sum(out_vars) >= 0.0)
+        @constraint(wm.model, sum(out_vars) - sum(in_vars) >= 0.0)
+        @constraint(wm.model, sum(out_vars) - sum(in_vars) <= sum_demand)
     end
 end
 
-function constraint_potential_flow_coupling{T}(wm::GenericWaterModel{T}, j, n::Int = wm.cnw)
-    # Get the nodes connecting the arc.
-    arcs_to = collect(keys(filter((id, pipe) -> pipe["node2"] == j, wm.ref[:nw][n][:pipes])))
+function constraint_potential_flow_coupling{T}(wm::GenericWaterModel{T}, i, n::Int = wm.cnw)
+    # Get the outgoing arcs of the node.
+    arcs_from = collect(keys(filter((id, pipe) -> pipe["node1"] == i, wm.ref[:nw][n][:pipes])))
 
-    for a in arcs_to
+    for a in arcs_from
         # Get indicies needed to select variables.
-        i = wm.ref[:nw][n][:pipes][a]["node1"]
+        j = wm.ref[:nw][n][:pipes][a]["node2"]
 
         # Collect variables needed for the constraint.
         q = wm.var[:nw][n][:q][a]
@@ -86,7 +86,7 @@ function constraint_bidirectional_flow{T}(wm::GenericWaterModel{T}, a, n::Int = 
     @constraint(wm.model, (y_p - 1) * sum_demand <= q)
     @constraint(wm.model, (1 - y_n) * sum_demand >= q)
 
-    # # Add the second set of constraints.
+    # Add the second set of constraints.
     @constraint(wm.model, (1 - y_p) * (h_i_lb - h_j_ub) <= h_i - h_j)
     @constraint(wm.model, (1 - y_n) * (h_i_ub - h_j_lb) >= h_i - h_j)
 

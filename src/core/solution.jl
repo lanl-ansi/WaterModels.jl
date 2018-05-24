@@ -21,6 +21,17 @@ function build_solution{T}(wm::GenericWaterModel{T}, status, solve_time; objecti
         #               "connection_count" => length(wm.ref[:connection]))
     )
 
+    for key in [collect(ids(wm, :junctions)); collect(ids(wm, :reservoirs))]
+        println(wm.var[:nw][0][:h][key])
+        println(getvalue(wm.var[:nw][0][:h][key]))
+        println("")
+    end
+
+    for a in collect(ids(wm, :pipes))
+        println(wm.var[:nw][0][:q][a])
+        println(getvalue(wm.var[:nw][0][:q][a]) * 3600.0)
+    end
+
     wm.solution = solution
 
     return solution
