@@ -22,6 +22,20 @@ function compute_lambda(ref, id)
     return (8.0 * length) / (pi^2 * g * diameter^5) * f_s
 end
 
+function compute_hazen_williams_lambda(ref, id)
+    # Diameter assumes original units of millimeters.
+    diameter = ref[:pipes][id]["diameter"] / 1000.0
+
+    # Roughness assumes no units (?).
+    roughness = ref[:pipes][id]["roughness"]
+
+    # Length assumes original units of meters.
+    length = ref[:pipes][id]["length"]
+
+    # Return lambda.
+    return (10.67 * length) / (roughness^1.852 * diameter^4.87)
+end
+
 function constraint_flow_conservation{T}(wm::GenericWaterModel{T}, i, n::Int = wm.cnw)
     # Add the flow conservation constraints for junction nodes.
     out_arcs = collect(keys(filter((id, pipe) -> pipe["node1"] == i, wm.ref[:nw][n][:pipes])))
@@ -57,8 +71,10 @@ function constraint_potential_flow_coupling{T}(wm::GenericWaterModel{T}, i, n::I
         h_j = wm.var[:nw][n][:h][j]
 
         # Add the constraint.
-        lambda_a = compute_lambda(wm.ref[:nw][n], a)
-        @NLconstraint(wm.model, (y_p - y_n) * (h_i - h_j) == lambda_a * q * q)
+        #lambda_a = compute_lambda(wm.ref[:nw][n], a)
+        #@NLconstraint(wm.model, (y_p - y_n) * (h_i - h_j) == lambda_a * q * q)
+        lambda_a = compute_hazen_williams_lambda(wm.ref[:nw][n], a)
+        @NLconstraint(wm.model, (y_p - y_n) * (h_i - h_j) == lambda_a * sign(q) * abs(q)^1.852)
     end
 end
 
