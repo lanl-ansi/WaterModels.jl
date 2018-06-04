@@ -10,27 +10,30 @@ function max_flow(ref, id)
     v_max = 10.0
 
     # Return the maximum flow.
-    return 1000.0 * (pi / 4.0) * v_max * diameter^2
+    return 1.0e6 #(pi / 4.0) * v_max * diameter^2
 end
 
 function variable_flow{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
     wm.var[:nw][n][:q] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:pipes])],
                                    lowerbound = -max_flow(wm.ref[:nw][n], id),
                                    upperbound = max_flow(wm.ref[:nw][n], id),
-                                   start = max_flow(wm.ref[:nw][n], id),
                                    basename = "q_$(n)")
+
+    wm.var[:nw][n][:gamma] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:pipes])],
+                                       lowerbound = -1000.0, upperbound = 1000.0,
+                                       basename = "gamma_$(n)")
 end
 
 function variable_flow_direction{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
     # Create variables that correspond to flow moving from i to j.
     wm.var[:nw][n][:yp] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:pipes])],
                                     category = :Int, basename = "yp_$(n)",
-                                    lowerbound = 0, upperbound = 1, start = 1)
+                                    lowerbound = 0, upperbound = 1)
 
     # Create variables that correspond to flow moving from j to i.
     wm.var[:nw][n][:yn] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:pipes])],
                                     category = :Int, basename = "yn_$(n)",
-                                    lowerbound = 0, upperbound = 1, start = 0)
+                                    lowerbound = 0, upperbound = 1)
 end
 
 function variable_head{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
@@ -51,8 +54,7 @@ function variable_head{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
 
     # Add the head variables to the model.
     wm.var[:nw][n][:h] = @variable(wm.model, [i in ids], lowerbound = lbs[i],
-                                   upperbound = ubs[i], start = lbs[i],
-                                   basename = "h_$(n)")
+                                   upperbound = ubs[i], basename = "h_$(n)")
 end
 
 #function variable_head{T}(wm::GenericWaterModel{T})

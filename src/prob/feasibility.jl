@@ -15,6 +15,7 @@ function post_feasibility(wm::GenericWaterModel)
     end
 
     for a in collect(ids(wm, :pipes))
+        constraint_define_gamma(wm, a)
         constraint_bidirectional_flow(wm, a)
     end
 

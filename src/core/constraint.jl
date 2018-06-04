@@ -15,12 +15,6 @@ function compute_lambda(ref, id)
     # Use standard gravitational acceleration on earth.
     g = 9.80665
 
-    # Approximate the Reynold's number.
-    Re = 2300.0
-
-    # Use the Swamee–Jain equation to compute the friction factor.
-    # f_s = 0.25 / log((roughness / diameter) / 3.71 + (5.74 / Re^0.9))^2
-
     # Use the Prandtl-Kármán friction factor.
     f_s = 0.25 / log((roughness / diameter) / 3.71)^2
 
@@ -49,15 +43,15 @@ function constraint_flow_conservation{T}(wm::GenericWaterModel{T}, i, n::Int = w
     in_arcs = collect(keys(filter((id, pipe) -> pipe["node2"] == i, wm.ref[:nw][n][:pipes])))
     in_vars = Array{JuMP.Variable}([wm.var[:nw][n][:q][a] for a in in_arcs])
 
-    # Demands below assume original units of liters per second.
+    # Demands assume original units of liters per second.
     if haskey(wm.ref[:nw][n][:junctions], i)
-        demand = wm.ref[:nw][n][:junctions][i]["demand"]
+        demand = 0.001 * wm.ref[:nw][n][:junctions][i]["demand"]
         @constraint(wm.model, sum(in_vars) - sum(out_vars) == demand)
     elseif haskey(wm.ref[:nw][n][:reservoirs], i)
         all_demands = [junction["demand"] for junction in values(wm.ref[:nw][n][:junctions])]
-        sum_demand = sum(all_demands)
-        @constraint(wm.model, sum(out_vars) - sum(in_vars) >= 0.0)
-        # @constraint(wm.model, sum(out_vars) - sum(in_vars) <= sum_demand)
+        sum_demand = 0.001 * sum(all_demands)
+        #@constraint(wm.model, sum(out_vars) - sum(in_vars) >= 0.0)
+        @constraint(wm.model, sum(out_vars) - sum(in_vars) >= sum_demand)
     end
 end
 
@@ -66,22 +60,39 @@ function constraint_potential_flow_coupling{T}(wm::GenericWaterModel{T}, i, n::I
     arcs_from = collect(keys(filter((id, pipe) -> pipe["node1"] == i, wm.ref[:nw][n][:pipes])))
 
     for a in arcs_from
-        # Get indicies needed to select variables.
-        j = wm.ref[:nw][n][:pipes][a]["node2"]
-
         # Collect variables needed for the constraint.
+        gamma = wm.var[:nw][n][:gamma][a]
         q = wm.var[:nw][n][:q][a]
-        y_p = wm.var[:nw][n][:yp][a]
-        y_n = wm.var[:nw][n][:yn][a]
-        h_i = wm.var[:nw][n][:h][i]
-        h_j = wm.var[:nw][n][:h][j]
 
-        # Add the constraint.
-        lambda_a = compute_lambda(wm.ref[:nw][n], a)
-        @NLconstraint(wm.model, (y_p - y_n) * (h_i - h_j) == lambda_a * 1.0e-6 * q * q)
-        #lambda_a = compute_hazen_williams_lambda(wm.ref[:nw][n], a)
-        #@NLconstraint(wm.model, (y_p - y_n) * (h_i - h_j) == lambda_a * abs(q^1.852))
+        #lambda = compute_lambda(wm.ref[:nw][n], a)
+        lambda = compute_hazen_williams_lambda(wm.ref[:nw][n], a)
+        @constraint(wm.model, gamma >= lambda * q * q)
     end
+end
+
+function constraint_define_gamma{T}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+    # Get source and target nodes corresponding to the arc.
+    i = wm.ref[:nw][n][:pipes][a]["node1"]
+    j = wm.ref[:nw][n][:pipes][a]["node2"]
+
+    # Collect variables needed for the constraint.
+    gamma = wm.var[:nw][n][:gamma][a]
+    y_p = wm.var[:nw][n][:yp][a]
+    y_n = wm.var[:nw][n][:yn][a]
+    h_i = wm.var[:nw][n][:h][i]
+    h_j = wm.var[:nw][n][:h][j]
+
+    # Get additional data related to the variables.
+    h_i_lb = getlowerbound(h_i)
+    h_i_ub = getupperbound(h_i)
+    h_j_lb = getlowerbound(h_j)
+    h_j_ub = getupperbound(h_j)
+
+    # Add the required constraints.
+    @constraint(wm.model, h_j - h_i + (h_i_lb - h_j_ub) <= gamma)
+    @constraint(wm.model, h_i - h_j + (h_i_ub - h_j_lb) <= gamma)
+    @constraint(wm.model, h_j - h_i + (h_i_ub - h_j_lb) >= gamma)
+    @constraint(wm.model, h_i - h_j + (h_i_lb - h_j_ub) >= gamma)
 end
 
 function constraint_bidirectional_flow{T}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
@@ -104,7 +115,7 @@ function constraint_bidirectional_flow{T}(wm::GenericWaterModel{T}, a, n::Int = 
 
     # Add the first set of constraints.
     all_demands = [junction["demand"] for junction in values(wm.ref[:nw][n][:junctions])]
-    sum_demand = sum(all_demands)
+    sum_demand = 0.001 * sum(all_demands)
     @constraint(wm.model, (y_p - 1) * sum_demand <= q)
     @constraint(wm.model, (1 - y_n) * sum_demand >= q)
 

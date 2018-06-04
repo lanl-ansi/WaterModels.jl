@@ -51,6 +51,7 @@ function parse_epanet_file(path::String)
     dict["junctions"] = parse_junctions(epanet_dict["junctions"])
     dict["pipes"] = parse_pipes(epanet_dict["pipes"])
     dict["reservoirs"] = parse_reservoirs(epanet_dict["reservoirs"])
+    #dict["options"] = parse_options(epanet_dict["options"])
     dict["multinetwork"] = false
 
     return dict
@@ -104,4 +105,9 @@ function parse_reservoirs(data::Dict{String, Array})
     # Return an array of reservoir dictionaries with the correct data types.
     arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["id"])]
     return Dict{String, Any}(data["id"][i] => arr[i] for i = 1:length(arr))
+end
+
+function parse_options(data::Dict{String, Any})
+    return Dict{String, Any}("units" => data["units"][1],
+                             "headloss" => data["headloss"][1])
 end

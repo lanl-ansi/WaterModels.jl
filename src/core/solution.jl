@@ -21,16 +21,16 @@ function build_solution{T}(wm::GenericWaterModel{T}, status, solve_time; objecti
         #               "connection_count" => length(wm.ref[:connection]))
     )
 
-    for key in [collect(ids(wm, :junctions)); collect(ids(wm, :reservoirs))]
-        println(wm.var[:nw][0][:h][key])
-        println(getvalue(wm.var[:nw][0][:h][key]))
-        println("")
-    end
+    #for key in [collect(ids(wm, :junctions)); collect(ids(wm, :reservoirs))]
+    #    println(wm.var[:nw][0][:h][key])
+    #    println(getvalue(wm.var[:nw][0][:h][key]))
+    #    println("")
+    #end
 
-    for a in collect(ids(wm, :pipes))
-        println(wm.var[:nw][0][:q][a])
-        println(getvalue(wm.var[:nw][0][:q][a]) * 3600.0)
-    end
+    #for a in collect(ids(wm, :pipes))
+    #    println(wm.var[:nw][0][:q][a])
+    #    println(getvalue(wm.var[:nw][0][:q][a]))
+    #end
 
     wm.solution = solution
 
@@ -82,7 +82,10 @@ function add_connection_flow_setpoint{T}(sol, wm::GenericWaterModel{T})
 end
 
 
-function add_setpoint{T}(sol, wm::GenericWaterModel{T}, dict_name, param_name, variable_symbol; index_name = nothing, default_value = (item) -> NaN, scale = (x,item) -> x, extract_var = (var,idx,item) -> var[idx])
+function add_setpoint{T}(sol, wm::GenericWaterModel{T}, dict_name, param_name,
+                         variable_symbol; index_name = nothing,
+                         default_value = (item) -> NaN, scale = (x,item) -> x,
+                         extract_var = (var,idx,item) -> var[idx])
     sol_dict = get(sol, dict_name, Dict{String,Any}())
     if length(wm.data[dict_name]) > 0
         sol[dict_name] = sol_dict
@@ -106,7 +109,6 @@ end
 solver_status_lookup = Dict{Any, Dict{Symbol, Symbol}}(
     :Ipopt => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
     :ConicNonlinearBridge => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
-    # note that AmplNLWriter.AmplNLSolver is the solver type of bonmin
     :AmplNLWriter => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible)
 )
 
