@@ -15,8 +15,14 @@ function compute_lambda(ref, id)
     # Use standard gravitational acceleration on earth.
     g = 9.80665
 
+    # Approximate the Reynold's number.
+    Re = 2300.0
+
+    # Use the Swamee–Jain equation to compute the friction factor.
+    # f_s = 0.25 / log((roughness / diameter) / 3.71 + (5.74 / Re^0.9))^2
+
     # Use the Prandtl-Kármán friction factor.
-    f_s = (2.0 * log(roughness / (3.71 * diameter)))^(-2)
+    f_s = 0.25 / log((roughness / diameter) / 3.71)^2
 
     # Return lambda.
     return (8.0 * length) / (pi^2 * g * diameter^5) * f_s
@@ -27,7 +33,7 @@ function compute_hazen_williams_lambda(ref, id)
     diameter = ref[:pipes][id]["diameter"] / 1000.0
 
     # Roughness assumes no units (?).
-    roughness = ref[:pipes][id]["roughness"]
+    roughness = ref[:pipes][id]["roughness"] / 1000.0
 
     # Length assumes original units of meters.
     length = ref[:pipes][id]["length"]
@@ -43,15 +49,15 @@ function constraint_flow_conservation{T}(wm::GenericWaterModel{T}, i, n::Int = w
     in_arcs = collect(keys(filter((id, pipe) -> pipe["node2"] == i, wm.ref[:nw][n][:pipes])))
     in_vars = Array{JuMP.Variable}([wm.var[:nw][n][:q][a] for a in in_arcs])
 
-    # Demands below assume original units of cubic meters per hour.
+    # Demands below assume original units of liters per second.
     if haskey(wm.ref[:nw][n][:junctions], i)
-        demand = 0.000277778 * wm.ref[:nw][n][:junctions][i]["demand"]
+        demand = wm.ref[:nw][n][:junctions][i]["demand"]
         @constraint(wm.model, sum(in_vars) - sum(out_vars) == demand)
     elseif haskey(wm.ref[:nw][n][:reservoirs], i)
         all_demands = [junction["demand"] for junction in values(wm.ref[:nw][n][:junctions])]
-        sum_demand = 0.000277778 * sum(all_demands)
+        sum_demand = sum(all_demands)
         @constraint(wm.model, sum(out_vars) - sum(in_vars) >= 0.0)
-        @constraint(wm.model, sum(out_vars) - sum(in_vars) <= sum_demand)
+        # @constraint(wm.model, sum(out_vars) - sum(in_vars) <= sum_demand)
     end
 end
 
@@ -71,10 +77,10 @@ function constraint_potential_flow_coupling{T}(wm::GenericWaterModel{T}, i, n::I
         h_j = wm.var[:nw][n][:h][j]
 
         # Add the constraint.
-        #lambda_a = compute_lambda(wm.ref[:nw][n], a)
-        #@NLconstraint(wm.model, (y_p - y_n) * (h_i - h_j) == lambda_a * q * q)
-        lambda_a = compute_hazen_williams_lambda(wm.ref[:nw][n], a)
-        @NLconstraint(wm.model, (y_p - y_n) * (h_i - h_j) == lambda_a * sign(q) * abs(q)^1.852)
+        lambda_a = compute_lambda(wm.ref[:nw][n], a)
+        @NLconstraint(wm.model, (y_p - y_n) * (h_i - h_j) == lambda_a * 1.0e-6 * q * q)
+        #lambda_a = compute_hazen_williams_lambda(wm.ref[:nw][n], a)
+        #@NLconstraint(wm.model, (y_p - y_n) * (h_i - h_j) == lambda_a * abs(q^1.852))
     end
 end
 
@@ -98,7 +104,7 @@ function constraint_bidirectional_flow{T}(wm::GenericWaterModel{T}, a, n::Int = 
 
     # Add the first set of constraints.
     all_demands = [junction["demand"] for junction in values(wm.ref[:nw][n][:junctions])]
-    sum_demand = 0.000277778 * sum(all_demands)
+    sum_demand = sum(all_demands)
     @constraint(wm.model, (y_p - 1) * sum_demand <= q)
     @constraint(wm.model, (1 - y_n) * sum_demand >= q)
 

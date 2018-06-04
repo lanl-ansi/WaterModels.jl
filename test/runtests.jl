@@ -10,7 +10,7 @@ setlevel!(getlogger(InfrastructureModels), "error")
 setlevel!(getlogger(WaterModels), "error")
 
 # Solver setup.
-solver = AmplNLSolver("couenne")
+solver = AmplNLSolver("couenne", filename="mymodel")
 
 # Perform the tests.
 @testset "WaterModels" begin

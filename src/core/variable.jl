@@ -7,10 +7,10 @@ function max_flow(ref, id)
     diameter = ref[:pipes][id]["diameter"] / 1000.0
 
     # A literature-based guess at v_max (meters per second).
-    v_max = 1.0e6
+    v_max = 10.0
 
     # Return the maximum flow.
-    return (pi / 4.0) * v_max * diameter^2
+    return 1000.0 * (pi / 4.0) * v_max * diameter^2
 end
 
 function variable_flow{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
@@ -37,7 +37,7 @@ function variable_head{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
     # Set up required data to initialize junction variables.
     junction_ids = [key for key in keys(wm.ref[:nw][n][:junctions])]
     junction_lbs = Dict(id => wm.ref[:nw][n][:junctions][id]["elev"] for id in junction_ids)
-    junction_ubs = Dict(id => 1.0e6 for id in junction_ids)
+    junction_ubs = Dict(id => 1000.0 for id in junction_ids)
 
     # Set up required data to initialize reservoir variables.
     reservoir_ids = [key for key in keys(wm.ref[:nw][n][:reservoirs])]
