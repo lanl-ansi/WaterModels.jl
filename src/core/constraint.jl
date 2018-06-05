@@ -63,10 +63,25 @@ function constraint_potential_flow_coupling{T}(wm::GenericWaterModel{T}, i, n::I
         # Collect variables needed for the constraint.
         gamma = wm.var[:nw][n][:gamma][a]
         q = wm.var[:nw][n][:q][a]
-        lambda = compute_hw_lambda(wm.ref[:nw][n], a)
 
-        # Note that this is a quadratic equality constraint.
-        @NLconstraint(wm.model, gamma == lambda * abs(q)^1.852)
+        # For the Darcy-Weisbach formulation.
+        # lambda = compute_dw_lambda(wm.ref[:nw][n], a)
+        # @NLconstraint(wm.model, gamma == lambda * q^2)
+
+        # For the Hazen-Williams formulation.
+        p = 1.852
+        delta = 0.1
+
+        #c5 = 3.0 * delta^(p - 5) / 8.0 + 1.0 / 8.0 * (p - 1) * p * delta^(p - 5) - 3.0 / 8.0 * p * delta^(p - 5)
+        #c3 = -5.0 * delta^(p - 3) / 4.0 - 1.0 / 4.0 * (p - 1) * p * delta^(p - 3) + 5.0 / 4.0 * p * delta^(p - 3)
+        #c1 = 15.0 * delta^(p - 1) / 8.0 + 1.0 / 8.0 * (p - 1) * p * delta^(p - 1) - 7.0 / 8.0 * p * delta^(p - 1)
+
+        #hw_ind = wm.var[:nw][n][:hw_ind][a]
+        #@NLconstraint(wm.model, abs(q) >= hw_ind * delta)
+
+        lambda = compute_hw_lambda(wm.ref[:nw][n], a)
+        #@NLconstraint(wm.model, gamma == (1 - hw_ind) * lambda * abs(c5*q^5 + c3*q^3 + c1*q) + hw_ind * abs(q)^2)
+        @NLconstraint(wm.model, gamma == 0.88 * lambda * q^2)
     end
 end
 

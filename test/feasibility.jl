@@ -14,10 +14,10 @@
     #    @test solution["status"] == :LocalOptimal
     #end
 
-    #@testset "hanoi" begin
-    #    solution = run_feasibility("../test/data/epanet/hanoi.inp", GenericWaterModel{StandardMINLPForm}, solver)
-    #    @test solution["status"] == :LocalOptimal
-    #end
+    @testset "hanoi" begin
+        solution = run_feasibility("../test/data/epanet/hanoi.inp", GenericWaterModel{StandardMINLPForm}, solver)
+        @test solution["status"] == :LocalOptimal
+    end
 
     #@testset "klmod" begin
     #    solution = run_feasibility("../test/data/epanet/klmod.inp", GenericWaterModel{StandardMINLPForm}, solver)
@@ -29,10 +29,10 @@
     #    @test solution["status"] == :LocalOptimal
     #end
 
-    @testset "tasseff" begin
-        solution = run_feasibility("../test/data/epanet/tasseff.inp", GenericWaterModel{StandardMINLPForm}, solver)
-        @test solution["status"] == :LocalOptimal
-    end
+    #@testset "tasseff" begin
+    #    solution = run_feasibility("../test/data/epanet/tasseff.inp", GenericWaterModel{StandardMINLPForm}, solver)
+    #    @test solution["status"] == :LocalOptimal
+    #end
 
     #@testset "zj" begin
     #    solution = run_feasibility("../test/data/epanet/zj.inp", GenericWaterModel{StandardMINLPForm}, solver)
