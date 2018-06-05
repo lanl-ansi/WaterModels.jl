@@ -10,7 +10,7 @@ function max_flow(ref, id)
     v_max = 10.0
 
     # Return the maximum flow.
-    return 1.0e6 #(pi / 4.0) * v_max * diameter^2
+    return (pi / 4.0) * v_max * diameter^2
 end
 
 function variable_flow{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)

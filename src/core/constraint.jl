@@ -2,7 +2,7 @@
 # This file defines commonly-used constraints for water systems models.
 ########################################################################
 
-function compute_lambda(ref, id)
+function compute_dw_lambda(ref, id)
     # Diameter assumes original units of millimeters.
     diameter = ref[:pipes][id]["diameter"] / 1000.0
 
@@ -22,12 +22,12 @@ function compute_lambda(ref, id)
     return (8.0 * length) / (pi^2 * g * diameter^5) * f_s
 end
 
-function compute_hazen_williams_lambda(ref, id)
+function compute_hw_lambda(ref, id)
     # Diameter assumes original units of millimeters.
     diameter = ref[:pipes][id]["diameter"] / 1000.0
 
     # Roughness assumes no units (?).
-    roughness = ref[:pipes][id]["roughness"] / 1000.0
+    roughness = ref[:pipes][id]["roughness"] # / 1000.0
 
     # Length assumes original units of meters.
     length = ref[:pipes][id]["length"]
@@ -50,8 +50,8 @@ function constraint_flow_conservation{T}(wm::GenericWaterModel{T}, i, n::Int = w
     elseif haskey(wm.ref[:nw][n][:reservoirs], i)
         all_demands = [junction["demand"] for junction in values(wm.ref[:nw][n][:junctions])]
         sum_demand = 0.001 * sum(all_demands)
-        #@constraint(wm.model, sum(out_vars) - sum(in_vars) >= 0.0)
-        @constraint(wm.model, sum(out_vars) - sum(in_vars) >= sum_demand)
+        @constraint(wm.model, sum(out_vars) - sum(in_vars) >= 0.0)
+        @constraint(wm.model, sum(out_vars) - sum(in_vars) <= sum_demand)
     end
 end
 
@@ -63,10 +63,10 @@ function constraint_potential_flow_coupling{T}(wm::GenericWaterModel{T}, i, n::I
         # Collect variables needed for the constraint.
         gamma = wm.var[:nw][n][:gamma][a]
         q = wm.var[:nw][n][:q][a]
+        lambda = compute_hw_lambda(wm.ref[:nw][n], a)
 
-        #lambda = compute_lambda(wm.ref[:nw][n], a)
-        lambda = compute_hazen_williams_lambda(wm.ref[:nw][n], a)
-        @constraint(wm.model, gamma >= lambda * q * q)
+        # Note that this is a quadratic equality constraint.
+        @NLconstraint(wm.model, gamma == lambda * abs(q)^1.852)
     end
 end
 
@@ -89,10 +89,10 @@ function constraint_define_gamma{T}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw
     h_j_ub = getupperbound(h_j)
 
     # Add the required constraints.
-    @constraint(wm.model, h_j - h_i + (h_i_lb - h_j_ub) <= gamma)
-    @constraint(wm.model, h_i - h_j + (h_i_ub - h_j_lb) <= gamma)
-    @constraint(wm.model, h_j - h_i + (h_i_ub - h_j_lb) >= gamma)
-    @constraint(wm.model, h_i - h_j + (h_i_lb - h_j_ub) >= gamma)
+    @constraint(wm.model, h_j - h_i + (h_i_lb - h_j_ub) * (y_p - y_n + 1) <= gamma)
+    @constraint(wm.model, h_i - h_j + (h_i_ub - h_j_lb) * (y_p - y_n - 1) <= gamma)
+    @constraint(wm.model, h_j - h_i + (h_i_ub - h_j_lb) * (y_p - y_n + 1) >= gamma)
+    @constraint(wm.model, h_i - h_j + (h_i_lb - h_j_ub) * (y_p - y_n - 1) >= gamma)
 end
 
 function constraint_bidirectional_flow{T}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)

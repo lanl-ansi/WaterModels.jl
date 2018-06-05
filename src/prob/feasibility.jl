@@ -18,6 +18,4 @@ function post_feasibility(wm::GenericWaterModel)
         constraint_define_gamma(wm, a)
         constraint_bidirectional_flow(wm, a)
     end
-
-    writeLP(wm.model, "blah.lp", genericnames = false)
 end

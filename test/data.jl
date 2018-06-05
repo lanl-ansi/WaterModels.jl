@@ -29,6 +29,11 @@
         @test data["title"] == lowercase("")
     end
 
+    @testset "tasseff from EPANET file" begin
+        data = WaterModels.parse_file("../test/data/epanet/tasseff.inp")
+        @test data["title"] == lowercase("")
+    end
+
     @testset "zj from EPANET file" begin
         data = WaterModels.parse_file("../test/data/epanet/zj.inp")
         @test data["title"] == lowercase("")
