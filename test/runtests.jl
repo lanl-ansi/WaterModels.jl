@@ -2,7 +2,6 @@ using WaterModels
 using Base.Test
 using JuMP, AmplNLWriter
 using InfrastructureModels
-using Ipopt
 using Memento
 
 # Suppress warnings during testing.
@@ -15,5 +14,5 @@ solver = AmplNLSolver("bonmin")
 # Perform the tests.
 @testset "WaterModels" begin
     include("data.jl")
-    #include("feasibility.jl")
+    include("feasibility.jl")
 end
