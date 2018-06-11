@@ -51,7 +51,7 @@ function parse_epanet_file(path::String)
     dict["junctions"] = parse_junctions(epanet_dict["junctions"])
     dict["pipes"] = parse_pipes(epanet_dict["pipes"])
     dict["reservoirs"] = parse_reservoirs(epanet_dict["reservoirs"])
-    #dict["options"] = parse_options(epanet_dict["options"])
+    dict["options"] = parse_options(epanet_dict["options"])
     dict["multinetwork"] = false
 
     return dict
