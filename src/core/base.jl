@@ -133,6 +133,8 @@ function build_ref(data::Dict{String, Any})
         for (key, item) in nw_data
             ref[Symbol(key)] = item
         end
+
+        ref[:lambda] = calc_friction_factor(ref[:pipes], ref[:options])
     end
 
     return refs

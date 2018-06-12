@@ -2,40 +2,6 @@
 # This file defines commonly-used constraints for water systems models.
 ########################################################################
 
-function compute_dw_lambda(ref, id)
-    # Diameter assumes original units of millimeters.
-    diameter = ref[:pipes][id]["diameter"] / 1000.0
-
-    # Roughness assumes original units of millimeters.
-    roughness = ref[:pipes][id]["roughness"] / 1000.0
-
-    # Length assumes original units of meters.
-    length = ref[:pipes][id]["length"]
-
-    # Use standard gravitational acceleration on earth.
-    g = 9.80665
-
-    # Use the Prandtl-Kármán friction factor.
-    f_s = 0.25 / log((roughness / diameter) / 3.71)^2
-
-    # Return lambda.
-    return (8.0 * length) / (pi^2 * g * diameter^5) * f_s
-end
-
-function compute_hw_lambda(ref, id)
-    # Diameter assumes original units of millimeters.
-    diameter = ref[:pipes][id]["diameter"] / 1000.0
-
-    # Roughness assumes no units.
-    roughness = ref[:pipes][id]["roughness"]
-
-    # Length assumes original units of meters.
-    length = ref[:pipes][id]["length"]
-
-    # Return lambda.
-    return (10.67 * length) / (roughness^1.852 * diameter^4.87)
-end
-
 function constraint_flow_conservation{T}(wm::GenericWaterModel{T}, i, n::Int = wm.cnw)
     # Add the flow conservation constraints for junction nodes.
     out_arcs = collect(keys(filter((id, pipe) -> pipe["node1"] == i, wm.ref[:nw][n][:pipes])))
@@ -63,7 +29,7 @@ function constraint_potential_flow_coupling{T}(wm::GenericWaterModel{T}, i, n::I
         # Add the potential-flow coupling constraint.
         gamma = wm.var[:nw][n][:gamma][a]
         q = wm.var[:nw][n][:q][a]
-        lambda = compute_hw_lambda(wm.ref[:nw][n], a)
+        lambda = wm.ref[:nw][n][:lambda][a]
         @NLconstraint(wm.model, gamma == 0.88 * lambda * q^2)
     end
 end
