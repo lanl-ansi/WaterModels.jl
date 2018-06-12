@@ -1,5 +1,3 @@
-
-"Build a water solution"
 function build_solution{T}(wm::GenericWaterModel{T}, status, solve_time; objective = NaN, solution_builder = get_solution)
     if status != :Error
         objective = getobjectivevalue(wm.model)
@@ -21,7 +19,7 @@ function build_solution{T}(wm::GenericWaterModel{T}, status, solve_time; objecti
         #               "connection_count" => length(wm.ref[:connection]))
     )
 
-    #for key in [collect(ids(wm, :junctions)); collect(ids(wm, :reservoirs))]
+    #for key in sort([collect(ids(wm, :junctions)); collect(ids(wm, :reservoirs))])
     #    println(wm.var[:nw][0][:h][key])
     #    println(getvalue(wm.var[:nw][0][:h][key]))
     #    println("")

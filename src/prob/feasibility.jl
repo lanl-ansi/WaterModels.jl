@@ -7,6 +7,7 @@ end
 function post_feasibility(wm::GenericWaterModel)
     variable_flow(wm)
     variable_head(wm)
+    variable_head_difference(wm)
     variable_flow_direction(wm)
 
     for i in [collect(ids(wm, :junctions)); collect(ids(wm, :reservoirs))]

@@ -24,8 +24,9 @@ include("io/epanet.jl")
 
 include("core/base.jl")
 include("core/constraint.jl")
-include("core/variable.jl")
+include("core/data.jl")
 include("core/solution.jl")
+include("core/variable.jl")
 
 include("form/minlp.jl")
 
