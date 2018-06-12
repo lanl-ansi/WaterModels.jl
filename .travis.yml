@@ -30,7 +30,6 @@ install:
   # Compile additional (unpackaged) requirements.
   - source ci/install.sh
   - export PATH="${PATH}:${PWD}/bin"
-  - echo ${PATH}
   - cd ${TRAVIS_BUILD_DIR}
 
 script:
