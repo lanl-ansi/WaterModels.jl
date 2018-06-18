@@ -137,6 +137,7 @@ function build_ref(data::Dict{String, Any})
         end
 
         ref[:lambda] = calc_friction_factor(ref[:pipes], ref[:options])
+        ref[:demand] = calc_demand(ref[:junctions], ref[:options])
     end
 
     return refs

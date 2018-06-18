@@ -11,11 +11,10 @@ function constraint_flow_conservation{T}(wm::GenericWaterModel{T}, i, n::Int = w
 
     # Demands assume original units of liters per second.
     if haskey(wm.ref[:nw][n][:junctions], i)
-        demand = 0.001 * wm.ref[:nw][n][:junctions][i]["demand"]
+        demand = wm.ref[:nw][n][:demand][i]
         @constraint(wm.model, sum(in_vars) - sum(out_vars) == demand)
     elseif haskey(wm.ref[:nw][n][:reservoirs], i)
-        all_demands = [junction["demand"] for junction in values(wm.ref[:nw][n][:junctions])]
-        sum_demand = 0.001 * sum(all_demands)
+        sum_demand = sum(values(wm.ref[:nw][n][:demand]))
         @constraint(wm.model, sum(out_vars) - sum(in_vars) >= 0.0)
         @constraint(wm.model, sum(out_vars) - sum(in_vars) <= sum_demand)
     end
@@ -78,8 +77,7 @@ function constraint_bidirectional_flow{T}(wm::GenericWaterModel{T}, a, n::Int = 
     h_j_ub = getupperbound(h_j)
 
     # Add the first set of constraints.
-    all_demands = [junction["demand"] for junction in values(wm.ref[:nw][n][:junctions])]
-    sum_demand = 0.001 * sum(all_demands)
+    sum_demand = sum(values(wm.ref[:nw][n][:demand]))
     @constraint(wm.model, (y_p - 1) * sum_demand <= q)
     @constraint(wm.model, (1 - y_n) * sum_demand >= q)
 

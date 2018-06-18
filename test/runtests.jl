@@ -1,5 +1,6 @@
 using WaterModels
 using Base.Test
+using DataFrames
 using JuMP, AmplNLWriter
 using InfrastructureModels
 using Memento

@@ -20,6 +20,25 @@ function calc_flow_bounds(pipes)
     return flow_min, flow_max
 end
 
+function calc_demand(junctions, options)
+    demand = Dict([(junction_id, 0.0) for junction_id in keys(junctions)])
+    demand_units = options["units"]
+
+    for (junction_id, junction) in junctions
+        if demand_units == "lps" # If liters per second...
+            # Convert from liters per second to cubic meters per second.
+            demand[junction_id] = junction["demand"] * 0.001
+        elseif demand_units == "gpm" # If gallons per minute...
+            # Convert from gallons per minute to cubic meters per second.
+            demand[junction_id] = junction["demand"] * 6.309e-5
+        else
+            error("Could not find a valid \"units\" option type.")
+        end
+    end
+
+    return demand
+end
+
 function calc_friction_factor(pipes, options)
     friction_factor = Dict([(pipe_id, -Inf) for pipe_id in keys(pipes)])
     headloss_type = options["headloss"]
