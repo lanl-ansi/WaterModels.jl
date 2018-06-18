@@ -51,6 +51,8 @@ function parse_epanet_file(path::String)
     dict["junctions"] = parse_junctions(epanet_dict["junctions"])
     dict["pipes"] = parse_pipes(epanet_dict["pipes"])
     dict["reservoirs"] = parse_reservoirs(epanet_dict["reservoirs"])
+    dict["tanks"] = parse_tanks(epanet_dict["tanks"])
+    dict["valves"] = parse_valves(epanet_dict["valves"])
     dict["options"] = parse_options(epanet_dict["options"])
     dict["multinetwork"] = false
 
@@ -98,6 +100,36 @@ end
 function parse_reservoirs(data::Dict{String, Array})
     # Specify the data types for the reservoir data.
     columns = Dict("head" => Float64, "id" => String, "pattern" => String)
+
+    # Ensure the arrays describing reservoir data are all of equal lengths.
+    @assert(allequal([length(data[column]) for column in keys(columns)]))
+
+    # Return an array of reservoir dictionaries with the correct data types.
+    arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["id"])]
+    return Dict{String, Any}(data["id"][i] => arr[i] for i = 1:length(arr))
+end
+
+function parse_tanks(data::Dict{String, Array})
+    # Specify the data types for the reservoir data.
+    columns = Dict("diameter" => Float64, "elevation" => Float64,
+                   "id" => String, "initlevel" => Float64,
+                   "maxlevel" => Float64, "minlevel" => Float64,
+                   "minvol" => Float64, "volcurve" => String)
+
+    # Ensure the arrays describing reservoir data are all of equal lengths.
+    @assert(allequal([length(data[column]) for column in keys(columns)]))
+
+    # Return an array of reservoir dictionaries with the correct data types.
+    arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["id"])]
+    return Dict{String, Any}(data["id"][i] => arr[i] for i = 1:length(arr))
+end
+
+function parse_valves(data::Dict{String, Array})
+    # Specify the data types for the reservoir data.
+    columns = Dict("diameter" => Float64, "id" => String,
+                   "minorloss" => Float64, "node1" => String,
+                   "node2" => String, "setting" => Float64,
+                   "type" => String)
 
     # Ensure the arrays describing reservoir data are all of equal lengths.
     @assert(allequal([length(data[column]) for column in keys(columns)]))

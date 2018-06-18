@@ -115,6 +115,8 @@ Some of the common keys include:
 * `:pipes` -- the set of pipes in the network,
 * `:reservoirs` -- the set of reservoirs in the network,
 * `:junctions` -- the set of junctions in the network,
+* `:valves` -- the set of valves in the network,
+* `:tanks` -- the set of tanks in the network
 """
 function build_ref(data::Dict{String, Any})
     refs = Dict{Symbol, Any}()
