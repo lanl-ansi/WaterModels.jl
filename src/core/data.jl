@@ -69,7 +69,7 @@ function calc_friction_factor(pipes, options)
             # Use standard gravitational acceleration on earth.
             g = 9.80665
 
-            # Use the Prandtl-Kármán friction factor.
+            # Use the Prandtl-Karman friction factor.
             f_s = 0.25 / log((roughness / diameter) / 3.71)^2
 
             # Return the friction factor.
