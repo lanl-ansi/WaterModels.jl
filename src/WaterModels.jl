@@ -30,6 +30,7 @@ include("core/variable.jl")
 
 include("form/minlp.jl")
 
+include("prob/expansion.jl")
 include("prob/feasibility.jl")
 
 end
