@@ -61,8 +61,7 @@ function calc_friction_factor(pipes, options)
             diameter = pipe["diameter"] / 1000.0
 
             # Roughness assumes original units of millimeters.
-            #roughness = pipe["roughness"] / 1000.0
-            roughness = pipe["roughness"]
+            roughness = pipe["roughness"] / 1000.0
 
             # Length assumes original units of meters.
             length = pipe["length"]
@@ -71,10 +70,10 @@ function calc_friction_factor(pipes, options)
             g = 9.80665
 
             # Use the Prandtl-Kármán friction factor.
-            #f_s = 0.25 / log((roughness / diameter) / 3.71)^2
+            f_s = 0.25 / log((roughness / diameter) / 3.71)^2
 
             # Return the friction factor.
-            friction_factor[pipe_id] = (8.0 * length) / (pi^2 * g * diameter^5) * roughness
+            friction_factor[pipe_id] = (8.0 * length) / (pi^2 * g * diameter^5) * f_s
         else
             error("Could not find a valid \"headloss\" option type.")
         end
