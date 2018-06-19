@@ -1,0 +1,18 @@
+{
+    "pipes": {
+        "1": {
+            "diameters": {
+                "12": {
+						 "size": 
+                   "costPerLength": 0.0
+                },
+                "16": {
+                    "costPerLength": 0.0
+                },
+                "20": {
+                    "costPerLength": 0.0
+                }
+            }
+        }
+    }
+}
