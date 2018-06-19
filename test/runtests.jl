@@ -16,4 +16,5 @@ solver = AmplNLSolver("bonmin")
 @testset "WaterModels" begin
     include("data.jl")
     include("feasibility.jl")
+    include("expansion.jl")
 end
