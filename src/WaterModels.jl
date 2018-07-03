@@ -8,6 +8,7 @@ using MathProgBase
 using JuMP
 using Compat
 using Memento
+using PiecewiseLinearOpt
 
 import Compat: @__MODULE__
 
@@ -25,6 +26,7 @@ include("io/epanet.jl")
 include("core/base.jl")
 include("core/constraint.jl")
 include("core/data.jl")
+include("core/objective.jl")
 include("core/solution.jl")
 include("core/variable.jl")
 

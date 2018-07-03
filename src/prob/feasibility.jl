@@ -19,4 +19,6 @@ function post_feasibility(wm::GenericWaterModel)
         constraint_define_gamma(wm, a)
         constraint_bidirectional_flow(wm, a)
     end
+
+    #objective_minimize_flow_squared(wm)
 end

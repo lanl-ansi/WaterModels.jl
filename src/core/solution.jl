@@ -90,7 +90,8 @@ end
 solver_status_lookup = Dict{Any, Dict{Symbol, Symbol}}(
     :Ipopt => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
     :ConicNonlinearBridge => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
-    :AmplNLWriter => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible))
+    :AmplNLWriter => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
+    :Gurobi => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible))
 
 # translates solver status codes to our status codes
 function solver_status_dict(solver_type, status)

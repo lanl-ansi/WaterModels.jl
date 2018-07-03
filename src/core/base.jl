@@ -1,4 +1,4 @@
-export GenericWaterModel, build_generic_model, ids
+export GenericWaterModel, build_generic_model, ids, nws
 
 ""
 abstract type AbstractWaterFormulation end
@@ -145,3 +145,4 @@ end
 
 ids(wm::GenericWaterModel, key::Symbol) = ids(wm, wm.cnw, key)
 ids(wm::GenericWaterModel, n::Int, key::Symbol) = keys(wm.ref[:nw][n][key])
+nws(wm::GenericWaterModel) = keys(wm.ref[:nw])

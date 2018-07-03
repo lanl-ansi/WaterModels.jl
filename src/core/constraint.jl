@@ -29,7 +29,15 @@ function constraint_potential_flow_coupling{T}(wm::GenericWaterModel{T}, i, n::I
         gamma = wm.var[:nw][n][:gamma][a]
         q = wm.var[:nw][n][:q][a]
         lambda = wm.ref[:nw][n][:lambda][a]
-        @NLconstraint(wm.model, gamma == 0.80 * lambda * q^2)
+
+        if wm.ref[:nw][n][:options]["headloss"] == "h-w"
+            # If Hazen-Williams formulation, use a piecewise right-hand side.
+            breakpoints = linspace(getlowerbound(q), getupperbound(q), 50)
+            rhs = piecewiselinear(wm.model, q, breakpoints, (u) -> lambda * (u^2)^0.926)
+            @constraint(wm.model, gamma == 1.0 * rhs)
+        elseif wm.ref[:nw][n][:options]["headloss"] == "d-w"
+            @NLconstraint(wm.model, gamma >= lambda * q^2)
+        end
     end
 end
 

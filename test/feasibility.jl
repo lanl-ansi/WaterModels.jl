@@ -15,6 +15,9 @@ function verify(solution::Dict{AbstractString, Any}, flowrate_solution_path::Str
     flow[:rel_err] = abs.((flow[:solution] - flow[:test]) ./ flow[:solution])
     flow_max_rel_err = maximum(flow[:rel_err])
 
+    println(head)
+    println(flow)
+
     # If the maximum relative error is small, then the solution is good.
     # TODO: The tolerance here obviously needs to be smaller...
     if head_max_rel_err < 50.0 && flow_max_rel_err < 50.0
@@ -28,6 +31,7 @@ end
     #@testset "balerma" begin
     #    solution = run_feasibility("../test/data/epanet/balerma.inp", GenericWaterModel{StandardMINLPForm}, solver)
     #    @test solution["status"] == :LocalOptimal
+    #    @test verify(solution, "../test/data/solutions/balerma-feasibility-flowrate.csv", "../test/data/solutions/balerma-feasibility-head.csv")
     #end
 
     #@testset "foss_poly_1" begin
@@ -35,11 +39,11 @@ end
     #    @test solution["status"] == :LocalOptimal
     #end
 
-    @testset "hanoi_extended" begin
-        solution = run_feasibility("../test/data/epanet/hanoi_extended.inp", GenericWaterModel{StandardMINLPForm}, solver)
-        @test solution["status"] == :LocalOptimal
-        @test verify(solution, "../test/data/solutions/hanoi_extended-feasibility-flowrate.csv", "../test/data/solutions/hanoi_extended-feasibility-head.csv")
-    end
+    #@testset "hanoi_extended" begin
+    #    solution = run_feasibility("../test/data/epanet/hanoi_extended.inp", GenericWaterModel{StandardMINLPForm}, solver)
+    #    @test solution["status"] == :LocalOptimal
+    #    @test verify(solution, "../test/data/solutions/hanoi_extended-feasibility-flowrate.csv", "../test/data/solutions/hanoi_extended-feasibility-head.csv")
+    #end
 
     @testset "hanoi" begin
         solution = run_feasibility("../test/data/epanet/hanoi.inp", GenericWaterModel{StandardMINLPForm}, solver)
