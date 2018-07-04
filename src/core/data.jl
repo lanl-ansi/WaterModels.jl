@@ -49,7 +49,7 @@ function calc_friction_factor(pipes, options)
             diameter = pipe["diameter"] / 1000.0
 
             # Roughness assumes no units.
-            roughness = pipe["roughness"]
+				roughness = pipe["roughness"]
 
             # Length assumes original units of meters.
             length = pipe["length"]
