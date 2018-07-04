@@ -5,15 +5,17 @@ using JuMP, AmplNLWriter
 using InfrastructureModels
 using Ipopt
 using Memento
+using Pajarito
 
 # Suppress warnings during testing.
 setlevel!(getlogger(InfrastructureModels), "error")
 setlevel!(getlogger(WaterModels), "error")
 
 # Solver setup.
-solver = AmplNLSolver("bonmin")
-# solver = GurobiSolver()
+# solver = AmplNLSolver("bonmin")
+solver = GurobiSolver()
 # solver = IpoptSolver()
+# solver = PajaritoSolver()
 
 # Perform the tests.
 @testset "WaterModels" begin

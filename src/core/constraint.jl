@@ -34,15 +34,18 @@ function constraint_potential_flow_coupling{T}(wm::GenericWaterModel{T}, i, n::I
         if headloss_type == "h-w"
             # If Hazen-Williams formulation, use a piecewise outer-approximation.
             mids = linspace(getlowerbound(q), getupperbound(q), 3)
-            ends = linspace(mids[1] - step(mids), mids[end] + step(mids), 3+2)
-            mids_f = [lambda * (x*x)^0.926 for x in mids]
-            mids_df = [lambda * 1.852*x / (x*x)^0.074 for x in mids]
-            ends_f = 
+            mids_f = [lambda * (x^2)^0.926 for x in mids]
+            mids_df = [lambda * 1.852*x / (x^2)^0.074 for x in mids]
+				mids_df[isnan.(mids_df)] = 0.0
+				int_1 = (mids_f[2] - mids_f[1]) / (mids_df[1] - mids_df[2])
+				int_2 = (mids_f[3] - mids_f[2]) / (mids_df[2] - mids_df[3])
 
-            #rhs = piecewiselinear(wm.model, q, breakpoints, (u) -> (u^2)^0.926, method = :ZigZagInteger)
-            rhs = piecewiselinear(wm.model, q, midpoints, u -> u*u)
-            #@NLconstraint(wm.model, gamma >= lambda * 0.8 * q^2)
-            @constraint(wm.model, gamma >= lambda * 0.8 * rhs)
+				mids = [x for x in mids]
+				sort!(append!(mids, [int_1, int_2]))
+            mids_f = [lambda * (x^2)^0.926 for x in mids]
+
+            rhs = piecewiselinear(wm.model, q, mids, mids_f, method = :ZigZagInteger)
+            @constraint(wm.model, gamma == 0.50 * rhs)
         elseif headloss_type == "d-w"
             # If Darcy-Weisbach formulation, we can probably handle it natively.
             @NLconstraint(wm.model, gamma >= lambda * q^2)
