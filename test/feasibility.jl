@@ -37,6 +37,7 @@ end
     #@testset "foss_poly_1" begin
     #    solution = run_feasibility("../test/data/epanet/foss_poly_1.inp", GenericWaterModel{StandardMINLPForm}, solver)
     #    @test solution["status"] == :LocalOptimal
+    #    @test verify(solution, "../test/data/solutions/foss_poly_1-feasibility-flowrate.csv", "../test/data/solutions/foss_poly_1-feasibility-head.csv")
     #end
 
     #@testset "hanoi_extended" begin
@@ -54,6 +55,7 @@ end
     #@testset "klmod" begin
     #    solution = run_feasibility("../test/data/epanet/klmod.inp", GenericWaterModel{StandardMINLPForm}, solver)
     #    @test solution["status"] == :LocalOptimal
+    #    @test verify(solution, "../test/data/solutions/klmod-feasibility-flowrate.csv", "../test/data/solutions/klmod-feasibility-head.csv")
     #end
 
     #@testset "rural" begin
@@ -64,5 +66,6 @@ end
     #@testset "zj" begin
     #    solution = run_feasibility("../test/data/epanet/zj.inp", GenericWaterModel{StandardMINLPForm}, solver)
     #    @test solution["status"] == :LocalOptimal
+    #    @test verify(solution, "../test/data/solutions/zj-feasibility-flowrate.csv", "../test/data/solutions/zj-feasibility-head.csv")
     #end
 end

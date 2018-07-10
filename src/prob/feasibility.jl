@@ -20,5 +20,5 @@ function post_feasibility(wm::GenericWaterModel)
         constraint_bidirectional_flow(wm, a)
     end
 
-    objective_minimize_flow_squared(wm)
+    #objective_minimize_flow_squared(wm)
 end

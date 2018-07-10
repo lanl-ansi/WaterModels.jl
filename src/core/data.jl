@@ -27,6 +27,7 @@ function calc_demand(junctions, options)
     for (junction_id, junction) in junctions
         if demand_units == "lps" # If liters per second...
             # Convert from liters per second to cubic meters per second.
+            # demand[junction_id] = junction["demand"] * 0.000277778
             demand[junction_id] = junction["demand"] * 0.001
         elseif demand_units == "gpm" # If gallons per minute...
             # Convert from gallons per minute to cubic meters per second.
@@ -89,8 +90,8 @@ function calc_head_difference_bounds(pipes)
     for (pipe_id, pipe) in pipes
         # Compute the flow bounds.
         # TODO: Replace these with better bounds.
-        diff_min[pipe_id] = -1000.0
-        diff_max[pipe_id] = 1000.0
+        diff_min[pipe_id] = -100.0
+        diff_max[pipe_id] = 100.0
     end
 
     return diff_min, diff_max

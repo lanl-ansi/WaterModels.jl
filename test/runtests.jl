@@ -13,9 +13,9 @@ setlevel!(getlogger(WaterModels), "error")
 
 # Solver setup.
 # solver = AmplNLSolver("bonmin")
-solver = GurobiSolver()
 # solver = IpoptSolver()
 # solver = PajaritoSolver()
+solver = GurobiSolver()
 
 # Perform the tests.
 @testset "WaterModels" begin

@@ -36,16 +36,17 @@ function constraint_potential_flow_coupling{T}(wm::GenericWaterModel{T}, i, n::I
             mids = linspace(getlowerbound(q), getupperbound(q), 3)
             mids_f = [lambda * (x^2)^0.926 for x in mids]
             mids_df = [lambda * 1.852*x / (x^2)^0.074 for x in mids]
+
 				mids_df[isnan.(mids_df)] = 0.0
 				int_1 = (mids_f[2] - mids_f[1]) / (mids_df[1] - mids_df[2])
 				int_2 = (mids_f[3] - mids_f[2]) / (mids_df[2] - mids_df[3])
 
 				mids = [x for x in mids]
 				sort!(append!(mids, [int_1, int_2]))
-            mids_f = [lambda * (x^2)^0.926 for x in mids]
+				mids_f = [lambda * (x^2)^0.926 for x in mids]
 
             rhs = piecewiselinear(wm.model, q, mids, mids_f, method = :ZigZagInteger)
-            @constraint(wm.model, gamma <= 1.00 * rhs)
+            @constraint(wm.model, gamma == 1.00 * rhs)
         elseif headloss_type == "d-w"
             # If Darcy-Weisbach formulation, we can probably handle it natively.
             @NLconstraint(wm.model, gamma >= lambda * q^2)
