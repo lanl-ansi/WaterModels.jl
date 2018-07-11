@@ -2,6 +2,20 @@
 # This file defines commonly-used constraints for water systems models.
 ########################################################################
 
+function construct_hw_separators(q::JuMP.Variable, lambda::Float64, n::Int = 250)
+    q_points = linspace(getlowerbound(q), getupperbound(q), n)
+    f_evals = [lambda * (x^2)^0.926 for x in q_points]
+    df_evals = [lambda * 1.852*x / (x^2)^0.074 for x in q_points]
+    return [f_evals[i] + (q - q_points[i]) * df_evals[i] for i in 1:n]
+end
+
+function construct_dw_separators(q::JuMP.Variable, lambda::Float64, n::Int = 250)
+    q_points = linspace(getlowerbound(q), getupperbound(q), n)
+    f_evals = [lambda * x^2 for x in q_points]
+    df_evals = [2 * lambda * x for x in q_points]
+    return [f_evals[i] + (q - q_points[i]) * df_evals[i] for i in 1:n]
+end
+
 function constraint_flow_conservation{T}(wm::GenericWaterModel{T}, i, n::Int = wm.cnw)
     # Add the flow conservation constraints for junction nodes.
     out_arcs = collect(keys(filter((id, pipe) -> pipe["node1"] == i, wm.ref[:nw][n][:pipes])))
@@ -32,24 +46,15 @@ function constraint_potential_flow_coupling{T}(wm::GenericWaterModel{T}, i, n::I
         lambda = wm.ref[:nw][n][:lambda][a]
 
         if headloss_type == "h-w"
-            # If Hazen-Williams formulation, use a piecewise outer-approximation.
-            mids = linspace(getlowerbound(q), getupperbound(q), 3)
-            mids_f = [lambda * (x^2)^0.926 for x in mids]
-            mids_df = [lambda * 1.852*x / (x^2)^0.074 for x in mids]
-
-				mids_df[isnan.(mids_df)] = 0.0
-				int_1 = (mids_f[2] - mids_f[1]) / (mids_df[1] - mids_df[2])
-				int_2 = (mids_f[3] - mids_f[2]) / (mids_df[2] - mids_df[3])
-
-				mids = [x for x in mids]
-				sort!(append!(mids, [int_1, int_2]))
-				mids_f = [lambda * (x^2)^0.926 for x in mids]
-
-            rhs = piecewiselinear(wm.model, q, mids, mids_f, method = :ZigZagInteger)
-            @constraint(wm.model, gamma == 1.00 * rhs)
+            # Use the piecewise linear outer approximation.
+            for cut in construct_hw_separators(q, lambda)
+                @constraint(wm.model, gamma >= cut)
+            end
         elseif headloss_type == "d-w"
-            # If Darcy-Weisbach formulation, we can probably handle it natively.
-            @NLconstraint(wm.model, gamma >= lambda * q^2)
+            # Use the piecewise linear outer approximation.
+            for cut in construct_dw_separators(q, lambda)
+                @constraint(wm.model, gamma >= cut)
+            end
         end
     end
 end

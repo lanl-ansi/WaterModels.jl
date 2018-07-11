@@ -1,9 +1,9 @@
 using WaterModels
+using AmplNLWriter
 using Base.Test
 using Gurobi
-using JuMP, AmplNLWriter
+using JuMP
 using InfrastructureModels
-using Ipopt
 using Memento
 using Pajarito
 
@@ -13,9 +13,8 @@ setlevel!(getlogger(WaterModels), "error")
 
 # Solver setup.
 # solver = AmplNLSolver("bonmin")
-# solver = IpoptSolver()
 # solver = PajaritoSolver()
-solver = GurobiSolver()
+solver = GurobiSolver(FeasibilityTol = 1.0e-9, OptimalityTol = 1.0e-9, MIPGap = 0.0)
 
 # Perform the tests.
 @testset "WaterModels" begin

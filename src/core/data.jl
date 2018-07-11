@@ -1,12 +1,12 @@
 # Functions for working with the WaterModels internal data format.
 
-function calc_flow_bounds(pipes)
+function calc_flow_bounds(pipes, diameters)
     flow_min = Dict([(pipe_id, -Inf) for pipe_id in keys(pipes)])
     flow_max = Dict([(pipe_id, Inf) for pipe_id in keys(pipes)])
 
     for (pipe_id, pipe) in pipes
         # Diameter assumes original units of millimeters.
-        diameter = pipe["diameter"] / 1000.0
+        diameter = diameters[pipe_id]
 
         # A literature-based guess at the maximum velocity (meters per second).
         v_max = 10.0
@@ -23,15 +23,15 @@ end
 function calc_demand(junctions, options)
     demand = Dict([(junction_id, 0.0) for junction_id in keys(junctions)])
     demand_units = options["units"]
+    demand_multiplier = options["demand_multiplier"]
 
     for (junction_id, junction) in junctions
         if demand_units == "lps" # If liters per second...
             # Convert from liters per second to cubic meters per second.
-            # demand[junction_id] = junction["demand"] * 0.000277778
-            demand[junction_id] = junction["demand"] * 0.001
+            demand[junction_id] = junction["demand"] * 1.0e-3 * demand_multiplier
         elseif demand_units == "gpm" # If gallons per minute...
             # Convert from gallons per minute to cubic meters per second.
-            demand[junction_id] = junction["demand"] * 6.309e-5
+            demand[junction_id] = junction["demand"] * 6.30902e-5 * demand_multiplier
         else
             error("Could not find a valid \"units\" option type.")
         end
@@ -40,41 +40,42 @@ function calc_demand(junctions, options)
     return demand
 end
 
-function calc_friction_factor(pipes, options)
+function calc_diameter(pipes, options)
+    diameter = Dict([(pipe_id, 0.0) for pipe_id in keys(pipes)])
+    demand_units = options["units"]
+
+    for (pipe_id, pipe) in pipes
+        if demand_units == "lps"
+            # Convert diameter from millimeters to meters.
+            diameter[pipe_id] = 0.001 * pipe["diameter"]
+        elseif demand_units == "gpm" # If gallons per minute...
+            # Convert diameter from inches to meters.
+            diameter[pipe_id] = 0.0254 * pipe["diameter"]
+        end
+    end
+
+    return diameter
+end
+
+function calc_friction_factor(pipes, lengths, diameters, roughnesses, options)
     friction_factor = Dict([(pipe_id, -Inf) for pipe_id in keys(pipes)])
     headloss_type = options["headloss"]
 
     for (pipe_id, pipe) in pipes
+        diameter = diameters[pipe_id]
+        roughness = roughnesses[pipe_id]
+        length = lengths[pipe_id]
+
         if headloss_type == "h-w" # If Hazen-Williams...
-            # Diameter assumes original units of millimeters.
-            diameter = pipe["diameter"] / 1000.0
-
-            # Roughness assumes no units.
-				roughness = pipe["roughness"]
-
-            # Length assumes original units of meters.
-            length = pipe["length"]
-
-            # Return the friction factor.
             friction_factor[pipe_id] = (10.67 * length) / (roughness^1.852 * diameter^4.87)
         elseif headloss_type == "d-w" # If Darcy-Weisbach...
-            # Diameter assumes original units of millimeters.
-            diameter = pipe["diameter"] / 1000.0
-
-            # Roughness assumes original units of millimeters.
-            roughness = pipe["roughness"] / 1000.0
-
-            # Length assumes original units of meters.
-            length = pipe["length"]
-
-            # Use standard gravitational acceleration on earth.
-            g = 9.80665
-
+            # Employ the same wall coefficient used by EPANET.
+            # f_s = 1.0 / abs(log(roughness / diameter)) / 86400.0
             # Use the Prandtl-Karman friction factor.
             f_s = 0.25 / log((roughness / diameter) / 3.71)^2
 
-            # Return the friction factor.
-            friction_factor[pipe_id] = (8.0 * length) / (pi^2 * g * diameter^5) * f_s
+            # Compute the overall friction factor.
+            friction_factor[pipe_id] = 0.0826 * length / diameter^5 * f_s
         else
             error("Could not find a valid \"headloss\" option type.")
         end
@@ -90,9 +91,47 @@ function calc_head_difference_bounds(pipes)
     for (pipe_id, pipe) in pipes
         # Compute the flow bounds.
         # TODO: Replace these with better bounds.
-        diff_min[pipe_id] = -100.0
-        diff_max[pipe_id] = 100.0
+        diff_min[pipe_id] = -1000.0
+        diff_max[pipe_id] = 1000.0
     end
 
     return diff_min, diff_max
+end
+
+function calc_length(pipes, options)
+    length = Dict([(pipe_id, 0.0) for pipe_id in keys(pipes)])
+    demand_units = options["units"]
+
+    for (pipe_id, pipe) in pipes
+        if demand_units == "lps"
+            # Retain the original value (in meters).
+            length[pipe_id] = pipe["length"]
+        elseif demand_units == "gpm" # If gallons per minute...
+            # Convert length from feet to meters.
+            length[pipe_id] = 0.3048 * pipe["length"]
+        end
+    end
+
+    return length
+end
+
+function calc_roughness(pipes, options)
+    roughness = Dict([(pipe_id, 0.0) for pipe_id in keys(pipes)])
+    headloss_type = options["headloss"]
+    demand_units = options["units"]
+
+    for (pipe_id, pipe) in pipes
+        if headloss_type == "d-w" && demand_units == "gpm" 
+            # Convert roughness from millifeet to meters.
+            roughness[pipe_id] = 3.048e-4 * pipe["roughness"]
+        elseif headloss_type == "d-w" && demand_units == "lps"
+            # Convert roughness from millimeters to meters.
+            roughness[pipe_id] = 0.001 * pipe["roughness"]
+        elseif headloss_type == "h-w"
+            # Retain the original value (unitless).
+            roughness[pipe_id] = pipe["roughness"]
+        end
+    end
+
+    return roughness
 end

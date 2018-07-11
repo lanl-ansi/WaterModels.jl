@@ -140,6 +140,9 @@ function parse_valves(data::Dict{String, Array})
 end
 
 function parse_options(data::Dict{String, Any})
-    return Dict{String, Any}("units" => data["units"][1],
-                             "headloss" => data["headloss"][1])
+    units = data["units"][1]
+    headloss = data["headloss"][1]
+    demand_multiplier = parse(Float64, data["demand multiplier"][1])
+    return Dict{String, Any}("units" => units, "headloss" => headloss,
+                             "demand_multiplier" => demand_multiplier)
 end

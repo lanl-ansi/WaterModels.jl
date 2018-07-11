@@ -5,22 +5,21 @@ function verify(solution::Dict{AbstractString, Any}, flowrate_solution_path::Str
     head = CSV.read(head_solution_path)
     nodes = merge(solution["solution"]["junctions"], solution["solution"]["reservoirs"])
     head[:test] = map(id -> nodes[string(id)]["h"], head[:id])
-    head[:rel_err] = abs.((head[:solution] - head[:test]) ./ head[:solution])
-    head_max_rel_err = maximum(head[:rel_err])
+    head[:abs_err] = abs.(head[:solution] - head[:test])
+    head_max_abs_err = maximum(head[:abs_err])
 
     # Parse the known flow solution and compute the relative error.
     flow = CSV.read(flowrate_solution_path)
     edges = solution["solution"]["pipes"]
     flow[:test] = map(id -> edges[string(id)]["q"], flow[:id])
-    flow[:rel_err] = abs.((flow[:solution] - flow[:test]) ./ flow[:solution])
-    flow_max_rel_err = maximum(flow[:rel_err])
+    flow[:abs_err] = abs.(flow[:solution] - flow[:test])
+    flow_max_abs_err = maximum(flow[:abs_err])
 
-    println(head)
-    println(flow)
+    #println(head)
+    #println(flow)
 
-    # If the maximum relative error is small, then the solution is good.
-    # TODO: The tolerance here obviously needs to be smaller...
-    if head_max_rel_err < 50.0 && flow_max_rel_err < 50.0
+    # If the maximum absolute error is small, then the solution is valid.
+    if head_max_abs_err < 0.10 && flow_max_abs_err < 0.10
         return true
     else
         return false
@@ -46,17 +45,17 @@ end
     #    @test verify(solution, "../test/data/solutions/hanoi_extended-feasibility-flowrate.csv", "../test/data/solutions/hanoi_extended-feasibility-head.csv")
     #end
 
-    @testset "hanoi" begin
-        solution = run_feasibility("../test/data/epanet/hanoi.inp", GenericWaterModel{StandardMINLPForm}, solver)
-        @test solution["status"] == :LocalOptimal
-        @test verify(solution, "../test/data/solutions/hanoi-feasibility-flowrate.csv", "../test/data/solutions/hanoi-feasibility-head.csv")
-    end
-
-    #@testset "klmod" begin
-    #    solution = run_feasibility("../test/data/epanet/klmod.inp", GenericWaterModel{StandardMINLPForm}, solver)
+    #@testset "hanoi" begin
+    #    solution = run_feasibility("../test/data/epanet/hanoi.inp", GenericWaterModel{StandardMINLPForm}, solver)
     #    @test solution["status"] == :LocalOptimal
-    #    @test verify(solution, "../test/data/solutions/klmod-feasibility-flowrate.csv", "../test/data/solutions/klmod-feasibility-head.csv")
+    #    @test verify(solution, "../test/data/solutions/hanoi-feasibility-flowrate.csv", "../test/data/solutions/hanoi-feasibility-head.csv")
     #end
+
+    @testset "klmod" begin
+        solution = run_feasibility("../test/data/epanet/klmod.inp", GenericWaterModel{StandardMINLPForm}, solver)
+        @test solution["status"] == :LocalOptimal
+        @test verify(solution, "../test/data/solutions/klmod-feasibility-flowrate.csv", "../test/data/solutions/klmod-feasibility-head.csv")
+    end
 
     #@testset "rural" begin
     #    solution = run_feasibility("../test/data/epanet/rural.inp", GenericWaterModel{StandardMINLPForm}, solver)

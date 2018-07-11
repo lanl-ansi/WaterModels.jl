@@ -136,8 +136,16 @@ function build_ref(data::Dict{String, Any})
             ref[Symbol(key)] = item
         end
 
-        ref[:lambda] = calc_friction_factor(ref[:pipes], ref[:options])
+        # Convert all data to SI units.
         ref[:demand] = calc_demand(ref[:junctions], ref[:options])
+        ref[:diameter] = calc_diameter(ref[:pipes], ref[:options])
+        ref[:length] = calc_length(ref[:pipes], ref[:options])
+        ref[:roughness] = calc_roughness(ref[:pipes], ref[:options])
+
+        # This must appear after the above calculations.
+        ref[:lambda] = calc_friction_factor(ref[:pipes], ref[:length],
+                                            ref[:diameter], ref[:roughness],
+                                            ref[:options])
     end
 
     return refs
