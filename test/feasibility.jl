@@ -17,6 +17,8 @@ function verify(solution::Dict{AbstractString, Any}, flowrate_solution_path::Str
 
     #println(head)
     #println(flow)
+    println(head_max_abs_err)
+    println(flow_max_abs_err)
 
     # If the maximum absolute error is small, then the solution is valid.
     if head_max_abs_err < 0.10 && flow_max_abs_err < 0.10
@@ -51,20 +53,21 @@ end
     #    @test verify(solution, "../test/data/solutions/hanoi-feasibility-flowrate.csv", "../test/data/solutions/hanoi-feasibility-head.csv")
     #end
 
-    @testset "klmod" begin
-        solution = run_feasibility("../test/data/epanet/klmod.inp", GenericWaterModel{StandardMINLPForm}, solver)
-        @test solution["status"] == :LocalOptimal
-        @test verify(solution, "../test/data/solutions/klmod-feasibility-flowrate.csv", "../test/data/solutions/klmod-feasibility-head.csv")
-    end
+    #@testset "klmod" begin
+    #    solution = run_feasibility("../test/data/epanet/klmod.inp", GenericWaterModel{StandardMINLPForm}, solver)
+    #    @test solution["status"] == :LocalOptimal
+    #    @test verify(solution, "../test/data/solutions/klmod-feasibility-flowrate.csv", "../test/data/solutions/klmod-feasibility-head.csv")
+    #end
 
     #@testset "rural" begin
     #    solution = run_feasibility("../test/data/epanet/rural.inp", GenericWaterModel{StandardMINLPForm}, solver)
     #    @test solution["status"] == :LocalOptimal
+    #    @test verify(solution, "../test/data/solutions/rural-feasibility-flowrate.csv", "../test/data/solutions/rural-feasibility-head.csv")
     #end
 
-    #@testset "zj" begin
-    #    solution = run_feasibility("../test/data/epanet/zj.inp", GenericWaterModel{StandardMINLPForm}, solver)
-    #    @test solution["status"] == :LocalOptimal
-    #    @test verify(solution, "../test/data/solutions/zj-feasibility-flowrate.csv", "../test/data/solutions/zj-feasibility-head.csv")
-    #end
+    @testset "zj" begin
+        solution = run_feasibility("../test/data/epanet/zj.inp", GenericWaterModel{StandardMINLPForm}, solver)
+        @test solution["status"] == :LocalOptimal
+        @test verify(solution, "../test/data/solutions/zj-feasibility-flowrate.csv", "../test/data/solutions/zj-feasibility-head.csv")
+    end
 end

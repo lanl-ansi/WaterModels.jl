@@ -139,6 +139,8 @@ function build_ref(data::Dict{String, Any})
         # Convert all data to SI units.
         ref[:demand] = calc_demand(ref[:junctions], ref[:options])
         ref[:diameter] = calc_diameter(ref[:pipes], ref[:options])
+		  ref[:elev] = calc_elev(ref[:junctions], ref[:options])
+		  ref[:head] = calc_head(ref[:reservoirs], ref[:options])
         ref[:length] = calc_length(ref[:pipes], ref[:options])
         ref[:roughness] = calc_roughness(ref[:pipes], ref[:options])
 

@@ -42,13 +42,13 @@ end
 function variable_head{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
     # Set up required data to initialize junction variables.
     junction_ids = [key for key in keys(wm.ref[:nw][n][:junctions])]
-    junction_lbs = Dict(id => wm.ref[:nw][n][:junctions][id]["elev"] for id in junction_ids)
-    junction_ubs = Dict(id => 1000.0 for id in junction_ids)
+    junction_lbs = Dict(id => wm.ref[:nw][n][:elev][id] for id in junction_ids)
+    junction_ubs = Dict(id => 99999.9 for id in junction_ids)
 
     # Set up required data to initialize reservoir variables.
     reservoir_ids = [key for key in keys(wm.ref[:nw][n][:reservoirs])]
-    reservoir_lbs = Dict(id => wm.ref[:nw][n][:reservoirs][id]["head"] for id in reservoir_ids)
-    reservoir_ubs = Dict(id => wm.ref[:nw][n][:reservoirs][id]["head"] for id in reservoir_ids)
+    reservoir_lbs = Dict(id => wm.ref[:nw][n][:head][id] for id in reservoir_ids)
+    reservoir_ubs = Dict(id => wm.ref[:nw][n][:head][id] for id in reservoir_ids)
 
     # Create arrays comprising both types of components.
     ids = [junction_ids; reservoir_ids]

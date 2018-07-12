@@ -6,6 +6,7 @@ function construct_hw_separators(q::JuMP.Variable, lambda::Float64, n::Int = 250
     q_points = linspace(getlowerbound(q), getupperbound(q), n)
     f_evals = [lambda * (x^2)^0.926 for x in q_points]
     df_evals = [lambda * 1.852*x / (x^2)^0.074 for x in q_points]
+	 df_evals[isnan.(df_evals)] = 0.0
     return [f_evals[i] + (q - q_points[i]) * df_evals[i] for i in 1:n]
 end
 
@@ -51,10 +52,11 @@ function constraint_potential_flow_coupling{T}(wm::GenericWaterModel{T}, i, n::I
                 @constraint(wm.model, gamma >= cut)
             end
         elseif headloss_type == "d-w"
-            # Use the piecewise linear outer approximation.
-            for cut in construct_dw_separators(q, lambda)
-                @constraint(wm.model, gamma >= cut)
-            end
+            @constraint(wm.model, gamma >= lambda * q^2)
+            # # Use the piecewise linear outer approximation.
+            # for cut in construct_dw_separators(q, lambda)
+            #     @constraint(wm.model, gamma >= cut)
+            # end
         end
     end
 end
