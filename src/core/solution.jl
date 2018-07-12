@@ -15,17 +15,23 @@ function build_solution{T}(wm::GenericWaterModel{T}, status, solve_time;
         for (n, nw_data) in wm.data["nw"]
             sol_nw = sol_nws[n] = Dict{String, Any}()
             wm.cnw = parse(Int, n)
-            solution_builder(wm, sol_nw)
             data_nws[n] = Dict(
                 "name" => get(nw_data, "name", "anonymous"),
                 "node_count" => length(nw_data["junctions"]) + length(nw_data["reservoirs"]),
                 "link_count" => length(nw_data["pipes"])
             )
+
+            if status != :LocalInfeasible
+                solution_builder(wm, sol_nw)
+            end
         end
     else
-        solution_builder(wm, sol)
         data["node_count"] = length(wm.data["junctions"]) + length(wm.data["reservoirs"])
         data["link_count"] = length(wm.data["pipes"])
+
+        if status != :LocalInfeasible
+            solution_builder(wm, sol)
+        end
     end
 
     solution = Dict{AbstractString, Any}(
@@ -88,10 +94,11 @@ function add_setpoint(sol, wm::GenericWaterModel, dict_name, param_name,
 end
 
 solver_status_lookup = Dict{Any, Dict{Symbol, Symbol}}(
-    :Ipopt => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
-    :ConicNonlinearBridge => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
     :AmplNLWriter => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
-    :Gurobi => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible))
+    :ConicNonlinearBridge => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
+    :Gurobi => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
+    :Ipopt => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
+    :Pajarito => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible))
 
 # translates solver status codes to our status codes
 function solver_status_dict(solver_type, status)

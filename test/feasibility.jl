@@ -28,46 +28,47 @@ function verify(solution::Dict{AbstractString, Any}, flowrate_solution_path::Str
     end
 end
 
-@testset "test minlp feasibility problems" begin
-    #@testset "balerma" begin
-    #    solution = run_feasibility("../test/data/epanet/balerma.inp", GenericWaterModel{StandardMINLPForm}, solver)
-    #    @test solution["status"] == :LocalOptimal
-    #    @test verify(solution, "../test/data/solutions/balerma-feasibility-flowrate.csv", "../test/data/solutions/balerma-feasibility-head.csv")
-    #end
+@testset "Hazen-Williams MINLP Problems" begin
+    @testset "foss_poly_1" begin
+        solution = run_feasibility("../test/data/epanet/foss_poly_1.inp", GenericWaterModel{StandardMINLPForm}, solver)
+        @test solution["status"] == :LocalOptimal
+        @test verify(solution, "../test/data/solutions/foss_poly_1-feasibility-flowrate.csv", "../test/data/solutions/foss_poly_1-feasibility-head.csv")
+    end
 
-    #@testset "foss_poly_1" begin
-    #    solution = run_feasibility("../test/data/epanet/foss_poly_1.inp", GenericWaterModel{StandardMINLPForm}, solver)
-    #    @test solution["status"] == :LocalOptimal
-    #    @test verify(solution, "../test/data/solutions/foss_poly_1-feasibility-flowrate.csv", "../test/data/solutions/foss_poly_1-feasibility-head.csv")
-    #end
+    @testset "hanoi_extended" begin
+        solution = run_feasibility("../test/data/epanet/hanoi_extended.inp", GenericWaterModel{StandardMINLPForm}, solver)
+        @test solution["status"] == :LocalOptimal
+        @test verify(solution, "../test/data/solutions/hanoi_extended-feasibility-flowrate.csv", "../test/data/solutions/hanoi_extended-feasibility-head.csv")
+    end
 
-    #@testset "hanoi_extended" begin
-    #    solution = run_feasibility("../test/data/epanet/hanoi_extended.inp", GenericWaterModel{StandardMINLPForm}, solver)
-    #    @test solution["status"] == :LocalOptimal
-    #    @test verify(solution, "../test/data/solutions/hanoi_extended-feasibility-flowrate.csv", "../test/data/solutions/hanoi_extended-feasibility-head.csv")
-    #end
+    @testset "hanoi" begin
+        solution = run_feasibility("../test/data/epanet/hanoi.inp", GenericWaterModel{StandardMINLPForm}, solver)
+        @test solution["status"] == :LocalOptimal
+        @test verify(solution, "../test/data/solutions/hanoi-feasibility-flowrate.csv", "../test/data/solutions/hanoi-feasibility-head.csv")
+    end
 
-    #@testset "hanoi" begin
-    #    solution = run_feasibility("../test/data/epanet/hanoi.inp", GenericWaterModel{StandardMINLPForm}, solver)
-    #    @test solution["status"] == :LocalOptimal
-    #    @test verify(solution, "../test/data/solutions/hanoi-feasibility-flowrate.csv", "../test/data/solutions/hanoi-feasibility-head.csv")
-    #end
+    @testset "zj" begin
+        solution = run_feasibility("../test/data/epanet/zj.inp", GenericWaterModel{StandardMINLPForm}, solver)
+        @test solution["status"] == :LocalInfeasible
+    end
 
     #@testset "klmod" begin
     #    solution = run_feasibility("../test/data/epanet/klmod.inp", GenericWaterModel{StandardMINLPForm}, solver)
     #    @test solution["status"] == :LocalOptimal
     #    @test verify(solution, "../test/data/solutions/klmod-feasibility-flowrate.csv", "../test/data/solutions/klmod-feasibility-head.csv")
     #end
+end
 
-    #@testset "rural" begin
-    #    solution = run_feasibility("../test/data/epanet/rural.inp", GenericWaterModel{StandardMINLPForm}, solver)
-    #    @test solution["status"] == :LocalOptimal
-    #    @test verify(solution, "../test/data/solutions/rural-feasibility-flowrate.csv", "../test/data/solutions/rural-feasibility-head.csv")
-    #end
-
-    @testset "zj" begin
-        solution = run_feasibility("../test/data/epanet/zj.inp", GenericWaterModel{StandardMINLPForm}, solver)
+@testset "Darcy-Weisbach MINLP Problems" begin
+    @testset "balerma" begin
+        solution = run_feasibility("../test/data/epanet/balerma.inp", GenericWaterModel{StandardMINLPForm}, solver)
         @test solution["status"] == :LocalOptimal
-        @test verify(solution, "../test/data/solutions/zj-feasibility-flowrate.csv", "../test/data/solutions/zj-feasibility-head.csv")
+        @test verify(solution, "../test/data/solutions/balerma-feasibility-flowrate.csv", "../test/data/solutions/balerma-feasibility-head.csv")
+    end
+
+    @testset "rural" begin
+        solution = run_feasibility("../test/data/epanet/rural.inp", GenericWaterModel{StandardMINLPForm}, solver)
+        @test solution["status"] == :LocalOptimal
+        @test verify(solution, "../test/data/solutions/rural-feasibility-flowrate.csv", "../test/data/solutions/rural-feasibility-head.csv")
     end
 end

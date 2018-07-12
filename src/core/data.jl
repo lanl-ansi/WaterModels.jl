@@ -77,7 +77,7 @@ function calc_elev(junctions, options)
     return elev
 end
 
-function calc_friction_factor(pipes, lengths, diameters, roughnesses, options)
+function calc_friction_factor(pipes, lengths, diameters, roughnesses, reynolds, options)
     friction_factor = Dict([(pipe_id, -Inf) for pipe_id in keys(pipes)])
     headloss_type = options["headloss"]
 
@@ -85,12 +85,20 @@ function calc_friction_factor(pipes, lengths, diameters, roughnesses, options)
         diameter = diameters[pipe_id]
         roughness = roughnesses[pipe_id]
         length = lengths[pipe_id]
+        reynold = reynolds[pipe_id]
 
         if headloss_type == "h-w" # If Hazen-Williams...
             friction_factor[pipe_id] = (10.67 * length) / (roughness^1.852 * diameter^4.87)
         elseif headloss_type == "d-w" # If Darcy-Weisbach...
+            # Use the same Colebrook formula as in EPANET.
+            w = 0.25 * pi * reynold
+            y1 = 4.61841319859 / w^0.9
+            y2 = (roughness / diameter) / (3.7 * diameter) + y1
+            y3 = -8.685889638e-01 * log(y2)
+            f_s = 1.0 / y3^2
+
             # Compute the overall friction factor.
-            f_s = 0.25 / log((roughness / diameter) / 3.71 + 5.74 / 800.0^0.9)^2
+            # f_s = 0.25 / log((roughness / diameter) / 3.71 + 5.74 / reynold^0.9)^2
             friction_factor[pipe_id] = 0.0826 * length / diameter^5 * f_s
         else
             error("Could not find a valid \"headloss\" option type.")
@@ -149,6 +157,20 @@ function calc_length(pipes, options)
     end
 
     return length
+end
+
+function calc_reynolds_number(pipes, diameters, options)
+    reynolds_number = Dict([(pipe_id, 0.0) for pipe_id in keys(pipes)])
+    density = 1000.0 # Water density (kilograms per cubic meter).
+    velocity = 10.0 # Estimate of velocity in the pipe (meters per second).
+    viscosity = options["viscosity"] * 1.0e-3 # Viscosity is 10^(-3) Pascal * seconds.
+
+    for (pipe_id, pipe) in pipes
+        diameter = diameters[pipe_id]
+        reynolds_number[pipe_id] = density * velocity * diameter / viscosity
+    end
+
+    return reynolds_number
 end
 
 function calc_roughness(pipes, options)

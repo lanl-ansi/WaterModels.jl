@@ -143,6 +143,8 @@ function parse_options(data::Dict{String, Any})
     units = data["units"][1]
     headloss = data["headloss"][1]
     demand_multiplier = parse(Float64, data["demand multiplier"][1])
+    viscosity = parse(Float64, data["viscosity"][1])
     return Dict{String, Any}("units" => units, "headloss" => headloss,
-                             "demand_multiplier" => demand_multiplier)
+                             "demand_multiplier" => demand_multiplier,
+                             "viscosity" => viscosity)
 end

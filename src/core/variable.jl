@@ -25,30 +25,31 @@ function variable_flow_direction{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
     # Create variables that correspond to flow moving from i to j.
     wm.var[:nw][n][:yp] = @variable(wm.model,
                                     [id in keys(wm.ref[:nw][n][:pipes])],
-                                    lowerbound = 0,
-                                    upperbound = 1,
-                                    category = :Int,
+                                    category = :Bin,
                                     basename = "yp_$(n)")
 
     # Create variables that correspond to flow moving from j to i.
     wm.var[:nw][n][:yn] = @variable(wm.model,
                                     [id in keys(wm.ref[:nw][n][:pipes])],
-                                    lowerbound = 0,
-                                    upperbound = 1,
-                                    category = :Int,
+                                    category = :Bin,
                                     basename = "yn_$(n)")
 end
 
 function variable_head{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
     # Set up required data to initialize junction variables.
     junction_ids = [key for key in keys(wm.ref[:nw][n][:junctions])]
-    junction_lbs = Dict(id => wm.ref[:nw][n][:elev][id] for id in junction_ids)
-    junction_ubs = Dict(id => 99999.9 for id in junction_ids)
 
     # Set up required data to initialize reservoir variables.
     reservoir_ids = [key for key in keys(wm.ref[:nw][n][:reservoirs])]
     reservoir_lbs = Dict(id => wm.ref[:nw][n][:head][id] for id in reservoir_ids)
     reservoir_ubs = Dict(id => wm.ref[:nw][n][:head][id] for id in reservoir_ids)
+
+    # Set the elevation bounds (for junctions).
+    # TODO: Increase the upper bound when pumps are in the system.
+    max_elev = maximum([wm.ref[:nw][n][:elev][id] for id in junction_ids])
+    max_head = maximum([wm.ref[:nw][n][:head][id] for id in reservoir_ids])
+    junction_lbs = Dict(id => wm.ref[:nw][n][:elev][id] for id in junction_ids)
+    junction_ubs = Dict(id => max(max_elev, max_head) for id in junction_ids)
 
     # Create arrays comprising both types of components.
     ids = [junction_ids; reservoir_ids]
