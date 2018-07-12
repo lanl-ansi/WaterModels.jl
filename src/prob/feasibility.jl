@@ -20,5 +20,6 @@ function post_feasibility(wm::GenericWaterModel)
         constraint_bidirectional_flow(wm, a)
     end
 
-    objective_minimize_gamma(wm)
+    # Uncomment this to ensure a physically-feasible solution.
+    # objective_minimize_gamma(wm)
 end
