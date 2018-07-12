@@ -5,13 +5,13 @@ function calc_flow_bounds(pipes, diameters)
     flow_max = Dict([(pipe_id, Inf) for pipe_id in keys(pipes)])
 
     for (pipe_id, pipe) in pipes
-        # Diameter assumes original units of millimeters.
+        # Get the diameter of the pipe (meters).
         diameter = diameters[pipe_id]
 
         # A literature-based guess at the maximum velocity (meters per second).
         v_max = 10.0
 
-        # Compute the flow bounds.
+        # Compute the flow bounds (cubic meters per second).
         max_absolute_flow = (pi / 4.0) * v_max * diameter^2
         flow_min[pipe_id] = -max_absolute_flow
         flow_max[pipe_id] = max_absolute_flow
@@ -45,12 +45,14 @@ function calc_diameter(pipes, options)
     demand_units = options["units"]
 
     for (pipe_id, pipe) in pipes
-        if demand_units == "lps"
+        if demand_units == "lps" # If liters per second...
             # Convert diameter from millimeters to meters.
             diameter[pipe_id] = 0.001 * pipe["diameter"]
         elseif demand_units == "gpm" # If gallons per minute...
             # Convert diameter from inches to meters.
             diameter[pipe_id] = 0.0254 * pipe["diameter"]
+        else
+            error("Could not find a valid \"units\" option type.")
         end
     end
 
@@ -153,6 +155,8 @@ function calc_length(pipes, options)
         elseif demand_units == "gpm" # If gallons per minute...
             # Convert length from feet to meters.
             length[pipe_id] = 0.3048 * pipe["length"]
+        else
+            error("Could not find a valid \"units\" option type.")
         end
     end
 
@@ -163,7 +167,7 @@ function calc_reynolds_number(pipes, diameters, options)
     reynolds_number = Dict([(pipe_id, 0.0) for pipe_id in keys(pipes)])
     density = 1000.0 # Water density (kilograms per cubic meter).
     velocity = 10.0 # Estimate of velocity in the pipe (meters per second).
-    viscosity = options["viscosity"] * 1.0e-3 # Viscosity is 10^(-3) Pascal * seconds.
+    viscosity = options["viscosity"] * 1.0e-3 # Viscosity is 10^(-3) Pascals * seconds.
 
     for (pipe_id, pipe) in pipes
         diameter = diameters[pipe_id]
@@ -188,6 +192,8 @@ function calc_roughness(pipes, options)
         elseif headloss_type == "h-w"
             # Retain the original value (unitless).
             roughness[pipe_id] = pipe["roughness"]
+        else
+            error("Could not find a valid \"headloss\" and \"units\" option combination.")
         end
     end
 

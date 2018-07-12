@@ -1,11 +1,9 @@
 # Define the MINLP implementations of water distribution models.
 
-export
-    MINLPWaterModel, StandardMINLPForm
-""
+export MINLPWaterModel, StandardMINLPForm
+
 abstract type AbstractMINLPForm <: AbstractWaterFormulation end
 
-""
 abstract type StandardMINLPForm <: AbstractMINLPForm end
 
 const MINLPWaterModel = GenericWaterModel{StandardMINLPForm}
