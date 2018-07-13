@@ -1,107 +1,104 @@
-
-"Build a water solution"
-function build_solution{T}(wm::GenericWaterModel{T}, status, solve_time; objective = NaN, solution_builder = get_solution)
+function build_solution{T}(wm::GenericWaterModel{T}, status, solve_time;
+                           objective = NaN, solution_builder = get_solution)
     if status != :Error
         objective = getobjectivevalue(wm.model)
         status = solver_status_dict(Symbol(typeof(wm.model.solver).name.module), status)
     end
 
-    sol = solution_builder(wm)
+    sol = init_solution(wm)
+    data = Dict{String, Any}("name" => wm.data["title"])
 
-    solution = Dict{AbstractString,Any}(
+    if wm.data["multinetwork"]
+        sol_nws = sol["nw"] = Dict{String, Any}()
+        data_nws = data["nw"] = Dict{String, Any}()
+
+        for (n, nw_data) in wm.data["nw"]
+            sol_nw = sol_nws[n] = Dict{String, Any}()
+            wm.cnw = parse(Int, n)
+            data_nws[n] = Dict(
+                "name" => get(nw_data, "name", "anonymous"),
+                "node_count" => length(nw_data["junctions"]) + length(nw_data["reservoirs"]),
+                "link_count" => length(nw_data["pipes"])
+            )
+
+            if status != :LocalInfeasible
+                solution_builder(wm, sol_nw)
+            end
+        end
+    else
+        data["node_count"] = length(wm.data["junctions"]) + length(wm.data["reservoirs"])
+        data["link_count"] = length(wm.data["pipes"])
+
+        if status != :LocalInfeasible
+            solution_builder(wm, sol)
+        end
+    end
+
+    solution = Dict{AbstractString, Any}(
         "solver" => string(typeof(wm.model.solver)),
         "status" => status,
         "objective" => objective,
         "objective_lb" => guard_getobjbound(wm.model),
         "solve_time" => solve_time,
         "solution" => sol,
-        "machine" => Dict(
-            "cpu" => Sys.cpu_info()[1].model,
-            "memory" => string(Sys.total_memory()/2^30, " Gb")
-            ),
-        "data" => Dict(
-            "junction_count" => length(wm.ref[:junction]),
-            "connection_count" => length(wm.ref[:connection])
-            )
-        )
+        "machine" => Dict("cpu" => Sys.cpu_info()[1].model,
+                          "memory" => string(Sys.total_memory() / 2^30, " Gb")),
+        "data" => data
+    )
 
     wm.solution = solution
-
     return solution
 end
 
-""
 function init_solution(wm::GenericWaterModel)
-    return Dict{String,Any}()
+    data_keys = ["multinetwork"]
+    return Dict{String,Any}(key => wm.data[key] for key in data_keys)
 end
 
-" Get all the solution values "
-function get_solution{T}(wm::GenericWaterModel{T})
-    sol = init_solution(wm)
-    add_junction_pressure_setpoint(sol, wm)
-    add_connection_flow_setpoint(sol, wm)
+function get_solution(wm::GenericWaterModel, sol::Dict{String,Any})
+    add_setpoint(sol, wm, "pipes", "q", :q) # Get flow solution.
+    add_setpoint(sol, wm, "junctions", "h", :h) # Get head solution (junctions).
+    add_setpoint(sol, wm, "reservoirs", "h", :h) # Get head solution (reservoirs).
     return sol
 end
 
-" Get the pressure squared solutions "
-function add_junction_pressure_setpoint{T}(sol, wm::GenericWaterModel{T})
-    add_setpoint(sol, wm, "junction", "p", :p; scale = (x,item) -> sqrt(x))
-end
+function add_setpoint(sol, wm::GenericWaterModel, dict_name, param_name,
+                      variable_symbol; index_name = "id",
+                      default_value = (item) -> NaN, scale = (x, item) -> x,
+                      extract_var = (var, idx, item) -> var[idx])
+    sol_dict = get(sol, dict_name, Dict{String, Any}())
 
-" Get the pressure squared solutions "
-function add_load_setpoint{T}(sol, wm::GenericWaterModel{T})
-    add_setpoint(sol, wm, "junction", "ql", :ql; default_value = (item) -> 0)
-end
+    if wm.data["multinetwork"]
+        data_dict = wm.data["nw"]["$(wm.cnw)"][dict_name]
+    else
+        data_dict = wm.data[dict_name]
+    end
 
-" Get the production set point "
-function add_production_setpoint{T}(sol, wm::GenericWaterModel{T})
-    add_setpoint(sol, wm, "junction", "qg", :qg; default_value = (item) -> 0)
-end
-
-" Get the direction set points"
-function add_direction_setpoint{T}(sol, wm::GenericWaterModel{T})
-    add_setpoint(sol, wm, "connection", "yp", :yp)
-    add_setpoint(sol, wm, "connection", "yn", :yn)
-end
-
-" Get the valve solutions "
-function add_valve_setpoint{T}(sol, wm::GenericWaterModel{T})
-    add_setpoint(sol, wm, "connection", "valve", :v)
-end
-
-" Add the flow solutions "
-function add_connection_flow_setpoint{T}(sol, wm::GenericWaterModel{T})
-    add_setpoint(sol, wm, "connection", "f", :f)
-end
-
-
-function add_setpoint{T}(sol, wm::GenericWaterModel{T}, dict_name, param_name, variable_symbol; index_name = nothing, default_value = (item) -> NaN, scale = (x,item) -> x, extract_var = (var,idx,item) -> var[idx])
-    sol_dict = get(sol, dict_name, Dict{String,Any}())
-    if length(wm.data[dict_name]) > 0
+    if length(data_dict) > 0
         sol[dict_name] = sol_dict
     end
 
-    for (i,item) in wm.data[dict_name]
-        idx = parse(Int64,i)
-        if index_name != nothing
-            idx = Int(item[index_name])
-        end
-        sol_item = sol_dict[i] = get(sol_dict, i, Dict{String,Any}())
+    for (i, item) in data_dict
+        idx = String(item[index_name]) # TODO: idx needs to be an integer.
+        sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
         sol_item[param_name] = default_value(item)
+
         try
-            var = extract_var(wm.var[variable_symbol], idx, item)
-            sol_item[param_name] = scale(getvalue(var), item)
+            # TODO: Use extract_var function to get the variable...
+            variable = wm.var[:nw][wm.cnw][variable_symbol][idx]
+            sol_item[param_name] = scale(getvalue(variable), item)
         catch
+            # TODO: Put something here in case try fails...
         end
     end
 end
 
 solver_status_lookup = Dict{Any, Dict{Symbol, Symbol}}(
-    :Ipopt => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
+    :AmplNLWriter => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
     :ConicNonlinearBridge => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
-    # note that AmplNLWriter.AmplNLSolver is the solver type of bonmin
-    :AmplNLWriter => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible)
-)
+    :Gurobi => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
+    :Ipopt => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
+    :Pajarito => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible))
 
 # translates solver status codes to our status codes
 function solver_status_dict(solver_type, status)
@@ -114,6 +111,7 @@ function solver_status_dict(solver_type, status)
             end
         end
     end
+
     return status
 end
 
