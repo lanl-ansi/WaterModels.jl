@@ -24,7 +24,6 @@ function constraint_flow_conservation{T}(wm::GenericWaterModel{T}, i, n::Int = w
     in_arcs = collect(keys(filter((id, pipe) -> pipe["node2"] == i, wm.ref[:nw][n][:pipes])))
     in_vars = Array{JuMP.Variable}([wm.var[:nw][n][:q][a] for a in in_arcs])
 
-    # Demands assume original units of liters per second.
     if haskey(wm.ref[:nw][n][:junctions], i)
         demand = wm.ref[:nw][n][:demand][i]
         @constraint(wm.model, sum(in_vars) - sum(out_vars) == demand)
