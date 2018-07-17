@@ -34,7 +34,9 @@ function constraint_flow_conservation{T}(wm::GenericWaterModel{T}, i, n::Int = w
     end
 end
 
-function constraint_potential_flow_coupling{T}(wm::GenericWaterModel{T}, i, n::Int = wm.cnw)
+function constraint_potential_flow_coupling{T}(wm::GenericWaterModel{T}, i,
+                                               num_separators::Int = 5,
+                                               n::Int = wm.cnw)
     # Get the outgoing arcs of the node.
     arcs_from = collect(keys(filter((id, pipe) -> pipe["node1"] == i, wm.ref[:nw][n][:pipes])))
     headloss_type = wm.ref[:nw][n][:options]["headloss"]
@@ -47,13 +49,13 @@ function constraint_potential_flow_coupling{T}(wm::GenericWaterModel{T}, i, n::I
 
         if headloss_type == "h-w"
             # Use the piecewise linear outer approximation.
-            for cut in construct_hw_separators(q, lambda)
+            for cut in construct_hw_separators(q, lambda, num_separators)
                 @constraint(wm.model, gamma >= cut)
             end
         elseif headloss_type == "d-w"
             # @constraint(wm.model, gamma >= lambda * q^2)
             # Use the piecewise linear outer approximation.
-            for cut in construct_dw_separators(q, lambda)
+            for cut in construct_dw_separators(q, lambda, num_separators)
                 @constraint(wm.model, gamma >= cut)
             end
         end

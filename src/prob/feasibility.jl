@@ -4,7 +4,9 @@ function run_feasibility(file, model_constructor, solver; kwargs...)
     return run_generic_model(file, model_constructor, solver, post_feasibility; kwargs...)
 end
 
-function post_feasibility(wm::GenericWaterModel)
+function post_feasibility(wm::GenericWaterModel; kwargs...)
+    num_separators = wm.setting["num_separators"]
+
     variable_flow(wm)
     variable_head(wm)
     variable_head_difference(wm)
@@ -12,7 +14,7 @@ function post_feasibility(wm::GenericWaterModel)
 
     for i in [collect(ids(wm, :junctions)); collect(ids(wm, :reservoirs))]
         constraint_flow_conservation(wm, i)
-        constraint_potential_flow_coupling(wm, i)
+        constraint_potential_flow_coupling(wm, i, num_separators)
     end
 
     for a in collect(ids(wm, :pipes))

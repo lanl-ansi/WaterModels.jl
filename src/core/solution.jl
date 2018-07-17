@@ -34,7 +34,7 @@ function build_solution{T}(wm::GenericWaterModel{T}, status, solve_time;
         end
     end
 
-    solution = Dict{AbstractString, Any}(
+    solution = Dict{String, Any}(
         "solver" => string(typeof(wm.model.solver)),
         "status" => status,
         "objective" => objective,
@@ -56,7 +56,10 @@ function init_solution(wm::GenericWaterModel)
 end
 
 function get_solution(wm::GenericWaterModel, sol::Dict{String,Any})
-    add_setpoint(sol, wm, "pipes", "q", :q) # Get flow solution.
+    add_setpoint(sol, wm, "pipes", "gamma", :gamma) # Get absolute value of head difference.
+    add_setpoint(sol, wm, "pipes", "q", :q) # Get flow.
+    add_setpoint(sol, wm, "pipes", "yp", :yp) # Get direction of head difference.
+    add_setpoint(sol, wm, "pipes", "yn", :yn) # Get direction of head difference.
     add_setpoint(sol, wm, "junctions", "h", :h) # Get head solution (junctions).
     add_setpoint(sol, wm, "reservoirs", "h", :h) # Get head solution (reservoirs).
     return sol
@@ -68,7 +71,7 @@ function add_setpoint(sol, wm::GenericWaterModel, dict_name, param_name,
                       extract_var = (var, idx, item) -> var[idx])
     sol_dict = get(sol, dict_name, Dict{String, Any}())
 
-    if wm.data["multinetwork"]
+    if InfrastructureModels.ismultinetwork(wm.data)
         data_dict = wm.data["nw"]["$(wm.cnw)"][dict_name]
     else
         data_dict = wm.data[dict_name]
