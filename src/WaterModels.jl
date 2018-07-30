@@ -20,6 +20,7 @@ include("io/epanet.jl")
 
 include("core/base.jl")
 include("core/constraint.jl")
+include("core/constraint_template.jl")
 include("core/data.jl")
 include("core/objective.jl")
 include("core/solution.jl")
