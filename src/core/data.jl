@@ -200,9 +200,15 @@ function calc_roughness(pipes, options)
     return roughness
 end
 
-function update_flow_directions(data, solution)
+function update_flow_directions(data, wm) #solution)
     for (pipe_id, pipe) in data["pipes"]
-        q = solution["pipes"][pipe_id]["q"]
+        q = getvalue(wm.var[:nw][wm.cnw][:q][pipe_id])  # wm.solution["pipes"][pipe_id]["q"]
         pipe["flow_direction"] = q > 0.0 ? POSITIVE : NEGATIVE
+    end
+end
+
+function reset_flow_directions(data)
+    for (pipe_id, pipe) in data["pipes"]
+        pipe["flow_direction"] = UNKNOWN
     end
 end

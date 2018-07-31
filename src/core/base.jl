@@ -141,6 +141,18 @@ function build_ref(data::Dict{String, Any})
             ref[Symbol(key)] = item
         end
 
+        # TODO: Change all the references to :pipes over to :connections.
+        ref[:connection] = ref[:pipes]
+        junction_ids = [collect(keys(ref[:junctions])); collect(keys(ref[:reservoirs]))]
+        ref[:junction_connections] = Dict(String(i) => [] for i in junction_ids)
+
+        for (idx, connection) in ref[:connection]
+            i = connection["node1"]
+            j = connection["node2"]
+            push!(ref[:junction_connections][i], idx)
+            push!(ref[:junction_connections][j], idx)
+        end
+
         # Convert all data to SI units.
         ref[:demand] = calc_demand(ref[:junctions], ref[:options])
         ref[:diameter] = calc_diameter(ref[:pipes], ref[:options])

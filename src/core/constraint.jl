@@ -209,3 +209,96 @@ function constraint_positive_flow{T}(wm::GenericWaterModel{T}, a, n::Int = wm.cn
     @constraint(wm.model, q >= 0.0)
     @constraint(wm.model, q <= sum_demand)
 end
+
+function constraint_no_good{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
+    yp_solution = getvalue(wm.var[:nw][n][:yp])
+    one_vars = [wm.var[:nw][n][:yp][idx[1]] for idx in keys(yp_solution) if yp_solution[idx[1]] >= 1]
+    zero_vars = [wm.var[:nw][n][:yp][idx[1]] for idx in keys(yp_solution) if yp_solution[idx[1]] <= 0]
+    @constraint(wm.model, sum(zero_vars) - sum(one_vars) >= 1 - length(one_vars))
+end
+
+function constraint_degree_two{T}(wm::GenericWaterModel{T}, idx, n::Int = wm.cnw)
+    first = nothing
+    last = nothing
+
+    for i in wm.ref[:nw][n][:junction_connections][idx]
+        connection = wm.ref[:nw][n][:connection][i]
+
+        if connection["node1"] == idx
+            other = connection["node2"]
+        else
+            other = connection["node1"]
+        end
+
+        if first == nothing
+            first = other
+        elseif first != other
+            if last != nothing && last != other
+                error(string("Error: adding a degree 2 constraint to a node with degree > 2: Junction ", idx))
+            end
+
+            last = other
+        end
+    end
+
+    yp_first = filter(i -> wm.ref[:nw][n][:connection][i]["node1"] == first, wm.ref[:nw][n][:junction_connections][idx])
+    yn_first = filter(i -> wm.ref[:nw][n][:connection][i]["node2"] == first, wm.ref[:nw][n][:junction_connections][idx])
+    yp_last  = filter(i -> wm.ref[:nw][n][:connection][i]["node2"] == last,  wm.ref[:nw][n][:junction_connections][idx])
+    yn_last  = filter(i -> wm.ref[:nw][n][:connection][i]["node1"] == last,  wm.ref[:nw][n][:junction_connections][idx])
+
+    yp = wm.var[:nw][n][:yp]
+    yn = wm.var[:nw][n][:yn]
+
+    i = idx
+
+    if !haskey(wm.con[:nw][n], :conserve_flow1)
+        wm.con[:nw][n][:conserve_flow1] = Dict{String, ConstraintRef}()
+        wm.con[:nw][n][:conserve_flow2] = Dict{String, ConstraintRef}()
+        wm.con[:nw][n][:conserve_flow3] = Dict{String, ConstraintRef}()
+        wm.con[:nw][n][:conserve_flow4] = Dict{String, ConstraintRef}()
+    end
+
+    if length(yn_first) > 0 && length(yp_last) > 0
+        for i1 in yn_first
+            for i2 in yp_last
+                wm.con[:nw][n][:conserve_flow1][i] = @constraint(wm.model, yn[i1] == yp[i2])
+                wm.con[:nw][n][:conserve_flow2][i] = @constraint(wm.model, yp[i1] == yn[i2])
+                wm.con[:nw][n][:conserve_flow3][i] = @constraint(wm.model, yn[i1] + yn[i2] == 1)
+                wm.con[:nw][n][:conserve_flow4][i] = @constraint(wm.model, yp[i1] + yp[i2] == 1)
+            end
+        end
+    end
+
+    if length(yn_first) > 0 && length(yn_last) > 0
+        for i1 in yn_first
+            for i2 in yn_last
+                wm.con[:nw][n][:conserve_flow1][i] = @constraint(wm.model, yn[i1] == yn[i2])
+                wm.con[:nw][n][:conserve_flow2][i] = @constraint(wm.model, yp[i1] == yp[i2])
+                wm.con[:nw][n][:conserve_flow3][i] = @constraint(wm.model, yn[i1] + yp[i2] == 1)
+                wm.con[:nw][n][:conserve_flow4][i] = @constraint(wm.model, yp[i1] + yn[i2] == 1)
+            end
+        end
+    end
+
+    if length(yp_first) > 0 && length(yp_last) > 0
+        for i1 in yp_first
+            for i2 in yp_last
+                wm.con[:nw][n][:conserve_flow1][i] = @constraint(wm.model, yp[i1] == yp[i2])
+                wm.con[:nw][n][:conserve_flow2][i] = @constraint(wm.model, yn[i1] == yn[i2])
+                wm.con[:nw][n][:conserve_flow3][i] = @constraint(wm.model, yp[i1] + yn[i2] == 1)
+                wm.con[:nw][n][:conserve_flow4][i] = @constraint(wm.model, yn[i1] + yp[i2] == 1)
+            end
+        end
+    end
+
+    if length(yp_first) > 0 && length(yn_last) > 0
+        for i1 in yp_first
+            for i2 in yn_last
+                wm.con[:nw][n][:conserve_flow1][i] = @constraint(wm.model, yp[i1] == yn[i2])
+                wm.con[:nw][n][:conserve_flow2][i] = @constraint(wm.model, yn[i1] == yp[i2])
+                wm.con[:nw][n][:conserve_flow3][i] = @constraint(wm.model, yp[i1] + yp[i2] == 1)
+                wm.con[:nw][n][:conserve_flow4][i] = @constraint(wm.model, yn[i1] + yn[i2] == 1)
+            end
+        end
+    end
+end
