@@ -74,9 +74,8 @@ function constraint_potential_flow_coupling_exact_hw{T}(wm::GenericWaterModel{T}
     gamma = wm.var[:nw][n][:gamma][a]
     q = wm.var[:nw][n][:q][a]
     lambda = wm.ref[:nw][n][:lambda][a]
-
-    setlowerbound(q, 0.0)
-    @NLconstraint(wm.model, gamma >= lambda * q^1.852)
+    setlowerbound(q, 0.0) # In this version of the problem, this variable is nonnegative.
+    @NLconstraint(wm.model, gamma == lambda * (q + 1e-7)^1.852)
 end
 
 function constraint_potential_flow_coupling_relaxed_dw{T}(wm::GenericWaterModel{T}, a,
@@ -136,7 +135,7 @@ function constraint_define_gamma_negative_direction{T}(wm::GenericWaterModel{T},
     gamma = wm.var[:nw][n][:gamma][a]
     h_i = wm.var[:nw][n][:h][i]
     h_j = wm.var[:nw][n][:h][j]
-    @constraint(wm.model, h_i - h_j == gamma)
+    @constraint(wm.model, h_j - h_i == gamma)
 end
 
 function constraint_define_gamma_positive_direction{T}(wm::GenericWaterModel{T},
@@ -149,7 +148,7 @@ function constraint_define_gamma_positive_direction{T}(wm::GenericWaterModel{T},
     gamma = wm.var[:nw][n][:gamma][a]
     h_i = wm.var[:nw][n][:h][i]
     h_j = wm.var[:nw][n][:h][j]
-    @constraint(wm.model, h_j - h_i == gamma)
+    @constraint(wm.model, h_i - h_j == gamma)
 end
 
 function constraint_bidirectional_flow{T}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)

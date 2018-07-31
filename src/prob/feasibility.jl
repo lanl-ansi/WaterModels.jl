@@ -34,7 +34,8 @@ function post_feasibility_relaxed(wm::GenericWaterModel; kwargs...)
         constraint_flow_direction(wm, a)
     end
 
-    objective_minimize_gamma(wm)
+    # Uncomment this to get physical feasibility immediately.
+    # objective_minimize_gamma(wm)
 end
 
 function post_feasibility_exact(wm::GenericWaterModel; kwargs...)
@@ -49,6 +50,5 @@ function post_feasibility_exact(wm::GenericWaterModel; kwargs...)
     for a in collect(ids(wm, :pipes))
         constraint_potential_flow_coupling(wm, a, false)
         constraint_define_gamma(wm, a)
-        #constraint_flow_direction(wm, a)
     end
 end

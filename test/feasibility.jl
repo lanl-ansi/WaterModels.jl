@@ -1,15 +1,7 @@
 using CSV
 
-function get_solution_relaxed(network_path::String)
-    setting = Dict(:num_separators => 250)
-    model_type = GenericWaterModel{StandardMINLPForm}
-    solution = run_feasibility_relaxed(network_path, model_type, bonmin; setting = setting)
-    InfrastructureModels.print_summary(solution["solution"])
-    return solution
-end
-
-function get_solution_exact(network_path::String)
-    setting = Dict(:num_separators => 250)
+function get_solution(network_path::String)
+    setting = Dict(:num_separators => 5)
     model_type = GenericWaterModel{StandardMINLPForm}
     solution = run_feasibility_exact(network_path, model_type, bonmin, ipopt; setting = setting)
     InfrastructureModels.print_summary(solution["solution"])
@@ -28,7 +20,7 @@ end
     #end
 
     @testset "hanoi" begin
-        solution = get_solution_exact("../test/data/epanet/hanoi.inp")
+        solution = get_solution("../test/data/epanet/hanoi.inp")
         @test solution["status"] == :LocalOptimal
     end
 
