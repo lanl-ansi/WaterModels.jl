@@ -19,6 +19,6 @@ pavito = PavitoSolver(mip_solver = cbc, cont_solver = ipopt,
 
 # Perform the tests.
 @testset "WaterModels" begin
-    #include("data.jl")
+    include("data.jl")
     include("feasibility.jl")
 end
