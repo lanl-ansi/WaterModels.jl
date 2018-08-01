@@ -10,6 +10,10 @@ cache:
   directories:
     - /home/travis/.julia
 
+addons:
+  apt_packages:
+    - gfortran
+
 before_install:
   # Don't keep an old version of the code in the cache.
   - julia -e 'if "WaterModels" in keys(Pkg.installed()) Pkg.rm("WaterModels"); Pkg.rm("WaterModels") end'
