@@ -6,6 +6,9 @@
 #                                                                          #
 ############################################################################
 
+# Declare special types.
+@enum FLOW_DIRECTION POSITIVE=1 NEGATIVE=-1 UNKNOWN=0
+
 function parse_epanet_file(path::String)
     file_contents = readstring(open(path))
     file_contents = replace(file_contents, "\t", "    ")
@@ -64,7 +67,8 @@ function allequal(x)
 end
 
 function parse_general(dtype::Type, data::Any)
-    return dtype == String ? data : parse(dtype, data)
+    do_not_parse = dtype == String || dtype == FLOW_DIRECTION
+    return do_not_parse ? data : parse(dtype, data)
 end
 
 function parse_title(data::Dict{String, Any})
@@ -87,12 +91,17 @@ function parse_pipes(data::Dict{String, Array})
     # Specify the data types for the pipe data.
     columns = Dict("diameter" => Float64, "id" => String, "length" => Float64,
                    "minorloss" => Float64, "node1" => String, "node2" => String,
-                   "roughness" => Float64, "status" => String)
+                   "roughness" => Float64, "status" => String,
+                   "flow_direction" => FLOW_DIRECTION)
+
+    # Populate the flow direction data.
+    data["flow_direction"] = Array{FLOW_DIRECTION}(length(data["id"]))
+    fill!(data["flow_direction"], UNKNOWN) # The initial flow direction is unknown.
 
     # Ensure the arrays describing pipe data are all of equal lengths.
     @assert(allequal([length(data[column]) for column in keys(columns)]))
 
-    # Return a dictionary of pipe dictionaries with the correct data types.
+    # Create a dictionary of pipe dictionaries with the correct data types.
     arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["id"])]
     return Dict{String, Any}(data["id"][i] => arr[i] for i = 1:length(arr))
 end

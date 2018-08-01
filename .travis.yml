@@ -12,12 +12,7 @@ cache:
 
 addons:
   apt_packages:
-    - automake
-    - autotools-dev
-    - gcc
     - gfortran
-    - g++
-    - wget
 
 before_install:
   # Don't keep an old version of the code in the cache.
@@ -25,12 +20,6 @@ before_install:
   - julia -e 'Pkg.update()' # Make sure we get the latest version of METADATA.
   - julia -e 'if !("Coverage" in keys(Pkg.installed())) Pkg.add("Coverage") end'
   - julia -e 'if !("Documenter" in keys(Pkg.installed())) Pkg.add("Documenter") end'
-
-install:
-  # Compile additional (unpackaged) requirements.
-  - source ci/install.sh
-  - export PATH="${PATH}:${PWD}/bin"
-  - cd ${TRAVIS_BUILD_DIR}
 
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi

@@ -1,10 +1,12 @@
-AmplNLWriter
 CSV
+Cbc
 DataFrames
 julia 0.6
 JSON 0.6.0
 InfrastructureModels 0.0.3 0.2-
 MathProgBase 0.5.4
 JuMP 0.17 0.19-
+Ipopt
 Compat 0.26.0
 Memento 0.8
+Pavito

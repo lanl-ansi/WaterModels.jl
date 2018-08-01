@@ -58,8 +58,6 @@ end
 function get_solution(wm::GenericWaterModel, sol::Dict{String,Any})
     add_setpoint(sol, wm, "pipes", "gamma", :gamma) # Get absolute value of head difference.
     add_setpoint(sol, wm, "pipes", "q", :q) # Get flow.
-    add_setpoint(sol, wm, "pipes", "yp", :yp) # Get direction of head difference.
-    add_setpoint(sol, wm, "pipes", "yn", :yn) # Get direction of head difference.
     add_setpoint(sol, wm, "junctions", "h", :h) # Get head solution (junctions).
     add_setpoint(sol, wm, "reservoirs", "h", :h) # Get head solution (reservoirs).
     return sol

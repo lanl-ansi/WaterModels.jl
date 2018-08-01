@@ -78,6 +78,11 @@ function build_generic_model(path::String, model_constructor, post_method; kwarg
     return build_generic_model(data, model_constructor, post_method; kwargs...)
 end
 
+function run_generic_model(data::Dict, model_constructor, solver, post_method; solution_builder = get_solution, kwargs...)
+    wm = build_generic_model(data, model_constructor, post_method; kwargs...)
+    return solve_generic_model(wm, solver; solution_builder = solution_builder)
+end
+
 function run_generic_model(path::String, model_constructor, solver, post_method; solution_builder = get_solution, kwargs...)
     wm = build_generic_model(path, model_constructor, post_method; kwargs...)
     return solve_generic_model(wm, solver; solution_builder = solution_builder)
@@ -134,6 +139,18 @@ function build_ref(data::Dict{String, Any})
 
         for (key, item) in nw_data
             ref[Symbol(key)] = item
+        end
+
+        # TODO: Change all the references to :pipes over to :connections.
+        ref[:connection] = ref[:pipes]
+        junction_ids = [collect(keys(ref[:junctions])); collect(keys(ref[:reservoirs]))]
+        ref[:junction_connections] = Dict(String(i) => [] for i in junction_ids)
+
+        for (idx, connection) in ref[:connection]
+            i = connection["node1"]
+            j = connection["node2"]
+            push!(ref[:junction_connections][i], idx)
+            push!(ref[:junction_connections][j], idx)
         end
 
         # Convert all data to SI units.
