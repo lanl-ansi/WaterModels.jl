@@ -63,7 +63,7 @@ function constraint_potential_flow_coupling_relaxed_hw{T}(wm::GenericWaterModel{
                                                           n::Int = wm.cnw)
     gamma = wm.var[:nw][n][:gamma][a]
     q = wm.var[:nw][n][:q][a]
-    lambda = wm.ref[:nw][n][:lambda][a]
+    lambda = calc_friction_factor_hw(wm.ref[:nw][n][:pipes][a])
 
     # Use the piecewise linear outer approximation.
     for cut in construct_hw_separators(q, lambda, num_separators)
@@ -75,7 +75,8 @@ function constraint_potential_flow_coupling_exact_hw{T}(wm::GenericWaterModel{T}
                                                         n::Int = wm.cnw)
     gamma = wm.var[:nw][n][:gamma][a]
     q = wm.var[:nw][n][:q][a]
-    lambda = wm.ref[:nw][n][:lambda][a]
+    lambda = calc_friction_factor_hw(wm.ref[:nw][n][:pipes][a])
+
     setlowerbound(q, 0.0) # In this version of the problem, this variable is nonnegative.
     @NLconstraint(wm.model, gamma == lambda * (q + 1e-7)^1.852)
 end
@@ -85,7 +86,8 @@ function constraint_potential_flow_coupling_relaxed_dw{T}(wm::GenericWaterModel{
                                                           n::Int = wm.cnw)
     gamma = wm.var[:nw][n][:gamma][a]
     q = wm.var[:nw][n][:q][a]
-    lambda = wm.ref[:nw][n][:lambda][a]
+    viscosity = wm.ref[:nw][n][:options]["viscosity"]
+    lambda = calc_friction_factor_dw(wm.ref[:nw][n][:pipes][a], viscosity)
 
     # Use the piecewise linear outer approximation.
     for cut in construct_dw_separators(q, lambda, num_separators)
@@ -97,7 +99,10 @@ function constraint_potential_flow_coupling_exact_dw{T}(wm::GenericWaterModel{T}
                                                         n::Int = wm.cnw)
     gamma = wm.var[:nw][n][:gamma][a]
     q = wm.var[:nw][n][:q][a]
-    lambda = wm.ref[:nw][n][:lambda][a]
+    viscosity = wm.ref[:nw][n][:options]["viscosity"]
+    lambda = calc_friction_factor_dw(wm.ref[:nw][n][:pipes][a], viscosity)
+
+    # Add the full constraint.
     @NLconstraint(wm.model, gamma == lambda * q^2)
 end
 

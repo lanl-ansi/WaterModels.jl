@@ -20,35 +20,33 @@ function calc_flow_bounds(pipes)
     return flow_min, flow_max
 end
 
-function calc_friction_factor(pipes, reynolds, options)
-    friction_factor = Dict([(pipe_id, -Inf) for pipe_id in keys(pipes)])
-    headloss_type = options["headloss"]
+function calc_friction_factor_hw(pipe)
+    diameter = pipe["diameter"]
+    roughness = pipe["roughness"]
+    length = pipe["length"]
+    return (10.67 * length) / (roughness^1.852 * diameter^4.87)
+end
 
-    for (pipe_id, pipe) in pipes
-        diameter = pipe["diameter"]
-        roughness = pipe["roughness"]
-        length = pipe["length"]
-        reynold = reynolds[pipe_id]
+function calc_friction_factor_dw(pipe, viscosity)
+    # Get relevant values to compute the friction factor.
+    diameter = pipe["diameter"]
+    roughness = pipe["roughness"]
+    length = pipe["length"]
 
-        if headloss_type == "h-w" # If Hazen-Williams...
-            friction_factor[pipe_id] = (10.67 * length) / (roughness^1.852 * diameter^4.87)
-        elseif headloss_type == "d-w" # If Darcy-Weisbach...
-            # Use the same Colebrook formula as in EPANET.
-            w = 0.25 * pi * reynold
-            y1 = 4.61841319859 / w^0.9
-            y2 = (roughness / diameter) / (3.7 * diameter) + y1
-            y3 = -8.685889638e-01 * log(y2)
-            f_s = 1.0 / y3^2
+    # Compute Reynold's number.
+    density = 1000.0 # Water density (kilograms per cubic meter).
+    velocity = 10.0 # Estimate of velocity in the pipe (meters per second).
+    reynolds_number = density * velocity * diameter / viscosity
 
-            # Compute the overall friction factor.
-            # f_s = 0.25 / log((roughness / diameter) / 3.71 + 5.74 / reynold^0.9)^2
-            friction_factor[pipe_id] = 0.0826 * length / diameter^5 * f_s
-        else
-            error("Could not find a valid \"headloss\" option type.")
-        end
-    end
+    # Use the same Colebrook formula as in EPANET.
+    w = 0.25 * pi * reynolds_number
+    y1 = 4.61841319859 / w^0.9
+    y2 = (roughness / diameter) / (3.7 * diameter) + y1
+    y3 = -8.685889638e-01 * log(y2)
+    f_s = 1.0 / y3^2
 
-    return friction_factor
+    # Return the overall friction factor.
+    return 0.0826 * length / diameter^5 * f_s
 end
 
 function calc_head_difference_bounds(pipes)
@@ -63,20 +61,6 @@ function calc_head_difference_bounds(pipes)
     end
 
     return diff_min, diff_max
-end
-
-function calc_reynolds_number(pipes, options)
-    reynolds_number = Dict([(pipe_id, 0.0) for pipe_id in keys(pipes)])
-    density = 1000.0 # Water density (kilograms per cubic meter).
-    velocity = 10.0 # Estimate of velocity in the pipe (meters per second).
-    viscosity = options["viscosity"] * 1.0e-3 # Viscosity is 10^(-3) Pascals * seconds.
-
-    for (pipe_id, pipe) in pipes
-        diameter = pipe["diameter"]
-        reynolds_number[pipe_id] = density * velocity * diameter / viscosity
-    end
-
-    return reynolds_number
 end
 
 function update_flow_directions(data, wm) #solution)

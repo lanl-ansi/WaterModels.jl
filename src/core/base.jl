@@ -152,10 +152,6 @@ function build_ref(data::Dict{String, Any})
             push!(ref[:junction_connections][i], idx)
             push!(ref[:junction_connections][j], idx)
         end
-
-        # This must appear after the above calculations.
-        ref[:reynolds] = calc_reynolds_number(ref[:pipes], ref[:options])
-        ref[:lambda] = calc_friction_factor(ref[:pipes], ref[:reynolds], ref[:options])
     end
 
     return refs
