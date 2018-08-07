@@ -2,7 +2,7 @@ function get_solution(network_path::String)
     setting = Dict(:num_separators => 5)
     model_type = GenericWaterModel{StandardMINLPForm}
     solution = run_feasibility_exact(network_path, model_type, pavito, ipopt; setting = setting)
-    # InfrastructureModels.print_summary(solution["solution"])
+    InfrastructureModels.print_summary(solution["solution"])
     return solution
 end
 
@@ -35,10 +35,10 @@ end
 end
 
 @testset "Darcy-Weisbach MINLP Problems" begin
-    # @testset "balerma" begin
-    #     solution = get_solution("../test/data/epanet/balerma.inp")
-    #     @test solution["status"] == :LocalOptimal
-    # end
+    @testset "balerma" begin
+        solution = get_solution("../test/data/epanet/balerma.inp")
+        @test solution["status"] == :LocalOptimal
+    end
 
     # TODO: Why doesn't a feasible solution exist to this problem?
     # @testset "rural" begin

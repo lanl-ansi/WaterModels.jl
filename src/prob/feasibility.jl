@@ -13,8 +13,6 @@ function run_feasibility_exact(file, model_constructor, solver_relaxed, solver_e
 
     while status == :LocalInfeasibile || status == :Infeasible
         # Solve the relaxed model.
-        #relaxed_solution = solve_generic_model(wm_relaxed, solver_relaxed; solution_builder = get_solution)
-
         setsolver(wm_relaxed.model, solver_relaxed)
         status, solve_time = solve(wm_relaxed)
         update_flow_directions(wm_relaxed.data, wm_relaxed) #relaxed_solution["solution"])

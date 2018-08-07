@@ -89,10 +89,13 @@ function constraint_potential_flow_coupling_relaxed_dw{T}(wm::GenericWaterModel{
     viscosity = wm.ref[:nw][n][:options]["viscosity"]
     lambda = calc_friction_factor_dw(wm.ref[:nw][n][:pipes][a], viscosity)
 
-    # Use the piecewise linear outer approximation.
-    for cut in construct_dw_separators(q, lambda, num_separators)
-        @constraint(wm.model, gamma >= cut)
-    end
+    # Add the constraint.
+    @constraint(wm.model, gamma >= lambda * q^2)
+
+    # # Use the piecewise linear outer approximation.
+    # for cut in construct_dw_separators(q, lambda, num_separators)
+    #     @constraint(wm.model, gamma >= cut)
+    # end
 end
 
 function constraint_potential_flow_coupling_exact_dw{T}(wm::GenericWaterModel{T}, a,
