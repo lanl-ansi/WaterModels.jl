@@ -48,8 +48,8 @@ function post_feasibility_relaxed(wm::GenericWaterModel; kwargs...)
         constraint_flow_conservation(wm, i)
 
         if length(wm.ref[:nw][wm.cnw][:junction_connections][i]) == 2 &&
-            haskey(wm.ref[:nw][wm.cnw][:demand], i)
-            if wm.ref[:nw][wm.cnw][:demand][i] == 0.0
+            haskey(wm.ref[:nw][wm.cnw][:junctions], i)
+            if wm.ref[:nw][wm.cnw][:junctions][i]["demand"] == 0.0
                 constraint_degree_two(wm, i)
             end
         end

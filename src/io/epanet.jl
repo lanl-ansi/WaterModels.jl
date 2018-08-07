@@ -51,12 +51,12 @@ function parse_epanet_file(path::String)
     # Parse relevant data into a more structured format.
     dict = Dict{String, Any}()
     dict["title"] = parse_title(epanet_dict["title"])
-    dict["junctions"] = parse_junctions(epanet_dict["junctions"])
-    dict["pipes"] = parse_pipes(epanet_dict["pipes"])
-    dict["reservoirs"] = parse_reservoirs(epanet_dict["reservoirs"])
+    dict["options"] = parse_options(epanet_dict["options"])
+    dict["junctions"] = parse_junctions(epanet_dict["junctions"], dict["options"])
+    dict["pipes"] = parse_pipes(epanet_dict["pipes"], dict["options"])
+    dict["reservoirs"] = parse_reservoirs(epanet_dict["reservoirs"], dict["options"])
     dict["tanks"] = parse_tanks(epanet_dict["tanks"])
     dict["valves"] = parse_valves(epanet_dict["valves"])
-    dict["options"] = parse_options(epanet_dict["options"])
     dict["multinetwork"] = false
 
     return dict
@@ -67,7 +67,7 @@ function allequal(x)
 end
 
 function parse_general(dtype::Type, data::Any)
-    do_not_parse = dtype == String || dtype == FLOW_DIRECTION
+    do_not_parse = dtype == String || dtype == FLOW_DIRECTION || dtype == typeof(data)
     return do_not_parse ? data : parse(dtype, data)
 end
 
@@ -75,19 +75,108 @@ function parse_title(data::Dict{String, Any})
     return length(keys(data)) > 0 ? first(keys(data)) : ""
 end
 
-function parse_junctions(data::Dict{String, Array})
+function parse_junctions(data::Dict{String, Array}, options::Dict{String, Any})
+    # Get the demand units (e.g., LPS, GPM).
+    demand_units = options["units"]
+
+    # Initialize scalars to convert data to SI units.
+    demand_scalar = nothing
+    elev_scalar = nothing
+
+    if demand_units == "lps" # If liters per second...
+        # Convert from liters per second to cubic meters per second.
+        demand_scalar = 1.0e-3 * options["demand_multiplier"]
+
+        # Retain the original value (in meters).
+        elev_scalar = 1.0
+    elseif demand_units == "gpm" # If gallons per minute...
+        # Convert from gallons per minute to cubic meters per second.
+        demand_scalar = 6.30902e-5 * options["demand_multiplier"]
+
+        # Convert elevation from feet to meters.
+        elev_scalar = 0.3048
+    else
+        error("Could not find a valid \"units\" option type.")
+    end
+
+    # Convert demand data to SI units.
+    data["demand"] = [parse(Float64, demand) for demand in data["demand"]]
+    data["demand"] = demand_scalar .* data["demand"]
+
+    # Convert elev data to SI units.
+    data["elev"] = [parse(Float64, elev) for elev in data["elev"]]
+    data["elev"] = elev_scalar .* data["elev"]
+
     # Specify the data types for the junction data.
-    columns = Dict("demand" => Float64, "elev" => Float64, "id" => String, "pattern" => String)
+    columns = Dict("demand" => Float64, "elev" => Float64,
+                   "id" => String, "pattern" => String)
 
     # Ensure the arrays describing junction data are all of equal lengths.
     @assert(allequal([length(data[column]) for column in keys(columns)]))
 
     # Return an array of junction dictionaries with the correct data types.
     arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["id"])]
+
+    # Scale the quantities appropriately.
     return Dict{String, Any}(data["id"][i] => arr[i] for i = 1:length(arr))
 end
 
-function parse_pipes(data::Dict{String, Array})
+function parse_pipes(data::Dict{String, Array}, options::Dict{String, Any})
+    # Get the demand units (e.g., LPS, GPM).
+    demand_units = options["units"]
+
+    # Get the headloss type (i.e., Darcy-Weisbach or Hazen-Williams)
+    headloss_type = options["headloss"]
+
+    # Initialize scalars to convert data to SI units.
+    diameter_scalar = nothing
+    length_scalar = nothing
+    roughness_scalar = nothing
+
+    if demand_units == "lps" # If liters per second...
+        # Convert diameter from millimeters to meters.
+        diameter_scalar = 0.001
+
+        # Retain the original value (in meters).
+        length_scalar = 1.0
+
+        if headloss_type == "d-w"
+            # Convert roughness from millimeters to meters.
+            roughness_scalar = 0.001
+        elseif headloss_type == "h-w"
+            # Retain the original value (unitless).
+            roughness_scalar = 1.0
+        end
+    elseif demand_units == "gpm" # If gallons per minute...
+        # Convert diameter from inches to meters.
+        diameter_scalar = 0.0254
+
+        # Convert length from feet to meters.
+        length_scalar = 0.3048
+
+        if headloss_type == "d-w"
+            # Convert roughness from millifeet to meters.
+            roughness_scalar = 3.048e-4
+        elseif headloss_type == "h-w"
+            # Retain the original value (unitless).
+            roughness_scalar = 1.0
+        end
+    else
+        error("Could not find a valid \"units\" option type.")
+    end
+
+    # Convert diameter data to SI units.
+    data["diameter"] = [parse(Float64, diameter) for diameter in data["diameter"]]
+    data["diameter"] = diameter_scalar .* data["diameter"]
+
+    # Convert length data to SI units.
+    data["length"] = [parse(Float64, length) for length in data["length"]]
+    data["length"] = length_scalar .* data["length"]
+
+    # Convert roughness data to SI units.
+    data["roughness"] = [parse(Float64, roughness) for roughness in data["roughness"]]
+    data["roughness"] = roughness_scalar .* data["roughness"]
+
     # Specify the data types for the pipe data.
     columns = Dict("diameter" => Float64, "id" => String, "length" => Float64,
                    "minorloss" => Float64, "node1" => String, "node2" => String,
@@ -106,7 +195,24 @@ function parse_pipes(data::Dict{String, Array})
     return Dict{String, Any}(data["id"][i] => arr[i] for i = 1:length(arr))
 end
 
-function parse_reservoirs(data::Dict{String, Array})
+function parse_reservoirs(data::Dict{String, Array}, options::Dict{String, Any})
+    demand_units = options["units"]
+    head_scalar = nothing
+
+    if demand_units == "lps" # If liters per second...
+        # Retain the original value (in meters).
+        head_scalar = 1.0
+    elseif demand_units == "gpm" # If gallons per minute...
+        # Convert from feet to meters.
+        head_scalar = 0.3048
+    else
+        error("Could not find a valid \"units\" option type.")
+    end
+
+    # Convert diameter data to SI units.
+    data["head"] = [parse(Float64, head) for head in data["head"]]
+    data["head"] = head_scalar .* data["head"]
+
     # Specify the data types for the reservoir data.
     columns = Dict("head" => Float64, "id" => String, "pattern" => String)
 

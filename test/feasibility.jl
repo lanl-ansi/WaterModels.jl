@@ -1,5 +1,3 @@
-using CSV
-
 function get_solution(network_path::String)
     setting = Dict(:num_separators => 5)
     model_type = GenericWaterModel{StandardMINLPForm}
@@ -14,10 +12,10 @@ end
     #    @test solution["status"] == :LocalOptimal
     #end
 
-    @testset "hanoi_extended" begin
-        solution = get_solution("../test/data/epanet/hanoi_extended.inp")
-        @test solution["status"] == :LocalOptimal
-    end
+    #@testset "hanoi_extended" begin
+    #    solution = get_solution("../test/data/epanet/hanoi_extended.inp")
+    #    @test solution["status"] == :LocalOptimal
+    #end
 
     @testset "hanoi" begin
         solution = get_solution("../test/data/epanet/hanoi.inp")

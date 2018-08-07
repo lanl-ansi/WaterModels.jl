@@ -153,20 +153,9 @@ function build_ref(data::Dict{String, Any})
             push!(ref[:junction_connections][j], idx)
         end
 
-        # Convert all data to SI units.
-        ref[:demand] = calc_demand(ref[:junctions], ref[:options])
-        ref[:diameter] = calc_diameter(ref[:pipes], ref[:options])
-		ref[:elev] = calc_elev(ref[:junctions], ref[:options])
-		ref[:head] = calc_head(ref[:reservoirs], ref[:options])
-        ref[:length] = calc_length(ref[:pipes], ref[:options])
-        ref[:roughness] = calc_roughness(ref[:pipes], ref[:options])
-
         # This must appear after the above calculations.
-        ref[:reynolds] = calc_reynolds_number(ref[:pipes], ref[:diameter],
-                                              ref[:options])
-        ref[:lambda] = calc_friction_factor(ref[:pipes], ref[:length],
-                                            ref[:diameter], ref[:roughness],
-                                            ref[:reynolds], ref[:options])
+        ref[:reynolds] = calc_reynolds_number(ref[:pipes], ref[:options])
+        ref[:lambda] = calc_friction_factor(ref[:pipes], ref[:reynolds], ref[:options])
     end
 
     return refs

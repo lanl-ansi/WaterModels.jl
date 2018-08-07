@@ -1,6 +1,4 @@
-CSV
 Cbc
-DataFrames
 julia 0.6
 JSON 0.6.0
 InfrastructureModels 0.0.3 0.2-
