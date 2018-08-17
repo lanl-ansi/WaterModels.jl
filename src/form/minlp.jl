@@ -24,16 +24,19 @@ end
 
 # From http://www.optimization-online.org/DB_FILE/2008/03/1924.pdf
 function hw_approx(model, q, delta::Float64 = 0.1)
-    q_5_coeff = 3.0 * delta^(1.852 - 5) / 8.0 +
-                1.0 / 8.0 * (1.852 - 1) * 1.852 * delta^(1.852 - 5) -
-                3.0 / 8.0 * 1.852 * delta^(1.852 - 5)
-    q_3_coeff = -5.0 * delta^(1.852 - 3) / 4.0 -
-                1.0 / 4.0 * (1.852 - 1) * 1.852 * delta^(1.852 - 3) +
-                5.0 / 4.0 * 1.852 * delta^(1.852 - 3)
-    q_1_coeff = 15.0 * delta^(1.852 - 1) / 8.0 +
-                1.0 / 8.0 * (1.852 - 1) * 1.852 * delta^(1.852 - 1) -
-                7.0 / 8.0 * 1.852 * delta^(1.852 - 1)
-    return @NLexpression(model, q_5_coeff * q^5 + q_3_coeff * q^3 + q_1_coeff * q)
+    c_5 = 3.0 * delta^(1.852 - 5) / 8.0 +
+          1.0 / 8.0 * (1.852 - 1) * 1.852 * delta^(1.852 - 5) -
+          3.0 / 8.0 * 1.852 * delta^(1.852 - 5)
+
+    c_3 = -5.0 * delta^(1.852 - 3) / 4.0 -
+          1.0 / 4.0 * (1.852 - 1) * 1.852 * delta^(1.852 - 3) +
+          5.0 / 4.0 * 1.852 * delta^(1.852 - 3)
+
+    c_1 = 15.0 * delta^(1.852 - 1) / 8.0 +
+          1.0 / 8.0 * (1.852 - 1) * 1.852 * delta^(1.852 - 1) -
+          7.0 / 8.0 * 1.852 * delta^(1.852 - 1)
+
+    return @NLexpression(model, c_5 * q^5 + c_3 * q^3 + c_1 * q)
 end
 
 "Hazen-Williams constraint for flow with unknown direction."
@@ -81,16 +84,6 @@ function constraint_hw_known_direction{T <: AbstractMINLPForm}(wm::GenericWaterM
     setlowerbound(q, dir == 1 ? 0.0 : getlowerbound(q))
     setupperbound(q, dir == 1 ? getupperbound(q) : 0.0)
 
-    # Add constraints for the piecewise indicator variable z.
-    z = @variable(wm.model, category = :Bin)
-    delta = @variable(wm.model, category = :Bin)
-    M = max(abs(getupperbound(q)), abs(getlowerbound(q)))
-    @constraint(wm.model, q <= -1.0e-3 + M * delta + M * z)
-    @constraint(wm.model, q >= 1.0e-3 - M * (1 - delta) - M * z)
-
-    # Add a piecewise nonlinear constraint for the head loss.
-    inner_hw = hw_approx(wm.model, q, 1.0e-3)
-    inner_piece = @NLexpression(wm.model, lambda * inner_hw)
-    outer_piece = @NLexpression(wm.model, lambda * q * (q^2 + 1.0e-7)^0.426)
-    @NLconstraint(wm.model, dir * (h_i - h_j) == z * inner_piece + (1 - z) * outer_piece)
+    # Add a nonlinear constraint for the head loss.
+    @NLconstraint(wm.model, dir * (h_i - h_j) == (q^2 + 1.0e-7)^0.926)
 end
