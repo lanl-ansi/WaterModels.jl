@@ -28,7 +28,7 @@ include("core/variable.jl")
 
 include("form/minlp.jl")
 
-include("prob/expansion.jl")
-include("prob/feasibility.jl")
+include("prob/ne.jl")
+include("prob/wf.jl")
 
 end

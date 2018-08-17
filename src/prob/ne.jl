@@ -1,10 +1,10 @@
-export run_expansion
+export run_ne
 
-function run_expansion(file, model_constructor, solver; kwargs...)
-    return run_generic_model(file, model_constructor, solver, post_expansion; kwargs...)
+function run_ne(file, model_constructor, solver; kwargs...)
+    return run_generic_model(file, model_constructor, solver, post_ne; kwargs...)
 end
 
-function post_expansion(wm::GenericWaterModel)
+function post_ne(wm::GenericWaterModel)
     variable_flow(wm)
     variable_head(wm)
     variable_head_difference(wm)
