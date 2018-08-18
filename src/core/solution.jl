@@ -1,3 +1,5 @@
+using AmplNLWriter
+
 function build_solution{T}(wm::GenericWaterModel{T}, status, solve_time;
                            objective = NaN, solution_builder = get_solution)
     if status != :Error

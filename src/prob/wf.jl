@@ -4,6 +4,10 @@ function run_wf_hw(file, model_constructor, solver; kwargs...)
     return run_generic_model(file, model_constructor, solver, post_wf_hw; kwargs...)
 end
 
+function run_wf_dw(file, model_constructor, solver; kwargs...)
+    return run_generic_model(file, model_constructor, solver, post_wf_dw; kwargs...)
+end
+
 function post_wf_hw(wm::GenericWaterModel; kwargs...)
     variable_flow(wm)
     variable_head(wm)
@@ -22,12 +26,22 @@ function post_wf_hw(wm::GenericWaterModel; kwargs...)
 
     for a in collect(ids(wm, :pipes))
         constraint_hw_unknown_direction(wm, a)
-        #constraint_define_gamma(wm, a)
-        #constraint_flow_direction(wm, a)
+        constraint_define_gamma(wm, a)
+        constraint_flow_direction(wm, a)
     end
 end
 
 function post_wf_dw(wm::GenericWaterModel; kwargs...)
+    variable_flow(wm)
+    variable_head(wm)
+
+    for i in [collect(ids(wm, :junctions)); collect(ids(wm, :reservoirs))]
+        constraint_flow_conservation(wm, i)
+    end
+
+    for a in collect(ids(wm, :pipes))
+        constraint_dw_unknown_direction(wm, a)
+    end
 end
 
 #export run_wf_relaxed, run_wf_exact

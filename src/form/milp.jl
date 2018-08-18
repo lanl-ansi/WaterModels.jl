@@ -17,14 +17,14 @@ function construct_hw_separators(q::JuMP.Variable, lambda::Float64, n::Int = 3)
     q_points = linspace(getlowerbound(q), getupperbound(q), n)
     f_evals = [lambda * (x^2)^0.926 for x in q_points]
     df_evals = [lambda * 1.852*x / (x^2)^0.074 for x in q_points]
-    df_evals[isnan.(df_evals)] = 0.0
+    df_evals[isnan.(df_evals)] = 0.0 # This will only affect q = 0.
     return [f_evals[i] + (q - q_points[i]) * df_evals[i] for i in 1:n]
 end
 
 function construct_dw_separators(q::JuMP.Variable, lambda::Float64, n::Int = 3)
     q_points = linspace(getlowerbound(q), getupperbound(q), n)
     f_evals = [lambda * x^2 for x in q_points]
-    df_evals = [2 * lambda * x for x in q_points]
+    df_evals = [2.0 * lambda * x for x in q_points]
     return [f_evals[i] + (q - q_points[i]) * df_evals[i] for i in 1:n]
 end
 
