@@ -11,8 +11,6 @@ end
 function post_wf_hw(wm::GenericWaterModel; kwargs...)
     variable_flow(wm)
     variable_head(wm)
-    #variable_head_difference(wm)
-    #variable_flow_direction(wm)
 
     for i in [collect(ids(wm, :junctions)); collect(ids(wm, :reservoirs))]
         constraint_flow_conservation(wm, i)
@@ -26,8 +24,6 @@ function post_wf_hw(wm::GenericWaterModel; kwargs...)
 
     for a in collect(ids(wm, :pipes))
         constraint_hw_unknown_direction(wm, a)
-        constraint_define_gamma(wm, a)
-        constraint_flow_direction(wm, a)
     end
 end
 

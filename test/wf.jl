@@ -1,54 +1,183 @@
-function get_hw_solution(network_path::String)
-    model_type = GenericWaterModel{ConvexMINLPForm}
-    solution = run_wf_hw(network_path, model_type, bonmin)
-    InfrastructureModels.print_summary(solution["solution"])
-    return solution
-end
-
-function get_dw_solution(network_path::String)
-    model_type = GenericWaterModel{StandardMINLPForm}
-    solution = run_wf_dw(network_path, model_type, bonmin)
-    InfrastructureModels.print_summary(solution["solution"])
-    return solution
-end
-
-@testset "Hazen-Williams MINLP Problems" begin
+@testset "Hazen-Williams Non-convex MINLP Problems" begin
     #@testset "foss_poly_1" begin
-    #    solution = get_hw_solution("../test/data/epanet/foss_poly_1.inp")
-    #    @test solution["status"] == :LocalOptimal
-    #end
-
-    #@testset "hanoi_extended" begin
-    #    solution = get_hw_solution("../test/data/epanet/hanoi_extended.inp")
+    #    network_path = "../test/data/epanet/foss_poly_1.inp"
+    #    solution = run_wf_hw(network_path, MINLPWaterModel, bonmin)
     #    @test solution["status"] == :LocalOptimal
     #end
 
     @testset "hanoi" begin
-        solution = get_hw_solution("../test/data/epanet/hanoi.inp")
+        network_path = "../test/data/epanet/hanoi.inp"
+        solution = run_wf_hw(network_path, MINLPWaterModel, bonmin)
+        @test solution["status"] == :LocalOptimal
+    end
+
+    @testset "hanoi_extended" begin
+        network_path = "../test/data/epanet/hanoi_extended.inp"
+        solution = run_wf_hw(network_path, MINLPWaterModel, bonmin)
         @test solution["status"] == :LocalOptimal
     end
 
     #@testset "zj" begin
-    #    solution = get_hw_solution("../test/data/epanet/zj.inp")
+    #    network_path = "../test/data/epanet/zj.inp"
+    #    solution = run_wf_hw(network_path, MINLPWaterModel, bonmin)
     #    @test solution["status"] == :LocalOptimal
     #end
 
-    # This one is too large to solve in a unit test using Bonmin.
-    # @testset "klmod" begin
-    #     solution = get_hw_solution("../test/data/epanet/klmod.inp")
-    #     @test solution["status"] == :LocalOptimal
-    # end
+    #@testset "klmod" begin
+    #    network_path = "../test/data/epanet/klmod.inp"
+    #    solution = run_wf_hw(network_path, MINLPWaterModel, bonmin)
+    #    @test solution["status"] == :LocalOptimal
+    #end
 end
 
-@testset "Darcy-Weisbach MINLP Problems" begin
-    #@testset "balerma" begin
-    #    solution = get_dw_solution("../test/data/epanet/balerma.inp")
+@testset "Hazen-Williams Convex MINLP Problems" begin
+    @testset "foss_poly_1" begin
+        network_path = "../test/data/epanet/foss_poly_1.inp"
+        solution = run_wf_hw(network_path, ConvexMINLPWaterModel, pavito)
+        @test solution["status"] == :LocalOptimal
+    end
+
+    @testset "hanoi" begin
+        network_path = "../test/data/epanet/hanoi.inp"
+        solution = run_wf_hw(network_path, ConvexMINLPWaterModel, pavito)
+        @test solution["status"] == :LocalOptimal
+    end
+
+    @testset "hanoi_extended" begin
+        network_path = "../test/data/epanet/hanoi_extended.inp"
+        solution = run_wf_hw(network_path, ConvexMINLPWaterModel, pavito)
+        @test solution["status"] == :LocalOptimal
+    end
+
+    @testset "zj" begin
+        network_path = "../test/data/epanet/zj.inp"
+        solution = run_wf_hw(network_path, ConvexMINLPWaterModel, pavito)
+        @test solution["status"] == :LocalOptimal
+    end
+
+    @testset "klmod" begin
+        network_path = "../test/data/epanet/klmod.inp"
+        solution = run_wf_hw(network_path, ConvexMINLPWaterModel, pavito)
+        @test solution["status"] == :LocalOptimal
+    end
+end
+
+@testset "Hazen-Williams Standard MILP Problems" begin
+    #@testset "foss_poly_1" begin
+    #    network_path = "../test/data/epanet/foss_poly_1.inp"
+    #    solution = run_wf_hw(network_path, MILPWaterModel, cbc)
     #    @test solution["status"] == :LocalOptimal
     #end
 
-    # # TODO: Why doesn't a feasible solution exist to this problem?
-    # @testset "rural" begin
-    #     solution = get_dw_solution("../test/data/epanet/rural.inp")
-    #     @test solution["status"] == :LocalOptimal
-    # end
+    @testset "hanoi" begin
+        network_path = "../test/data/epanet/hanoi.inp"
+        solution = run_wf_hw(network_path, MILPWaterModel, cbc)
+        @test solution["status"] == :Optimal
+    end
+
+    @testset "hanoi_extended" begin
+        network_path = "../test/data/epanet/hanoi_extended.inp"
+        solution = run_wf_hw(network_path, MILPWaterModel, cbc)
+        @test solution["status"] == :Optimal
+    end
+
+    #@testset "zj" begin
+    #    network_path = "../test/data/epanet/zj.inp"
+    #    solution = run_wf_hw(network_path, MILPWaterModel, cbc)
+    #    @test solution["status"] == :LocalOptimal
+    #end
+
+    #@testset "klmod" begin
+    #    network_path = "../test/data/epanet/klmod.inp"
+    #    solution = run_wf_hw(network_path, MILPWaterModel, cbc)
+    #    @test solution["status"] == :LocalOptimal
+    #end
+end
+
+@testset "Hazen-Williams Relaxed MILP Problems" begin
+    @testset "foss_poly_1" begin
+        network_path = "../test/data/epanet/foss_poly_1.inp"
+        solution = run_wf_hw(network_path, RelaxedMILPWaterModel, cbc)
+        @test solution["status"] == :Optimal
+    end
+
+    @testset "hanoi" begin
+        network_path = "../test/data/epanet/hanoi.inp"
+        solution = run_wf_hw(network_path, RelaxedMILPWaterModel, cbc)
+        @test solution["status"] == :Optimal
+    end
+
+    @testset "hanoi_extended" begin
+        network_path = "../test/data/epanet/hanoi_extended.inp"
+        solution = run_wf_hw(network_path, RelaxedMILPWaterModel, cbc)
+        @test solution["status"] == :Optimal
+    end
+
+    @testset "zj" begin
+        network_path = "../test/data/epanet/zj.inp"
+        solution = run_wf_hw(network_path, RelaxedMILPWaterModel, cbc)
+        @test solution["status"] == :Optimal
+    end
+
+    @testset "klmod" begin
+        network_path = "../test/data/epanet/klmod.inp"
+        solution = run_wf_hw(network_path, RelaxedMILPWaterModel, cbc)
+        @test solution["status"] == :Optimal
+    end
+end
+
+@testset "Darcy-Weisbach Non-convex MINLP Problems" begin
+    #@testset "balerma" begin
+    #    network_path = "../test/data/epanet/balerma.inp"
+    #    solution = run_wf_dw(network_path, MINLPWaterModel, bonmin)
+    #    @test solution["status"] == :LocalOptimal
+    #end
+
+    #@testset "rural" begin
+    #    network_path = "../test/data/epanet/rural.inp"
+    #    solution = run_wf_dw(network_path, MINLPWaterModel, bonmin)
+    #    @test solution["status"] == :LocalOptimal
+    #end
+end
+
+@testset "Darcy-Weisbach Convex MINLP Problems" begin
+    @testset "balerma" begin
+        network_path = "../test/data/epanet/balerma.inp"
+        solution = run_wf_dw(network_path, ConvexMINLPWaterModel, pavito)
+        @test solution["status"] == :LocalOptimal
+    end
+
+    @testset "rural" begin
+        network_path = "../test/data/epanet/rural.inp"
+        solution = run_wf_dw(network_path, ConvexMINLPWaterModel, pavito)
+        @test solution["status"] == :LocalOptimal
+    end
+end
+
+@testset "Darcy-Weisbach Standard MILP Problems" begin
+    #@testset "balerma" begin
+    #    network_path = "../test/data/epanet/balerma.inp"
+    #    solution = run_wf_dw(network_path, MILPWaterModel, cbc)
+    #    @test solution["status"] == :LocalOptimal
+    #end
+
+    #@testset "rural" begin
+    #    network_path = "../test/data/epanet/rural.inp"
+    #    solution = run_wf_dw(network_path, MILPWaterModel, cbc)
+    #    @test solution["status"] == :LocalOptimal
+    #end
+end
+
+@testset "Darcy-Weisbach Relaxed MILP Problems" begin
+    @testset "balerma" begin
+        network_path = "../test/data/epanet/balerma.inp"
+        solution = run_wf_dw(network_path, RelaxedMILPWaterModel, cbc)
+        @test solution["status"] == :Optimal
+    end
+
+    @testset "rural" begin
+        network_path = "../test/data/epanet/rural.inp"
+        solution = run_wf_dw(network_path, RelaxedMILPWaterModel, cbc)
+        @test solution["status"] == :Optimal
+    end
 end

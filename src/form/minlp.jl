@@ -24,7 +24,7 @@ MINLPWaterModel(data::Dict{String,Any}; kwargs...) = GenericWaterModel(data, Sta
 ConvexMINLPWaterModel(data::Dict{String,Any}; kwargs...) = GenericWaterModel(data, ConvexMINLPForm; kwargs...)
 
 "Set new bounds for q given some specified direction of flow (-1 or 1)."
-function set_q_bounds_per_direction(direction::Int, q::JuMP.Variable)
+function fix_flow_direction(q::JuMP.Variable, direction::Int)
     # Fix the direction of the flow.
     setlowerbound(q, direction == 1 ? 0.0 : getlowerbound(q))
     setupperbound(q, direction == 1 ? getupperbound(q) : 0.0)
@@ -45,33 +45,10 @@ function get_common_variables{T <: AbstractMINLPForm}(wm::GenericWaterModel{T}, 
     return q, h_i, h_j
 end
 
-"Create variables associated with the head difference between two junctions."
-function variable_head_difference{T <: ConvexMINLPForm}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
-    # Set up required data to initialize junction variables.
-    junction_ids = [key for key in keys(wm.ref[:nw][n][:junctions])]
-
-    # Set up required data to initialize reservoir variables.
-    reservoirs = wm.ref[:nw][n][:reservoirs]
-    reservoir_ids = [key for key in keys(reservoirs)]
-    reservoir_lbs = Dict(id => reservoirs[id]["head"] for id in reservoir_ids)
-    reservoir_ubs = Dict(id => reservoirs[id]["head"] for id in reservoir_ids)
-
-    # Set the elevation bounds (for junctions).
-    # TODO: Increase the upper bound when pumps are in the system.
-    junctions = wm.ref[:nw][n][:junctions]
-    max_elev = maximum([junc["elev"] for junc in values(junctions)])
-    max_head = maximum([res["head"] for res in values(reservoirs)])
-    junction_lbs = Dict(junc["id"] => junc["elev"] for junc in values(junctions))
-    junction_ubs = Dict(id => max(max_elev, max_head) for id in junction_ids)
-
-    # Create arrays comprising both types of components.
-    ids = [junction_ids; reservoir_ids]
-    lbs = merge(junction_lbs, reservoir_lbs)
-    ubs = merge(junction_ubs, reservoir_ubs)
-
-    # Add the head variables to the model.
-    wm.var[:nw][n][:h] = @variable(wm.model, [i in ids], lowerbound = lbs[i],
-                                   upperbound = ubs[i], basename = "h_$(n)")
+"Create variables associated with the head for the convex MINLP problem."
+function variable_head{T <: ConvexMINLPForm}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
+    # Create head variables.
+    variable_head_common(wm, n)
 
     # Create variables that correspond to the absolute value of the head difference.
     diff_min, diff_max = calc_head_difference_bounds(wm.ref[:nw][n][:pipes])
@@ -88,10 +65,9 @@ function variable_head_difference{T <: ConvexMINLPForm}(wm::GenericWaterModel{T}
                                     category = :Bin, basename = "yn_$(n)")
 end
 
-"Create variables associated with the head."
-function variable_head{T <: ConvexMINLPForm}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
-    #variable_head(wm, n)
-    variable_head_difference(wm, n)
+"Create variables associated with the head for the nonconvex MINLP problem."
+function variable_head{T <: StandardMINLPForm}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
+    variable_head_common(wm, n)
 end
 
 "Get variables and constants used in the construction of Darcy-Weisbach constraints."
@@ -109,7 +85,7 @@ function constraint_dw_known_direction{T <: StandardMINLPForm}(wm::GenericWaterM
 
     # Fix the direction associated with the flow.
     dir = Int(wm.data["pipes"][a]["flow_direction"])
-    set_q_bounds_per_direction(dir, q)
+    fix_flow_direction(q, dir)
 
     # Add a non-convex quadratic constraint for the head loss.
     @NLconstraint(wm.model, dir * (h_i - h_j) == lambda * q^2)
@@ -122,7 +98,7 @@ function constraint_dw_known_direction{T <: ConvexMINLPForm}(wm::GenericWaterMod
 
     # Fix the direction associated with the flow.
     dir = Int(wm.data["pipes"][a]["flow_direction"])
-    set_q_bounds_per_direction(dir, q)
+    fix_flow_direction(q, dir)
 
     # Add a convex quadratic constraint for the head loss.
     @NLconstraint(wm.model, dir * (h_i - h_j) >= lambda * q^2)
@@ -143,6 +119,9 @@ function constraint_dw_unknown_direction{T <: ConvexMINLPForm}(wm::GenericWaterM
     q, h_i, h_j, viscosity, lambda = get_dw_requirements(wm, a, n)
     gamma = wm.var[:nw][n][:gamma][a]
 
+    # Add constraints required to define gamma.
+    constraint_define_gamma(wm, a, n)
+
     # Add a convex quadratic constraint for the head loss.
     @NLconstraint(wm.model, gamma >= lambda * q^2)
 end
@@ -161,7 +140,7 @@ function constraint_hw_known_direction{T <: StandardMINLPForm}(wm::GenericWaterM
 
     # Fix the direction associated with the flow.
     dir = Int(wm.data["pipes"][a]["flow_direction"])
-    set_q_bounds_per_direction(dir, q)
+    fix_flow_direction(q, dir)
 
     # Add a non-convex constraint for the head loss.
     @NLconstraint(wm.model, dir * (h_i - h_j) == (q^2 + 1.0e-4)^0.926)
@@ -174,7 +153,7 @@ function constraint_hw_known_direction{T <: ConvexMINLPForm}(wm::GenericWaterMod
 
     # Fix the direction associated with the flow.
     dir = Int(wm.data["pipes"][a]["flow_direction"])
-    set_q_bounds_per_direction(dir, q)
+    fix_flow_direction(q, dir)
 
     # Add a nonlinear constraint for the head loss.
     @NLconstraint(wm.model, dir * (h_i - h_j) >= (q^2 + 1.0e-4)^0.926)
@@ -202,24 +181,64 @@ function constraint_hw_unknown_direction{T <: StandardMINLPForm}(wm::GenericWate
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j, lambda = get_hw_requirements(wm, a, n)
 
-    # Add constraints for the piecewise indicator variable z.
+    # Add big-M constraints for the piecewise indicator variable z.
     z = @variable(wm.model, category = :Bin)
     delta = @variable(wm.model, category = :Bin)
-    M = max(abs(getlowerbound(q)), abs(getupperbound(q)))
+    M = 0.1 + max(abs(getlowerbound(q)), abs(getupperbound(q)))
     @constraint(wm.model, q <= -0.1 + M * delta + M * z)
     @constraint(wm.model, q >= 0.1 - M * (1 - delta) - M * z)
 
     # Add a piecewise nonlinear constraint for the head loss.
     inner_hw = hw_approx(wm.model, q, 0.1)
-    inner_piece = @NLexpression(wm.model, z * lambda * inner_hw) # What we all seek.
+    inner_piece = @NLexpression(wm.model, z * lambda * inner_hw)
 
     # TODO: Use this when we finally have a working non-convex solver interface
     # that allows for user-defined functions and their derivatives.
     # outer_piece = @NLexpression(wm.model, (1 - z) * lambda * hw_q(q))
 
-    # Use this piece of garbage for the time being. That's right, it's garbage.
-    outer_piece = @NLexpression(wm.model, lambda * (1 - z) * q * (q^2 + 1.0e-4)^0.426)
+    # Use this for the time being.
+    outer_piece = @NLexpression(wm.model, (1 - z) * lambda * q * (q^2 + 1.0e-4)^0.426)
     @NLconstraint(wm.model, h_i - h_j == inner_piece + outer_piece)
+end
+
+"Constraints used to define the head difference in the convex (relaxed) MINLP."
+function constraint_define_gamma{T <: ConvexMINLPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+    # Get source and target nodes corresponding to the edge.
+    i = wm.ref[:nw][n][:pipes][a]["node1"]
+    j = wm.ref[:nw][n][:pipes][a]["node2"]
+
+    # Collect variables needed for the constraint.
+    q = wm.var[:nw][n][:q][a]
+    h_i = wm.var[:nw][n][:h][i]
+    h_j = wm.var[:nw][n][:h][j]
+
+    # Collect other variables needed for the constraint.
+    gamma = wm.var[:nw][n][:gamma][a]
+    y_p = wm.var[:nw][n][:yp][a]
+    y_n = wm.var[:nw][n][:yn][a]
+
+    # Get additional data related to the variables.
+    h_i_lb = getlowerbound(h_i)
+    h_i_ub = getupperbound(h_i)
+    h_j_lb = getlowerbound(h_j)
+    h_j_ub = getupperbound(h_j)
+
+    # Add the required constraints to define gamma.
+    @constraint(wm.model, h_j - h_i + (h_i_lb - h_j_ub) * (y_p - y_n + 1) <= gamma)
+    @constraint(wm.model, h_i - h_j + (h_i_ub - h_j_lb) * (y_p - y_n - 1) <= gamma)
+    @constraint(wm.model, h_j - h_i + (h_i_ub - h_j_lb) * (y_p - y_n + 1) >= gamma)
+    @constraint(wm.model, h_i - h_j + (h_i_lb - h_j_ub) * (y_p - y_n - 1) >= gamma)
+
+    # Get the sum of all junction demands.
+    junctions = values(wm.ref[:nw][n][:junctions])
+    sum_demand = sum(junction["demand"] for junction in junctions)
+
+    # Add the required constraints to define y_p and y_n.
+    @constraint(wm.model, (y_p - 1) * sum_demand <= q)
+    @constraint(wm.model, (1 - y_n) * sum_demand >= q)
+    @constraint(wm.model, (1 - y_p) * (h_i_lb - h_j_ub) <= h_i - h_j)
+    @constraint(wm.model, (1 - y_n) * (h_i_ub - h_j_lb) >= h_i - h_j)
+    @constraint(wm.model, y_p + y_n == 1)
 end
 
 "Convex (relaxed) Hazen-Williams constraint for flow with unknown direction."
@@ -227,6 +246,9 @@ function constraint_hw_unknown_direction{T <: ConvexMINLPForm}(wm::GenericWaterM
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j, lambda = get_hw_requirements(wm, a, n)
     gamma = wm.var[:nw][n][:gamma][a]
+
+    # Add constraints required to define gamma.
+    constraint_define_gamma(wm, a, n)
 
     # Add a nonlinear constraint for the head loss.
     @NLconstraint(wm.model, gamma >= (q^2 + 1.0e-4)^0.926)

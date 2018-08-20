@@ -99,6 +99,7 @@ end
 solver_status_lookup = Dict{Any, Dict{Symbol, Symbol}}(
     :AmplNLWriter => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
     :ConicNonlinearBridge => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
+    :Cbc => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
     :Gurobi => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
     :Ipopt => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
     :Pajarito => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible))
