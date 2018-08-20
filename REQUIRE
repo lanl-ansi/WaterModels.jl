@@ -9,3 +9,4 @@ Ipopt
 Compat 0.26.0
 Memento 0.8
 Pavito
+PiecewiseLinearOpt

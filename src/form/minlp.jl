@@ -203,14 +203,8 @@ end
 
 "Constraints used to define the head difference in the convex (relaxed) MINLP."
 function constraint_define_gamma{T <: ConvexMINLPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
-    # Get source and target nodes corresponding to the edge.
-    i = wm.ref[:nw][n][:pipes][a]["node1"]
-    j = wm.ref[:nw][n][:pipes][a]["node2"]
-
     # Collect variables needed for the constraint.
-    q = wm.var[:nw][n][:q][a]
-    h_i = wm.var[:nw][n][:h][i]
-    h_j = wm.var[:nw][n][:h][j]
+    q, h_i, h_j = get_common_variables(wm, a, n)
 
     # Collect other variables needed for the constraint.
     gamma = wm.var[:nw][n][:gamma][a]

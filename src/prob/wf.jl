@@ -4,8 +4,16 @@ function run_wf_hw(file, model_constructor, solver; kwargs...)
     return run_generic_model(file, model_constructor, solver, post_wf_hw; kwargs...)
 end
 
+function run_wf_hw(file, modifications_path, model_constructor, solver; kwargs...)
+    return run_generic_model(file, modifications_path, model_constructor, solver, post_wf_hw; kwargs...)
+end
+
 function run_wf_dw(file, model_constructor, solver; kwargs...)
     return run_generic_model(file, model_constructor, solver, post_wf_dw; kwargs...)
+end
+
+function run_wf_dw(file, modifications_path, model_constructor, solver; kwargs...)
+    return run_generic_model(file, modifications_path, model_constructor, solver, post_wf_dw; kwargs...)
 end
 
 function post_wf_hw(wm::GenericWaterModel; kwargs...)
@@ -33,6 +41,12 @@ function post_wf_dw(wm::GenericWaterModel; kwargs...)
 
     for i in [collect(ids(wm, :junctions)); collect(ids(wm, :reservoirs))]
         constraint_flow_conservation(wm, i)
+        #if length(wm.ref[:nw][wm.cnw][:junction_connections][i]) == 2 &&
+        #    haskey(wm.ref[:nw][wm.cnw][:junctions], i)
+        #    if wm.ref[:nw][wm.cnw][:junctions][i]["demand"] == 0.0
+        #        constraint_degree_two(wm, i)
+        #    end
+        #end
     end
 
     for a in collect(ids(wm, :pipes))
