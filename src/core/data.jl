@@ -21,32 +21,42 @@ function calc_flow_bounds(pipes)
 end
 
 function calc_friction_factor_hw(pipe)
-    diameter = pipe["diameter"]
-    roughness = pipe["roughness"]
-    length = pipe["length"]
-    return (10.67 * length) / (roughness^1.852 * diameter^4.87)
+    if haskey(pipe, "friction_factor")
+        return pipe["friction_factor"]
+    else
+        diameter = pipe["diameter"]
+        roughness = pipe["roughness"]
+        length = pipe["length"]
+        return (10.67 * length) / (roughness^1.852 * diameter^4.87)
+    end
 end
 
 function calc_friction_factor_dw(pipe, viscosity)
-    # Get relevant values to compute the friction factor.
     diameter = pipe["diameter"]
-    roughness = pipe["roughness"]
     length = pipe["length"]
 
-    # Compute Reynold's number.
-    density = 1000.0 # Water density (kilograms per cubic meter).
-    velocity = 10.0 # Estimate of velocity in the pipe (meters per second).
-    reynolds_number = density * velocity * diameter / viscosity
+    if haskey(pipe, "friction_factor")
+        # Return the overall friction factor.
+        return 0.0826 * length / diameter^5 * pipe["friction_factor"]
+    else
+        # Get relevant values to compute the friction factor.
+        roughness = pipe["roughness"]
 
-    # Use the same Colebrook formula as in EPANET.
-    w = 0.25 * pi * reynolds_number
-    y1 = 4.61841319859 / w^0.9
-    y2 = (roughness / diameter) / (3.7 * diameter) + y1
-    y3 = -8.685889638e-01 * log(y2)
-    f_s = 1.0 / y3^2
+        # Compute Reynold's number.
+        density = 1000.0 # Water density (kilograms per cubic meter).
+        velocity = 10.0 # Estimate of velocity in the pipe (meters per second).
+        reynolds_number = density * velocity * diameter / viscosity
 
-    # Return the overall friction factor.
-    return 0.0826 * length / diameter^5 * f_s
+        # Use the same Colebrook formula as in EPANET.
+        w = 0.25 * pi * reynolds_number
+        y1 = 4.61841319859 / w^0.9
+        y2 = (roughness / diameter) / (3.7 * diameter) + y1
+        y3 = -8.685889638e-01 * log(y2)
+        f_s = 1.0 / y3^2
+
+        # Return the overall friction factor.
+        return 0.0826 * length / diameter^5 * f_s
+    end
 end
 
 function calc_head_difference_bounds(pipes)

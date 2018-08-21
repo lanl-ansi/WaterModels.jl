@@ -1,5 +1,3 @@
-using AmplNLWriter
-
 function build_solution{T}(wm::GenericWaterModel{T}, status, solve_time;
                            objective = NaN, solution_builder = get_solution)
     if status != :Error
@@ -58,10 +56,9 @@ function init_solution(wm::GenericWaterModel)
 end
 
 function get_solution(wm::GenericWaterModel, sol::Dict{String,Any})
-    add_setpoint(sol, wm, "pipes", "gamma", :gamma) # Get absolute value of head difference.
-    add_setpoint(sol, wm, "pipes", "q", :q) # Get flow.
-    add_setpoint(sol, wm, "junctions", "h", :h) # Get head solution (junctions).
-    add_setpoint(sol, wm, "reservoirs", "h", :h) # Get head solution (reservoirs).
+    add_setpoint(sol, wm, "pipes", "q", :q) # Get flow solutions.
+    add_setpoint(sol, wm, "junctions", "h", :h) # Get head solutions (junctions).
+    add_setpoint(sol, wm, "reservoirs", "h", :h) # Get head solutions (reservoirs).
     return sol
 end
 

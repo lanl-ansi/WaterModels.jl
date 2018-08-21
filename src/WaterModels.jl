@@ -27,6 +27,7 @@ include("core/solution.jl")
 include("core/variable.jl")
 
 include("form/minlp.jl")
+include("form/micp.jl")
 include("form/milp.jl")
 include("form/nlp.jl")
 

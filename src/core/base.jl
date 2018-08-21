@@ -20,8 +20,8 @@ where
 * `data` is the original data, usually from reading in a `.inp` file,
 * `setting` usually looks something like `Dict("output" => Dict("flows" => true))`, and
 * `ref` is a place to store commonly-used precomputed data from the data dictionary,
-    primarily for converting datatypes, filtering deactivated components, and storing
-    system-wide values that need to be computed globally. See `build_ref(data)` for further details.
+  primarily for converting datatypes, filtering deactivated components, and storing
+  system-wide values that need to be computed globally. See `build_ref(data)` for further details.
 
 Methods on `GenericWaterModel` for defining variables and adding constraints should
 
@@ -163,8 +163,8 @@ function build_ref(data::Dict{String, Any})
 
         # TODO: Change all the references to :pipes over to :connections.
         ref[:connection] = ref[:pipes]
-        ref[:connection_unknown_direction] = filter((i, connection) -> connection["flow_direction"] == 0, ref[:connection])
-        ref[:connection_known_direction] = filter((i, connection) -> connection["flow_direction"] != 0, ref[:connection])
+        ref[:connection_unknown_direction] = filter((i, connection) -> Int(connection["flow_direction"]) == 0, ref[:connection])
+        ref[:connection_known_direction] = filter((i, connection) -> Int(connection["flow_direction"]) != 0, ref[:connection])
 
         junction_ids = [collect(keys(ref[:junctions])); collect(keys(ref[:reservoirs]))]
         ref[:junction_connections] = Dict(String(i) => [] for i in junction_ids)
