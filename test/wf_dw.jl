@@ -6,6 +6,14 @@
     end
 end
 
+@testset "Darcy-Weisbach Non-convex NLP Problems" begin
+    @testset "balerma" begin
+        network_path = "../test/data/epanet/balerma.inp"
+        solution = run_wf_dw(network_path, NLPWaterModel, bonmin)
+        @test solution["status"] == :LocalOptimal
+    end
+end
+
 @testset "Darcy-Weisbach Non-convex MINLP Problems with Fixed Directions" begin
     @testset "balerma" begin
         network_path = "../test/data/epanet/balerma.inp"

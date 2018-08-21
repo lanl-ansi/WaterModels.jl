@@ -2,7 +2,6 @@
     @testset "hanoi" begin
         network_path = "../test/data/epanet/hanoi.inp"
         solution = run_wf_hw(network_path, MINLPWaterModel, bonmin)
-        InfrastructureModels.print_summary(solution["solution"])
         @test solution["status"] == :LocalOptimal
     end
 end
@@ -12,7 +11,15 @@ end
         network_path = "../test/data/epanet/hanoi.inp"
         modification_path = "../test/data/json/wf-hanoi.json"
         solution = run_wf_hw(network_path, modification_path, MINLPWaterModel, bonmin)
-        InfrastructureModels.print_summary(solution["solution"])
+        @test solution["status"] == :LocalOptimal
+    end
+end
+
+@testset "Hazen-Williams Convex NLP Problem with Fixed Directions" begin
+    @testset "hanoi" begin
+        network_path = "../test/data/epanet/hanoi.inp"
+        modification_path = "../test/data/json/wf-hanoi.json"
+        solution = run_wf_hw(network_path, modification_path, NLPWaterModel, bonmin)
         @test solution["status"] == :LocalOptimal
     end
 end
