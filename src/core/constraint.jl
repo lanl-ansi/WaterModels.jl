@@ -2,7 +2,7 @@
 # This file defines commonly-used constraints for water systems models.
 ########################################################################
 
-function constraint_flow_conservation_unknown_directions{T}(wm::GenericWaterModel{T}, i, n::Int = wm.cnw)
+function constraint_flow_conservation{T}(wm::GenericWaterModel{T}, i, n::Int = wm.cnw)
     # Add the flow conservation constraints for junction nodes.
     out_arcs = collect(keys(filter((id, pipe) -> pipe["node1"] == i, wm.ref[:nw][n][:pipes])))
     out_vars = Array{JuMP.Variable}([wm.var[:nw][n][:q][a] for a in out_arcs])

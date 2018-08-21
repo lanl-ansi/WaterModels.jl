@@ -30,8 +30,12 @@ function post_wf_hw(wm::GenericWaterModel; kwargs...)
         #end
     end
 
-    for a in collect(ids(wm, :pipes))
+    for a in collect(ids(wm, :connection_unknown_direction))
         constraint_hw_unknown_direction(wm, a)
+    end
+
+    for a in collect(ids(wm, :connection_known_direction))
+        constraint_hw_known_direction(wm, a)
     end
 end
 

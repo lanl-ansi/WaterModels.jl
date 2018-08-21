@@ -143,7 +143,7 @@ function constraint_hw_known_direction{T <: StandardMINLPForm}(wm::GenericWaterM
     fix_flow_direction(q, dir)
 
     # Add a non-convex constraint for the head loss.
-    @NLconstraint(wm.model, dir * (h_i - h_j) == (q^2 + 1.0e-4)^0.926)
+    @NLconstraint(wm.model, dir * (h_i - h_j) == (dir * q + 1.0e-4)^1.852)
 end
 
 "Convex (relaxed) Hazen-Williams constraint for flow with known direction."

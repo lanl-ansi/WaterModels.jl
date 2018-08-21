@@ -89,7 +89,7 @@ end
 function build_generic_model(path::String, modification_path::String, model_constructor, post_method; kwargs...)
     data = WaterModels.parse_file(path)
     modifications = WaterModels.parse_file(modification_path)
-    data = merge(modifications, data)
+    InfrastructureModels.update_data!(data, modifications)
     return build_generic_model(data, model_constructor, post_method; kwargs...)
 end
 
@@ -163,6 +163,9 @@ function build_ref(data::Dict{String, Any})
 
         # TODO: Change all the references to :pipes over to :connections.
         ref[:connection] = ref[:pipes]
+        ref[:connection_unknown_direction] = filter((i, connection) -> connection["flow_direction"] == 0, ref[:connection])
+        ref[:connection_known_direction] = filter((i, connection) -> connection["flow_direction"] != 0, ref[:connection])
+
         junction_ids = [collect(keys(ref[:junctions])); collect(keys(ref[:reservoirs]))]
         ref[:junction_connections] = Dict(String(i) => [] for i in junction_ids)
 
