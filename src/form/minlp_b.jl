@@ -1,26 +1,21 @@
-# Define non-convex MINLPBALLT implementations of water distribution models.
+# Define MINLP-B implementations of water distribution models.
 
-export MINLPBALLTWaterModel, StandardMINLPBALLTForm
-
-""
-@compat abstract type AbstractMINLPBALLTForm <: AbstractWaterFormulation end
+export MINLPBWaterModel, StandardMINLPBForm
 
 ""
-@compat abstract type StandardMINLPBALLTForm <: AbstractMINLPBALLTForm end
+@compat abstract type AbstractMINLPBForm <: AbstractWaterFormulation end
 
-"The default MINLPBALLT model is assumed to be non-convex."
-const MINLPBALLTWaterModel = GenericWaterModel{StandardMINLPBALLTForm}
+""
+@compat abstract type StandardMINLPBForm <: AbstractMINLPBForm end
 
-"Default MINLPBALLT constructor (assumes the non-convex form)."
-MINLPBALLTWaterModel(data::Dict{String,Any}; kwargs...) = GenericWaterModel(data, StandardMINLPBALLTForm; kwargs...)
+"The default MINLP-B model."
+const MINLPBWaterModel = GenericWaterModel{StandardMINLPBForm}
 
-"Create variables associated with the head for the nonconvex MINLPBALLT problem."
-function variable_head{T <: StandardMINLPBALLTForm}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
-    variable_head_common(wm, n)
-end
+"Default MINLP-B constructor."
+MINLPBWaterModel(data::Dict{String,Any}; kwargs...) = GenericWaterModel(data, StandardMINLPBForm; kwargs...)
 
 "Non-convex Darcy-Weisbach constraint with unknown direction variables."
-function constraint_dw_unknown_direction{T <: StandardMINLPBALLTForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_dw_unknown_direction{T <: AbstractMINLPBForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j, viscosity, lambda = get_dw_requirements(wm, a, n)
 
@@ -28,22 +23,9 @@ function constraint_dw_unknown_direction{T <: StandardMINLPBALLTForm}(wm::Generi
     @NLconstraint(wm.model, h_i - h_j == lambda * q * abs(q))
 end
 
-"Non-convex Hazen-Williams constraint for flow with known direction."
-function constraint_hw_known_direction{T <: StandardMINLPBALLTForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
-    # Collect variables and parameters needed for the constraint.
-    q, h_i, h_j, lambda = get_hw_requirements(wm, a, n)
-
-    # Fix the direction associated with the flow.
-    dir = Int(wm.data["pipes"][a]["flow_direction"])
-    fix_flow_direction(q, dir)
-
-    # Add a non-convex constraint for the head loss.
-    @NLconstraint(wm.model, dir * (h_i - h_j) == lambda * (q^2)^0.926)
-end
-
-"Quintic approximation of Bragalli, D'Ambrosio, Lee, Lodi, and Toth (BALLT).
+"Quintic approximation of Bragalli, D'Ambrosio, Lee, Lodi, and Toth.
 (http://www.optimization-online.org/DB_FILE/2008/03/1924.pdf)"
-function hw_ballp_approx(model::JuMP.Model, q::JuMP.Variable, delta::Float64 = 0.1)
+function hw_quintic_approx(model::JuMP.Model, q::JuMP.Variable, delta::Float64 = 0.1)
     c_5 = 3.0 * delta^(1.852 - 5) / 8.0 +
           1.0 / 8.0 * (1.852 - 1) * 1.852 * delta^(1.852 - 5) -
           3.0 / 8.0 * 1.852 * delta^(1.852 - 5)
@@ -60,7 +42,7 @@ function hw_ballp_approx(model::JuMP.Model, q::JuMP.Variable, delta::Float64 = 0
 end
 
 "Non-convex Hazen-Williams constraint for flow with unknown direction."
-function constraint_hw_unknown_direction{T <: StandardMINLPBALLTForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_hw_unknown_direction{T <: AbstractMINLPBForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j, lambda = get_hw_requirements(wm, a, n)
 
@@ -72,7 +54,7 @@ function constraint_hw_unknown_direction{T <: StandardMINLPBALLTForm}(wm::Generi
     @constraint(wm.model, q >= 0.1 - M * (1 - delta) - M * z)
 
     # Add a piecewise nonlinear constraint for the head loss.
-    inner_hw = hw_approx(wm.model, q, 0.1)
+    inner_hw = hw_quintic_approx(wm.model, q, 0.1)
     inner_piece = @NLexpression(wm.model, z * lambda * inner_hw)
 
     # TODO: Use this when we finally have a working non-convex solver interface
