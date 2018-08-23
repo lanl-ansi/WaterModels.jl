@@ -166,6 +166,9 @@ function build_ref(data::Dict{String, Any})
         ref[:connection_unknown_direction] = filter((i, connection) -> Int(connection["flow_direction"]) == 0, ref[:connection])
         ref[:connection_known_direction] = filter((i, connection) -> Int(connection["flow_direction"]) != 0, ref[:connection])
 
+        # Add references to expansion components, specifically.
+        ref[:ne_pipe] = filter((i, pipe) -> haskey(pipe, "diameters"), ref[:pipes])
+
         junction_ids = [collect(keys(ref[:junctions])); collect(keys(ref[:reservoirs]))]
         ref[:junction_connections] = Dict(String(i) => [] for i in junction_ids)
 

@@ -31,6 +31,16 @@ function calc_friction_factor_hw(pipe)
     end
 end
 
+function calc_friction_factor_hw_ne(pipe, diameter)
+    if haskey(pipe, "friction_factor")
+        return pipe["friction_factor"]
+    else
+        roughness = pipe["roughness"]
+        length = pipe["length"]
+        return (10.67 * length) / (roughness^1.852 * diameter^4.87)
+    end
+end
+
 function calc_friction_factor_dw(pipe, viscosity)
     diameter = pipe["diameter"]
     length = pipe["length"]

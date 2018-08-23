@@ -18,7 +18,8 @@ ipopt = IpoptSolver(print_level = 0)
 
 # Perform the tests.
 @testset "WaterModels" begin
-    include("data.jl")
-    include("wf_hw.jl")
-    include("wf_dw.jl")
+    #include("data.jl")
+    #include("wf_hw.jl")
+    include("ne_hw.jl")
+    #include("wf_dw.jl")
 end

@@ -31,3 +31,34 @@ function constraint_hw_unknown_direction{T <: StandardNLPForm}(wm::GenericWaterM
     # Add a non-convex constraint for the head loss.
     @NLconstraint(wm.model, h_i - h_j == lambda * q * (q^2)^0.426)
 end
+
+"Non-convex Hazen-Williams constraint for flow with unknown direction."
+function constraint_hw_unknown_direction_ne{T <: StandardNLPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+    # Collect variables and parameters needed for the constraint.
+    q, h_i, h_j = get_common_variables(wm, a, n)
+
+    if haskey(wm.ref[:nw][n][:ne_pipe], a)
+        # Get variables associated with the discrete diameter choices.
+        diameter_vars = wm.var[:nw][n][:diameter][a]
+
+        # Get the corresponding diameter measurements (meters).
+        diameters = [key[1] for key in keys(diameter_vars)]
+
+        for diameter in diameters
+            z = diameter_vars[diameter]
+            lambda = calc_friction_factor_hw_ne(wm.ref[:nw][n][:pipes][a], diameter)
+            @NLconstraint(wm.model, z * (h_i - h_j) == z * lambda * q * (q^2)^0.426)
+        end
+
+        # Add a non-convex constraint for the head loss.
+        #diameter_sum = @variable(wm.model, category = :Bin)
+        #@constraint(wm.model, diameter_sum == sum(diameters for _ in 1))
+
+        # Add a constraint that says at most one diameter may be selected.
+        @constraint(wm.model, sum(diameter_vars) == 1)
+    else
+        # Add a non-convex constraint for the head loss.
+        lambda = calc_friction_factor_hw(wm.ref[:nw][n][:pipes][a])
+        @NLconstraint(wm.model, h_i - h_j == lambda * q * (q^2)^0.426)
+    end
+end

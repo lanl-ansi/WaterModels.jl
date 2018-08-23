@@ -37,3 +37,17 @@ function variable_head_common{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
     wm.var[:nw][n][:h] = @variable(wm.model, [i in ids], lowerbound = lbs[i],
                                    upperbound = ubs[i], basename = "h_$(n)")
 end
+
+"Variables associated with building pipes."
+function variable_pipe_ne{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
+    # Set up required data to initialize junction variables.
+    pipe_ids = [key for key in keys(wm.ref[:nw][n][:ne_pipe])]
+    wm.var[:nw][n][:diameter] = Dict{String, Any}() #id => JuMP.JuMPArray for id in pipe_ids)
+
+    for (pipe_id, pipe) in wm.ref[:nw][n][:ne_pipe]
+        diameter_dicts = pipe["diameters"]
+        diameters = [d["diameter"] for d in diameter_dicts]
+        wm.var[:nw][n][:diameter][pipe_id] = @variable(wm.model, [d in diameters], category = :Bin,
+                                                       basename = "diameter_$(n)_$(pipe_id)")
+    end
+end

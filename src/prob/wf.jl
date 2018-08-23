@@ -22,12 +22,6 @@ function post_wf_hw(wm::GenericWaterModel; kwargs...)
 
     for i in [collect(ids(wm, :junctions)); collect(ids(wm, :reservoirs))]
         constraint_flow_conservation(wm, i)
-        #if length(wm.ref[:nw][wm.cnw][:junction_connections][i]) == 2 &&
-        #    haskey(wm.ref[:nw][wm.cnw][:junctions], i)
-        #    if wm.ref[:nw][wm.cnw][:junctions][i]["demand"] == 0.0
-        #        constraint_degree_two(wm, i)
-        #    end
-        #end
     end
 
     for a in collect(ids(wm, :connection_unknown_direction))
@@ -45,12 +39,6 @@ function post_wf_dw(wm::GenericWaterModel; kwargs...)
 
     for i in [collect(ids(wm, :junctions)); collect(ids(wm, :reservoirs))]
         constraint_flow_conservation(wm, i)
-        #if length(wm.ref[:nw][wm.cnw][:junction_connections][i]) == 2 &&
-        #    haskey(wm.ref[:nw][wm.cnw][:junctions], i)
-        #    if wm.ref[:nw][wm.cnw][:junctions][i]["demand"] == 0.0
-        #        constraint_degree_two(wm, i)
-        #    end
-        #end
     end
 
     for a in collect(ids(wm, :connection_unknown_direction))
@@ -102,48 +90,3 @@ end
 #
 #    return exact_solution
 #end
-#
-#function post_wf_relaxed(wm::GenericWaterModel; kwargs...)
-#    num_separators = wm.setting["num_separators"]
-#
-#    variable_flow(wm)
-#    variable_head(wm)
-#    variable_head_difference(wm)
-#    variable_flow_direction(wm)
-#
-#    for i in [collect(ids(wm, :junctions)); collect(ids(wm, :reservoirs))]
-#        constraint_flow_conservation(wm, i)
-#
-#        if length(wm.ref[:nw][wm.cnw][:junction_connections][i]) == 2 &&
-#            haskey(wm.ref[:nw][wm.cnw][:junctions], i)
-#            if wm.ref[:nw][wm.cnw][:junctions][i]["demand"] == 0.0
-#                constraint_degree_two(wm, i)
-#            end
-#        end
-#    end
-#
-#    for a in collect(ids(wm, :pipes))
-#        constraint_potential_flow_coupling(wm, a, true, num_separators)
-#        constraint_define_gamma(wm, a)
-#        constraint_flow_direction(wm, a)
-#    end
-#
-#    # Uncomment this to get physical feasibility immediately.
-#    # objective_minimize_gamma(wm)
-#end
-#
-#function post_wf_exact(wm::GenericWaterModel; kwargs...)
-#    variable_flow(wm)
-#    variable_head(wm)
-#    variable_head_difference(wm)
-#
-#    for i in [collect(ids(wm, :junctions)); collect(ids(wm, :reservoirs))]
-#        constraint_flow_conservation(wm, i)
-#    end
-#
-#    for a in collect(ids(wm, :pipes))
-#        constraint_potential_flow_coupling(wm, a, false)
-#        constraint_define_gamma(wm, a)
-#    end
-#end
-
