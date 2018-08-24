@@ -32,6 +32,8 @@ function post_ne_hw(wm::GenericWaterModel; kwargs...)
     for a in collect(ids(wm, :connection_known_direction))
         constraint_hw_known_direction(wm, a)
     end
+
+    objective_minimize_cost(wm)
 end
 
 function post_ne_dw(wm::GenericWaterModel; kwargs...)

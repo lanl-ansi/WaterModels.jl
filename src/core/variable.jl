@@ -42,12 +42,12 @@ end
 function variable_pipe_ne{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
     # Set up required data to initialize junction variables.
     pipe_ids = [key for key in keys(wm.ref[:nw][n][:ne_pipe])]
-    wm.var[:nw][n][:diameter] = Dict{String, Any}() #id => JuMP.JuMPArray for id in pipe_ids)
+    wm.var[:nw][n][:diameter] = Dict{String, Any}()
 
     for (pipe_id, pipe) in wm.ref[:nw][n][:ne_pipe]
-        diameter_dicts = pipe["diameters"]
-        diameters = [d["diameter"] for d in diameter_dicts]
+        diameters = [d["diameter"] for d in pipe["diameters"]]
         wm.var[:nw][n][:diameter][pipe_id] = @variable(wm.model, [d in diameters], category = :Bin,
-                                                       basename = "diameter_$(n)_$(pipe_id)")
+                                                       basename = "diameter_$(n)_$(pipe_id)", start = 0)
+        setvalue(wm.var[:nw][n][:diameter][pipe_id][diameters[end]], 1)
     end
 end

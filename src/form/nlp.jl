@@ -40,19 +40,16 @@ function constraint_hw_unknown_direction_ne{T <: StandardNLPForm}(wm::GenericWat
     if haskey(wm.ref[:nw][n][:ne_pipe], a)
         # Get variables associated with the discrete diameter choices.
         diameter_vars = wm.var[:nw][n][:diameter][a]
-
-        # Get the corresponding diameter measurements (meters).
         diameters = [key[1] for key in keys(diameter_vars)]
 
-        for diameter in diameters
-            z = diameter_vars[diameter]
-            lambda = calc_friction_factor_hw_ne(wm.ref[:nw][n][:pipes][a], diameter)
-            @NLconstraint(wm.model, z * (h_i - h_j) == z * lambda * q * (q^2)^0.426)
-        end
+        # Get the corresponding diameter measurements (meters).
+        pipe = wm.ref[:nw][n][:ne_pipe][a]
+        lambdas = [calc_friction_factor_hw_ne(pipe, d) for d in diameters]
+        aff = AffExpr(diameter_vars[:], lambdas, 0.0)
 
-        # Add a non-convex constraint for the head loss.
-        #diameter_sum = @variable(wm.model, category = :Bin)
-        #@constraint(wm.model, diameter_sum == sum(diameters for _ in 1))
+        aux = @variable(wm.model)
+        @constraint(wm.model, aux == aff)
+        @NLconstraint(wm.model, h_i - h_j == aux * q * (q^2)^0.426)
 
         # Add a constraint that says at most one diameter may be selected.
         @constraint(wm.model, sum(diameter_vars) == 1)
