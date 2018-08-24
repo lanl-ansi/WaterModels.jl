@@ -3,6 +3,7 @@ using AmplNLWriter
 using Base.Test
 using Cbc
 using JuMP
+#using KNITRO
 using InfrastructureModels
 using Memento
 using Ipopt
@@ -15,6 +16,7 @@ setlevel!(getlogger(WaterModels), "error")
 cbc = CbcSolver(logLevel = 0)
 bonmin = AmplNLSolver("couenne")
 ipopt = IpoptSolver(print_level = 0)
+#knitro = KnitroSolver(algorithm = KTR_ALG_AUTOMATIC, ms_enable = 1)
 
 # Perform the tests.
 @testset "WaterModels" begin

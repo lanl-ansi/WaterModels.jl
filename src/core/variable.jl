@@ -6,7 +6,7 @@ function variable_flow{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
     flow_min, flow_max = calc_flow_bounds(wm.ref[:nw][n][:pipes])
     wm.var[:nw][n][:q] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:pipes])],
                                    lowerbound = flow_min[id], upperbound = flow_max[id],
-                                   basename = "q_$(n)", start = 1.0e-4)
+                                   basename = "q_$(n)", start = 1.0)
 
 end
 
