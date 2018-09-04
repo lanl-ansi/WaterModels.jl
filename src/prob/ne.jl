@@ -26,7 +26,7 @@ function post_ne_hw(wm::GenericWaterModel; kwargs...)
     end
 
     for a in collect(ids(wm, :connection_unknown_direction))
-        constraint_hw_unknown_direction_ne(wm, a)
+        constraint_hw_unknown_direction(wm, a)
     end
 
     for a in collect(ids(wm, :connection_known_direction))

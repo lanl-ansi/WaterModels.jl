@@ -14,7 +14,8 @@ setlevel!(getlogger(WaterModels), "error")
 
 # Solver setup.
 cbc = CbcSolver(logLevel = 0)
-bonmin = AmplNLSolver("couenne")
+bonmin = AmplNLSolver("bonmin")
+scip = AmplNLSolver("scipampl")
 ipopt = IpoptSolver(print_level = 0)
 #knitro = KnitroSolver(algorithm = KTR_ALG_AUTOMATIC, ms_enable = 1)
 
@@ -22,6 +23,6 @@ ipopt = IpoptSolver(print_level = 0)
 @testset "WaterModels" begin
     #include("data.jl")
     #include("wf_hw.jl")
-    #include("ne_hw.jl")
+    include("ne_hw.jl")
     #include("wf_dw.jl")
 end

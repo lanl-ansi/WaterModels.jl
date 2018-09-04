@@ -31,7 +31,14 @@ end
 "Get variables and constants used in the construction of Hazen-Williams constraints."
 function get_hw_requirements{T <: AbstractWaterFormulation}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
     q, h_i, h_j = get_common_variables(wm, a, n)
-    lambda = calc_friction_factor_hw(wm.ref[:nw][n][:pipes][a])
+
+    lambda = nothing
+    if haskey(wm.var[:nw][n][:lambda], a)
+        lambda = wm.var[:nw][n][:lambda][a]
+    else
+        lambda = calc_friction_factor_hw(wm.ref[:nw][n][:pipes][a])
+    end
+
     return q, h_i, h_j, lambda
 end
 
