@@ -31,17 +31,9 @@ end
 "Get variables and constants used in the construction of Hazen-Williams constraints."
 function get_hw_requirements{T <: AbstractWaterFormulation}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
     q, h_i, h_j = get_common_variables(wm, a, n)
-
-    lambda = nothing
-    if haskey(wm.var[:nw][n][:lambda], a)
-        lambda = wm.var[:nw][n][:lambda][a]
-    else
-        lambda = calc_friction_factor_hw(wm.ref[:nw][n][:pipes][a])
-    end
-
+    lambda = calc_friction_factor_hw(wm.ref[:nw][n][:pipes][a])
     return q, h_i, h_j, lambda
 end
-
 
 "These problem forms use binary variables to specify flow direction."
 AbstractRelaxedForm = Union{AbstractMICPForm, AbstractMILPRForm}
@@ -66,6 +58,20 @@ function variable_head{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, n::In
                                     category = :Bin, basename = "yn_$(n)")
 end
 
+"Create variables associated with the head for the MICP and MILP-R problems."
+function variable_head_ne{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
+    # Create head variables.
+    variable_head_common(wm, n)
+
+    # Create variables that correspond to flow moving from i to j.
+    wm.var[:nw][n][:yp] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:pipes])],
+                                    category = :Bin, basename = "yp_$(n)")
+
+    # Create variables that correspond to flow moving from j to i.
+    wm.var[:nw][n][:yn] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:pipes])],
+                                    category = :Bin, basename = "yn_$(n)")
+end
+
 "Constraints used to define the head difference in the MICP and MILP-R problems."
 function constraint_define_gamma{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
     # Collect variables needed for the constraint.
@@ -77,16 +83,14 @@ function constraint_define_gamma{T <: AbstractRelaxedForm}(wm::GenericWaterModel
     y_n = wm.var[:nw][n][:yn][a]
 
     # Get additional data related to the variables.
-    h_i_lb = getlowerbound(h_i)
-    h_i_ub = getupperbound(h_i)
-    h_j_lb = getlowerbound(h_j)
-    h_j_ub = getupperbound(h_j)
+    gamma_lb = getlowerbound(h_i) - getupperbound(h_j)
+    gamma_ub = getupperbound(h_i) - getlowerbound(h_j)
 
     # Add the required constraints to define gamma.
-    @constraint(wm.model, h_j - h_i + (h_i_lb - h_j_ub) * (y_p - y_n + 1) <= gamma)
-    @constraint(wm.model, h_i - h_j + (h_i_ub - h_j_lb) * (y_p - y_n - 1) <= gamma)
-    @constraint(wm.model, h_j - h_i + (h_i_ub - h_j_lb) * (y_p - y_n + 1) >= gamma)
-    @constraint(wm.model, h_i - h_j + (h_i_lb - h_j_ub) * (y_p - y_n - 1) >= gamma)
+    @constraint(wm.model, h_j - h_i + gamma_lb * (y_p - y_n + 1) <= gamma)
+    @constraint(wm.model, h_i - h_j + gamma_ub * (y_p - y_n - 1) <= gamma)
+    @constraint(wm.model, h_j - h_i + gamma_ub * (y_p - y_n + 1) >= gamma)
+    @constraint(wm.model, h_i - h_j + gamma_lb * (y_p - y_n - 1) >= gamma)
 
     # Get the sum of all junction demands.
     junctions = values(wm.ref[:nw][n][:junctions])
@@ -105,6 +109,11 @@ AbstractUndirectedForm = Union{AbstractMILPForm, AbstractMINLPBForm, AbstractNLP
 
 "Create variables associated with the head for forms of the problem without direction variables."
 function variable_head{T <: AbstractUndirectedForm}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
+    variable_head_common(wm, n)
+end
+
+"Create variables associated with the head for forms of the problem without direction variables."
+function variable_head_ne{T <: AbstractUndirectedForm}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
     variable_head_common(wm, n)
 end
 
@@ -135,4 +144,92 @@ function constraint_dw_known_direction{T <: AbstractExactForm}(wm::GenericWaterM
 
     # Add a non-convex quadratic constraint for the head loss.
     @NLconstraint(wm.model, dir * (h_i - h_j) == lambda * q^2)
+end
+
+"These problem forms use different variables for head loss when diameters can be varied."
+AbstractEqualityForm = Union{AbstractMILPForm, AbstractMINLPBForm, AbstractNLPForm}
+
+"Constraints used to define the head difference in the MILP, MINLP-B, and NLP expansion planning problems."
+function constraint_define_gamma_hw_ne{T <: AbstractEqualityForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+    # Collect variables and parameters needed for the constraint.
+    q, h_i, h_j = get_common_variables(wm, a, n)
+
+    # Add a constraint that says at most one diameter must be selected.
+    @constraint(wm.model, sum(wm.var[:nw][n][:psi][a]) <= 1)
+
+    # Get the pipe associated with the pipe index a.
+    pipe = wm.ref[:nw][n][:ne_pipe][a]
+
+    # Get the various pipe diameters from which we can select.
+    diameters = [key[1] for key in keys(wm.var[:nw][n][:psi][a])]
+
+    # Constrain each gamma variable.
+    for diameter in diameters
+        # Gather the required variables and constants.
+        psi_d = wm.var[:nw][n][:psi][a][diameter]
+        gamma_d = wm.var[:nw][n][:gamma][a][diameter]
+        lambda_d = calc_friction_factor_hw_ne(pipe, diameter)
+        gamma_ub = (getupperbound(h_i) - getlowerbound(h_j)) / lambda_d
+        gamma_lb = (getlowerbound(h_i) - getupperbound(h_j)) / lambda_d
+
+        # Add the four required McCormick constraints.
+        @constraint(wm.model, psi_d * gamma_lb <= gamma_d)
+        @constraint(wm.model, psi_d * gamma_ub >= gamma_d)
+        @constraint(wm.model, (h_i - h_j) / lambda_d - (1 - psi_d) * gamma_ub <= gamma_d)
+        @constraint(wm.model, (h_i - h_j) / lambda_d - (1 - psi_d) * gamma_lb >= gamma_d)
+    end
+end
+
+"These problem forms use different variables for head loss when diameters can be varied."
+AbstractInequalityForm = Union{AbstractMICPForm, AbstractMILPRForm}
+
+"Constraints used to define the head difference in the MICP and MILP-R expansion planning problems."
+function constraint_define_gamma_hw_ne{T <: AbstractInequalityForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+    # Collect variables and parameters needed for the constraint.
+    q, h_i, h_j = get_common_variables(wm, a, n)
+    y_p = wm.var[:nw][n][:yp][a]
+    y_n = wm.var[:nw][n][:yn][a]
+
+    # Add a constraint that says at most one diameter must be selected.
+    @constraint(wm.model, sum(wm.var[:nw][n][:psi][a]) == 1)
+
+    # Get the sum of all junction demands.
+    junctions = values(wm.ref[:nw][n][:junctions])
+    sum_demand = sum(junction["demand"] for junction in junctions)
+    @constraint(wm.model, y_p + y_n == 1)
+    @constraint(wm.model, (y_p - 1) * sum_demand <= q)
+    @constraint(wm.model, (1 - y_n) * sum_demand >= q)
+
+    # Get the pipe associated with the pipe index a.
+    pipe = wm.ref[:nw][n][:ne_pipe][a]
+
+    # Get the various pipe diameters from which we can select.
+    diameters = [key[1] for key in keys(wm.var[:nw][n][:psi][a])]
+
+    # Constrain each gamma variable.
+    for diameter in diameters
+        # Gather the required variables and constants.
+        psi_d = wm.var[:nw][n][:psi][a][diameter]
+        gamma_d = wm.var[:nw][n][:gamma][a][diameter]
+        lambda_d = calc_friction_factor_hw_ne(pipe, diameter)
+        gamma_ub = (getupperbound(h_i) - getlowerbound(h_j)) / lambda_d
+        gamma_lb = (getlowerbound(h_i) - getupperbound(h_j)) / lambda_d
+
+        # Create an auxiliary variable for the product of psi_d and (y_p - y_n).
+        w_d = @variable(wm.model, category = :Int, lowerbound = -1, upperbound = 1, start = 0)
+        @constraint(wm.model, w_d + psi_d >= 0)
+        @constraint(wm.model, -w_d + psi_d >= 0)
+        @constraint(wm.model, -w_d - psi_d + (y_p - y_n) + 1 >= 0)
+        @constraint(wm.model, w_d - psi_d - (y_p - y_n) + 1 >= 0)
+
+        # Add the four required McCormick constraints.
+        #@constraint(wm.model, gamma_d - gamma_lb * w_d + (h_i - h_j) / lambda_d - gamma_lb >= 0)
+        #@constraint(wm.model, -gamma_d + gamma_ub * w_d - (h_i - h_j) / lambda_d + gamma_ub >= 0)
+        #@constraint(wm.model, -gamma_d + gamma_lb * w_d + (h_i - h_j) / lambda_d - gamma_lb >= 0)
+        #@constraint(wm.model, gamma_d - gamma_ub * w_d - (h_i - h_j) / lambda_d + gamma_ub >= 0)
+        @constraint(wm.model, gamma_d - gamma_lb * w_d >= 0)
+        @constraint(wm.model, -gamma_d + gamma_ub * w_d >= 0)
+        @constraint(wm.model, -gamma_d + gamma_lb * w_d + (h_i - h_j) / lambda_d - gamma_lb >= 0)
+        @constraint(wm.model, gamma_d - gamma_ub * w_d - (h_i - h_j) / lambda_d + gamma_ub >= 0)
+    end
 end

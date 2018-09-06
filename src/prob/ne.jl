@@ -18,7 +18,7 @@ end
 
 function post_ne_hw(wm::GenericWaterModel; kwargs...)
     variable_flow(wm)
-    variable_head(wm)
+    variable_head_ne(wm)
     variable_pipe_ne(wm)
 
     for i in [collect(ids(wm, :junctions)); collect(ids(wm, :reservoirs))]
@@ -26,7 +26,7 @@ function post_ne_hw(wm::GenericWaterModel; kwargs...)
     end
 
     for a in collect(ids(wm, :connection_unknown_direction))
-        constraint_hw_unknown_direction(wm, a)
+        constraint_hw_unknown_direction_ne(wm, a)
     end
 
     for a in collect(ids(wm, :connection_known_direction))

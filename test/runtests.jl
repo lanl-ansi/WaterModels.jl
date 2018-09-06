@@ -2,8 +2,8 @@ using WaterModels
 using AmplNLWriter
 using Base.Test
 using Cbc
+using Gurobi
 using JuMP
-#using KNITRO
 using InfrastructureModels
 using Memento
 using Ipopt
@@ -13,11 +13,10 @@ setlevel!(getlogger(InfrastructureModels), "error")
 setlevel!(getlogger(WaterModels), "error")
 
 # Solver setup.
-cbc = CbcSolver(logLevel = 0)
+cbc = GurobiSolver() #CbcSolver(logLevel = 0)
 bonmin = AmplNLSolver("bonmin")
 scip = AmplNLSolver("scipampl")
 ipopt = IpoptSolver(print_level = 0)
-#knitro = KnitroSolver(algorithm = KTR_ALG_AUTOMATIC, ms_enable = 1)
 
 # Perform the tests.
 @testset "WaterModels" begin

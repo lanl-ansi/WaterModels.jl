@@ -53,6 +53,22 @@ function constraint_hw_unknown_direction{T <: AbstractMICPForm}(wm::GenericWater
     @NLconstraint(wm.model, gamma >= lambda * (q^2)^0.926)
 end
 
+"Convex (relaxed) Hazen-Williams constraint for flow with unknown direction."
+function constraint_hw_unknown_direction_ne{T <: AbstractMICPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+    # Collect variables and parameters needed for the constraint.
+    q, h_i, h_j = get_common_variables(wm, a, n)
+
+    # Add constraints required to define gamma.
+    constraint_define_gamma_hw_ne(wm, a, n)
+
+    # Define an auxiliary variable for the sum of the gamma variables.
+    gamma_sum = @variable(wm.model, basename = "gamma_sum_$(n)_$(a)", start = 0)
+    @constraint(wm.model, gamma_sum == sum(wm.var[:nw][n][:gamma][a]))
+
+    # Add a nonlinear constraint for the head loss.
+    @NLconstraint(wm.model, gamma_sum >= (q^2)^0.926)
+end
+
 "Convex (relaxed) Hazen-Williams constraint for flow with known direction."
 function constraint_hw_known_direction{T <: AbstractMICPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
     # Collect variables and parameters needed for the constraint.

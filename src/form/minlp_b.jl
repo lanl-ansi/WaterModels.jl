@@ -57,11 +57,35 @@ function constraint_hw_unknown_direction{T <: AbstractMINLPBForm}(wm::GenericWat
     inner_hw = hw_quintic_approx(wm.model, q, 0.1)
     inner_piece = @NLexpression(wm.model, z * lambda * inner_hw)
 
-    # TODO: Use this when we finally have a working non-convex solver interface
-    # that allows for user-defined functions and their derivatives.
-    # outer_piece = @NLexpression(wm.model, (1 - z) * lambda * hw_q(q))
-
     # Use this for the time being.
     outer_piece = @NLexpression(wm.model, (1 - z) * lambda * q * (q^2)^0.426)
     @NLconstraint(wm.model, h_i - h_j == inner_piece + outer_piece)
+end
+
+"Non-convex Hazen-Williams constraint for flow with unknown direction."
+function constraint_hw_unknown_direction_ne{T <: AbstractMINLPBForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+    # Collect variables and parameters needed for the constraint.
+    q, h_i, h_j = get_common_variables(wm, a, n)
+
+    # Add big-M constraints for the piecewise indicator variable z.
+    z = @variable(wm.model, category = :Bin)
+    delta = @variable(wm.model, category = :Bin)
+    M = 0.1 + max(abs(getlowerbound(q)), abs(getupperbound(q)))
+    @constraint(wm.model, q <= -0.1 + M * delta + M * z)
+    @constraint(wm.model, q >= 0.1 - M * (1 - delta) - M * z)
+
+    # Add a piecewise nonlinear constraint for the head loss.
+    inner_hw = hw_quintic_approx(wm.model, q, 0.1)
+    inner_piece = @NLexpression(wm.model, z * inner_hw)
+
+    # Add constraints required to define gamma.
+    constraint_define_gamma_hw_ne(wm, a, n)
+
+    # Define an auxiliary variable for the sum of the gamma variables.
+    gamma_sum = @variable(wm.model, basename = "gamma_sum_$(n)_$(a)", start = 0)
+    @constraint(wm.model, gamma_sum == sum(wm.var[:nw][n][:gamma][a]))
+
+    # Use this for the time being.
+    outer_piece = @NLexpression(wm.model, (1 - z) * q * (q^2)^0.426)
+    @NLconstraint(wm.model, gamma_sum == inner_piece + outer_piece)
 end

@@ -9,7 +9,7 @@ function objective_minimize_cost(wm::GenericWaterModel)
     for n in nws(wm)
         for (a, pipe) in wm.ref[:nw][n][:ne_pipe]
             length = pipe["length"]
-            diameter_vars = wm.var[:nw][n][:diameter][a]
+            diameter_vars = wm.var[:nw][n][:psi][a]
             diameters = [key[1] for key in keys(diameter_vars)]
             costs = [d["costPerUnitLength"] * length for d in pipe["diameters"]] * 1.0e-6
             cost_function += AffExpr(diameter_vars[:], costs, 0.0)
@@ -18,5 +18,6 @@ function objective_minimize_cost(wm::GenericWaterModel)
 
     aux = @variable(wm.model)
     @constraint(wm.model, aux == cost_function)
-    return @NLobjective(wm.model, Min, aux)
+    #return @NLobjective(wm.model, Min, aux)
+    return @objective(wm.model, Min, aux)
 end

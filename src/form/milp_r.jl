@@ -71,8 +71,22 @@ function constraint_hw_unknown_direction{T <: StandardMILPRForm}(wm::GenericWate
     constraint_define_gamma(wm, a, n)
 
     # Use the piecewise linear outer approximation.
-    for cut in construct_hw_separators(q, lambda)
+    for cut in construct_hw_separators(q, 1.0)
         @constraint(wm.model, gamma >= cut)
+    end
+end
+
+"Piecewise linear Hazen-Williams inequality constraints with unknown direction variables."
+function constraint_hw_unknown_direction_ne{T <: StandardMILPRForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+    # Collect variables and parameters needed for the constraint.
+    q, h_i, h_j = get_common_variables(wm, a, n)
+
+    # Add constraints required to define gamma.
+    constraint_define_gamma_hw_ne(wm, a, n)
+
+    # Use the piecewise linear outer approximation.
+    for cut in construct_hw_separators(q, 1.0, 250)
+        @constraint(wm.model, sum(wm.var[:nw][n][:gamma][a]) >= cut)
     end
 end
 

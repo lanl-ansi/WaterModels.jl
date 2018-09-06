@@ -43,26 +43,22 @@ end
 function variable_pipe_ne{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
     # Set up required data to initialize junction variables.
     pipe_ids = [key for key in keys(wm.ref[:nw][n][:ne_pipe])]
-    wm.var[:nw][n][:diameter] = Dict{String, Any}()
-    wm.var[:nw][n][:lambda] = Dict{String, Any}()
+    wm.var[:nw][n][:psi] = Dict{String, Any}()
+    wm.var[:nw][n][:gamma] = Dict{String, Any}()
 
     for (pipe_id, pipe) in wm.ref[:nw][n][:ne_pipe]
         diameters = [d["diameter"] for d in pipe["diameters"]]
-        wm.var[:nw][n][:diameter][pipe_id] = @variable(wm.model, [d in diameters], category = :Bin,
-                                                       basename = "diameter_$(n)_$(pipe_id)", start = 0)
-        setvalue(wm.var[:nw][n][:diameter][pipe_id][diameters[end]], 1)
 
-        # Add a constraint that says exactly one diameter must be selected.
-        @constraint(wm.model, sum(wm.var[:nw][n][:diameter][pipe_id]) == 1)
+        # Create binary variables associated with whether or not a diameter is used.
+        wm.var[:nw][n][:psi][pipe_id] = @variable(wm.model, [d in diameters], category = :Bin,
+                                                  basename = "psi_$(n)_$(pipe_id)", start = 0)
+        setvalue(wm.var[:nw][n][:psi][pipe_id][diameters[end]], 1)
 
         # Create a variable that corresponds to the selection of lambda.
-        lambdas = [calc_friction_factor_hw_ne(pipe, d) for d in diameters]
-        wm.var[:nw][n][:lambda][pipe_id] = @variable(wm.model, lowerbound = minimum(lambdas),
-                                                     upperbound = maximum(lambdas),
-                                                     start = minimum(lambdas))
-
-        # Constraint the auxiliary variable for lambda.
-        affine = AffExpr(wm.var[:nw][n][:diameter][pipe_id][:], lambdas, 0.0)
-        @constraint(wm.model, wm.var[:nw][n][:lambda][pipe_id] == affine)
+        lambdas = Dict(d => calc_friction_factor_hw_ne(pipe, d) for d in diameters)
+        wm.var[:nw][n][:gamma][pipe_id] = @variable(wm.model, [d in diameters],
+                                                    lowerbound = -1000.0 / lambdas[d],
+                                                    upperbound = 1000.0 / lambdas[d],
+                                                    start = 0.0)
     end
 end

@@ -27,25 +27,25 @@ function constraint_no_good{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
     @constraint(wm.model, sum(zero_vars) - sum(one_vars) >= 1 - length(one_vars))
 end
 
-function constraint_hw_diameter_selection{T}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
-    # Get variables associated with the discrete diameter choices.
-    diameter_vars = wm.var[:nw][n][:diameter][a]
-
-    # Get the corresponding diameter measurements (meters).
-    diameters = [key[1] for key in keys(diameter_vars)]
-
-    # Add a constraint that says at most one diameter may be selected.
-    @constraint(wm.model, sum(diameter_vars) == 1)
-
-    # Create a linear expression comprising the discrete selections for lambda.
-    pipe = wm.ref[:nw][n][:ne_pipe][a]
-    lambdas = [calc_friction_factor_hw_ne(pipe, d) for d in diameters]
-    aff = AffExpr(diameter_vars[:], lambdas, 0.0)
-
-    # Create an auxiliary variable that corresponds to the selected lambda.
-    aux = @variable(wm.model, lowerbound = minimum(lambdas), upperbound = maximum(lambdas), start = minimum(lambdas))
-    @constraint(wm.model, aux == aff)
-end
+#function constraint_hw_diameter_selection{T}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+#    # Get variables associated with the discrete diameter choices.
+#    diameter_vars = wm.var[:nw][n][:diameter][a]
+#
+#    # Get the corresponding diameter measurements (meters).
+#    diameters = [key[1] for key in keys(diameter_vars)]
+#
+#    # Add a constraint that says at most one diameter may be selected.
+#    @constraint(wm.model, sum(diameter_vars) == 1)
+#
+#    # Create a linear expression comprising the discrete selections for lambda.
+#    pipe = wm.ref[:nw][n][:ne_pipe][a]
+#    lambdas = [calc_friction_factor_hw_ne(pipe, d) for d in diameters]
+#    aff = AffExpr(diameter_vars[:], lambdas, 0.0)
+#
+#    # Create an auxiliary variable that corresponds to the selected lambda.
+#    aux = @variable(wm.model, lowerbound = minimum(lambdas), upperbound = maximum(lambdas), start = minimum(lambdas))
+#    @constraint(wm.model, aux == aff)
+#end
 
 function constraint_degree_two{T}(wm::GenericWaterModel{T}, idx, n::Int = wm.cnw)
     first = nothing
