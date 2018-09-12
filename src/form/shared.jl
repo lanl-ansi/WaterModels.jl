@@ -99,8 +99,8 @@ function constraint_define_gamma{T <: AbstractRelaxedForm}(wm::GenericWaterModel
     # Add the required constraints to define y_p and y_n.
     @constraint(wm.model, (y_p - 1) * sum_demand <= q)
     @constraint(wm.model, (1 - y_n) * sum_demand >= q)
-    @constraint(wm.model, (1 - y_p) * (h_i_lb - h_j_ub) <= h_i - h_j)
-    @constraint(wm.model, (1 - y_n) * (h_i_ub - h_j_lb) >= h_i - h_j)
+    @constraint(wm.model, (1 - y_p) * gamma_lb <= h_i - h_j)
+    @constraint(wm.model, (1 - y_n) * gamma_ub >= h_i - h_j)
     @constraint(wm.model, y_p + y_n == 1)
 end
 
