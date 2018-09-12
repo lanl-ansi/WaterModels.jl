@@ -85,7 +85,7 @@ function constraint_hw_unknown_direction_ne{T <: StandardMILPRForm}(wm::GenericW
     constraint_define_gamma_hw_ne(wm, a, n)
 
     # Use the piecewise linear outer approximation.
-    for cut in construct_hw_separators(q, 1.0, 250)
+    for cut in construct_hw_separators(q, 1.0, 10)
         @constraint(wm.model, sum(wm.var[:nw][n][:gamma][a]) >= cut)
     end
 end

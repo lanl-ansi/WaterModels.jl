@@ -13,7 +13,7 @@ setlevel!(getlogger(InfrastructureModels), "error")
 setlevel!(getlogger(WaterModels), "error")
 
 # Solver setup.
-cbc = GurobiSolver() #CbcSolver(logLevel = 0)
+cbc = GurobiSolver() #CbcSolver(logLevel = 1)
 bonmin = AmplNLSolver("bonmin")
 scip = AmplNLSolver("scipampl")
 ipopt = IpoptSolver(print_level = 0)

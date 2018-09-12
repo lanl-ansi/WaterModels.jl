@@ -22,7 +22,8 @@ function post_ne_hw(wm::GenericWaterModel; kwargs...)
     variable_pipe_ne(wm)
 
     for i in [collect(ids(wm, :junctions)); collect(ids(wm, :reservoirs))]
-        constraint_flow_conservation(wm, i)
+        constraint_junction_mass_flow(wm, i)
+        #constraint_flow_conservation(wm, i)
     end
 
     for a in collect(ids(wm, :connection_unknown_direction))

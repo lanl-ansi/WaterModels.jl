@@ -7,6 +7,22 @@
 # Constraint templates should always be defined over "GenericWaterModel"
 # and should never refer to model variables
 
+"Constraint to ensure at least one direction is set to take flow away from a source."
+function constraint_source_flow{T}(wm::GenericWaterModel{T}, i, n::Int = wm.cnw)
+    # TODO: Change references from "node1" and "node2" to "f_junction" and "t_junction."
+    f_branches = collect(keys(filter((a, connection) -> connection["node1"] == i, wm.ref[:nw][n][:connection])))
+    t_branches = collect(keys(filter((a, connection) -> connection["node2"] == i, wm.ref[:nw][n][:connection])))
+    constraint_source_flow(wm, i, f_branches, t_branches, n)
+end
+
+"Constraint to ensure at least one direction is set to take flow to a junction with demand."
+function constraint_sink_flow{T}(wm::GenericWaterModel{T}, i, n::Int = wm.cnw)
+    # TODO: Change references from "node1" and "node2" to "f_junction" and "t_junction."
+    f_branches = collect(keys(filter((a, connection) -> connection["node1"] == i, wm.ref[:nw][n][:connection])))
+    t_branches = collect(keys(filter((a, connection) -> connection["node2"] == i, wm.ref[:nw][n][:connection])))
+    constraint_sink_flow(wm, i, f_branches, t_branches, n)
+end
+
 #function constraint_flow_conservation{T}(wm::GenericWaterModel{T}, i, n::Int = wm.cnw)
 #    out_arcs = collect(keys(filter((id, pipe) -> pipe["node1"] == i, wm.ref[:nw][n][:pipes])))
 #    out_dirs = [wm.data["pipes"][a]["flow_direction"] for a in out_arcs]

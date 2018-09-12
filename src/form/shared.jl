@@ -197,8 +197,6 @@ function constraint_define_gamma_hw_ne{T <: AbstractInequalityForm}(wm::GenericW
     junctions = values(wm.ref[:nw][n][:junctions])
     sum_demand = sum(junction["demand"] for junction in junctions)
     @constraint(wm.model, y_p + y_n == 1)
-    @constraint(wm.model, (y_p - 1) * sum_demand <= q)
-    @constraint(wm.model, (1 - y_n) * sum_demand >= q)
 
     # Get the pipe associated with the pipe index a.
     pipe = wm.ref[:nw][n][:ne_pipe][a]
@@ -223,13 +221,49 @@ function constraint_define_gamma_hw_ne{T <: AbstractInequalityForm}(wm::GenericW
         @constraint(wm.model, w_d - psi_d - (y_p - y_n) + 1 >= 0)
 
         # Add the four required McCormick constraints.
-        #@constraint(wm.model, gamma_d - gamma_lb * w_d + (h_i - h_j) / lambda_d - gamma_lb >= 0)
-        #@constraint(wm.model, -gamma_d + gamma_ub * w_d - (h_i - h_j) / lambda_d + gamma_ub >= 0)
-        #@constraint(wm.model, -gamma_d + gamma_lb * w_d + (h_i - h_j) / lambda_d - gamma_lb >= 0)
-        #@constraint(wm.model, gamma_d - gamma_ub * w_d - (h_i - h_j) / lambda_d + gamma_ub >= 0)
         @constraint(wm.model, gamma_d - gamma_lb * w_d >= 0)
         @constraint(wm.model, -gamma_d + gamma_ub * w_d >= 0)
         @constraint(wm.model, -gamma_d + gamma_lb * w_d + (h_i - h_j) / lambda_d - gamma_lb >= 0)
         @constraint(wm.model, gamma_d - gamma_ub * w_d - (h_i - h_j) / lambda_d + gamma_ub >= 0)
     end
+end
+
+"Constraint to ensure at least one direction is set to take flow away from a source."
+function constraint_source_flow{T <: AbstractInequalityForm}(wm::GenericWaterModel{T}, i, f_branches, t_branches, n::Int = wm.cnw)
+    y_p = wm.var[:nw][n][:yp]
+    y_n = wm.var[:nw][n][:yn]
+    @constraint(wm.model, sum(y_p[a] for a in f_branches) + sum(y_n[a] for a in t_branches) >= 1)
+end
+
+"Constraint to ensure at least one direction is set to take flow to a junction with demand."
+function constraint_sink_flow{T <: AbstractInequalityForm}(wm::GenericWaterModel{T}, i, f_branches, t_branches, n::Int = wm.cnw)
+    y_p = wm.var[:nw][n][:yp]
+    y_n = wm.var[:nw][n][:yn]
+    @constraint(wm.model, sum(y_n[a] for a in f_branches) + sum(y_p[a] for a in t_branches) >= 1)
+end
+
+function constraint_junction_mass_flow{T <: AbstractInequalityForm}(wm::GenericWaterModel{T}, i, n::Int = wm.cnw)
+    constraint_flow_conservation(wm, i, n)
+
+    is_reservoir = haskey(wm.ref[:nw][n][:reservoirs], i)
+    is_junction = haskey(wm.ref[:nw][n][:junctions], i)
+
+    has_demand = false
+    if is_junction
+        has_demand = wm.ref[:nw][n][:junctions][i]["demand"] > 0.0
+    end
+
+    if is_reservoir && !has_demand
+        constraint_source_flow(wm, i, n)
+    elseif !is_reservoir && has_demand
+        constraint_sink_flow(wm, i, n)
+    end
+
+    #elseif !has_supply && !has_deman
+
+    #if !has_supply
+    #        
+    #if fgfirm == 0.0 && flfirm == 0.0 && junction["degree"] == 2
+    #    constraint_conserve_flow(wm, i, n)
+    #end
 end
