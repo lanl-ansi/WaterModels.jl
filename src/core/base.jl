@@ -20,8 +20,8 @@ where
 * `data` is the original data, usually from reading in a `.inp` file,
 * `setting` usually looks something like `Dict("output" => Dict("flows" => true))`, and
 * `ref` is a place to store commonly-used precomputed data from the data dictionary,
-    primarily for converting datatypes, filtering deactivated components, and storing
-    system-wide values that need to be computed globally. See `build_ref(data)` for further details.
+  primarily for converting datatypes, filtering deactivated components, and storing
+  system-wide values that need to be computed globally. See `build_ref(data)` for further details.
 
 Methods on `GenericWaterModel` for defining variables and adding constraints should
 
@@ -69,12 +69,27 @@ end
 
 function build_generic_model(data::Dict{String, Any}, model_constructor, post_method; kwargs...)
     wm = model_constructor(data; kwargs...)
+
+    # TODO: Apparently no interface for a nonconvex MINLP solver in Julia allows
+    # for user-defined functions. So that's just great.
+    # hw_q(x) = x * (x^2)^0.426
+    # hw_q_prime(x) = 1.852 * (x^2)^(0.426)
+    # hw_q_primeprime(x) = (1.5779 * x) / (x^2)^0.574
+    # JuMP.register(wm.model, :hw_q, 1, hw_q, hw_q_prime, hw_q_primeprime)
+
     post_method(wm)
     return wm
 end
 
 function build_generic_model(path::String, model_constructor, post_method; kwargs...)
     data = WaterModels.parse_file(path)
+    return build_generic_model(data, model_constructor, post_method; kwargs...)
+end
+
+function build_generic_model(path::String, modification_path::String, model_constructor, post_method; kwargs...)
+    data = WaterModels.parse_file(path)
+    modifications = WaterModels.parse_file(modification_path)
+    InfrastructureModels.update_data!(data, modifications)
     return build_generic_model(data, model_constructor, post_method; kwargs...)
 end
 
@@ -85,6 +100,11 @@ end
 
 function run_generic_model(path::String, model_constructor, solver, post_method; solution_builder = get_solution, kwargs...)
     wm = build_generic_model(path, model_constructor, post_method; kwargs...)
+    return solve_generic_model(wm, solver; solution_builder = solution_builder)
+end
+
+function run_generic_model(path::String, modification_path::String, model_constructor, solver, post_method; solution_builder = get_solution, kwargs...)
+    wm = build_generic_model(path, modification_path, model_constructor, post_method; kwargs...)
     return solve_generic_model(wm, solver; solution_builder = solution_builder)
 end
 
@@ -143,6 +163,12 @@ function build_ref(data::Dict{String, Any})
 
         # TODO: Change all the references to :pipes over to :connections.
         ref[:connection] = ref[:pipes]
+        ref[:connection_unknown_direction] = filter((i, connection) -> Int(connection["flow_direction"]) == 0, ref[:connection])
+        ref[:connection_known_direction] = filter((i, connection) -> Int(connection["flow_direction"]) != 0, ref[:connection])
+
+        # Add references to expansion components, specifically.
+        ref[:ne_pipe] = filter((i, pipe) -> haskey(pipe, "diameters"), ref[:pipes])
+
         junction_ids = [collect(keys(ref[:junctions])); collect(keys(ref[:reservoirs]))]
         ref[:junction_connections] = Dict(String(i) => [] for i in junction_ids)
 

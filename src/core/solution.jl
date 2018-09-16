@@ -56,10 +56,11 @@ function init_solution(wm::GenericWaterModel)
 end
 
 function get_solution(wm::GenericWaterModel, sol::Dict{String,Any})
-    add_setpoint(sol, wm, "pipes", "gamma", :gamma) # Get absolute value of head difference.
-    add_setpoint(sol, wm, "pipes", "q", :q) # Get flow.
-    add_setpoint(sol, wm, "junctions", "h", :h) # Get head solution (junctions).
-    add_setpoint(sol, wm, "reservoirs", "h", :h) # Get head solution (reservoirs).
+    add_setpoint(sol, wm, "pipes", "q", :q) # Get flow solutions.
+    add_setpoint(sol, wm, "pipes", "yp", :yp) # Get flow solutions.
+    add_setpoint(sol, wm, "pipes", "yn", :yn) # Get flow solutions.
+    add_setpoint(sol, wm, "junctions", "h", :h) # Get head solutions (junctions).
+    add_setpoint(sol, wm, "reservoirs", "h", :h) # Get head solutions (reservoirs).
     return sol
 end
 
@@ -97,7 +98,7 @@ end
 solver_status_lookup = Dict{Any, Dict{Symbol, Symbol}}(
     :AmplNLWriter => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
     :ConicNonlinearBridge => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
-    :Gurobi => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
+    :Cbc => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
     :Ipopt => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible),
     :Pajarito => Dict(:Optimal => :LocalOptimal, :Infeasible => :LocalInfeasible))
 

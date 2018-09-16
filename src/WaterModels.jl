@@ -26,9 +26,14 @@ include("core/objective.jl")
 include("core/solution.jl")
 include("core/variable.jl")
 
-include("form/minlp.jl")
+include("form/micp.jl")
+include("form/milp.jl")
+include("form/milp_r.jl")
+include("form/minlp_b.jl")
+include("form/nlp.jl")
+include("form/shared.jl")
 
-include("prob/expansion.jl")
-include("prob/feasibility.jl")
+include("prob/ne.jl")
+include("prob/wf.jl")
 
 end
