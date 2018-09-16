@@ -27,6 +27,22 @@ function constraint_dw_unknown_direction{T <: AbstractMICPForm}(wm::GenericWater
     @NLconstraint(wm.model, gamma >= lambda * q^2)
 end
 
+"Convex (relaxed) Darcy-Weisbach constraint for flow with unknown direction."
+function constraint_dw_unknown_direction_ne{T <: AbstractMICPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+    # Collect variables and parameters needed for the constraint.
+    q, h_i, h_j = get_common_variables(wm, a, n)
+
+    # Add constraints required to define gamma.
+    constraint_define_gamma_dw_ne(wm, a, n)
+
+    # Define an auxiliary variable for the sum of the gamma variables.
+    gamma_sum = @variable(wm.model, basename = "gamma_sum_$(n)_$(a)", start = 0)
+    @constraint(wm.model, gamma_sum == sum(wm.var[:nw][n][:gamma][a]))
+
+    # Add a nonlinear constraint for the head loss.
+    @NLconstraint(wm.model, gamma_sum >= q^2)
+end
+
 "Convex (relaxed) Darcy-Weisbach constraint for flow with known direction."
 function constraint_dw_known_direction{T <: AbstractMICPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
     # Collect variables and parameters needed for the constraint.
@@ -36,7 +52,7 @@ function constraint_dw_known_direction{T <: AbstractMICPForm}(wm::GenericWaterMo
     dir = Int(wm.data["pipes"][a]["flow_direction"])
     fix_flow_direction(q, dir)
 
-    # Add a convex quadratic constraint for the head loss.
+    # Add a nonlinear constraint for the head loss.
     @NLconstraint(wm.model, dir * (h_i - h_j) >= lambda * q^2)
 end
 

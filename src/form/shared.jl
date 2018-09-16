@@ -149,6 +149,10 @@ end
 "These problem forms use different variables for head loss when diameters can be varied."
 AbstractEqualityForm = Union{AbstractMILPForm, AbstractMINLPBForm, AbstractNLPForm}
 
+function constraint_junction_mass_flow{T <: AbstractEqualityForm}(wm::GenericWaterModel{T}, i, n::Int = wm.cnw)
+    constraint_flow_conservation(wm, i, n)
+end
+
 "Constraints used to define the head difference in the MILP, MINLP-B, and NLP expansion planning problems."
 function constraint_define_gamma_hw_ne{T <: AbstractEqualityForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
     # Collect variables and parameters needed for the constraint.
@@ -256,7 +260,7 @@ function constraint_junction_mass_flow{T <: AbstractInequalityForm}(wm::GenericW
     if is_reservoir && !has_demand
         constraint_source_flow(wm, i, n)
     elseif !is_reservoir && has_demand
-        constraint_sink_flow(wm, i, n)
+        # constraint_sink_flow(wm, i, n)
     end
 
     #elseif !has_supply && !has_deman

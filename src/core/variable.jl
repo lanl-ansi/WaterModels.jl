@@ -6,7 +6,7 @@ function variable_flow{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
     lbs, ubs = calc_flow_bounds(wm.ref[:nw][n][:pipes])
     wm.var[:nw][n][:q] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:pipes])],
                                    lowerbound = lbs[id], upperbound = ubs[id],
-                                   basename = "q_$(n)", start = ubs[id])
+                                   basename = "q_$(n)", start = 1.0e-4)
 
 end
 

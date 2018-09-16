@@ -29,6 +29,22 @@ function constraint_dw_unknown_direction{T <: StandardMILPForm}(wm::GenericWater
     @constraint(wm.model, h_i - h_j == rhs)
 end
 
+"Piecewise linear Darcy-Weisbach constraint for flow with unknown direction."
+function constraint_dw_unknown_direction_ne{T <: StandardMILPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+    # Collect variables and parameters needed for the constraint.
+    q, h_i, h_j = get_common_variables(wm, a, n)
+
+    # Add constraints required to define gamma.
+    constraint_define_gamma_dw_ne(wm, a, n)
+
+    # Compute the relevant piecewise linear data.
+    breakpoints = linspace(getlowerbound(q), getupperbound(q), 50)
+    rhs = piecewiselinear(wm.model, q, breakpoints, (u) -> u * abs(u), method = :ZigZag)
+
+    # Add the piecewise linear constraint.
+    @constraint(wm.model, sum(wm.var[:nw][n][:gamma][a]) == rhs)
+end
+
 "Piecewise linear Darcy-Weisbach constraint with known direction variables."
 function constraint_dw_known_direction{T <: StandardMILPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
     # Collect variables and parameters needed for the constraint.

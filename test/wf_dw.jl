@@ -13,28 +13,12 @@
     end
 end
 
-# There is currently not an associated BDLLT Darcy-Weisbach formulation.
-# @testset "Darcy-Weisbach MINLP-B Problems" begin
-#     @testset "Balerma network (unknown flow directions)." begin
-#         network_path = "../test/data/epanet/balerma.inp"
-#         solution = run_wf_dw(network_path, MINLPBWaterModel, bonmin)
-#         @test solution["status"] == :LocalOptimal
-#     end
-# 
-#     @testset "Balerma network (known flow directions)." begin
-#         network_path = "../test/data/epanet/balerma.inp"
-#         modification_path = "../test/data/json/wf-balerma.json"
-#         solution = run_wf_dw(network_path, modification_path, MINLPBWaterModel, bonmin)
-#         @test solution["status"] == :LocalOptimal
-#     end
-# end
-
 @testset "Darcy-Weisbach MICP Problems" begin
-    @testset "Balerma network (unknown flow directions)." begin
-        network_path = "../test/data/epanet/balerma.inp"
-        solution = run_wf_dw(network_path, MICPWaterModel, bonmin)
-        @test solution["status"] == :LocalOptimal
-    end
+    #@testset "Balerma network (unknown flow directions)." begin
+    #    network_path = "../test/data/epanet/balerma.inp"
+    #    solution = run_wf_dw(network_path, MICPWaterModel, bonmin)
+    #    @test solution["status"] == :LocalOptimal
+    #end
 
     @testset "Balerma network (known flow directions)." begin
         network_path = "../test/data/epanet/balerma.inp"
@@ -44,20 +28,20 @@ end
     end
 end
 
-#@testset "Darcy-Weisbach MILP Problems" begin
-#    @testset "Balerma network (unknown flow directions)." begin
-#        network_path = "../test/data/epanet/balerma.inp"
-#        solution = run_wf_dw(network_path, MILPWaterModel, cbc)
-#        @test solution["status"] == :Optimal
-#    end
-#
-#    @testset "Balerma network (known flow directions)." begin
-#        network_path = "../test/data/epanet/balerma.inp"
-#        modification_path = "../test/data/json/wf-balerma.json"
-#        solution = run_wf_dw(network_path, modification_path, MILPWaterModel, cbc)
-#        @test solution["status"] == :Optimal
-#    end
-#end
+@testset "Darcy-Weisbach MILP Problems" begin
+    #@testset "Balerma network (unknown flow directions)." begin
+    #    network_path = "../test/data/epanet/balerma.inp"
+    #    solution = run_wf_dw(network_path, MILPWaterModel, cbc)
+    #    @test solution["status"] == :Optimal
+    #end
+
+    #@testset "Balerma network (known flow directions)." begin
+    #    network_path = "../test/data/epanet/balerma.inp"
+    #    modification_path = "../test/data/json/wf-balerma.json"
+    #    solution = run_wf_dw(network_path, modification_path, MILPWaterModel, cbc)
+    #    @test solution["status"] == :Optimal
+    #end
+end
 
 @testset "Darcy-Weisbach MILP-R Problems" begin
     @testset "Balerma network (unknown flow directions)." begin
