@@ -119,12 +119,12 @@ function JuMP.setsolver(wm::GenericWaterModel, solver::MathProgBase.AbstractMath
 end
 
 function JuMP.solve(wm::GenericWaterModel)
-    status, solve_time, solve_bytes_alloc, sec_in_gc = @timed solve(wm.model, relaxation = false)
+    status, solve_time, solve_bytes_alloc, sec_in_gc = @timed solve(wm.model, relaxation = false, suppress_warnings = true)
 
     try
         solve_time = getsolvetime(wm.model)
     catch
-        warn(LOGGER, "There was an issue with getsolvetime() on the solver, falling back on @timed.  This is not a rigorous timing value.");
+        #warn(LOGGER, "There was an issue with getsolvetime() on the solver, falling back on @timed.  This is not a rigorous timing value.");
     end
 
     return status, solve_time

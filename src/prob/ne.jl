@@ -1,4 +1,4 @@
-export run_ne_hw, run_ne_dw
+export run_ne_hw, run_ne_dw, post_ne_hw, post_ne_dw
 
 function run_ne_hw(file, model_constructor, solver; kwargs...)
     return run_generic_model(file, model_constructor, solver, post_ne_hw; kwargs...)
@@ -33,6 +33,7 @@ function post_ne_hw(wm::GenericWaterModel; kwargs...)
         constraint_hw_known_direction(wm, a)
     end
 
+    variable_objective_ne(wm)
     objective_minimize_cost(wm)
 end
 

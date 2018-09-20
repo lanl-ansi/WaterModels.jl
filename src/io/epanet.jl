@@ -58,6 +58,7 @@ function parse_epanet_file(path::String)
     dict["tanks"] = parse_tanks(epanet_dict["tanks"])
     dict["valves"] = parse_valves(epanet_dict["valves"])
     dict["multinetwork"] = false
+    dict["per_unit"] = false
 
     return dict
 end

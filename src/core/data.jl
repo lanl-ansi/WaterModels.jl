@@ -83,10 +83,23 @@ function calc_head_difference_bounds(pipes)
     return diff_min, diff_max
 end
 
-function update_flow_directions(data, wm) #solution)
+function update_flow_directions(data, wm)
     for (pipe_id, pipe) in data["pipes"]
-        q = getvalue(wm.var[:nw][wm.cnw][:q][pipe_id])  # wm.solution["pipes"][pipe_id]["q"]
+        q = getvalue(wm.var[:nw][wm.cnw][:q][pipe_id])
         pipe["flow_direction"] = q > 0.0 ? POSITIVE : NEGATIVE
+    end
+end
+
+function update_diameters(data, wm)
+    for (pipe_id, pipe) in data["pipes"]
+        diameter_vars = wm.var[:nw][wm.cnw][:psi][pipe_id]
+        diameters = [key[1] for key in keys(diameter_vars)]
+        for diameter in diameters
+            if getvalue(wm.var[:nw][wm.cnw][:psi][pipe_id][diameter]) > 1.0e-4
+                pipe["diameter"] = diameter
+                break
+            end
+        end
     end
 end
 

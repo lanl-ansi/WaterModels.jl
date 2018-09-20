@@ -57,8 +57,6 @@ end
 
 function get_solution(wm::GenericWaterModel, sol::Dict{String,Any})
     add_setpoint(sol, wm, "pipes", "q", :q) # Get flow solutions.
-    add_setpoint(sol, wm, "pipes", "yp", :yp) # Get flow solutions.
-    add_setpoint(sol, wm, "pipes", "yn", :yn) # Get flow solutions.
     add_setpoint(sol, wm, "junctions", "h", :h) # Get head solutions (junctions).
     add_setpoint(sol, wm, "reservoirs", "h", :h) # Get head solutions (reservoirs).
     return sol

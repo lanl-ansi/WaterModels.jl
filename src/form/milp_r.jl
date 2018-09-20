@@ -85,7 +85,7 @@ function constraint_hw_unknown_direction{T <: StandardMILPRForm}(wm::GenericWate
     constraint_define_gamma(wm, a, n)
 
     # Use the piecewise linear outer approximation.
-    for cut in construct_hw_separators(q, 1.0)
+    for cut in construct_hw_separators(q, 1.0, 50)
         @constraint(wm.model, gamma >= cut)
     end
 end
@@ -98,9 +98,13 @@ function constraint_hw_unknown_direction_ne{T <: StandardMILPRForm}(wm::GenericW
     # Add constraints required to define gamma.
     constraint_define_gamma_hw_ne(wm, a, n)
 
+    # Define an auxiliary variable for the sum of the gamma variables.
+    gamma_sum = wm.var[:nw][n][:gamma_sum][a]
+    @constraint(wm.model, gamma_sum == sum(wm.var[:nw][n][:gamma][a]))
+
     # Use the piecewise linear outer approximation.
-    for cut in construct_hw_separators(q, 1.0)
-        @constraint(wm.model, sum(wm.var[:nw][n][:gamma][a]) >= cut)
+    for cut in construct_hw_separators(q, 1.0, 500)
+        @constraint(wm.model, gamma_sum >= cut)
     end
 end
 

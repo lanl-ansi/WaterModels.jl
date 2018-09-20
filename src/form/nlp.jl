@@ -32,7 +32,7 @@ function constraint_dw_unknown_direction_ne{T <: StandardNLPForm}(wm::GenericWat
     constraint_define_gamma_dw_ne(wm, a, n)
 
     # Define an auxiliary variable for the sum of the gamma variables.
-    gamma_sum = @variable(wm.model, basename = "gamma_sum_$(n)_$(a)", start = 0.0)
+    gamma_sum = wm.var[:nw][n][:gamma_sum][a]
     @constraint(wm.model, gamma_sum == sum(wm.var[:nw][n][:gamma][a]))
 
     # Add a non-convex constraint for the head loss.
@@ -57,7 +57,7 @@ function constraint_hw_unknown_direction_ne{T <: StandardNLPForm}(wm::GenericWat
     constraint_define_gamma_hw_ne(wm, a, n)
 
     # Define an auxiliary variable for the sum of the gamma variables.
-    gamma_sum = @variable(wm.model, basename = "gamma_sum_$(n)_$(a)", start = 0.0)
+    gamma_sum = wm.var[:nw][n][:gamma_sum][a]
     @constraint(wm.model, gamma_sum == sum(wm.var[:nw][n][:gamma][a]))
 
     # Add a non-convex constraint for the head loss.
