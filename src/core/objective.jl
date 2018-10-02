@@ -20,3 +20,8 @@ function objective_minimize_cost(wm::GenericWaterModel)
     #return @NLobjective(wm.model, Min, wm.var[:nw][wm.cnw][:objective])
     return @objective(wm.model, Min, wm.var[:nw][wm.cnw][:objective])
 end
+
+function objective_dummy(wm::GenericWaterModel)
+    return @NLobjective(wm.model, Min, 0.0)
+    #return @objective(wm.model, Min, 0.0)
+end

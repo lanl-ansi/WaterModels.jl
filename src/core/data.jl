@@ -86,7 +86,7 @@ end
 function update_flow_directions(data, wm)
     for (pipe_id, pipe) in data["pipes"]
         q = getvalue(wm.var[:nw][wm.cnw][:q][pipe_id])
-        pipe["flow_direction"] = q > 0.0 ? POSITIVE : NEGATIVE
+        pipe["flow_direction"] = q >= 0.0 ? POSITIVE : NEGATIVE
     end
 end
 

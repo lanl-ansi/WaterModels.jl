@@ -137,9 +137,10 @@ end
 
 "These problem forms use exact versions of the head loss equation when the flow direction is fixed."
 AbstractExactForm = Union{AbstractMINLPBForm, AbstractNLPForm}
+AbstractEqualityForm = Union{AbstractMILPForm, AbstractMINLPBForm, AbstractNLPForm}
 
 "Create variables associated with the pipe for the MICP and MILP-R problems."
-function variable_pipe_ne{T <: AbstractExactForm}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
+function variable_pipe_ne{T <: AbstractEqualityForm}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
     # Create pipe variables.
     variable_pipe_ne_common(wm, n)
 end
@@ -170,7 +171,7 @@ function constraint_dw_known_direction{T <: AbstractExactForm}(wm::GenericWaterM
     @NLconstraint(wm.model, dir * (h_i - h_j) == lambda * q^2)
 end
 
-function set_initial_solution_ne{T <: AbstractExactForm}(wm::GenericWaterModel{T}, wm_solved::GenericWaterModel)
+function set_initial_solution_ne{T <: AbstractEqualityForm}(wm::GenericWaterModel{T}, wm_solved::GenericWaterModel)
     for i in [key[1] for key in keys(wm_solved.var[:nw][wm_solved.cnw][:h])]
         h_i_sol = getvalue(wm_solved.var[:nw][wm_solved.cnw][:h][i])
         setvalue(wm.var[:nw][wm.cnw][:h][i], h_i_sol)
@@ -256,8 +257,6 @@ function set_initial_solution_ne{T <: AbstractRelaxedForm}(wm::GenericWaterModel
     setvalue(wm.var[:nw][wm.cnw][:objective], objective_value * 1.0e-6)
 end
 
-"These problem forms use different variables for head loss when diameters can be varied."
-AbstractEqualityForm = Union{AbstractMILPForm, AbstractMINLPBForm, AbstractNLPForm}
 
 function constraint_junction_mass_flow{T <: AbstractEqualityForm}(wm::GenericWaterModel{T}, i, n::Int = wm.cnw)
     constraint_flow_conservation(wm, i, n)
@@ -269,7 +268,7 @@ function constraint_define_gamma_hw_ne{T <: AbstractEqualityForm}(wm::GenericWat
     q, h_i, h_j = get_common_variables(wm, a, n)
 
     # Add a constraint that says at most one diameter must be selected.
-    @constraint(wm.model, sum(wm.var[:nw][n][:psi][a]) <= 1)
+    @constraint(wm.model, sum(wm.var[:nw][n][:psi][a]) == 1)
 
     # Get the pipe associated with the pipe index a.
     pipe = wm.ref[:nw][n][:ne_pipe][a]
@@ -382,24 +381,17 @@ function constraint_junction_mass_flow{T <: AbstractInequalityForm}(wm::GenericW
 end
 
 function constraint_no_good_ne{T <: AbstractInequalityForm}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
-    #yp_solution = getvalue(wm.var[:nw][n][:yp])
-    #yp_ones = [wm.var[:nw][n][:yp][idx[1]] for idx in keys(yp_solution) if yp_solution[idx[1]] > 1.0e-4]
-    #yp_zeros = [wm.var[:nw][n][:yp][idx[1]] for idx in keys(yp_solution) if yp_solution[idx[1]] <= 1.0e-4]
-
-    #yn_solution = getvalue(wm.var[:nw][n][:yn])
-    #yn_ones = [wm.var[:nw][n][:yn][idx[1]] for idx in keys(yn_solution) if yn_solution[idx[1]] > 1.0e-4]
-    #yn_zeros = [wm.var[:nw][n][:yn][idx[1]] for idx in keys(yn_solution) if yn_solution[idx[1]] <= 1.0e-4]
+    yp_solution = getvalue(wm.var[:nw][n][:yp])
+    yp_ones = Array{JuMP.Variable}([wm.var[:nw][n][:yp][idx[1]] for idx in keys(yp_solution) if yp_solution[idx[1]] > 1.0e-4])
+    yp_zeros = Array{JuMP.Variable}([wm.var[:nw][n][:yp][idx[1]] for idx in keys(yp_solution) if yp_solution[idx[1]] <= 1.0e-4])
 
     pipe_ids = ids(wm, :ne_pipe)
     psi_vars = Array{JuMP.Variable}([wm.var[:nw][n][:psi][a][d["diameter"]] for a in ids(wm, :ne_pipe) for d in wm.ref[:nw][n][:ne_pipe][a]["diameters"]])
-    psi_ones = [psi for psi in psi_vars if getvalue(psi) > 1.0e-4]
-    psi_zeros = [psi for psi in psi_vars if getvalue(psi) <= 1.0e-4]
+    psi_ones = Array{JuMP.Variable}([psi for psi in psi_vars if getvalue(psi) > 1.0e-4])
+    psi_zeros = Array{JuMP.Variable}([psi for psi in psi_vars if getvalue(psi) <= 1.0e-4])
 
-    #one_vars = vcat(yp_ones, yn_ones, psi_ones)
-    #zero_vars = vcat(yp_zeros, yn_zeros, psi_zeros)
-
-    one_vars = psi_ones
-    zero_vars = psi_zeros
+    one_vars = psi_ones #vcat(yp_ones, psi_ones)
+    zero_vars = psi_zeros #vcat(yp_zeros, psi_zeros)
 
     @constraint(wm.model, sum(zero_vars) - sum(one_vars) >= 1 - length(one_vars))
 end

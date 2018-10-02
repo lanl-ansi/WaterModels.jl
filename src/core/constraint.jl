@@ -22,7 +22,7 @@ end
 
 function constraint_no_good{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
     yp_solution = getvalue(wm.var[:nw][n][:yp])
-    one_vars = [wm.var[:nw][n][:yp][idx[1]] for idx in keys(yp_solution) if yp_solution[idx[1]] >= 1]
-    zero_vars = [wm.var[:nw][n][:yp][idx[1]] for idx in keys(yp_solution) if yp_solution[idx[1]] <= 0]
+    one_vars = Array{JuMP.Variable}([wm.var[:nw][n][:yp][idx[1]] for idx in keys(yp_solution) if yp_solution[idx[1]] > 1.0e-4])
+    zero_vars = Array{JuMP.Variable}([wm.var[:nw][n][:yp][idx[1]] for idx in keys(yp_solution) if yp_solution[idx[1]] <= 1.0e-4])
     @constraint(wm.model, sum(zero_vars) - sum(one_vars) >= 1 - length(one_vars))
 end

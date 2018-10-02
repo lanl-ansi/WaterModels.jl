@@ -69,14 +69,6 @@ end
 
 function build_generic_model(data::Dict{String, Any}, model_constructor, post_method; kwargs...)
     wm = model_constructor(data; kwargs...)
-
-    # TODO: Apparently no interface for a nonconvex MINLP solver in Julia allows
-    # for user-defined functions. So that's just great.
-    # hw_q(x) = x * (x^2)^0.426
-    # hw_q_prime(x) = 1.852 * (x^2)^(0.426)
-    # hw_q_primeprime(x) = (1.5779 * x) / (x^2)^0.574
-    # JuMP.register(wm.model, :hw_q, 1, hw_q, hw_q_prime, hw_q_primeprime)
-
     post_method(wm)
     return wm
 end
