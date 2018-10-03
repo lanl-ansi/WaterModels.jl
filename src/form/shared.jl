@@ -313,15 +313,11 @@ function constraint_define_gamma_hw_ne{T <: AbstractInequalityForm}(wm::GenericW
     # Get the sum of all junction demands.
     junctions = values(wm.ref[:nw][n][:junctions])
     sum_demand = sum(junction["demand"] for junction in junctions)
-    gamma_sum_lb = getlowerbound(wm.var[:nw][n][:gamma_sum][a])
-    gamma_sum_ub = getupperbound(wm.var[:nw][n][:gamma_sum][a])
     @constraint(wm.model, sum(wm.var[:nw][n][:wp][a]) == y_p)
     @constraint(wm.model, sum(wm.var[:nw][n][:wn][a]) == y_n)
     @constraint(wm.model, y_p + y_n == 1)
     @constraint(wm.model, (y_p - 1) * sum_demand <= q)
     @constraint(wm.model, (1 - y_n) * sum_demand >= q)
-    #@constraint(wm.model, (1 - y_p) * gamma_sum_lb <= h_i - h_j)
-    #@constraint(wm.model, (1 - y_n) * gamma_sum_ub >= h_i - h_j)
 
     # Get the pipe associated with the pipe index a.
     pipe = wm.ref[:nw][n][:ne_pipe][a]
@@ -340,17 +336,6 @@ function constraint_define_gamma_hw_ne{T <: AbstractInequalityForm}(wm::GenericW
         gamma_ub = (getupperbound(h_i) - getlowerbound(h_j)) / lambda_d
         gamma_lb = (getlowerbound(h_i) - getupperbound(h_j)) / lambda_d
 
-        # Create an auxiliary variable for the product of psi_d and (y_p - y_n).
-        #@constraint(wm.model, (z_p - z_n) + psi_d >= 0)
-        #@constraint(wm.model, -(z_p - z_n) + psi_d >= 0)
-        #@constraint(wm.model, -(z_p - z_n) - psi_d + (y_p - y_n) + 1 >= 0)
-        #@constraint(wm.model, (z_p - z_n) - psi_d - (y_p - y_n) + 1 >= 0)
-
-        #@constraint(wm.model, (z_p - 1) * sum_demand <= q)
-        #@constraint(wm.model, (1 - z_n) * sum_demand >= q)
-        #@constraint(wm.model, (1 - z_p) * gamma_lb <= h_i - h_j)
-        #@constraint(wm.model, (1 - z_n) * gamma_ub >= h_i - h_j)
-
         # Ensure that z is chosen when the diameter is chosen.
         @constraint(wm.model, (z_p + z_n) == psi_d)
 
@@ -359,21 +344,14 @@ function constraint_define_gamma_hw_ne{T <: AbstractInequalityForm}(wm::GenericW
         @constraint(wm.model, (1 - z_n) * sum_demand >= q)
         @constraint(wm.model, (1 - z_p) * gamma_lb <= (h_i - h_j) / lambda_d)
         @constraint(wm.model, (1 - z_n) * gamma_ub >= (h_i - h_j) / lambda_d)
+        @constraint(wm.model, (z_p + z_n) * gamma_ub >= gamma_d)
+        @constraint(wm.model, (z_p + z_n) * gamma_lb <= gamma_d)
 
-        # McCormick relaxation of (z_p - z_n) * (h_i - h_j) / lambda_d == gamma_d.
-        #@NLconstraint(wm.model, (z_p - z_n) * (h_i - h_j) / lambda_d == gamma_d)
-
-        h_diff = @variable(wm.model, lowerbound = gamma_lb, upperbound = gamma_ub) 
-        z_diff = @variable(wm.model, category = :Int, lowerbound = -1, upperbound = 1)
-        @constraint(wm.model, h_diff == (h_i - h_j) / lambda_d)
-        @constraint(wm.model, z_diff == z_p - z_n)
-        InfrastructureModels.relaxation_product(wm.model, h_diff, z_diff, gamma_d)
-
-        ## Create McCormick constraints that ensure gamma_d is positive.
-        #@constraint(wm.model, (h_j - h_i) / lambda_d + gamma_lb * (z_p - z_n + 1) <= gamma_d)
-        #@constraint(wm.model, (h_i - h_j) / lambda_d + gamma_ub * (z_p - z_n - 1) <= gamma_d)
-        #@constraint(wm.model, (h_j - h_i) / lambda_d + gamma_ub * (z_p - z_n + 1) >= gamma_d)
-        #@constraint(wm.model, (h_i - h_j) / lambda_d + gamma_lb * (z_p - z_n - 1) >= gamma_d)
+        # Create McCormick constraints that ensure gamma_d is positive.
+        @constraint(wm.model, (h_j - h_i) / lambda_d + gamma_lb * (z_p - z_n + 1) <= gamma_d)
+        @constraint(wm.model, (h_i - h_j) / lambda_d + gamma_ub * (z_p - z_n - 1) <= gamma_d)
+        @constraint(wm.model, (h_j - h_i) / lambda_d + gamma_ub * (z_p - z_n + 1) >= gamma_d)
+        @constraint(wm.model, (h_i - h_j) / lambda_d + gamma_lb * (z_p - z_n - 1) >= gamma_d)
     end
 end
 
