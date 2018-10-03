@@ -78,15 +78,17 @@ function variable_pipe_ne{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, n:
     variable_pipe_ne_common(wm, n)
 
     # Set up required data to initialize junction variables.
-    wm.var[:nw][n][:w] = Dict{String, Any}()
+    wm.var[:nw][n][:wp] = Dict{String, Any}()
+    wm.var[:nw][n][:wn] = Dict{String, Any}()
 
     for (pipe_id, pipe) in wm.ref[:nw][n][:ne_pipe]
         # Create binary variables associated with the combination of whether a
         # diameter is used and the direction of flow in a pipe.
         diameters = [d["diameter"] for d in pipe["diameters"]]
-        wm.var[:nw][n][:w][pipe_id] = @variable(wm.model, [d in diameters], category = :Int,
-                                                basename = "w_$(n)_$(pipe_id)", lowerbound = -1,
-                                                upperbound = 1, start = 0)
+        wm.var[:nw][n][:wp][pipe_id] = @variable(wm.model, [d in diameters], category = :Bin,
+                                                basename = "wp_$(n)_$(pipe_id)", start = 0)
+        wm.var[:nw][n][:wn][pipe_id] = @variable(wm.model, [d in diameters], category = :Bin,
+                                                basename = "wn_$(n)_$(pipe_id)", start = 0)
     end
 end
 
@@ -245,11 +247,13 @@ function set_initial_solution_ne{T <: AbstractRelaxedForm}(wm::GenericWaterModel
                 setvalue(wm.var[:nw][wm.cnw][:gamma][ij][diameter], gamma)
                 setvalue(wm.var[:nw][wm.cnw][:gamma_sum][ij], gamma)
                 setvalue(wm.var[:nw][wm.cnw][:psi][ij][diameter], 1)
-                setvalue(wm.var[:nw][wm.cnw][:w][ij][diameter], flow_direction)
+                setvalue(wm.var[:nw][wm.cnw][:wp][ij][diameter], 1 * (flow_direction == 1))
+                setvalue(wm.var[:nw][wm.cnw][:wn][ij][diameter], 1 * (flow_direction == -1))
             else
                 setvalue(wm.var[:nw][wm.cnw][:gamma][ij][diameter], 0.0)
                 setvalue(wm.var[:nw][wm.cnw][:psi][ij][diameter], 0)
-                setvalue(wm.var[:nw][wm.cnw][:w][ij][diameter], 0)
+                setvalue(wm.var[:nw][wm.cnw][:wp][ij][diameter], 0)
+                setvalue(wm.var[:nw][wm.cnw][:wn][ij][diameter], 0)
             end
         end
     end
@@ -309,9 +313,15 @@ function constraint_define_gamma_hw_ne{T <: AbstractInequalityForm}(wm::GenericW
     # Get the sum of all junction demands.
     junctions = values(wm.ref[:nw][n][:junctions])
     sum_demand = sum(junction["demand"] for junction in junctions)
+    gamma_sum_lb = getlowerbound(wm.var[:nw][n][:gamma_sum][a])
+    gamma_sum_ub = getupperbound(wm.var[:nw][n][:gamma_sum][a])
+    @constraint(wm.model, sum(wm.var[:nw][n][:wp][a]) == y_p)
+    @constraint(wm.model, sum(wm.var[:nw][n][:wn][a]) == y_n)
     @constraint(wm.model, y_p + y_n == 1)
     @constraint(wm.model, (y_p - 1) * sum_demand <= q)
     @constraint(wm.model, (1 - y_n) * sum_demand >= q)
+    #@constraint(wm.model, (1 - y_p) * gamma_sum_lb <= h_i - h_j)
+    #@constraint(wm.model, (1 - y_n) * gamma_sum_ub >= h_i - h_j)
 
     # Get the pipe associated with the pipe index a.
     pipe = wm.ref[:nw][n][:ne_pipe][a]
@@ -324,22 +334,46 @@ function constraint_define_gamma_hw_ne{T <: AbstractInequalityForm}(wm::GenericW
         # Gather the required variables and constants.
         psi_d = wm.var[:nw][n][:psi][a][diameter]
         gamma_d = wm.var[:nw][n][:gamma][a][diameter]
-        w_d = wm.var[:nw][n][:w][a][diameter]
+        z_p = wm.var[:nw][n][:wp][a][diameter]
+        z_n = wm.var[:nw][n][:wn][a][diameter]
         lambda_d = calc_friction_factor_hw_ne(pipe, diameter)
         gamma_ub = (getupperbound(h_i) - getlowerbound(h_j)) / lambda_d
         gamma_lb = (getlowerbound(h_i) - getupperbound(h_j)) / lambda_d
 
         # Create an auxiliary variable for the product of psi_d and (y_p - y_n).
-        @constraint(wm.model, w_d + psi_d >= 0)
-        @constraint(wm.model, -w_d + psi_d >= 0)
-        @constraint(wm.model, -w_d - psi_d + (y_p - y_n) + 1 >= 0)
-        @constraint(wm.model, w_d - psi_d - (y_p - y_n) + 1 >= 0)
+        #@constraint(wm.model, (z_p - z_n) + psi_d >= 0)
+        #@constraint(wm.model, -(z_p - z_n) + psi_d >= 0)
+        #@constraint(wm.model, -(z_p - z_n) - psi_d + (y_p - y_n) + 1 >= 0)
+        #@constraint(wm.model, (z_p - z_n) - psi_d - (y_p - y_n) + 1 >= 0)
 
-        # Create McCormick constraints that ensure gamma_d is positive.
-        @constraint(wm.model, (h_j - h_i) / lambda_d + gamma_lb * (w_d + 1) <= gamma_d)
-        @constraint(wm.model, (h_i - h_j) / lambda_d + gamma_ub * (w_d - 1) <= gamma_d)
-        @constraint(wm.model, (h_j - h_i) / lambda_d + gamma_ub * (w_d + 1) >= gamma_d)
-        @constraint(wm.model, (h_i - h_j) / lambda_d + gamma_lb * (w_d - 1) >= gamma_d)
+        #@constraint(wm.model, (z_p - 1) * sum_demand <= q)
+        #@constraint(wm.model, (1 - z_n) * sum_demand >= q)
+        #@constraint(wm.model, (1 - z_p) * gamma_lb <= h_i - h_j)
+        #@constraint(wm.model, (1 - z_n) * gamma_ub >= h_i - h_j)
+
+        # Ensure that z is chosen when the diameter is chosen.
+        @constraint(wm.model, (z_p + z_n) == psi_d)
+
+        # Link z_p and z_n with q and (h_i - h_j).
+        @constraint(wm.model, (z_p - 1) * sum_demand <= q)
+        @constraint(wm.model, (1 - z_n) * sum_demand >= q)
+        @constraint(wm.model, (1 - z_p) * gamma_lb <= (h_i - h_j) / lambda_d)
+        @constraint(wm.model, (1 - z_n) * gamma_ub >= (h_i - h_j) / lambda_d)
+
+        # McCormick relaxation of (z_p - z_n) * (h_i - h_j) / lambda_d == gamma_d.
+        #@NLconstraint(wm.model, (z_p - z_n) * (h_i - h_j) / lambda_d == gamma_d)
+
+        h_diff = @variable(wm.model, lowerbound = gamma_lb, upperbound = gamma_ub) 
+        z_diff = @variable(wm.model, category = :Int, lowerbound = -1, upperbound = 1)
+        @constraint(wm.model, h_diff == (h_i - h_j) / lambda_d)
+        @constraint(wm.model, z_diff == z_p - z_n)
+        InfrastructureModels.relaxation_product(wm.model, h_diff, z_diff, gamma_d)
+
+        ## Create McCormick constraints that ensure gamma_d is positive.
+        #@constraint(wm.model, (h_j - h_i) / lambda_d + gamma_lb * (z_p - z_n + 1) <= gamma_d)
+        #@constraint(wm.model, (h_i - h_j) / lambda_d + gamma_ub * (z_p - z_n - 1) <= gamma_d)
+        #@constraint(wm.model, (h_j - h_i) / lambda_d + gamma_ub * (z_p - z_n + 1) >= gamma_d)
+        #@constraint(wm.model, (h_i - h_j) / lambda_d + gamma_lb * (z_p - z_n - 1) >= gamma_d)
     end
 end
 
