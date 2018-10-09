@@ -408,6 +408,14 @@ function constraint_no_good_ne{T <: AbstractInequalityForm}(wm::GenericWaterMode
     @constraint(wm.model, sum(zero_vars) - sum(one_vars) >= 1 - length(one_vars))
 end
 
+function constraint_no_good_ne_cb{T <: AbstractInequalityForm}(wm::GenericWaterModel{T}, cb, n::Int = wm.cnw)
+    pipe_ids = ids(wm, :ne_pipe)
+    psi_vars = Array{JuMP.Variable}([wm.var[:nw][n][:psi][a][d["diameter"]] for a in ids(wm, :ne_pipe) for d in wm.ref[:nw][n][:ne_pipe][a]["diameters"]])
+    psi_ones = Array{JuMP.Variable}([psi for psi in psi_vars if getvalue(psi) > 1.0e-4])
+    psi_zeros = Array{JuMP.Variable}([psi for psi in psi_vars if getvalue(psi) <= 1.0e-4])
+    @lazyconstraint(cb, sum(psi_zeros) - sum(psi_ones) >= 1 - length(psi_ones))
+end
+
 function constraint_degree_two{T <: AbstractInequalityForm}(wm::GenericWaterModel{T}, idx, n::Int = wm.cnw)
     first = nothing
     last = nothing
