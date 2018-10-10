@@ -230,8 +230,8 @@ function set_initial_solution_ne{T <: AbstractRelaxedForm}(wm::GenericWaterModel
         setvalue(wm.var[:nw][wm.cnw][:q][ij], q_ij_sol)
 
         flow_direction = sign(q_ij_sol)
-        setvalue(wm.var[:nw][wm.cnw][:yp][ij], 1 * (Int(flow_direction) >= 0))
-        setvalue(wm.var[:nw][wm.cnw][:yn][ij], 1 * (Int(flow_direction) < 0))
+        setvalue(wm.var[:nw][wm.cnw][:yp][ij], 1 * (flow_direction == 1))
+        setvalue(wm.var[:nw][wm.cnw][:yn][ij], 1 * (flow_direction == -1))
 
         diameter_sol = wm_solved.ref[:nw][wm_solved.cnw][:pipes][ij]["diameter"]
         diameters = [key[1] for key in keys(wm.var[:nw][wm.cnw][:psi][ij])]

@@ -85,6 +85,12 @@ function build_generic_model(path::String, modification_path::String, model_cons
     return build_generic_model(data, model_constructor, post_method; kwargs...)
 end
 
+function build_generic_model(data::Dict{String, Any}, modification_path::String, model_constructor, post_method; kwargs...)
+    modifications = WaterModels.parse_file(modification_path)
+    InfrastructureModels.update_data!(data, modifications)
+    return build_generic_model(data, model_constructor, post_method; kwargs...)
+end
+
 function run_generic_model(data::Dict, model_constructor, solver, post_method; solution_builder = get_solution, kwargs...)
     wm = build_generic_model(data, model_constructor, post_method; kwargs...)
     return solve_generic_model(wm, solver; solution_builder = solution_builder)

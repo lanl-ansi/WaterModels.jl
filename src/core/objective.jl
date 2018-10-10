@@ -4,6 +4,13 @@ function objective_minimize_gamma(wm::GenericWaterModel)
 end
 
 function objective_minimize_cost(wm::GenericWaterModel)
+    cost_function = get_diameter_cost_function(wm)
+    @constraint(wm.model, wm.var[:nw][wm.cnw][:objective] == cost_function)
+    return @objective(wm.model, Min, wm.var[:nw][wm.cnw][:objective])
+    #return @NLobjective(wm.model, Min, wm.var[:nw][wm.cnw][:objective])
+end
+
+function get_diameter_cost_function(wm::GenericWaterModel)
     cost_function = @expression(wm.model, 0.0)
 
     for n in nws(wm)
@@ -15,10 +22,14 @@ function objective_minimize_cost(wm::GenericWaterModel)
             cost_function += AffExpr(diameter_vars[:], costs, 0.0)
         end
     end
+end
 
-    @constraint(wm.model, wm.var[:nw][wm.cnw][:objective] == cost_function)
-    #return @NLobjective(wm.model, Min, wm.var[:nw][wm.cnw][:objective])
-    return @objective(wm.model, Min, wm.var[:nw][wm.cnw][:objective])
+function objective_maximize_variable(wm::GenericWaterModel, variable::JuMP.Variable)
+    return @objective(wm.model, Max, variable)
+end
+
+function objective_maximize_variable(wm::GenericWaterModel, variable::JuMP.Variable)
+    return @objective(wm.model, Min, variable)
 end
 
 function objective_dummy(wm::GenericWaterModel)

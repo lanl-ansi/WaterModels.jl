@@ -84,7 +84,7 @@ function constraint_hw_unknown_direction_ne{T <: StandardMILPForm}(wm::GenericWa
     constraint_define_gamma_hw_ne(wm, a, n)
 
     # Compute the relevant piecewise linear data.
-    breakpoints = linspace(getlowerbound(q), getupperbound(q), 50)
+    breakpoints = linspace(getlowerbound(q), getupperbound(q), 21)
     rhs = piecewiselinear(wm.model, q, breakpoints, (u) -> u * (u^2)^0.426, method = :ZigZag)
 
     # Add the piecewise linear constraint.
@@ -101,7 +101,7 @@ function constraint_hw_known_direction{T <: StandardMILPForm}(wm::GenericWaterMo
     fix_flow_direction(q, dir)
 
     # Compute the relevant piecewise linear data.
-    breakpoints = linspace(getlowerbound(q), getupperbound(q), 50)
+    breakpoints = linspace(getlowerbound(q), getupperbound(q), 21)
     rhs = piecewiselinear(wm.model, q, breakpoints, (u) -> lambda * u * (u^2)^0.426, method = :ZigZag)
 
     # Add the piecewise linear constraint.
