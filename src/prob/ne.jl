@@ -54,8 +54,9 @@ function post_ne_bt_hw(wm::GenericWaterModel; kwargs...)
         constraint_hw_known_direction(wm, a)
     end
 
-    variable_objective_ne(wm)
-    objective_minimize_variable(wm)
+    ##variable_objective_ne(wm)
+    #h_i = wm.var[:nw][wm.cnw][:h]["2"]
+    #objective_minimize_variable(wm, h_i)
 end
 
 function post_ne_dw(wm::GenericWaterModel; kwargs...)
