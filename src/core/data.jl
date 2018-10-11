@@ -1,5 +1,38 @@
 # Functions for working with the WaterModels internal data format.
 
+function calc_head_bounds(junctions, reservoirs)
+    junction_ids = [key for key in keys(junctions)]
+    reservoir_ids = [key for key in keys(reservoirs)]
+    ids = [junction_ids; reservoir_ids]
+
+    head_min = Dict([(i, -Inf) for i in ids])
+    head_max = Dict([(i, Inf) for i in ids])
+
+    max_elev = maximum([junction["elev"] for junction in values(junctions)])
+    max_head = maximum([reservoir["head"] for reservoir in values(reservoirs)])
+
+    for (i, junction) in junctions
+        if haskey(junction, "minimumHead")
+            head_min[i] = max(junction["elev"], junction["minimumHead"])
+        else
+            head_min[i] = junction["elev"]
+        end
+
+        if haskey(junction, "maximumHead")
+            head_max[i] = max(max(max_elev, max_head), junction["maximumHead"])
+        else
+            head_max[i] = max(max_elev, max_head)
+        end
+    end
+
+    for (i, reservoir) in reservoirs
+        head_min[i] = reservoir["head"]
+        head_max[i] = reservoir["head"]
+    end
+
+    return head_min, head_max
+end
+
 function calc_flow_bounds(pipes)
     flow_min = Dict([(pipe_id, -Inf) for pipe_id in keys(pipes)])
     flow_max = Dict([(pipe_id, Inf) for pipe_id in keys(pipes)])
@@ -7,14 +40,19 @@ function calc_flow_bounds(pipes)
     for (pipe_id, pipe) in pipes
         # Get the diameter of the pipe (meters).
         diameter = pipe["diameter"]
+        max_absolute_flow = (pi / 4.0) * 10.0 * diameter^2
 
-        # A literature-based guess at the maximum velocity (meters per second).
-        v_max = 10.0
+        if haskey(pipe, "minimumFlow")
+            flow_min[pipe_id] = pipe["minimumFlow"]
+        else
+            flow_min[pipe_id] = -max_absolute_flow
+        end
 
-        # Compute the flow bounds (cubic meters per second).
-        max_absolute_flow = (pi / 4.0) * v_max * diameter^2
-        flow_min[pipe_id] = -max_absolute_flow
-        flow_max[pipe_id] = max_absolute_flow
+        if haskey(pipe, "maximumFlow")
+            flow_max[pipe_id] = pipe["maximumFlow"]
+        else
+            flow_max[pipe_id] = max_absolute_flow
+        end
     end
 
     return flow_min, flow_max
