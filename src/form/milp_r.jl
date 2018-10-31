@@ -102,7 +102,10 @@ function constraint_hw_unknown_direction_ne{T <: StandardMILPRForm}(wm::GenericW
     gamma_sum = wm.var[:nw][n][:gamma_sum][a]
     @constraint(wm.model, gamma_sum == sum(wm.var[:nw][n][:gamma][a]))
 
-    # Use the piecewise linear outer approximation.
+    ## Use the piecewise linear outer approximation.
+    #gamma_ub = getupperbound(h_i) - getlowerbound(h_j)
+    #gamma_lb = getlowerbound(h_i) - getupperbound(h_j)
+    #num_points = (gamma_ub - gamma_lb) / 0.01
     for cut in construct_hw_separators(q, 1.0, 20)
         @constraint(wm.model, gamma_sum >= cut)
     end

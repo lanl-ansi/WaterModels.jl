@@ -38,9 +38,8 @@ function calc_flow_bounds(pipes)
     flow_max = Dict([(pipe_id, Inf) for pipe_id in keys(pipes)])
 
     for (pipe_id, pipe) in pipes
-        # Get the diameter of the pipe (meters).
         diameter = pipe["diameter"]
-        max_absolute_flow = (pi / 4.0) * 10.0 * diameter^2
+        max_absolute_flow = (pi / 4.0) * 100.0 * diameter^2
 
         if haskey(pipe, "minimumFlow")
             flow_min[pipe_id] = pipe["minimumFlow"]
@@ -52,6 +51,12 @@ function calc_flow_bounds(pipes)
             flow_max[pipe_id] = pipe["maximumFlow"]
         else
             flow_max[pipe_id] = max_absolute_flow
+        end
+
+        if pipe["flow_direction"] == POSITIVE
+            flow_min[pipe_id] = max(0.0, flow_min[pipe_id])
+        elseif pipe["flow_direction"] == NEGATIVE
+            flow_max[pipe_id] = min(0.0, flow_max[pipe_id])
         end
     end
 

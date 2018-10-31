@@ -43,10 +43,24 @@ function variable_head{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, n::In
     # Create head variables.
     variable_head_common(wm, n)
 
+    pipes = wm.ref[:nw][n][:ne_pipe]
+    gamma_lb = Dict([(pipe_id, -Inf) for pipe_id in keys(pipes)])
+    gamma_ub = Dict([(pipe_id, Inf) for pipe_id in keys(pipes)])
+
+    for (pipe_id, pipe) in pipes
+        i = pipe["node1"]
+        j = pipe["node2"]
+
+        h_i = wm.var[:nw][n][:h][i]
+        h_j = wm.var[:nw][n][:h][j]
+
+        gamma_lb[pipe_id] = getlowerbound(h_i) - getupperbound(h_j)
+        gamma_ub[pipe_id] = getupperbound(h_i) - getlowerbound(h_j)
+    end
+
     # Create variables that correspond to the absolute value of the head difference.
-    diff_min, diff_max = calc_head_difference_bounds(wm.ref[:nw][n][:pipes])
     wm.var[:nw][n][:gamma] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:pipes])],
-                                       lowerbound = diff_min[id], upperbound = diff_max[id],
+                                       lowerbound = gamma_lb[id], upperbound = gamma_ub[id],
                                        basename = "gamma_$(n)")
 
     # Create variables that correspond to flow moving from i to j.
@@ -56,6 +70,19 @@ function variable_head{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, n::In
     # Create variables that correspond to flow moving from j to i.
     wm.var[:nw][n][:yn] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:pipes])],
                                     category = :Bin, basename = "yn_$(n)")
+
+    for (pipe_id, pipe) in pipes
+        gamma_lb[pipe_id] = getlowerbound(wm.var[:nw][n][:gamma])
+        gamma_ub[pipe_id] = getupperbound(wm.var[:nw][n][:gamma])
+
+        if (gamma_lb[pipe_id] >= 0.0 && gamma_ub[pipe_id] >= 0.0)
+            setlowerbound(wm.var[:nw][n][:yp][pipe_id], 1)
+            setupperbound(wm.var[:nw][n][:yn][pipe_id], 0)
+        elseif (gamma_lb[pipe_id] <= 0.0 && gamma_ub[pipe_id] <= 0.0)
+            setlowerbound(wm.var[:nw][n][:yn][pipe_id], 1)
+            setupperbound(wm.var[:nw][n][:yp][pipe_id], 0)
+        end
+    end
 end
 
 "Create variables associated with the head for the MICP and MILP-R problems."
@@ -70,6 +97,21 @@ function variable_head_ne{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, n:
     # Create variables that correspond to flow moving from j to i.
     wm.var[:nw][n][:yn] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:pipes])],
                                     category = :Bin, basename = "yn_$(n)")
+
+    for (pipe_id, pipe) in wm.ref[:nw][n][:ne_pipe]
+        h_i = wm.var[:nw][n][:h][pipe["node1"]]
+        h_j = wm.var[:nw][n][:h][pipe["node2"]]
+        gamma_lb = getlowerbound(h_i) - getupperbound(h_j)
+        gamma_ub = getupperbound(h_i) - getlowerbound(h_j)
+
+        if (gamma_lb >= 0.0 && gamma_ub >= 0.0)
+            setlowerbound(wm.var[:nw][n][:yp][pipe_id], 1)
+            setupperbound(wm.var[:nw][n][:yn][pipe_id], 0)
+        elseif (gamma_lb <= 0.0 && gamma_ub <= 0.0)
+            setlowerbound(wm.var[:nw][n][:yn][pipe_id], 1)
+            setupperbound(wm.var[:nw][n][:yp][pipe_id], 0)
+        end
+    end
 end
 
 "Create variables associated with the pipe for the MICP and MILP-R problems."
@@ -89,6 +131,19 @@ function variable_pipe_ne{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, n:
                                                 basename = "wp_$(n)_$(pipe_id)", start = 0)
         wm.var[:nw][n][:wn][pipe_id] = @variable(wm.model, [d in diameters], category = :Bin,
                                                 basename = "wn_$(n)_$(pipe_id)", start = 0)
+
+        h_i = wm.var[:nw][n][:h][pipe["node1"]]
+        h_j = wm.var[:nw][n][:h][pipe["node2"]]
+        gamma_lb = getlowerbound(h_i) - getupperbound(h_j)
+        gamma_ub = getupperbound(h_i) - getlowerbound(h_j)
+
+        for diameter in [key[1] for key in keys(wm.var[:nw][wm.cnw][:psi][pipe_id])]
+            if (gamma_lb >= 0.0 && gamma_ub >= 0.0)
+                setupperbound(wm.var[:nw][n][:wn][pipe_id][diameter], 0)
+            elseif (gamma_lb <= 0.0 && gamma_ub <= 0.0)
+                setupperbound(wm.var[:nw][n][:wp][pipe_id][diameter], 0)
+            end
+        end
     end
 end
 

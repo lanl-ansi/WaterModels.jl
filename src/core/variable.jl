@@ -19,33 +19,6 @@ function variable_head_common{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
     wm.var[:nw][n][:h] = @variable(wm.model, [i in ids], lowerbound = lbs[i],
                                    upperbound = ubs[i], basename = "h_$(n)",
                                    start = ubs[i])
-
-    ## Set up required data to initialize junction variables.
-    #junction_ids = [key for key in keys(wm.ref[:nw][n][:junctions])]
-
-    ## Set up required data to initialize reservoir variables.
-    #reservoirs = wm.ref[:nw][n][:reservoirs]
-    #reservoir_ids = [key for key in keys(reservoirs)]
-    #reservoir_lbs = Dict(id => reservoirs[id]["head"] for id in reservoir_ids)
-    #reservoir_ubs = Dict(id => reservoirs[id]["head"] for id in reservoir_ids)
-
-    ## Set the elevation bounds (for junctions).
-    ## TODO: Increase the upper bound when pumps are in the system.
-    #junctions = wm.ref[:nw][n][:junctions]
-    #max_elev = maximum([junc["elev"] for junc in values(junctions)])
-    #max_head = maximum([res["head"] for res in values(reservoirs)])
-    #junction_lbs = Dict(junc["id"] => junc["elev"] for junc in values(junctions))
-    #junction_ubs = Dict(id => max(max_elev, max_head) for id in junction_ids)
-
-    ### Create arrays comprising both types of components.
-    #ids = [junction_ids; reservoir_ids]
-    #lbs = merge(junction_lbs, reservoir_lbs)
-    #ubs = merge(junction_ubs, reservoir_ubs)
-
-    ## Add the head variables to the model.
-    #wm.var[:nw][n][:h] = @variable(wm.model, [i in ids], lowerbound = lbs[i],
-    #                               upperbound = ubs[i], basename = "h_$(n)",
-    #                               start = ubs[i])
 end
 
 "Variables associated with building pipes."
@@ -71,8 +44,16 @@ function variable_pipe_ne_common{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
         # Get additional data related to the variables.
         hij_lb = getlowerbound(h_i) - getupperbound(h_j)
         hij_ub = getupperbound(h_i) - getlowerbound(h_j)
+
+        if pipe["flow_direction"] == POSITIVE
+            hij_lb = max(0.0, hij_lb)
+        elseif pipe["flow_direction"] == NEGATIVE
+            hij_ub = min(0.0, hij_ub)
+        end
+
         lbs = Dict(d => hij_lb / calc_friction_factor_hw_ne(pipe, d) for d in diameters)
         ubs = Dict(d => hij_ub / calc_friction_factor_hw_ne(pipe, d) for d in diameters)
+
         min_gamma, max_gamma = [minimum(collect(values(lbs))), maximum(collect(values(ubs)))]
         wm.var[:nw][n][:gamma][pipe_id] = @variable(wm.model, [d in diameters],
                                                     lowerbound = lbs[d], upperbound = ubs[d],
