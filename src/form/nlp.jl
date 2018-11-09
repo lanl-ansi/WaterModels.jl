@@ -23,6 +23,15 @@ function constraint_dw_unknown_direction{T <: StandardNLPForm}(wm::GenericWaterM
     @NLconstraint(wm.model, h_i - h_j == lambda * q * abs(q))
 end
 
+"Non-convex Hazen-Williams constraint for flow with unknown direction."
+function constraint_hw_unknown_direction{T <: StandardNLPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+    # Collect variables and parameters needed for the constraint.
+    q, h_i, h_j, lambda = get_hw_requirements(wm, a, n)
+
+    # Add a non-convex constraint for the head loss.
+    @NLconstraint(wm.model, h_i - h_j == lambda * q * (q^2)^0.426)
+end
+
 "Non-convex Darcy-Weisbach constraint for flow with unknown direction."
 function constraint_dw_unknown_direction_ne{T <: StandardNLPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
     # Collect variables and parameters needed for the constraint.
@@ -37,15 +46,6 @@ function constraint_dw_unknown_direction_ne{T <: StandardNLPForm}(wm::GenericWat
 
     # Add a non-convex constraint for the head loss.
     @NLconstraint(wm.model, gamma_sum == q * abs(q))
-end
-
-"Non-convex Hazen-Williams constraint for flow with unknown direction."
-function constraint_hw_unknown_direction{T <: StandardNLPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
-    # Collect variables and parameters needed for the constraint.
-    q, h_i, h_j, lambda = get_hw_requirements(wm, a, n)
-
-    # Add a non-convex constraint for the head loss.
-    @NLconstraint(wm.model, h_i - h_j == lambda * q * (q^2)^0.426)
 end
 
 "Non-convex Hazen-Williams constraint for flow with unknown direction."

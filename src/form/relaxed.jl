@@ -110,6 +110,30 @@ function variable_pipe_ne{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, n:
     end
 end
 
+function constraint_restrict_direction{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+    # Collect variables needed for the constraint.
+    q, h_i, h_j = get_common_variables(wm, a, n)
+
+    # Collect other variables needed for the constraint.
+    y_p = wm.var[:nw][n][:yp][a]
+    y_n = wm.var[:nw][n][:yn][a]
+
+    # Get additional data related to the variables.
+    diff_lb = getlowerbound(h_i) - getupperbound(h_j)
+    diff_ub = getupperbound(h_i) - getlowerbound(h_j)
+
+    # Get the sum of all junction demands.
+    junctions = values(wm.ref[:nw][n][:junctions])
+    sum_demand = sum(junc["demand"] for junc in junctions)
+
+    # Add the required constraints to define y_p and y_n.
+    @constraint(wm.model, (y_p - 1) * sum_demand <= q)
+    @constraint(wm.model, (1 - y_n) * sum_demand >= q)
+    @constraint(wm.model, (1 - y_p) * diff_lb <= h_i - h_j)
+    @constraint(wm.model, (1 - y_n) * diff_ub >= h_i - h_j)
+    @constraint(wm.model, y_p + y_n == 1)
+end
+
 "Constraints used to define the head difference in the MICP and MILP-R problems."
 function constraint_define_gamma{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
     # Collect variables needed for the constraint.
@@ -129,17 +153,6 @@ function constraint_define_gamma{T <: AbstractRelaxedForm}(wm::GenericWaterModel
     @constraint(wm.model, h_i - h_j + diff_ub * (y_p - y_n - 1) <= gamma)
     @constraint(wm.model, h_j - h_i + diff_ub * (y_p - y_n + 1) >= gamma)
     @constraint(wm.model, h_i - h_j + diff_lb * (y_p - y_n - 1) >= gamma)
-
-    # Get the sum of all junction demands.
-    junctions = values(wm.ref[:nw][n][:junctions])
-    sum_demand = sum(junction["demand"] for junction in junctions)
-
-    # Add the required constraints to define y_p and y_n.
-    @constraint(wm.model, (y_p - 1) * sum_demand <= q)
-    @constraint(wm.model, (1 - y_n) * sum_demand >= q)
-    @constraint(wm.model, (1 - y_p) * diff_lb <= h_i - h_j)
-    @constraint(wm.model, (1 - y_n) * diff_ub >= h_i - h_j)
-    @constraint(wm.model, y_p + y_n == 1)
 end
 
 "Constraints used to define the head difference in the MICP and MILP-R expansion planning problems."

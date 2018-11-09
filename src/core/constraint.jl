@@ -3,12 +3,14 @@
 ########################################################################
 
 function constraint_flow_conservation{T}(wm::GenericWaterModel{T}, i, n::Int = wm.cnw)
-    # Add the flow conservation constraints for junction nodes.
-    out_arcs = collect(keys(filter((id, pipe) -> pipe["node1"] == i, wm.ref[:nw][n][:pipes])))
+    # Collect the required variables.
+    connections = wm.ref[:nw][n][:connection]
+    out_arcs = collect(keys(filter((id, c) -> c["node1"] == i, connections)))
     out_vars = Array{JuMP.Variable}([wm.var[:nw][n][:q][a] for a in out_arcs])
-    in_arcs = collect(keys(filter((id, pipe) -> pipe["node2"] == i, wm.ref[:nw][n][:pipes])))
+    in_arcs = collect(keys(filter((id, c) -> c["node2"] == i, connections)))
     in_vars = Array{JuMP.Variable}([wm.var[:nw][n][:q][a] for a in in_arcs])
 
+    # Add the flow conservation constraints for junction nodes.
     if haskey(wm.ref[:nw][n][:junctions], i)
         demand = wm.ref[:nw][n][:junctions][i]["demand"]
         @constraint(wm.model, sum(in_vars) - sum(out_vars) == demand)
@@ -18,11 +20,4 @@ function constraint_flow_conservation{T}(wm::GenericWaterModel{T}, i, n::Int = w
         @constraint(wm.model, sum(out_vars) - sum(in_vars) >= 0.0)
         @constraint(wm.model, sum(out_vars) - sum(in_vars) <= sum_demand)
     end
-end
-
-function constraint_no_good{T}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
-    yp_solution = getvalue(wm.var[:nw][n][:yp])
-    one_vars = Array{JuMP.Variable}([wm.var[:nw][n][:yp][idx[1]] for idx in keys(yp_solution) if yp_solution[idx[1]] > 1.0e-4])
-    zero_vars = Array{JuMP.Variable}([wm.var[:nw][n][:yp][idx[1]] for idx in keys(yp_solution) if yp_solution[idx[1]] <= 1.0e-4])
-    @constraint(wm.model, sum(zero_vars) - sum(one_vars) >= 1 - length(one_vars))
 end

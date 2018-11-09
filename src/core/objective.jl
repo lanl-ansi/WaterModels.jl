@@ -5,7 +5,7 @@ end
 
 function objective_minimize_cost(wm::GenericWaterModel)
     cost_function = get_diameter_cost_function(wm)
-    @constraint(wm.model, wm.var[:nw][wm.cnw][:objective] == cost_function)
+    @constraint(wm.model, wm.var[:nw][wm.cnw][:objective] >= cost_function)
     return @objective(wm.model, Min, wm.var[:nw][wm.cnw][:objective])
 end
 
