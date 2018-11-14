@@ -5,10 +5,10 @@ using PiecewiseLinearOpt
 export MILPWaterModel, StandardMILPForm
 
 "AbstractMILPForm is derived from AbstractMINLPForm"
-@compat abstract type AbstractMILPForm <: AbstractWaterFormulation end
+abstract type AbstractMILPForm <: AbstractWaterFormulation end
 
 "StandardMILPForm is derived from StandardMINLPForm"
-@compat abstract type StandardMILPForm <: AbstractMILPForm end
+abstract type StandardMILPForm <: AbstractMILPForm end
 
 "The default MILP model is assumed to meet all constraints with equality."
 const MILPWaterModel = GenericWaterModel{StandardMILPForm}
@@ -17,7 +17,7 @@ const MILPWaterModel = GenericWaterModel{StandardMILPForm}
 MILPWaterModel(data::Dict{String,Any}; kwargs...) = GenericWaterModel(data, StandardMILPForm; kwargs...)
 
 "Piecewise linear Darcy-Weisbach constraint with unknown direction variables."
-function constraint_dw_unknown_direction{T <: StandardMILPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_dw_unknown_direction(wm::GenericWaterModel{T}, a, n::Int = wm.cnw) where T <: StandardMILPForm
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j, viscosity, lambda = get_dw_requirements(wm, a, n)
 
@@ -30,7 +30,7 @@ function constraint_dw_unknown_direction{T <: StandardMILPForm}(wm::GenericWater
 end
 
 "Piecewise linear Darcy-Weisbach constraint for flow with unknown direction."
-function constraint_dw_unknown_direction_ne{T <: StandardMILPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_dw_unknown_direction_ne(wm::GenericWaterModel{T}, a, n::Int = wm.cnw) where T <: StandardMILPForm
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j = get_common_variables(wm, a, n)
 
@@ -46,7 +46,7 @@ function constraint_dw_unknown_direction_ne{T <: StandardMILPForm}(wm::GenericWa
 end
 
 "Piecewise linear Darcy-Weisbach constraint with known direction variables."
-function constraint_dw_known_direction{T <: StandardMILPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_dw_known_direction(wm::GenericWaterModel{T}, a, n::Int = wm.cnw) where T <: StandardMILPForm
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j, viscosity, lambda = get_dw_requirements(wm, a, n)
 
@@ -63,7 +63,7 @@ function constraint_dw_known_direction{T <: StandardMILPForm}(wm::GenericWaterMo
 end
 
 "Piecewise linear Hazen-Williams constraint with unknown direction variables."
-function constraint_hw_unknown_direction{T <: StandardMILPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_hw_unknown_direction(wm::GenericWaterModel{T}, a, n::Int = wm.cnw) where T <: StandardMILPForm
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j, lambda = get_hw_requirements(wm, a, n)
 
@@ -76,7 +76,7 @@ function constraint_hw_unknown_direction{T <: StandardMILPForm}(wm::GenericWater
 end
 
 "Piecewise linear Hazen-Williams constraint for flow with unknown direction."
-function constraint_hw_unknown_direction_ne{T <: StandardMILPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_hw_unknown_direction_ne(wm::GenericWaterModel{T}, a, n::Int = wm.cnw) where T <: StandardMILPForm
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j = get_common_variables(wm, a, n)
 
@@ -92,7 +92,7 @@ function constraint_hw_unknown_direction_ne{T <: StandardMILPForm}(wm::GenericWa
 end
 
 "Piecewise linear Hazen-Williams constraint with known direction variables."
-function constraint_hw_known_direction{T <: StandardMILPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_hw_known_direction(wm::GenericWaterModel{T}, a, n::Int = wm.cnw) where T <: StandardMILPForm
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j, lambda = get_hw_requirements(wm, a, n)
 
@@ -109,7 +109,7 @@ function constraint_hw_known_direction{T <: StandardMILPForm}(wm::GenericWaterMo
 end
 
 "Piecewise linear Hazen-Williams constraint for flow with unknown direction."
-function constraint_hw_known_direction_ne{T <: StandardMILPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_hw_known_direction_ne(wm::GenericWaterModel{T}, a, n::Int = wm.cnw) where T <: StandardMILPForm
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j = get_common_variables(wm, a, n)
 

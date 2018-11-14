@@ -2,11 +2,8 @@
 
 export MINLPBWaterModel, StandardMINLPBForm
 
-""
-@compat abstract type AbstractMINLPBForm <: AbstractWaterFormulation end
-
-""
-@compat abstract type StandardMINLPBForm <: AbstractMINLPBForm end
+abstract type AbstractMINLPBForm <: AbstractWaterFormulation end
+abstract type StandardMINLPBForm <: AbstractMINLPBForm end
 
 "The default MINLP-B model."
 const MINLPBWaterModel = GenericWaterModel{StandardMINLPBForm}
@@ -15,7 +12,7 @@ const MINLPBWaterModel = GenericWaterModel{StandardMINLPBForm}
 MINLPBWaterModel(data::Dict{String,Any}; kwargs...) = GenericWaterModel(data, StandardMINLPBForm; kwargs...)
 
 "Non-convex Darcy-Weisbach constraint with unknown direction variables."
-function constraint_dw_unknown_direction{T <: AbstractMINLPBForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_dw_unknown_direction(wm::GenericWaterModel{T}, a, n::Int = wm.cnw) where T <: AbstractMINLPBForm
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j, viscosity, lambda = get_dw_requirements(wm, a, n)
 
@@ -42,7 +39,7 @@ function hw_quintic_approx(model::JuMP.Model, q::JuMP.Variable, delta::Float64 =
 end
 
 "Non-convex Hazen-Williams constraint for flow with unknown direction."
-function constraint_hw_unknown_direction{T <: AbstractMINLPBForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_hw_unknown_direction(wm::GenericWaterModel{T}, a, n::Int = wm.cnw) where T <: AbstractMINLPBForm
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j, lambda = get_hw_requirements(wm, a, n)
 
@@ -63,7 +60,7 @@ function constraint_hw_unknown_direction{T <: AbstractMINLPBForm}(wm::GenericWat
 end
 
 "Non-convex Hazen-Williams constraint for flow with unknown direction."
-function constraint_hw_unknown_direction_ne{T <: AbstractMINLPBForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_hw_unknown_direction_ne(wm::GenericWaterModel{T}, a, n::Int = wm.cnw) where T <: AbstractMINLPBForm
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j = get_common_variables(wm, a, n)
 

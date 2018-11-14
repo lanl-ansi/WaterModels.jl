@@ -10,8 +10,8 @@
 @enum FLOW_DIRECTION POSITIVE=1 NEGATIVE=-1 UNKNOWN=0
 
 function parse_epanet_file(path::String)
-    file_contents = readstring(open(path))
-    file_contents = replace(file_contents, "\t", "    ")
+    file_contents = read(open(path), String)
+    file_contents = replace(file_contents, "\t" => "    ")
     lines = split(file_contents, '\n')
 
     section = headings = nothing
@@ -19,13 +19,13 @@ function parse_epanet_file(path::String)
     epanet_dict = Dict{String, Any}()
 
     for (i, line) in enumerate(lines)
-        if ismatch(r"^\s*\[(.*)\]", line) # If a section heading.
+        if occursin(r"^\s*\[(.*)\]", line) # If a section heading.
             section = lowercase(strip(line, ['[', ']']))
-            headings_exist = ismatch(r"^;", lines[i+1])
+            headings_exist = occursin(r"^;", lines[i+1])
             if !headings_exist
                 epanet_dict["$section"] = Dict{String, Any}()
             end
-        elseif ismatch(r"^;", line) # If a section heading.
+        elseif occursin(r"^;", line) # If a section heading.
             headings = split(lowercase(strip(line, [';'])))
             epanet_dict["$section"] = Dict{String, Array}(h => [] for h = headings)
         elseif length(line) == 0
@@ -42,23 +42,25 @@ function parse_epanet_file(path::String)
                 end
             else
                 heading = strip(split(line, "  ")[1])
-                data = split(lowercase(strip(replace(line, heading, ""), [';'])))
+                data = split(lowercase(strip(replace(line, heading => ""), [';'])))
                 epanet_dict["$section"][lowercase(heading)] = data
             end
         end
     end
 
+    # Parse important options first.
+    options = parse_options(epanet_dict["options"])
+
     # Parse relevant data into a more structured format.
     dict = Dict{String, Any}()
     dict["title"] = parse_title(epanet_dict["title"])
-    dict["options"] = parse_options(epanet_dict["options"])
-    dict["junctions"] = parse_junctions(epanet_dict["junctions"], dict["options"])
-    dict["pipes"] = parse_pipes(epanet_dict["pipes"], dict["options"])
-    dict["reservoirs"] = parse_reservoirs(epanet_dict["reservoirs"], dict["options"])
+    dict["junctions"] = parse_junctions(epanet_dict["junctions"], options)
+    dict["pipes"] = parse_pipes(epanet_dict["pipes"], options)
+    dict["reservoirs"] = parse_reservoirs(epanet_dict["reservoirs"], options)
     dict["tanks"] = parse_tanks(epanet_dict["tanks"])
     dict["valves"] = parse_valves(epanet_dict["valves"])
-    dict["multinetwork"] = false
     dict["per_unit"] = false
+    dict["multinetwork"] = false
 
     return dict
 end
@@ -119,7 +121,7 @@ function parse_junctions(data::Dict{String, Array}, options::Dict{String, Any})
     arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["id"])]
 
     # Scale the quantities appropriately.
-    return Dict{String, Any}(data["id"][i] => arr[i] for i = 1:length(arr))
+    return Dict{String, Any}(string(data["id"][i]) => arr[i] for i = 1:length(arr))
 end
 
 function parse_pipes(data::Dict{String, Array}, options::Dict{String, Any})
@@ -185,15 +187,15 @@ function parse_pipes(data::Dict{String, Array}, options::Dict{String, Any})
                    "flow_direction" => FLOW_DIRECTION)
 
     # Populate the flow direction data.
-    data["flow_direction"] = Array{FLOW_DIRECTION}(length(data["id"]))
-    fill!(data["flow_direction"], UNKNOWN) # The initial flow direction is unknown.
+    data["flow_direction"] = Array{FLOW_DIRECTION}(undef, length(data["id"]))
+    fill!(data["flow_direction"], UNKNOWN)
 
     # Ensure the arrays describing pipe data are all of equal lengths.
     @assert(allequal([length(data[column]) for column in keys(columns)]))
 
     # Create a dictionary of pipe dictionaries with the correct data types.
     arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["id"])]
-    return Dict{String, Any}(data["id"][i] => arr[i] for i = 1:length(arr))
+    return Dict{String, Any}(string(data["id"][i]) => arr[i] for i = 1:length(arr))
 end
 
 function parse_reservoirs(data::Dict{String, Array}, options::Dict{String, Any})
@@ -222,7 +224,7 @@ function parse_reservoirs(data::Dict{String, Array}, options::Dict{String, Any})
 
     # Return an array of reservoir dictionaries with the correct data types.
     arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["id"])]
-    return Dict{String, Any}(data["id"][i] => arr[i] for i = 1:length(arr))
+    return Dict{String, Any}(string(data["id"][i]) => arr[i] for i = 1:length(arr))
 end
 
 function parse_tanks(data::Dict{String, Array})
@@ -237,7 +239,7 @@ function parse_tanks(data::Dict{String, Array})
 
     # Return an array of reservoir dictionaries with the correct data types.
     arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["id"])]
-    return Dict{String, Any}(data["id"][i] => arr[i] for i = 1:length(arr))
+    return Dict{String, Any}(string(data["id"][i]) => arr[i] for i = 1:length(arr))
 end
 
 function parse_valves(data::Dict{String, Array})
@@ -252,7 +254,7 @@ function parse_valves(data::Dict{String, Array})
 
     # Return an array of reservoir dictionaries with the correct data types.
     arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["id"])]
-    return Dict{String, Any}(data["id"][i] => arr[i] for i = 1:length(arr))
+    return Dict{String, Any}(string(data["id"][i]) => arr[i] for i = 1:length(arr))
 end
 
 function parse_options(data::Dict{String, Any})

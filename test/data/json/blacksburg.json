@@ -1,0 +1,2104 @@
+{
+    "pipes": {
+        "1": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "10": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "11": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "12": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "13": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "14": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "15": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "16": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "17": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "18": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "19": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "2": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "20": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "21": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "22": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "23": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "24": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "25": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "26": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "27": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "28": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "29": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "3": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "30": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "31": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "32": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "33": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "34": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "35": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "4": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "5": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "6": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "7": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "8": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        },
+        "9": {
+            "diameters": [
+                {
+                    "costPerUnitLength": 0.524955627,
+                    "diameter": 0.0254001
+                },
+                {
+                    "costPerUnitLength": 2.099822507,
+                    "diameter": 0.0508002
+                },
+                {
+                    "costPerUnitLength": 4.724600641,
+                    "diameter": 0.0762003
+                },
+                {
+                    "costPerUnitLength": 8.399290029,
+                    "diameter": 0.1016004
+                },
+                {
+                    "costPerUnitLength": 18.89840256,
+                    "diameter": 0.1524006
+                },
+                {
+                    "costPerUnitLength": 33.59716011,
+                    "diameter": 0.2032008
+                },
+                {
+                    "costPerUnitLength": 52.49556268,
+                    "diameter": 0.25400100000000003
+                },
+                {
+                    "costPerUnitLength": 75.59361026,
+                    "diameter": 0.3048012
+                },
+                {
+                    "costPerUnitLength": 102.89130290000001,
+                    "diameter": 0.3556014
+                },
+                {
+                    "costPerUnitLength": 134.3886405,
+                    "diameter": 0.4064016
+                },
+                {
+                    "costPerUnitLength": 170.0856231,
+                    "diameter": 0.4572018
+                },
+                {
+                    "costPerUnitLength": 209.98225069999998,
+                    "diameter": 0.5080020000000001
+                },
+                {
+                    "costPerUnitLength": 254.07852340000002,
+                    "diameter": 0.5588022
+                },
+                {
+                    "costPerUnitLength": 302.374441,
+                    "diameter": 0.6096024
+                }
+            ]
+        }
+    }
+}

@@ -2,7 +2,7 @@
 AbstractExactForm = Union{AbstractMINLPBForm, AbstractNLPForm}
 
 "Exact Hazen-Williams constraint for flow with known direction."
-function constraint_hw_known_direction{T <: AbstractExactForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_hw_known_direction(wm::GenericWaterModel{T}, a, n::Int = wm.cnw) where T <: AbstractExactForm
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j, lambda = get_hw_requirements(wm, a, n)
 
@@ -15,7 +15,7 @@ function constraint_hw_known_direction{T <: AbstractExactForm}(wm::GenericWaterM
 end
 
 "Exact Darcy-Weisbach constraint with known direction."
-function constraint_dw_known_direction{T <: AbstractExactForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_dw_known_direction(wm::GenericWaterModel{T}, a, n::Int = wm.cnw) where T <: AbstractExactForm
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j, viscosity, lambda = get_dw_requirements(wm, a, n)
 

@@ -10,19 +10,46 @@ function objective_minimize_cost(wm::GenericWaterModel)
 end
 
 function get_diameter_cost_function(wm::GenericWaterModel)
-    cost_function = @expression(wm.model, 0.0)
+    cost_function = zero(AffExpr)
 
     for n in nws(wm)
         for (a, pipe) in wm.ref[:nw][n][:ne_pipe]
             length = pipe["length"]
             diameter_vars = wm.var[:nw][n][:psi][a]
-            diameters = [key[1] for key in keys(diameter_vars)]
             costs = [d["costPerUnitLength"] * length for d in pipe["diameters"]] * 1.0e-6
             cost_function += AffExpr(diameter_vars[:], costs, 0.0)
         end
     end
 
     return cost_function
+end
+
+function objective_cvxnlp(wm::GenericWaterModel, exponent::Float64 = 1.852)
+    objective = AffExpr(0.0)
+
+    for n in nws(wm)
+        for (a, connection) in wm.ref[:nw][n][:connection]
+            q_p = wm.var[:nw][n][:qp][a]
+            q_n = wm.var[:nw][n][:qn][a]
+            L = connection["length"]
+            r = calc_resistance_per_length_hw(connection)
+            term = @variable(wm.model, lowerbound = 0.0, category = :Cont, start = 1.0e-6)
+            @NLconstraint(wm.model, term >= r * L * ((q_p^2)^0.926 + (q_n^2)^0.926))
+            objective += term
+        end
+    end
+
+    for n in nws(wm)
+        for (i, reservoir) in wm.ref[:nw][n][:reservoirs]
+            for (a, connection) in wm.ref[:nw][n][:connection]
+                q_p = wm.var[:nw][n][:qp][a]
+                q_n = wm.var[:nw][n][:qn][a]
+                objective += reservoir["head"] * (q_p - q_n)
+            end
+        end
+    end
+
+    return @objective(wm.model, Min, objective)
 end
 
 function objective_maximize_variable(wm::GenericWaterModel, variable::JuMP.Variable)

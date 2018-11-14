@@ -20,6 +20,7 @@ function post_ne_hw(wm::GenericWaterModel; kwargs...)
     variable_flow(wm)
     variable_head_ne(wm)
     variable_pipe_ne(wm)
+    variable_objective_ne(wm)
 
     for i in [collect(ids(wm, :junctions)); collect(ids(wm, :reservoirs))]
         constraint_junction_mass_flow(wm, i)
@@ -33,7 +34,6 @@ function post_ne_hw(wm::GenericWaterModel; kwargs...)
         constraint_hw_known_direction(wm, a)
     end
 
-    variable_objective_ne(wm)
     objective_minimize_cost(wm)
 end
 
@@ -54,7 +54,7 @@ function post_ne_bt_hw(wm::GenericWaterModel; kwargs...)
         constraint_hw_known_direction(wm, a)
     end
 
-    ##variable_objective_ne(wm)
+    #variable_objective_ne(wm)
     #h_i = wm.var[:nw][wm.cnw][:h]["2"]
     #objective_minimize_variable(wm, h_i)
 end

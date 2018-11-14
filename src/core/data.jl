@@ -8,8 +8,8 @@ function calc_head_bounds(junctions, reservoirs)
     head_min = Dict([(i, -Inf) for i in ids])
     head_max = Dict([(i, Inf) for i in ids])
 
-    max_elev = maximum([junction["elev"] for junction in values(junctions)])
-    max_head = maximum([reservoir["head"] for reservoir in values(reservoirs)])
+    max_elev = maximum([junc["elev"] for junc in values(junctions)])
+    max_head = maximum([res["head"] for res in values(reservoirs)])
 
     for (i, junction) in junctions
         if haskey(junction, "minimumHead")
@@ -39,7 +39,7 @@ function calc_flow_bounds(pipes)
 
     for (pipe_id, pipe) in pipes
         diameter = pipe["diameter"]
-        max_absolute_flow = (pi / 4.0) * 100.0 * diameter^2
+        max_absolute_flow = (pi / 4.0) * 10.0 * diameter^2
 
         if haskey(pipe, "minimumFlow")
             flow_min[pipe_id] = pipe["minimumFlow"]
@@ -61,6 +61,12 @@ function calc_flow_bounds(pipes)
     end
 
     return flow_min, flow_max
+end
+
+function calc_resistance_per_length_hw(pipe)
+    diameter = pipe["diameter"]
+    roughness = pipe["roughness"]
+    return 10.67/ (roughness^1.852 * diameter^4.87)
 end
 
 function calc_friction_factor_hw(pipe)
@@ -135,10 +141,12 @@ end
 
 function update_diameters(data, wm)
     for (pipe_id, pipe) in data["pipes"]
-        diameter_vars = wm.var[:nw][wm.cnw][:psi][pipe_id]
-        diameters = [key[1] for key in keys(diameter_vars)]
+        a = parse(Int, pipe_id)
+        entries = wm.data["pipes"][pipe_id]["diameters"]
+        diameters = [entry["diameter"] for entry in entries]
+
         for diameter in diameters
-            if getvalue(wm.var[:nw][wm.cnw][:psi][pipe_id][diameter]) > 1.0e-4
+            if getvalue(wm.var[:nw][wm.cnw][:psi][a][diameter]) > 1.0e-4
                 pipe["diameter"] = diameter
                 break
             end
@@ -150,4 +158,53 @@ function reset_flow_directions(data)
     for (pipe_id, pipe) in data["pipes"]
         pipe["flow_direction"] = UNKNOWN
     end
+end
+
+function set_maximum_diameter(pipe::Dict{String, Any})
+    if haskey(pipe, "diameters")
+        entries = pipe["diameters"]
+        diameters = [entry["diameter"] for entry in entries]
+        pipe["diameter"] = maximum(diameters)
+        delete!(pipe, "diameters")
+    end
+end
+
+function set_maximum_diameters(data::Dict{String, Any})
+    for (a, pipe) in data["pipes"]
+        set_maximum_diameter(pipe)
+    end
+end
+
+function get_maximum_diameter(connection::Pair{Int, Any})
+    if haskey(connection.second, "diameters")
+        entries = connection.second["diameters"]
+        return max([entry["diameter"] for entry in entries])
+    else
+        return connection.second["diameter"]
+    end
+end
+
+
+function has_known_flow_direction(connection::Pair{Int, Any})
+    return connection.second["flow_direction"] != UNKNOWN
+end
+
+function is_ne_pipe(connection::Pair{Int, Any})
+    return haskey(connection.second, "diameters")
+end
+
+function is_out_node_function(i::Int)
+    function is_out_node(connection::Pair{Int, Any})
+        return parse(Int, connection.second["node1"]) == i
+    end
+
+    return is_out_node
+end
+
+function is_in_node_function(i::Int)
+    function is_in_node(connection::Pair{Int, Any})
+        return parse(Int, connection.second["node2"]) == i
+    end
+
+    return is_in_node
 end

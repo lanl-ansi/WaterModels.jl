@@ -1,5 +1,5 @@
-function build_solution{T}(wm::GenericWaterModel{T}, status, solve_time;
-                           objective = NaN, solution_builder = get_solution)
+function build_solution(wm::GenericWaterModel, status, solve_time;
+                        objective = NaN, solution_builder = get_solution)
     if status != :Error
         objective = getobjectivevalue(wm.model)
         status = solver_status_dict(Symbol(typeof(wm.model.solver).name.module), status)
@@ -79,7 +79,7 @@ function add_setpoint(sol, wm::GenericWaterModel, dict_name, param_name,
     end
 
     for (i, item) in data_dict
-        idx = String(item[index_name]) # TODO: idx needs to be an integer.
+        idx = parse(Int, item[index_name])
         sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
         sol_item[param_name] = default_value(item)
 

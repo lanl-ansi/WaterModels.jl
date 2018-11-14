@@ -6,10 +6,10 @@ function fix_flow_direction(q::JuMP.Variable, direction::Int)
 end
 
 "Get variables commonly used in the construction of head loss constraints."
-function get_common_variables{T <: AbstractWaterFormulation}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function get_common_variables(wm::GenericWaterModel{T}, a::Int, n::Int = wm.cnw) where T <: AbstractWaterFormulation
     # Get source and target nodes corresponding to the edge.
-    i = wm.ref[:nw][n][:pipes][a]["node1"]
-    j = wm.ref[:nw][n][:pipes][a]["node2"]
+    i = parse(Int, wm.ref[:nw][n][:pipes][a]["node1"])
+    j = parse(Int, wm.ref[:nw][n][:pipes][a]["node2"])
 
     # Collect variables needed for the constraint.
     q = wm.var[:nw][n][:q][a]
@@ -21,7 +21,7 @@ function get_common_variables{T <: AbstractWaterFormulation}(wm::GenericWaterMod
 end
 
 "Get variables and constants used in the construction of Darcy-Weisbach constraints."
-function get_dw_requirements{T <: AbstractWaterFormulation}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function get_dw_requirements(wm::GenericWaterModel{T}, a::Int, n::Int = wm.cnw) where T <: AbstractWaterFormulation
     q, h_i, h_j = get_common_variables(wm, a, n)
     viscosity = wm.ref[:nw][n][:options]["viscosity"]
     lambda = calc_friction_factor_dw(wm.ref[:nw][n][:pipes][a], viscosity)
@@ -29,7 +29,7 @@ function get_dw_requirements{T <: AbstractWaterFormulation}(wm::GenericWaterMode
 end
 
 "Get variables and constants used in the construction of Hazen-Williams constraints."
-function get_hw_requirements{T <: AbstractWaterFormulation}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function get_hw_requirements(wm::GenericWaterModel{T}, a::Int, n::Int = wm.cnw) where T <: AbstractWaterFormulation
     q, h_i, h_j = get_common_variables(wm, a, n)
     lambda = calc_friction_factor_hw(wm.ref[:nw][n][:pipes][a])
     return q, h_i, h_j, lambda

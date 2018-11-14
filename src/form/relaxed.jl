@@ -2,40 +2,39 @@
 AbstractRelaxedForm = Union{AbstractMICPForm, AbstractMILPRForm}
 
 "Create variables associated with the head difference for the MICP and MILP-R problems."
-function variable_absolute_head_difference{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
-    connections = wm.ref[:nw][n][:connection_unknown_direction]
-    gamma_lb = Dict([(id, 0.0) for id in keys(connections)])
-    gamma_ub = Dict([(id, Inf) for id in keys(connections)])
+function variable_absolute_head_difference(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: AbstractRelaxedForm
+    connection_ids = collect(ids(wm, :connection_unknown_direction))
+    gamma_lb = Dict([(id, 0.0) for id in connection_ids])
+    gamma_ub = Dict([(id, Inf) for id in connection_ids])
 
-    for (id, connection) in connections
-        h_i = wm.var[:nw][n][:h][connection["node1"]]
-        h_j = wm.var[:nw][n][:h][connection["node2"]]
+    for (id, connection) in wm.ref[:nw][n][:connection_unknown_direction]
+        h_i = wm.var[:nw][n][:h][parse(Int, connection["node1"])]
+        h_j = wm.var[:nw][n][:h][parse(Int, connection["node2"])]
         diff_ub = getupperbound(h_i) - getlowerbound(h_j)
         diff_lb = getlowerbound(h_i) - getupperbound(h_j)
         gamma_ub[id] = max(abs(diff_lb), abs(diff_ub))
     end
 
     # Create variables that correspond to the absolute value of the head difference.
-    wm.var[:nw][n][:gamma] = @variable(wm.model, [id in keys(connections)],
+    wm.var[:nw][n][:gamma] = @variable(wm.model, [id in connection_ids],
                                        lowerbound = gamma_lb[id],
                                        upperbound = gamma_ub[id],
                                        basename = "gamma_$(n)")
 end
 
 "Create variables associated with flow directions for the MICP and MILP-R problems."
-function variable_flow_direction{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
-    connections = wm.ref[:nw][n][:connection_unknown_direction]
-
+function variable_flow_direction(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: AbstractRelaxedForm
     # Create variables that correspond to flow moving from i to j.
-    wm.var[:nw][n][:yp] = @variable(wm.model, [id in keys(connections)],
+    connection_ids = collect(ids(wm, :connection_unknown_direction))
+    wm.var[:nw][n][:yp] = @variable(wm.model, [a in connection_ids],
                                     category = :Bin, basename = "yp_$(n)")
-    wm.var[:nw][n][:yn] = @variable(wm.model, [id in keys(connections)],
-                                    category = :Bin, basename = "yp_$(n)")
+    wm.var[:nw][n][:yn] = @variable(wm.model, [a in connection_ids],
+                                    category = :Bin, basename = "yn_$(n)")
 
     # Fix these variables if the head bounds imply they can be fixed.
-    for (id, connection) in connections
-        h_i = wm.var[:nw][n][:h][connection["node1"]]
-        h_j = wm.var[:nw][n][:h][connection["node2"]]
+    for (id, connection) in wm.ref[:nw][n][:connection_unknown_direction]
+        h_i = wm.var[:nw][n][:h][parse(Int, connection["node1"])]
+        h_j = wm.var[:nw][n][:h][parse(Int, connection["node2"])]
         diff_lb = getlowerbound(h_i) - getupperbound(h_j)
         diff_ub = getupperbound(h_i) - getlowerbound(h_j)
 
@@ -52,27 +51,27 @@ function variable_flow_direction{T <: AbstractRelaxedForm}(wm::GenericWaterModel
 end
 
 "Create variables associated with head for the MICP and MILP-R feasibility problems."
-function variable_head{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
+function variable_head(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: AbstractRelaxedForm
     variable_head_common(wm, n) # Create h variables.
     variable_absolute_head_difference(wm, n) # Create gamma variables.
     variable_flow_direction(wm, n) # Create y_p and y_n variables.
 end
 
 "Create variables associated with head for the MICP and MILP-R network expansion problems."
-function variable_head_ne{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
+function variable_head_ne(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: AbstractRelaxedForm
     variable_head_common(wm, n) # Create h variables.
     variable_absolute_head_difference(wm, n) # Create gamma variables.
     variable_flow_direction(wm, n) # Create y_p and y_n variables.
 end
 
 "Create variables associated with the pipe for the MICP and MILP-R problems."
-function variable_pipe_ne{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
+function variable_pipe_ne(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: AbstractRelaxedForm
     # Create pipe variables.
     variable_pipe_ne_common(wm, n)
 
     # Set up required data to initialize junction variables.
-    wm.var[:nw][n][:wp] = Dict{String, Any}()
-    wm.var[:nw][n][:wn] = Dict{String, Any}()
+    wm.var[:nw][n][:wp] = Dict{Int, Any}()
+    wm.var[:nw][n][:wn] = Dict{Int, Any}()
 
     # Create binary variables associated with the combination of whether a
     # diameter is used and the direction of flow in a pipe.
@@ -93,8 +92,8 @@ function variable_pipe_ne{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, n:
                                             start = 0)
 
         # Compute the lower and upper bounds for the head difference.
-        h_i = wm.var[:nw][n][:h][pipe["node1"]]
-        h_j = wm.var[:nw][n][:h][pipe["node2"]]
+        h_i = wm.var[:nw][n][:h][parse(Int, pipe["node1"])]
+        h_j = wm.var[:nw][n][:h][parse(Int, pipe["node2"])]
         diff_lb = getlowerbound(h_i) - getupperbound(h_j)
         diff_ub = getupperbound(h_i) - getlowerbound(h_j)
 
@@ -110,7 +109,7 @@ function variable_pipe_ne{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, n:
     end
 end
 
-function constraint_restrict_direction{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_restrict_direction(wm::GenericWaterModel{T}, a, n::Int = wm.cnw) where T <: AbstractRelaxedForm
     # Collect variables needed for the constraint.
     q, h_i, h_j = get_common_variables(wm, a, n)
 
@@ -135,7 +134,7 @@ function constraint_restrict_direction{T <: AbstractRelaxedForm}(wm::GenericWate
 end
 
 "Constraints used to define the head difference in the MICP and MILP-R problems."
-function constraint_define_gamma{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_define_gamma(wm::GenericWaterModel{T}, a::Int, n::Int = wm.cnw) where T <: AbstractRelaxedForm
     # Collect variables needed for the constraint.
     q, h_i, h_j = get_common_variables(wm, a, n)
 
@@ -156,29 +155,30 @@ function constraint_define_gamma{T <: AbstractRelaxedForm}(wm::GenericWaterModel
 end
 
 "Constraints used to define the head difference in the MICP and MILP-R expansion planning problems."
-function constraint_define_gamma_hw_ne{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_define_gamma_hw_ne(wm::GenericWaterModel{T}, a::Int, n::Int = wm.cnw) where T <: AbstractRelaxedForm
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j = get_common_variables(wm, a, n)
     y_p = wm.var[:nw][n][:yp][a]
     y_n = wm.var[:nw][n][:yn][a]
 
+    # Get the various pipe diameters from which we can select.
+    pipe = wm.ref[:nw][n][:ne_pipe][a]
+    diameters = [d["diameter"] for d in pipe["diameters"]]
+
     # Add a constraint that says at most one diameter must be selected.
-    @constraint(wm.model, sum(wm.var[:nw][n][:psi][a]) == 1)
+    @constraint(wm.model, sum(wm.var[:nw][n][:psi][a][d] for d in diameters) == 1)
 
     # Get the sum of all junction demands.
     junctions = values(wm.ref[:nw][n][:junctions])
     sum_demand = sum(junction["demand"] for junction in junctions)
-    @constraint(wm.model, sum(wm.var[:nw][n][:wp][a]) == y_p)
-    @constraint(wm.model, sum(wm.var[:nw][n][:wn][a]) == y_n)
+    @constraint(wm.model, sum(wm.var[:nw][n][:wp][a][d] for d in diameters) == y_p)
+    @constraint(wm.model, sum(wm.var[:nw][n][:wn][a][d] for d in diameters) == y_n)
     @constraint(wm.model, y_p + y_n == 1)
     @constraint(wm.model, (y_p - 1) * sum_demand <= q)
     @constraint(wm.model, (1 - y_n) * sum_demand >= q)
 
     # Get the pipe associated with the pipe index a.
     pipe = wm.ref[:nw][n][:ne_pipe][a]
-
-    # Get the various pipe diameters from which we can select.
-    diameters = [key[1] for key in keys(wm.var[:nw][n][:psi][a])]
 
     # Constrain each gamma variable.
     for diameter in diameters
@@ -210,17 +210,17 @@ function constraint_define_gamma_hw_ne{T <: AbstractRelaxedForm}(wm::GenericWate
     end
 end
 
-function set_initial_solution_ne{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, wm_solved::GenericWaterModel)
-    for i in [key[1] for key in keys(wm_solved.var[:nw][wm_solved.cnw][:h])]
+function set_initial_solution_ne(wm::GenericWaterModel{T}, wm_solved::GenericWaterModel) where T <: AbstractRelaxedForm
+    for i in [collect(ids(wm, :junctions)); collect(ids(wm, :reservoirs))]
         h_i_sol = getvalue(wm_solved.var[:nw][wm_solved.cnw][:h][i])
         setvalue(wm.var[:nw][wm.cnw][:h][i], h_i_sol)
     end
 
     objective_value = 0.0
 
-    for ij in [key[1] for key in keys(wm_solved.var[:nw][wm_solved.cnw][:q])]
-        i = wm_solved.ref[:nw][wm_solved.cnw][:pipes][ij]["node1"]
-        j = wm_solved.ref[:nw][wm_solved.cnw][:pipes][ij]["node2"]
+    for ij in collect(ids(wm, :connection))
+        i = parse(Int, wm_solved.ref[:nw][wm_solved.cnw][:pipes][ij]["node1"])
+        j = parse(Int, wm_solved.ref[:nw][wm_solved.cnw][:pipes][ij]["node2"])
         q_ij_sol = getvalue(wm_solved.var[:nw][wm_solved.cnw][:q][ij])
         h_i_sol = getvalue(wm_solved.var[:nw][wm_solved.cnw][:h][i])
         h_j_sol = getvalue(wm_solved.var[:nw][wm_solved.cnw][:h][j])
@@ -230,8 +230,10 @@ function set_initial_solution_ne{T <: AbstractRelaxedForm}(wm::GenericWaterModel
         setvalue(wm.var[:nw][wm.cnw][:yp][ij], 1 * (flow_direction == 1))
         setvalue(wm.var[:nw][wm.cnw][:yn][ij], 1 * (flow_direction == -1))
 
+        # Get the various pipe diameters from which we can select.
+        pipe = wm.ref[:nw][wm.cnw][:ne_pipe][ij]
+        diameters = [d["diameter"] for d in pipe["diameters"]]
         diameter_sol = wm_solved.ref[:nw][wm_solved.cnw][:pipes][ij]["diameter"]
-        diameters = [key[1] for key in keys(wm.var[:nw][wm.cnw][:psi][ij])]
 
         for diameter in diameters
             if diameter == diameter_sol
@@ -258,21 +260,112 @@ function set_initial_solution_ne{T <: AbstractRelaxedForm}(wm::GenericWaterModel
     setvalue(wm.var[:nw][wm.cnw][:objective], objective_value * 1.0e-6)
 end
 
+function set_initial_solution_from_cvx(wm::GenericWaterModel{T}, cvx::GenericWaterModel) where T <: AbstractRelaxedForm
+    h_sol = Dict{Int, Float64}()
+
+    num_junctions = length(cvx.ref[:nw][cvx.cnw][:junctions])
+    num_reservoirs = length(cvx.ref[:nw][cvx.cnw][:reservoirs])
+    num_nodes = num_junctions + num_reservoirs
+    num_arcs = length(cvx.ref[:nw][cvx.cnw][:connection])
+    A = zeros(Float64, num_arcs + num_reservoirs, num_nodes)
+    b = zeros(Float64, num_arcs + num_reservoirs, 1)
+
+    for (a, connection) in cvx.ref[:nw][cvx.cnw][:connection]
+        A[a, parse(Int, connection["node1"])] = 1
+        A[a, parse(Int, connection["node2"])] = -1
+        q_p = getvalue(cvx.var[:nw][cvx.cnw][:qp][a])
+        q_n = getvalue(cvx.var[:nw][cvx.cnw][:qn][a])
+        r = calc_resistance_per_length_hw(connection)
+        b[a] = connection["length"] * r * (q_p - q_n)
+    end
+
+    k = 1
+    for (i, reservoir) in cvx.ref[:nw][cvx.cnw][:reservoirs]
+        row = num_arcs + k
+        A[row, i] = 1
+        b[row] = reservoir["head"]
+    end
+
+    h_sol = A \ b
+
+    for (i, junction) in wm.ref[:nw][wm.cnw][:junctions]
+        #h_sol[i] = getdual(cvx.con[:nw][cvx.cnw][:flow_conservation][i])
+        set_start_value(wm.var[:nw][wm.cnw][:h][i], h_sol[i])
+    end
+
+    for (i, reservoir) in wm.ref[:nw][wm.cnw][:reservoirs]
+        #h_sol[i] = reservoir["head"]
+        set_start_value(wm.var[:nw][wm.cnw][:h][i], h_sol[i])
+    end
+
+    q_sol = Dict{Int, Float64}()
+
+    for (ij, connection) in wm.ref[:nw][wm.cnw][:connection]
+        i = parse(Int, cvx.ref[:nw][cvx.cnw][:pipes][ij]["node1"])
+        j = parse(Int, cvx.ref[:nw][cvx.cnw][:pipes][ij]["node2"])
+        q_p_ij = getvalue(cvx.var[:nw][cvx.cnw][:qp][ij])
+        q_n_ij = getvalue(cvx.var[:nw][cvx.cnw][:qn][ij])
+        q_sol[ij] = q_p_ij - q_n_ij
+        L = connection["length"]
+        r = calc_resistance_per_length_hw(connection)
+    end
+
+    objective_value = 0.0
+
+    for ij in collect(ids(wm, :connection))
+        i = parse(Int, cvx.ref[:nw][cvx.cnw][:pipes][ij]["node1"])
+        j = parse(Int, cvx.ref[:nw][cvx.cnw][:pipes][ij]["node2"])
+
+        flow_direction = sign(q_sol[ij])
+        set_start_value(wm.var[:nw][wm.cnw][:q][ij], q_sol[ij])
+        set_start_value(wm.var[:nw][wm.cnw][:yp][ij], 1 * (flow_direction == 1))
+        set_start_value(wm.var[:nw][wm.cnw][:yn][ij], 1 * (flow_direction == -1))
+
+        # Get the various pipe diameters from which we can select.
+        pipe = wm.ref[:nw][wm.cnw][:ne_pipe][ij]
+        diameters = [d["diameter"] for d in pipe["diameters"]]
+        diameter_sol = cvx.ref[:nw][cvx.cnw][:pipes][ij]["diameter"]
+
+        for diameter in diameters
+            if diameter == diameter_sol
+                pipe = wm.ref[:nw][wm.cnw][:ne_pipe][ij]
+                pipe_sol = cvx.ref[:nw][cvx.cnw][:pipes][ij]
+                lambda = calc_friction_factor_hw_ne(pipe_sol, diameter)
+                gamma = flow_direction * (h_sol[i] - h_sol[j]) / lambda
+                cost_per_unit_length = [d["costPerUnitLength"] for d in filter((d) -> d["diameter"] == diameter_sol, pipe["diameters"])][1]
+                objective_value += pipe["length"] * cost_per_unit_length
+                set_start_value(wm.var[:nw][wm.cnw][:gamma][ij][diameter], gamma)
+                set_start_value(wm.var[:nw][wm.cnw][:gamma_sum][ij], gamma)
+                set_start_value(wm.var[:nw][wm.cnw][:psi][ij][diameter], 1)
+                set_start_value(wm.var[:nw][wm.cnw][:wp][ij][diameter], 1 * (flow_direction == 1))
+                set_start_value(wm.var[:nw][wm.cnw][:wn][ij][diameter], 1 * (flow_direction == -1))
+            else
+                set_start_value(wm.var[:nw][wm.cnw][:gamma][ij][diameter], 0.0)
+                set_start_value(wm.var[:nw][wm.cnw][:psi][ij][diameter], 0)
+                set_start_value(wm.var[:nw][wm.cnw][:wp][ij][diameter], 0)
+                set_start_value(wm.var[:nw][wm.cnw][:wn][ij][diameter], 0)
+            end
+        end
+    end
+
+    set_start_value(wm.var[:nw][wm.cnw][:objective], objective_value * 1.0e-6)
+end
+
 "Constraint to ensure at least one direction is set to take flow away from a source."
-function constraint_source_flow{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, i, f_branches, t_branches, n::Int = wm.cnw)
+function constraint_source_flow(wm::GenericWaterModel{T}, i::Int, f_branches, t_branches, n::Int = wm.cnw) where T <: AbstractRelaxedForm
     dirs_out_1 = Array{JuMP.Variable}([wm.var[:nw][n][:yp][a] for a in f_branches])
     dirs_out_2 = Array{JuMP.Variable}([wm.var[:nw][n][:yn][a] for a in t_branches])
     @constraint(wm.model, sum(dirs_out_1) + sum(dirs_out_2) >= 1)
 end
 
 "Constraint to ensure at least one direction is set to take flow to a junction with demand."
-function constraint_sink_flow{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, i, f_branches, t_branches, n::Int = wm.cnw)
+function constraint_sink_flow(wm::GenericWaterModel{T}, i::Int, f_branches, t_branches, n::Int = wm.cnw) where T <: AbstractRelaxedForm
     dirs_in_1 = Array{JuMP.Variable}([wm.var[:nw][n][:yp][a] for a in t_branches])
     dirs_in_2 = Array{JuMP.Variable}([wm.var[:nw][n][:yn][a] for a in f_branches])
     @constraint(wm.model, sum(dirs_in_1) + sum(dirs_in_2) >= 1)
 end
 
-function constraint_junction_mass_flow{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, i, n::Int = wm.cnw)
+function constraint_junction_mass_flow(wm::GenericWaterModel{T}, i::Int, n::Int = wm.cnw) where T <: AbstractRelaxedForm
     constraint_flow_conservation(wm, i, n)
 
     is_reservoir = haskey(wm.ref[:nw][n][:reservoirs], i)
@@ -295,7 +388,7 @@ function constraint_junction_mass_flow{T <: AbstractRelaxedForm}(wm::GenericWate
     end
 end
 
-function constraint_no_good_ne{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
+function constraint_no_good_ne(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: AbstractRelaxedForm
     pipe_ids = ids(wm, :ne_pipe)
     psi_vars = Array{JuMP.Variable}([wm.var[:nw][n][:psi][a][d["diameter"]] for a in ids(wm, :ne_pipe) for d in wm.ref[:nw][n][:ne_pipe][a]["diameters"]])
     psi_ones = Array{JuMP.Variable}([psi for psi in psi_vars if getvalue(psi) > 1.0e-4])
@@ -303,7 +396,7 @@ function constraint_no_good_ne{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T
     @constraint(wm.model, sum(psi_zeros) - sum(psi_ones) >= 1 - length(psi_ones))
 end
 
-function constraint_no_good_ne_cb{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, cb, n::Int = wm.cnw)
+function constraint_no_good_ne_cb(wm::GenericWaterModel{T}, cb, n::Int = wm.cnw) where T <: AbstractRelaxedForm
     pipe_ids = ids(wm, :ne_pipe)
     psi_vars = Array{JuMP.Variable}([wm.var[:nw][n][:psi][a][d["diameter"]] for a in ids(wm, :ne_pipe) for d in wm.ref[:nw][n][:ne_pipe][a]["diameters"]])
     psi_ones = Array{JuMP.Variable}([psi for psi in psi_vars if getvalue(psi) > 1.0e-4])
@@ -311,17 +404,17 @@ function constraint_no_good_ne_cb{T <: AbstractRelaxedForm}(wm::GenericWaterMode
     @lazyconstraint(cb, sum(psi_zeros) - sum(psi_ones) >= 1 - length(psi_ones))
 end
 
-function constraint_degree_two{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T}, idx, n::Int = wm.cnw)
+function constraint_degree_two(wm::GenericWaterModel{T}, idx, n::Int = wm.cnw) where T <: AbstractRelaxedForm
     first = nothing
     last = nothing
 
     for i in wm.ref[:nw][n][:junction_connections][idx]
         connection = wm.ref[:nw][n][:connection][i]
 
-        if connection["node1"] == idx
-            other = connection["node2"]
+        if parse(Int, connection["node1"]) == idx
+            other = parse(Int, connection["node2"])
         else
-            other = connection["node1"]
+            other = parse(Int, connection["node1"])
         end
 
         if first == nothing
@@ -335,10 +428,10 @@ function constraint_degree_two{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T
         end
     end
 
-    yp_first = filter(i -> wm.ref[:nw][n][:connection][i]["node1"] == first, wm.ref[:nw][n][:junction_connections][idx])
-    yn_first = filter(i -> wm.ref[:nw][n][:connection][i]["node2"] == first, wm.ref[:nw][n][:junction_connections][idx])
-    yp_last  = filter(i -> wm.ref[:nw][n][:connection][i]["node2"] == last,  wm.ref[:nw][n][:junction_connections][idx])
-    yn_last  = filter(i -> wm.ref[:nw][n][:connection][i]["node1"] == last,  wm.ref[:nw][n][:junction_connections][idx])
+    yp_first = filter(i -> parse(Int, wm.ref[:nw][n][:connection][i]["node1"]) == first, wm.ref[:nw][n][:junction_connections][idx])
+    yn_first = filter(i -> parse(Int, wm.ref[:nw][n][:connection][i]["node2"]) == first, wm.ref[:nw][n][:junction_connections][idx])
+    yp_last  = filter(i -> parse(Int, wm.ref[:nw][n][:connection][i]["node2"]) == last,  wm.ref[:nw][n][:junction_connections][idx])
+    yn_last  = filter(i -> parse(Int, wm.ref[:nw][n][:connection][i]["node1"]) == last,  wm.ref[:nw][n][:junction_connections][idx])
 
     yp = wm.var[:nw][n][:yp]
     yn = wm.var[:nw][n][:yn]
@@ -346,10 +439,10 @@ function constraint_degree_two{T <: AbstractRelaxedForm}(wm::GenericWaterModel{T
     i = idx
 
     if !haskey(wm.con[:nw][n], :conserve_flow1)
-        wm.con[:nw][n][:conserve_flow1] = Dict{String, ConstraintRef}()
-        wm.con[:nw][n][:conserve_flow2] = Dict{String, ConstraintRef}()
-        wm.con[:nw][n][:conserve_flow3] = Dict{String, ConstraintRef}()
-        wm.con[:nw][n][:conserve_flow4] = Dict{String, ConstraintRef}()
+        wm.con[:nw][n][:conserve_flow1] = Dict{Int, ConstraintRef}()
+        wm.con[:nw][n][:conserve_flow2] = Dict{Int, ConstraintRef}()
+        wm.con[:nw][n][:conserve_flow3] = Dict{Int, ConstraintRef}()
+        wm.con[:nw][n][:conserve_flow4] = Dict{Int, ConstraintRef}()
     end
 
     if length(yn_first) > 0 && length(yp_last) > 0

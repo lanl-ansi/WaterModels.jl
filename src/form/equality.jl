@@ -1,22 +1,23 @@
 "These problem forms use exact versions of the head loss equation when the flow direction is fixed."
-AbstractEqualityForm = Union{AbstractMILPForm, AbstractMINLPBForm, AbstractNLPForm}
+AbstractEqualityForm = Union{AbstractMINLPBForm, AbstractNLPForm}
+#AbstractEqualityForm = Union{AbstractMILPForm, AbstractMINLPBForm, AbstractNLPForm}
 
 "Create variables associated with the head for forms of the problem without direction variables."
-function variable_head{T <: AbstractEqualityForm}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
+function variable_head(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: AbstractEqualityForm
     variable_head_common(wm, n)
 end
 
 "Create variables associated with the head for forms of the problem without direction variables."
-function variable_head_ne{T <: AbstractEqualityForm}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
+function variable_head_ne(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: AbstractEqualityForm
     variable_head_common(wm, n)
 end
 
 "Create variables associated with the pipe for the MICP and MILP-R problems."
-function variable_pipe_ne{T <: AbstractEqualityForm}(wm::GenericWaterModel{T}, n::Int = wm.cnw)
+function variable_pipe_ne(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: AbstractEqualityForm
     variable_pipe_ne_common(wm, n)
 end
 
-function set_initial_solution_ne{T <: AbstractEqualityForm}(wm::GenericWaterModel{T}, wm_solved::GenericWaterModel)
+function set_initial_solution_ne(wm::GenericWaterModel{T}, wm_solved::GenericWaterModel) where T <: AbstractEqualityForm
     for i in [key[1] for key in keys(wm_solved.var[:nw][wm_solved.cnw][:h])]
         h_i_sol = getvalue(wm_solved.var[:nw][wm_solved.cnw][:h][i])
         setvalue(wm.var[:nw][wm.cnw][:h][i], h_i_sol)
@@ -56,12 +57,12 @@ function set_initial_solution_ne{T <: AbstractEqualityForm}(wm::GenericWaterMode
     setvalue(wm.var[:nw][wm.cnw][:objective], objective_value * 1.0e-6)
 end
 
-function constraint_junction_mass_flow{T <: AbstractEqualityForm}(wm::GenericWaterModel{T}, i, n::Int = wm.cnw)
+function constraint_junction_mass_flow(wm::GenericWaterModel{T}, i, n::Int = wm.cnw) where T <: AbstractEqualityForm
     constraint_flow_conservation(wm, i, n)
 end
 
 "Constraints used to define the head difference in the MILP, MINLP-B, and NLP expansion planning problems."
-function constraint_define_gamma_hw_ne{T <: AbstractEqualityForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_define_gamma_hw_ne(wm::GenericWaterModel{T}, a, n::Int = wm.cnw) where T <: AbstractEqualityForm
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j = get_common_variables(wm, a, n)
 

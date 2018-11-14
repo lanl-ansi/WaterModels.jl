@@ -2,11 +2,8 @@
 
 export MICPWaterModel, StandardMICPForm
 
-""
-@compat abstract type AbstractMICPForm <: AbstractWaterFormulation end
-
-""
-@compat abstract type StandardMICPForm <: AbstractMICPForm end
+abstract type AbstractMICPForm <: AbstractWaterFormulation end
+abstract type StandardMICPForm <: AbstractMICPForm end
 
 "The default MICP (mixed-integer convex program) model is a relaxation of the non-convex MINLP model."
 const MICPWaterModel = GenericWaterModel{StandardMICPForm}
@@ -15,7 +12,7 @@ const MICPWaterModel = GenericWaterModel{StandardMICPForm}
 MICPWaterModel(data::Dict{String,Any}; kwargs...) = GenericWaterModel(data, StandardMICPForm; kwargs...)
 
 "Convex (relaxed) Darcy-Weisbach constraint for flow with unknown direction."
-function constraint_dw_unknown_direction{T <: AbstractMICPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_dw_unknown_direction(wm::GenericWaterModel{T}, a, n::Int = wm.cnw) where T <: AbstractMICPForm
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j, viscosity, lambda = get_dw_requirements(wm, a, n)
 
@@ -31,7 +28,7 @@ function constraint_dw_unknown_direction{T <: AbstractMICPForm}(wm::GenericWater
 end
 
 "Convex (relaxed) Hazen-Williams constraint for flow with unknown direction."
-function constraint_hw_unknown_direction{T <: AbstractMICPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_hw_unknown_direction(wm::GenericWaterModel{T}, a, n::Int = wm.cnw) where T <: AbstractMICPForm
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j, lambda = get_hw_requirements(wm, a, n)
 
@@ -47,7 +44,7 @@ function constraint_hw_unknown_direction{T <: AbstractMICPForm}(wm::GenericWater
 end
 
 "Convex (relaxed) Hazen-Williams constraint for flow with unknown direction."
-function constraint_hw_unknown_direction_ne{T <: AbstractMICPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_hw_unknown_direction_ne(wm::GenericWaterModel{T}, a, n::Int = wm.cnw) where T <: AbstractMICPForm
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j = get_common_variables(wm, a, n)
 
@@ -66,7 +63,7 @@ function constraint_hw_unknown_direction_ne{T <: AbstractMICPForm}(wm::GenericWa
 end
 
 "Convex (relaxed) Darcy-Weisbach constraint for flow with unknown direction."
-function constraint_dw_unknown_direction_ne{T <: AbstractMICPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_dw_unknown_direction_ne(wm::GenericWaterModel{T}, a, n::Int = wm.cnw) where T <: AbstractMICPForm
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j = get_common_variables(wm, a, n)
 
@@ -86,7 +83,7 @@ end
 
 
 "Convex (relaxed) Darcy-Weisbach constraint for flow with known direction."
-function constraint_dw_known_direction{T <: AbstractMICPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_dw_known_direction(wm::GenericWaterModel{T}, a, n::Int = wm.cnw) where T <: AbstractMICPForm
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j, viscosity, lambda = get_dw_requirements(wm, a, n)
 
@@ -99,7 +96,7 @@ function constraint_dw_known_direction{T <: AbstractMICPForm}(wm::GenericWaterMo
 end
 
 "Convex (relaxed) Hazen-Williams constraint for flow with known direction."
-function constraint_hw_known_direction{T <: AbstractMICPForm}(wm::GenericWaterModel{T}, a, n::Int = wm.cnw)
+function constraint_hw_known_direction(wm::GenericWaterModel{T}, a, n::Int = wm.cnw) where T <: AbstractMICPForm
     # Collect variables and parameters needed for the constraint.
     q, h_i, h_j, lambda = get_hw_requirements(wm, a, n)
 

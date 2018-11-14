@@ -67,7 +67,8 @@ function GenericWaterModel(data::Dict{String, Any}, T::DataType;
     return wm
 end
 
-function build_generic_model(data::Dict{String, Any}, model_constructor, post_method; kwargs...)
+function build_generic_model(data_::Dict{String, Any}, model_constructor, post_method; kwargs...)
+    data = deepcopy(data_)
     wm = model_constructor(data; kwargs...)
     post_method(wm)
     return wm
@@ -145,7 +146,7 @@ function build_ref(data::Dict{String, Any})
     refs = Dict{Symbol, Any}()
     nws = refs[:nw] = Dict{Int, Any}()
 
-    if data["multinetwork"]
+    if InfrastructureModels.ismultinetwork(data)
         nws_data = data["nw"]
     else
         nws_data = Dict{String, Any}("0" => data)
@@ -156,23 +157,25 @@ function build_ref(data::Dict{String, Any})
         ref = nws[nw_id] = Dict{Symbol, Any}()
 
         for (key, item) in nw_data
-            ref[Symbol(key)] = item
+            if isa(item, Dict{String, Any})
+                item_lookup = Dict{Int, Any}([(parse(Int, k), v) for (k, v) in item])
+                ref[Symbol(key)] = item_lookup
+            else
+                ref[Symbol(key)] = item
+            end
         end
 
-        # TODO: Change all the references to :pipes over to :connections.
         ref[:connection] = ref[:pipes]
-        ref[:connection_unknown_direction] = filter((i, connection) -> Int(connection["flow_direction"]) == 0, ref[:connection])
-        ref[:connection_known_direction] = filter((i, connection) -> Int(connection["flow_direction"]) != 0, ref[:connection])
-
-        # Add references to expansion components, specifically.
-        ref[:ne_pipe] = filter((i, pipe) -> haskey(pipe, "diameters"), ref[:pipes])
+        ref[:ne_pipe] = filter(is_ne_pipe, ref[:pipes])
+        ref[:connection_known_direction] = filter(has_known_flow_direction, ref[:connection])
+        ref[:connection_unknown_direction] = filter(!has_known_flow_direction, ref[:connection])
 
         junction_ids = [collect(keys(ref[:junctions])); collect(keys(ref[:reservoirs]))]
-        ref[:junction_connections] = Dict(String(i) => [] for i in junction_ids)
+        ref[:junction_connections] = Dict(i => [] for i in junction_ids)
 
         for (idx, connection) in ref[:connection]
-            i = connection["node1"]
-            j = connection["node2"]
+            i = parse(Int, connection["node1"])
+            j = parse(Int, connection["node2"])
             push!(ref[:junction_connections][i], idx)
             push!(ref[:junction_connections][j], idx)
         end
@@ -183,4 +186,8 @@ end
 
 ids(wm::GenericWaterModel, key::Symbol) = ids(wm, wm.cnw, key)
 ids(wm::GenericWaterModel, n::Int, key::Symbol) = keys(wm.ref[:nw][n][key])
+ismultinetwork(wm::GenericWaterModel) = length(wm.ref[:nw]) > 1
 nws(wm::GenericWaterModel) = keys(wm.ref[:nw])
+
+# Aliases in preparation for migration to future versions of JuMP.
+set_start_value = setvalue
