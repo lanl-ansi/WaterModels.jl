@@ -34,7 +34,7 @@ function objective_cvxnlp(wm::GenericWaterModel, exponent::Float64 = 1.852)
             L = connection["length"]
             r = calc_resistance_per_length_hw(connection)
             term = @variable(wm.model, lowerbound = 0.0, category = :Cont, start = 1.0e-6)
-            @NLconstraint(wm.model, term >= r * L * ((q_p^2)^0.926 + (q_n^2)^0.926))
+            @NLconstraint(wm.model, term == r * L * 0.350631 * (q_p * (q_p^2)^0.926 + q_n * (q_n^2)^0.926))
             objective += term
         end
     end
@@ -44,7 +44,7 @@ function objective_cvxnlp(wm::GenericWaterModel, exponent::Float64 = 1.852)
             for (a, connection) in wm.ref[:nw][n][:connection]
                 q_p = wm.var[:nw][n][:qp][a]
                 q_n = wm.var[:nw][n][:qn][a]
-                objective += reservoir["head"] * (q_p - q_n)
+                objective -= reservoir["head"] * (q_p - q_n)
             end
         end
     end

@@ -66,7 +66,7 @@ end
 function calc_resistance_per_length_hw(pipe)
     diameter = pipe["diameter"]
     roughness = pipe["roughness"]
-    return 10.67/ (roughness^1.852 * diameter^4.87)
+    return 10.67 / (roughness^1.852 * diameter^4.87)
 end
 
 function calc_friction_factor_hw(pipe)

@@ -66,7 +66,8 @@ function solution_is_feasible(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T
         q_p = getvalue(wm.var[:nw][n][:qp][a])
         q_n = getvalue(wm.var[:nw][n][:qn][a])
         r = calc_resistance_per_length_hw(connection)
-        b[a] = connection["length"] * r * (q_p - q_n)
+        q = (q_p - q_n)
+        b[a] = connection["length"] * r * q * abs(q)^(0.852)
     end
 
     k = 1
@@ -78,8 +79,14 @@ function solution_is_feasible(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T
 
     h = A \ b
 
+    junctions = wm.ref[:nw][n][:junctions]
+    reservoirs = wm.ref[:nw][n][:reservoirs]
+    max_junc_elev = maximum([junc["elev"] for junc in values(junctions)])
+    max_res_head = maximum([res["head"] for res in values(reservoirs)])
+    max_head = max(max_junc_elev, max_res_head)
+
     for (i, junction) in wm.ref[:nw][n][:junctions]
-        if h[i] < junction["elev"]
+        if h[i] < junction["elev"] || h[i] > max_head
             return false
         end
     end
