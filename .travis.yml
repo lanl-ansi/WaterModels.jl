@@ -2,6 +2,7 @@ language: julia
 
 os:
   - linux
+  - osx
 
 julia:
   - 1.0
@@ -12,31 +13,25 @@ cache:
 
 addons:
   apt_packages:
-    - automake
-    - autotools-dev
-    - gcc
     - gfortran
-    - g++
-    - wget
 
 before_install:
-  # Don't keep an old version of the code in the cache.
-  - julia -e 'if "WaterModels" in keys(Pkg.installed()) Pkg.rm("WaterModels"); Pkg.rm("WaterModels") end'
-  - julia -e 'Pkg.update()' # Make sure we get the latest version of METADATA.
-  - julia -e 'if !("Coverage" in keys(Pkg.installed())) Pkg.add("Coverage") end'
-  - julia -e 'if !("Documenter" in keys(Pkg.installed())) Pkg.add("Documenter") end'
-
-install:
-  # Compile additional (unpackaged) requirements.
-  - source ci/install.sh
-  - export PATH="${PATH}:${PWD}/bin"
-  - cd ${TRAVIS_BUILD_DIR}
-
-script:
-  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia -e 'Pkg.clone(pwd())'
-  - julia -e 'Pkg.test("WaterModels", coverage = true)'
+  - julia -e '(VERSION >= v"1.0" && using Pkg); Pkg.rm("WaterModels"); Pkg.rm("WaterModels")'
+  - julia -e '(VERSION >= v"1.0" && using Pkg); Pkg.update()'
 
 after_success:
-  - julia -e  'using Coverage; cd(Pkg.dir("WaterModels")); LCOV.writefile("lcov.info", process_folder(".")); run(pipeline(`curl -s https://codecov.io/bash`, `bash`))'
-  - julia -e 'cd(Pkg.dir("WaterModels")); include(joinpath("docs", "make.jl"))'
+  - julia -e '(VERSION >= v"1.0" && using Pkg); Pkg.add("Coverage"); cd(Pkg.dir("WaterModels")); using Coverage; Codecov.submit(process_folder())'
+
+jobs:
+  include:
+    - stage:
+        - "Documentation"
+      julia:
+        - 1.0
+      os:
+        - linux
+      script:
+        - julia --project=docs/ -e 'using Pkg; Pkg.instantiate(); Pkg.develop(PackageSpec(path=pwd()))'
+        - julia --project=docs/ docs/make.jl
+      after_success:
+        - skip

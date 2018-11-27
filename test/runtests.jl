@@ -1,10 +1,10 @@
 using WaterModels
-using Test
 using Cbc
 using JuMP
 using InfrastructureModels
-using Memento
 using Ipopt
+using Memento
+using Test
 
 # Suppress warnings during testing.
 setlevel!(getlogger(InfrastructureModels), "error")
