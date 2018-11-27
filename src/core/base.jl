@@ -108,13 +108,13 @@ function run_generic_model(path::String, modification_path::String, model_constr
 end
 
 function solve_generic_model(wm::GenericWaterModel, solver; solution_builder = get_solution)
-    setsolver(wm.model, solver)
+    JuMP.setsolver(wm.model, solver)
     status, solve_time = solve(wm)
     return build_solution(wm, status, solve_time; solution_builder = solution_builder)
 end
 
 function JuMP.setsolver(wm::GenericWaterModel, solver::MathProgBase.AbstractMathProgSolver)
-    setsolver(wm.model, solver)
+    JuMP.setsolver(wm.model, solver)
 end
 
 function JuMP.solve(wm::GenericWaterModel)

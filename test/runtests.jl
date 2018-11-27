@@ -1,6 +1,5 @@
 using WaterModels
-using AmplNLWriter
-using Base.Test
+using Test
 using Cbc
 using JuMP
 using InfrastructureModels
@@ -13,13 +12,12 @@ setlevel!(getlogger(WaterModels), "error")
 
 # Solver setup.
 cbc = CbcSolver(logLevel = 1)
-bonmin = AmplNLSolver("bonmin")
 ipopt = IpoptSolver(print_level = 0)
 
 # Perform the tests.
 @testset "WaterModels" begin
     include("data.jl")
     include("wf_hw.jl")
-    include("wf_dw.jl")
-    include("ne_hw.jl")
+    #include("wf_dw.jl")
+    #include("ne_hw.jl")
 end

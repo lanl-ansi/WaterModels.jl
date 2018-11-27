@@ -33,8 +33,9 @@ function objective_cvxnlp(wm::GenericWaterModel, exponent::Float64 = 1.852)
             q_n = wm.var[:nw][n][:qn][a]
             L = connection["length"]
             r = calc_resistance_per_length_hw(connection)
+            coeff = r * L * 0.350631
             term = @variable(wm.model, lowerbound = 0.0, category = :Cont, start = 1.0e-6)
-            @NLconstraint(wm.model, term == r * L * 0.350631 * (q_p * (q_p^2)^0.926 + q_n * (q_n^2)^0.926))
+            @NLconstraint(wm.model, term >= coeff * (q_p * (q_p^2)^0.926 + q_n * (q_n^2)^0.926))
             objective += term
         end
     end
@@ -61,6 +62,5 @@ function objective_minimize_variable(wm::GenericWaterModel, variable::JuMP.Varia
 end
 
 function objective_dummy(wm::GenericWaterModel)
-    return @NLobjective(wm.model, Min, 0.0)
-    #return @objective(wm.model, Min, 0.0)
+    return @objective(wm.model, Min, 0.0)
 end

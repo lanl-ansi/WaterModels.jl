@@ -17,6 +17,7 @@ function variable_absolute_head_difference(wm::GenericWaterModel{T}, n::Int = wm
 
     # Create variables that correspond to the absolute value of the head difference.
     wm.var[:nw][n][:gamma] = @variable(wm.model, [id in connection_ids],
+                                       start = gamma_ub[id],
                                        lowerbound = gamma_lb[id],
                                        upperbound = gamma_ub[id],
                                        basename = "gamma_$(n)")
@@ -26,9 +27,9 @@ end
 function variable_flow_direction(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: AbstractRelaxedForm
     # Create variables that correspond to flow moving from i to j.
     connection_ids = collect(ids(wm, :connection_unknown_direction))
-    wm.var[:nw][n][:yp] = @variable(wm.model, [a in connection_ids],
+    wm.var[:nw][n][:yp] = @variable(wm.model, [a in connection_ids], start = 1,
                                     category = :Bin, basename = "yp_$(n)")
-    wm.var[:nw][n][:yn] = @variable(wm.model, [a in connection_ids],
+    wm.var[:nw][n][:yn] = @variable(wm.model, [a in connection_ids], start = 0,
                                     category = :Bin, basename = "yn_$(n)")
 
     # Fix these variables if the head bounds imply they can be fixed.
