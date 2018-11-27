@@ -2,6 +2,10 @@
 # This file defines commonly-used variables for water systems models.
 ########################################################################
 
+#function variable_head_ne(wm::GenericWaterModel, n::Int = wm.cnw)
+#
+#end
+
 function variable_flow(wm::GenericWaterModel, n::Int = wm.cnw)
     lbs, ubs = calc_flow_bounds(wm.ref[:nw][n][:pipes])
     wm.var[:nw][n][:q] = @variable(wm.model, [id in keys(wm.ref[:nw][n][:pipes])],
