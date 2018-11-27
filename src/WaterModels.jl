@@ -38,4 +38,7 @@ include("prob/cvx.jl")
 include("prob/ne.jl")
 include("prob/wf.jl")
 
+include("alg/repair.jl")
+include("alg/solve_global.jl")
+
 end

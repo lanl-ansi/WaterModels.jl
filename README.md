@@ -2,11 +2,11 @@
 
 ## Build status
 
-| [Linux][lin-link] | [Codecov][cov-link] |
-| :---------------: | :-------------------: |
-| ![lin-badge]      | ![cov-badge]          |
+| [Linux/OSX][lin-osx-link] | [Codecov][cov-link]   |
+| :---------------:         | :-------------------: |
+| ![lin-osx-badge]          | ![cov-badge]          |
 
-[lin-badge]: https://travis-ci.org/lanl-ansi/WaterModels.jl.svg?branch=master "Travis build status"
-[lin-link]: https://travis-ci.org/lanl-ansi/WaterModels.jl "Travis build status"
+[lin-osx-badge]: https://travis-ci.org/lanl-ansi/WaterModels.jl.svg?branch=master "Travis build status"
+[lin-osx-link]: https://travis-ci.org/lanl-ansi/WaterModels.jl "Travis build status"
 [cov-badge]: https://codecov.io/gh/lanl-ansi/WaterModels.jl/branch/master/graph/badge.svg
 [cov-link]: https://codecov.io/gh/lanl-ansi/WaterModels.jl
