@@ -1,23 +1,32 @@
 # Functions for working with the WaterModels internal data format.
 
-function calc_head_bounds(junctions, reservoirs)
-    junction_ids = [key for key in keys(junctions)]
-    reservoir_ids = [key for key in keys(reservoirs)]
-    ids = [junction_ids; reservoir_ids]
+function calc_head_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
+    # Get indices of nodes used in the network.
+    junction_ids = collect(ids(wm, :junctions))
+    reservoir_ids = collect(ids(wm, :reservoirs))
+    nodes = [junction_ids; reservoir_ids]
 
-    head_min = Dict([(i, -Inf) for i in ids])
-    head_max = Dict([(i, Inf) for i in ids])
+    # Get placeholders for junctions and reservoirs.
+    junctions = wm.ref[:nw][n][:junctions]
+    reservoirs = wm.ref[:nw][n][:reservoirs]
 
-    max_elev = maximum([junc["elev"] for junc in values(junctions)])
-    max_head = maximum([res["head"] for res in values(reservoirs)])
+    # Get maximum elevation/head values at nodes.
+    max_elev = maximum([node["elev"] for node in values(junctions)])
+    max_head = maximum([node["head"] for node in values(reservoirs)])
+
+    # Initialize the dictionaries for minimum and maximum heads.
+    head_min = Dict([(i, -Inf) for i in nodes])
+    head_max = Dict([(i, Inf) for i in nodes])
 
     for (i, junction) in junctions
+        # The minimum head at junctions must be above the initial elevation.
         if haskey(junction, "minimumHead")
             head_min[i] = max(junction["elev"], junction["minimumHead"])
         else
             head_min[i] = junction["elev"]
         end
 
+        # The maximum head at junctions must be below the max reservoir height.
         if haskey(junction, "maximumHead")
             head_max[i] = max(max(max_elev, max_head), junction["maximumHead"])
         else
@@ -26,47 +35,125 @@ function calc_head_bounds(junctions, reservoirs)
     end
 
     for (i, reservoir) in reservoirs
+        # Head values at reservoirs are fixed.
         head_min[i] = reservoir["head"]
         head_max[i] = reservoir["head"]
     end
 
+    # Return the dictionaries of lower and upper bounds.
     return head_min, head_max
 end
 
-function calc_flow_bounds(pipes)
-    flow_min = Dict([(pipe_id, -Inf) for pipe_id in keys(pipes)])
-    flow_max = Dict([(pipe_id, Inf) for pipe_id in keys(pipes)])
+function calc_head_difference_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
+    # Get placeholders for junctions and reservoirs.
+    connections = wm.ref[:nw][n][:connection]
 
-    for (pipe_id, pipe) in pipes
-        diameter = pipe["diameter"]
-        max_absolute_flow = (pi / 4.0) * 10.0 * diameter^2
+    # Initialize the dictionaries for minimum and maximum head differences.
+    head_lbs, head_ubs = calc_head_bounds(wm, n)
+    head_diff_min = Dict([(a, -Inf) for a in keys(connections)])
+    head_diff_max = Dict([(a, Inf) for a in keys(connections)])
 
-        if haskey(pipe, "minimumFlow")
-            flow_min[pipe_id] = pipe["minimumFlow"]
-        else
-            flow_min[pipe_id] = -max_absolute_flow
-        end
+    # Compute the head difference bounds.
+    for (a, connection) in connections
+        i = parse(Int, connection["node1"])
+        j = parse(Int, connection["node2"])
+        head_diff_min[a] = head_lbs[i] - head_ubs[j]
+        head_diff_max[a] = head_ubs[i] - head_lbs[j]
+    end
 
-        if haskey(pipe, "maximumFlow")
-            flow_max[pipe_id] = pipe["maximumFlow"]
-        else
-            flow_max[pipe_id] = max_absolute_flow
-        end
+    # Return the head difference bound dictionaries.
+    return head_diff_min, head_diff_max
+end
 
-        if pipe["flow_direction"] == POSITIVE
-            flow_min[pipe_id] = max(0.0, flow_min[pipe_id])
-        elseif pipe["flow_direction"] == NEGATIVE
-            flow_max[pipe_id] = min(0.0, flow_max[pipe_id])
+function calc_directed_flow_upper_bounds(wm::GenericWaterModel, n::Int = wm.cnw, exponent::Float64 = 1.852)
+    # Get a dictionary of resistance values.
+    dh_lb, dh_ub = calc_head_difference_bounds(wm, n)
+
+    # TODO: Deal with H-W and D-W elegantly.
+    R = calc_resistances_hw(wm, n)
+
+    connections = wm.ref[:nw][n][:connection]
+    ub_n = Dict([(a, Dict{Float64, Float64}()) for a in keys(connections)])
+    ub_p = Dict([(a, Dict{Float64, Float64}()) for a in keys(connections)])
+
+    for (a, connection) in connections
+        length = connection["length"]
+
+        for r in R[a]
+            ub_n[a][r] = abs(dh_lb[a] / (length * r))^(1.0 / exponent)
+            ub_p[a][r] = abs(dh_ub[a] / (length * r))^(1.0 / exponent)
+
+            if connection["flow_direction"] == POSITIVE || dh_lb[a] >= 0.0
+                ub_n[a][r] = 0.0
+            elseif connection["flow_direction"] == NEGATIVE || dh_ub[a] <= 0.0
+                ub_p[a][r] = 0.0
+            end
         end
     end
 
-    return flow_min, flow_max
+    return ub_n, ub_p
 end
 
 function calc_resistance_per_length_hw(pipe)
     diameter = pipe["diameter"]
     roughness = pipe["roughness"]
     return 10.67 / (roughness^1.852 * diameter^4.87)
+end
+
+function calc_resistances_hw(wm::GenericWaterModel, n::Int = wm.cnw)
+    # Get placeholders for junctions and reservoirs.
+    connections = wm.ref[:nw][n][:connection]
+    resistances = Dict([(a, Array{Float64, 1}()) for a in keys(connections)])
+
+    # Initialize the dictionaries for minimum and maximum head differences.
+    for (a, connection) in connections
+        if haskey(connection, "diameters")
+            for entry in connection["diameters"]
+                diameter = entry["diameter"]
+                roughness = connection["roughness"]
+                r = 10.67 / (roughness^1.852 * diameter^4.87)
+                resistances[a] = vcat(resistances[a], r)
+            end
+
+            resistances = sort(resistances, rev = true)
+        else
+            diameter = connection["diameter"]
+            roughness = connection["roughness"]
+            r = 10.67 / (roughness^1.852 * diameter^4.87)
+            resistances[a] = vcat(resistances[a], r)
+        end
+    end
+
+    return resistances
+end
+
+function calc_resistance_costs(wm::GenericWaterModel, n::Int = wm.cnw)
+    # Get placeholders for junctions and reservoirs.
+    connections = wm.ref[:nw][n][:connection]
+    costs = Dict([(a, Array{Float64, 1}()) for a in keys(connections)])
+
+    # Initialize the dictionaries for minimum and maximum head differences.
+    for (a, connection) in connections
+        if haskey(connection, "diameters")
+            resistances = Array{Float64, 1}()
+
+            for entry in connection["diameters"]
+                diameter = entry["diameter"]
+                roughness = connection["roughness"]
+                r = 10.67 / (roughness^1.852 * diameter^4.87)
+                resistances = vcat(resistances, r)
+                cost = entry["costPerUnitLength"]
+                costs[a] = vcat(costs[a], cost)
+            end
+
+            sort_indices = sortperm(resistances, rev = true)
+            costs[a] = costs[a][sort_indices]
+        else
+            costs[a] = vcat(costs[a], 0.0)
+        end
+    end
+
+    return costs
 end
 
 function calc_friction_factor_hw(pipe)
@@ -116,20 +203,6 @@ function calc_friction_factor_dw(pipe, viscosity)
         # Return the overall friction factor.
         return 0.0826 * length / diameter^5 * f_s
     end
-end
-
-function calc_head_difference_bounds(pipes)
-    diff_min = Dict([(pipe_id, -Inf) for pipe_id in keys(pipes)])
-    diff_max = Dict([(pipe_id, Inf) for pipe_id in keys(pipes)])
-
-    for (pipe_id, pipe) in pipes
-        # Compute the flow bounds.
-        # TODO: Replace these with better bounds.
-        diff_min[pipe_id] = -1000.0
-        diff_max[pipe_id] = 1000.0
-    end
-
-    return diff_min, diff_max
 end
 
 function update_flow_directions(data, wm)

@@ -23,33 +23,33 @@ function variable_absolute_head_difference(wm::GenericWaterModel{T}, n::Int = wm
                                        basename = "gamma_$(n)")
 end
 
-"Create variables associated with flow directions for the MICP and MILP-R problems."
-function variable_flow_direction(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: AbstractRelaxedForm
-    # Create variables that correspond to flow moving from i to j.
-    connection_ids = collect(ids(wm, :connection_unknown_direction))
-    wm.var[:nw][n][:yp] = @variable(wm.model, [a in connection_ids], start = 1,
-                                    category = :Bin, basename = "yp_$(n)")
-    wm.var[:nw][n][:yn] = @variable(wm.model, [a in connection_ids], start = 0,
-                                    category = :Bin, basename = "yn_$(n)")
-
-    # Fix these variables if the head bounds imply they can be fixed.
-    for (id, connection) in wm.ref[:nw][n][:connection_unknown_direction]
-        h_i = wm.var[:nw][n][:h][parse(Int, connection["node1"])]
-        h_j = wm.var[:nw][n][:h][parse(Int, connection["node2"])]
-        diff_lb = getlowerbound(h_i) - getupperbound(h_j)
-        diff_ub = getupperbound(h_i) - getlowerbound(h_j)
-
-        # Use the above head difference bounds to fix upper bounds for the
-        # direction variables when applicable.
-        if (diff_lb >= 0.0)
-            setupperbound(wm.var[:nw][n][:yn][id], 0)
-            setlowerbound(wm.var[:nw][n][:yp][id], 1)
-        elseif (diff_ub <= 0.0)
-            setlowerbound(wm.var[:nw][n][:yn][id], 1)
-            setupperbound(wm.var[:nw][n][:yp][id], 0)
-        end
-    end
-end
+#"Create variables associated with flow directions for the MICP and MILP-R problems."
+#function variable_flow_direction(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: AbstractRelaxedForm
+#    # Create variables that correspond to flow moving from i to j.
+#    connection_ids = collect(ids(wm, :connection_unknown_direction))
+#    wm.var[:nw][n][:yp] = @variable(wm.model, [a in connection_ids], start = 1,
+#                                    category = :Bin, basename = "yp_$(n)")
+#    wm.var[:nw][n][:yn] = @variable(wm.model, [a in connection_ids], start = 0,
+#                                    category = :Bin, basename = "yn_$(n)")
+#
+#    # Fix these variables if the head bounds imply they can be fixed.
+#    for (id, connection) in wm.ref[:nw][n][:connection_unknown_direction]
+#        h_i = wm.var[:nw][n][:h][parse(Int, connection["node1"])]
+#        h_j = wm.var[:nw][n][:h][parse(Int, connection["node2"])]
+#        diff_lb = getlowerbound(h_i) - getupperbound(h_j)
+#        diff_ub = getupperbound(h_i) - getlowerbound(h_j)
+#
+#        # Use the above head difference bounds to fix upper bounds for the
+#        # direction variables when applicable.
+#        if (diff_lb >= 0.0)
+#            setupperbound(wm.var[:nw][n][:yn][id], 0)
+#            setlowerbound(wm.var[:nw][n][:yp][id], 1)
+#        elseif (diff_ub <= 0.0)
+#            setlowerbound(wm.var[:nw][n][:yn][id], 1)
+#            setupperbound(wm.var[:nw][n][:yp][id], 0)
+#        end
+#    end
+#end
 
 "Create variables associated with head for the MICP and MILP-R feasibility problems."
 function variable_head(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: AbstractRelaxedForm
