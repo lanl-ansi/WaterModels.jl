@@ -2,6 +2,40 @@
 # This file defines commonly-used constraints for water systems models.
 ########################################################################
 
+function constraint_directed_flow_conservation(wm::GenericWaterModel, i::Int, n::Int = wm.cnw)
+    # Collect the required variables.
+    connections = wm.ref[:nw][n][:connection]
+
+    # TODO: Not efficient... we need another method for storing resistances.
+    R = calc_resistances_hw(wm, n)
+
+    # Initialize the flow sum expression.
+    flow_sum = AffExpr(0.0)
+
+    for a in collect(keys(filter(is_in_node_function(i), connections)))
+        for r in 1:length(R[a])
+            flow_sum += wm.var[:nw][n][:qp][a][r]
+            flow_sum -= wm.var[:nw][n][:qn][a][r]
+        end
+    end
+
+    for a in collect(keys(filter(is_out_node_function(i), connections)))
+        for r in 1:length(R[a])
+            flow_sum -= wm.var[:nw][n][:qp][a][r]
+            flow_sum += wm.var[:nw][n][:qn][a][r]
+        end
+    end
+
+    if !haskey(wm.con[:nw][n], :flow_conservation)
+        wm.con[:nw][n][:flow_conservation] = Dict{Int, ConstraintRef}()
+    end
+
+    # Add the flow conservation constraint.
+    demand = wm.ref[:nw][n][:junctions][i]["demand"]
+    con = @constraint(wm.model, flow_sum == demand)
+    wm.con[:nw][n][:flow_conservation][i] = con
+end
+
 function constraint_flow_conservation(wm::GenericWaterModel, i::Int, n::Int = wm.cnw)
     # Collect the required variables.
     connections = wm.ref[:nw][n][:connection]

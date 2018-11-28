@@ -24,8 +24,27 @@ function get_diameter_cost_function(wm::GenericWaterModel)
     return cost_function
 end
 
+function objective_minimize_resistance_cost(wm::GenericWaterModel)
+    objective = zero(AffExpr)
+
+    for n in nws(wm)
+        R = calc_resistances_hw(wm, n)
+        C = calc_resistance_costs(wm, n)
+
+        for (a, connection) in wm.ref[:nw][n][:connection]
+            L_a = connection["length"]
+
+            for r in 1:length(R[a])
+                objective += (L_a * C[a][r]) * wm.var[:nw][n][:xr][a][r] * 1.0e-6
+            end
+        end
+    end
+
+    return @objective(wm.model, Min, objective)
+end
+
 function objective_cvxnlp(wm::GenericWaterModel, exponent::Float64 = 1.852)
-    objective = AffExpr(0.0)
+    objective = zero(AffExpr)
 
     for n in nws(wm)
         for (a, connection) in wm.ref[:nw][n][:connection]

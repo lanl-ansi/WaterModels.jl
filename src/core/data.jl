@@ -73,15 +73,15 @@ function calc_directed_flow_upper_bounds(wm::GenericWaterModel, n::Int = wm.cnw,
     R = calc_resistances_hw(wm, n)
 
     connections = wm.ref[:nw][n][:connection]
-    ub_n = Dict([(a, Dict{Float64, Float64}()) for a in keys(connections)])
-    ub_p = Dict([(a, Dict{Float64, Float64}()) for a in keys(connections)])
+    ub_n = Dict([(a, Dict{Int, Float64}()) for a in keys(connections)])
+    ub_p = Dict([(a, Dict{Int, Float64}()) for a in keys(connections)])
 
     for (a, connection) in connections
-        length = connection["length"]
+        L = connection["length"]
 
-        for r in R[a]
-            ub_n[a][r] = abs(dh_lb[a] / (length * r))^(1.0 / exponent)
-            ub_p[a][r] = abs(dh_ub[a] / (length * r))^(1.0 / exponent)
+        for r in 1:length(R[a])
+            ub_n[a][r] = abs(dh_lb[a] / (L * R[a][r]))^(1.0 / exponent)
+            ub_p[a][r] = abs(dh_ub[a] / (L * R[a][r]))^(1.0 / exponent)
 
             if connection["flow_direction"] == POSITIVE || dh_lb[a] >= 0.0
                 ub_n[a][r] = 0.0

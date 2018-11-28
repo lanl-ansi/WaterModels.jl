@@ -40,17 +40,18 @@ function variable_flow_direction(wm::GenericWaterModel, n::Int = wm.cnw)
     # Initialize variables associated with flow direction. If this variable is
     # equal to one, the flow direction is from i to j. If it is equal to zero,
     # the flow direction is from j to i.
-    wm.var[:nw][n][:dir] = @variable(wm.model, [a in arcs], lowerbound = 0,
-                                     upperbound = 1, start = 1, category = :Bin,
-                                     basename = "dir_$(n)")
+    wm.var[:nw][n][:dir] = @variable(wm.model, [a in arcs], start = 1,
+                                     category = :Bin, basename = "dir_$(n)")
 
     # Fix direction bounds if they can be fixed.
     dh_lbs, dh_ubs = calc_head_difference_bounds(wm, n)
     for (a, connection) in wm.ref[:nw][n][:connection]
         if (dh_lbs[a] >= 0.0)
             setlowerbound(wm.var[:nw][n][:dir][a], 1)
+            setvalue(wm.var[:nw][n][:dir][a], 1)
         elseif (dh_ubs[a] <= 0.0)
             setupperbound(wm.var[:nw][n][:dir][a], 0)
+            setvalue(wm.var[:nw][n][:dir][a], 0)
         end
     end
 end
@@ -65,9 +66,13 @@ function variable_resistance(wm::GenericWaterModel, n::Int = wm.cnw)
     # Initialize variables associated with flow direction. If this variable is
     # equal to one, the flow direction is from i to j. If it is equal to zero,
     # the flow direction is from j to i.
-    wm.var[:nw][n][:xr] = @variable(wm.model, [a in arcs, r in R[a]],
-                                    lowerbound = 0, upperbound = 1, start = 0,
-                                    category = :Bin, basename = "xr_$(n)")
+    wm.var[:nw][n][:xr] = Dict{Int, Array{Variable, 1}}()
+
+    for (a, connection) in wm.ref[:nw][n][:connection]
+        wm.var[:nw][n][:xr][a] = @variable(wm.model, [r in 1:length(R[a])],
+                                           start = 1, category = :Bin,
+                                           basename = "xr_$(n)")
+    end
 end
 
 function variable_directed_flow(wm::GenericWaterModel, n::Int = wm.cnw)
@@ -78,17 +83,26 @@ function variable_directed_flow(wm::GenericWaterModel, n::Int = wm.cnw)
     R = calc_resistances_hw(wm, n)
     ub_n, ub_p = calc_directed_flow_upper_bounds(wm, n)
 
-    # Initialize variables associated with flow from i to j.
-    wm.var[:nw][n][:qp] = @variable(wm.model, [a in arcs, r in R[a]],
-                                    lowerbound = 0.0, upperbound = ub_p[a][r],
-                                    start = 0.0, category = :Cont,
-                                    basename = "qp_$(n)")
+    # Initialize directed flow variables. The variables qp correspond to flow
+    # from i to j, and the variables qn correspond to flow from j to i.
+    wm.var[:nw][n][:qp] = Dict{Int, Array{Variable, 1}}()
+    wm.var[:nw][n][:qn] = Dict{Int, Array{Variable, 1}}()
 
-    # Initialize variables associated with flow from j to i.
-    wm.var[:nw][n][:qn] = @variable(wm.model, [a in arcs, r in R[a]],
-                                    lowerbound = 0.0, upperbound = ub_n[a][r],
-                                    start = 0.0, category = :Cont,
-                                    basename = "qn_$(n)")
+    for (a, connection) in wm.ref[:nw][n][:connection]
+        # Initialize variables associated with flow from i to j.
+        wm.var[:nw][n][:qp][a] = @variable(wm.model, [r in 1:length(R[a])],
+                                           lowerbound = 0.0,
+                                           upperbound = ub_p[a][r],
+                                           start = ub_p[a][r], category = :Cont,
+                                           basename = "qp_$(n)")
+
+        # Initialize variables associated with flow from j to i.
+        wm.var[:nw][n][:qn][a] = @variable(wm.model, [r in 1:length(R[a])],
+                                           lowerbound = 0.0,
+                                           upperbound = ub_n[a][r],
+                                           start = ub_n[a][r], category = :Cont,
+                                           basename = "qn_$(n)")
+    end
 end
 
 #function variable_flow(wm::GenericWaterModel, n::Int = wm.cnw)
