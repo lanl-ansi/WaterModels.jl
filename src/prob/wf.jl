@@ -28,9 +28,9 @@ function post_wf_hw(wm::GenericWaterModel; kwargs...)
     ##    constraint_junction_mass_flow(wm, i)
     ##end
 
-    ##for a in collect(ids(wm, :connection_unknown_direction))
-    ##    constraint_hw_unknown_direction(wm, a)
-    ##end
+    for a in collect(ids(wm, :connection))
+        constraint_select_resistance(wm, a)
+    end
 
     ##for a in collect(ids(wm, :connection_known_direction))
     ##    constraint_hw_known_direction(wm, a)

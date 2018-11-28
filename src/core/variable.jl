@@ -65,9 +65,9 @@ function variable_resistance(wm::GenericWaterModel, n::Int = wm.cnw)
     # Initialize variables associated with flow direction. If this variable is
     # equal to one, the flow direction is from i to j. If it is equal to zero,
     # the flow direction is from j to i.
-    wm.var[:nw][n][:z] = @variable(wm.model, [a in arcs, r in R[a]],
-                                   lowerbound = 0, upperbound = 1, start = 0,
-                                   category = :Bin, basename = "z_$(n)")
+    wm.var[:nw][n][:xr] = @variable(wm.model, [a in arcs, r in R[a]],
+                                    lowerbound = 0, upperbound = 1, start = 0,
+                                    category = :Bin, basename = "xr_$(n)")
 end
 
 function variable_directed_flow(wm::GenericWaterModel, n::Int = wm.cnw)
