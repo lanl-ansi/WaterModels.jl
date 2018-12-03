@@ -35,7 +35,7 @@ function objective_minimize_resistance_cost(wm::GenericWaterModel)
             L_a = connection["length"]
 
             for r in 1:length(R[a])
-                objective += (L_a * C[a][r]) * wm.var[:nw][n][:xr][a][r] * 1.0e-6
+                objective += (L_a * C[a][r]) * wm.var[:nw][n][:xr][a][r]
             end
         end
     end

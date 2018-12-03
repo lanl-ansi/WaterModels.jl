@@ -31,7 +31,7 @@ function post_wf_hw(wm::GenericWaterModel; kwargs...)
         constraint_select_flow_term(wm, a)
         constraint_head_difference(wm, a)
         constraint_potential_loss(wm, a)
-        #constraint_potential_loss_slope(wm, a)
+        constraint_potential_loss_slope(wm, a)
     end
 
     for i in collect(ids(wm, :junctions))
