@@ -24,12 +24,12 @@ function variable_head_difference(wm::GenericWaterModel, n::Int = wm.cnw)
 
     # Initialize variables associated with negative head differences.
     wm.var[:nw][n][:dhn] = @variable(wm.model, [a in arcs], lowerbound = 0.0,
-                                     upperbound = abs(lbs[a]), start = 0.0,
+                                     upperbound = abs(lbs[a]), start = abs(lbs[a]),
                                      category = :Cont, basename = "dhn_$(n)")
 
     # Initialize variables associated with positive head differences.
     wm.var[:nw][n][:dhp] = @variable(wm.model, [a in arcs], lowerbound = 0.0,
-                                     upperbound = abs(ubs[a]), start = 0.0,
+                                     upperbound = abs(ubs[a]), start = abs(ubs[a]),
                                      category = :Cont, basename = "dhp_$(n)")
 end
 
@@ -70,8 +70,9 @@ function variable_resistance(wm::GenericWaterModel, n::Int = wm.cnw)
 
     for (a, connection) in wm.ref[:nw][n][:connection]
         wm.var[:nw][n][:xr][a] = @variable(wm.model, [r in 1:length(R[a])],
-                                           start = 1, category = :Bin,
+                                           start = 0, category = :Bin,
                                            basename = "xr_$(n)")
+        setvalue(wm.var[:nw][n][:xr][a][1], 1)
     end
 end
 
@@ -93,14 +94,17 @@ function variable_directed_flow(wm::GenericWaterModel, n::Int = wm.cnw)
         wm.var[:nw][n][:qp][a] = @variable(wm.model, [r in 1:length(R[a])],
                                            lowerbound = 0.0,
                                            upperbound = ub_p[a][r],
-                                           start = ub_p[a][r], category = :Cont,
+                                           start = 0.0, category = :Cont,
                                            basename = "qp_$(n)")
+
+        # Initialize flow for the variable with least resistance.
+        setvalue(wm.var[:nw][n][:qp][a][1], ub_p[a][1])
 
         # Initialize variables associated with flow from j to i.
         wm.var[:nw][n][:qn][a] = @variable(wm.model, [r in 1:length(R[a])],
                                            lowerbound = 0.0,
                                            upperbound = ub_n[a][r],
-                                           start = ub_n[a][r], category = :Cont,
+                                           start = 0.0, category = :Cont,
                                            basename = "qn_$(n)")
     end
 end

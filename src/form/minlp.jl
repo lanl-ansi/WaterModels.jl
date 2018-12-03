@@ -103,15 +103,11 @@ function constraint_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int = wm
         q_n_r = wm.var[:nw][n][:qn][a][r]
         q_p_r = wm.var[:nw][n][:qp][a][r]
 
-        if (getupperbound(dhp) > 0.0)
-            con_1 = @NLconstraint(wm.model, dhp / L >= R[a][r] * (q_p_r^2)^0.926)
-            wm.con[:nw][n][:potential_loss_1][a][r] = con_1
-        end
+        con_1 = @NLconstraint(wm.model, dhp / L >= R[a][r] * head_loss_hw(q_p_r))
+        wm.con[:nw][n][:potential_loss_1][a][r] = con_1
 
-        if (getupperbound(dhn) > 0.0)
-            con_2 = @NLconstraint(wm.model, dhn / L >= R[a][r] * (q_n_r^2)^0.926)
-            wm.con[:nw][n][:potential_loss_2][a][r] = con_2
-        end
+        con_2 = @NLconstraint(wm.model, dhn / L >= R[a][r] * head_loss_hw(q_n_r))
+        wm.con[:nw][n][:potential_loss_2][a][r] = con_2
     end
 end
 
@@ -132,7 +128,6 @@ function constraint_potential_loss_slope(wm::GenericWaterModel{T}, a::Int, n::In
     slopes_p = [R[a][r]*qp_ubs[r]^(1.852) / qp_ubs[r] for r in 1:length(R[a])]
     nan_indices = findall(isnan, slopes_p)
     setindex!(slopes_p, zeros(size(nan_indices, 1)), nan_indices)
-
     rhs_1 = AffExpr(wm.var[:nw][n][:qp][a], slopes_p, 0.0)
     con_1 = @constraint(wm.model, dhp / L <= rhs_1)
     wm.con[:nw][n][:potential_loss_slope_1] = con_1
@@ -141,7 +136,6 @@ function constraint_potential_loss_slope(wm::GenericWaterModel{T}, a::Int, n::In
     slopes_n = [R[a][r]*qn_ubs[r]^(1.852) / qn_ubs[r] for r in 1:length(R[a])]
     nan_indices = findall(isnan, slopes_n)
     setindex!(slopes_n, zeros(size(nan_indices, 1)), nan_indices)
-
     rhs_2 = AffExpr(wm.var[:nw][n][:qn][a], slopes_n, 0.0)
     con_2 = @constraint(wm.model, dhn / L <= rhs_2)
     wm.con[:nw][n][:potential_loss_slope_2] = con_2

@@ -24,12 +24,14 @@ function post_wf_hw(wm::GenericWaterModel; kwargs...)
     variable_flow_direction(wm)
     variable_resistance(wm)
 
+    function_head_loss_hw(wm)
+
     for a in collect(ids(wm, :connection))
         constraint_select_resistance(wm, a)
         constraint_select_flow_term(wm, a)
         constraint_head_difference(wm, a)
         constraint_potential_loss(wm, a)
-        constraint_potential_loss_slope(wm, a)
+        #constraint_potential_loss_slope(wm, a)
     end
 
     for i in collect(ids(wm, :junctions))
