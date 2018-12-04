@@ -1,8 +1,8 @@
 using WaterModels
 using GLPKMathProgInterface
-using JuMP
 using InfrastructureModels
 using Ipopt
+using JuMP
 using Memento
 using Pavito
 using Test
@@ -20,6 +20,6 @@ pavito = PavitoSolver(cont_solver = ipopt, mip_solver = glpk)
 @testset "WaterModels" begin
     include("data.jl")
     include("wf_hw.jl")
+    include("ne_hw.jl")
     #include("wf_dw.jl")
-    #include("ne_hw.jl")
 end

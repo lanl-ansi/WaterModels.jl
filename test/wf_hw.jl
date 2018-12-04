@@ -20,14 +20,6 @@ end
         status = solution["status"]
         @test status == :LocalOptimal || status == :Optimal
     end
-
-    @testset "Shamir network (known flow directions)." begin
-        network_path = "../test/data/epanet/shamir.inp"
-        modification_path = "../test/data/json/shamir.json"
-        solution = run_wf_hw(network_path, modification_path, MINLPWaterModel, pavito)
-        status = solution["status"]
-        @test status == :LocalOptimal || status == :Optimal
-    end
 end
 
 @testset "Hazen-Williams NLP Problems" begin
