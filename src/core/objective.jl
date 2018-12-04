@@ -16,7 +16,7 @@ function get_diameter_cost_function(wm::GenericWaterModel)
         for (a, pipe) in wm.ref[:nw][n][:ne_pipe]
             length = pipe["length"]
             diameter_vars = wm.var[:nw][n][:psi][a]
-            costs = [d["costPerUnitLength"] * length for d in pipe["diameters"]] * 1.0e-6
+            costs = [d["costPerUnitLength"] * length for d in pipe["diameters"]]
             cost_function += AffExpr(diameter_vars[:], costs, 0.0)
         end
     end
