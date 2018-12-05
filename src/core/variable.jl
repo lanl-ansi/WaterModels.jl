@@ -71,7 +71,7 @@ function variable_resistance(wm::GenericWaterModel, n::Int = wm.cnw)
     for (a, connection) in wm.ref[:nw][n][:connection]
         wm.var[:nw][n][:xr][a] = @variable(wm.model, [r in 1:length(R[a])],
                                            start = 0, category = :Bin,
-                                           basename = "xr_$(n)")
+                                           basename = "xr_$(n)_$(a)")
         setvalue(wm.var[:nw][n][:xr][a][1], 1)
     end
 end
@@ -95,7 +95,7 @@ function variable_directed_flow(wm::GenericWaterModel, n::Int = wm.cnw)
                                            lowerbound = 0.0,
                                            upperbound = ub_p[a][r],
                                            start = 0.0, category = :Cont,
-                                           basename = "qp_$(n)")
+                                           basename = "qp_$(n)_$(a)")
 
         # Initialize flow for the variable with least resistance.
         setvalue(wm.var[:nw][n][:qp][a][1], ub_p[a][1])
@@ -105,7 +105,7 @@ function variable_directed_flow(wm::GenericWaterModel, n::Int = wm.cnw)
                                            lowerbound = 0.0,
                                            upperbound = ub_n[a][r],
                                            start = 0.0, category = :Cont,
-                                           basename = "qn_$(n)")
+                                           basename = "qn_$(n)_$(a)")
     end
 end
 
