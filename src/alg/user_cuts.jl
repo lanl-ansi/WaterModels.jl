@@ -52,7 +52,6 @@ function user_cut_callback_generator(wm::GenericWaterModel, params::Dict{String,
     function user_cut_callback(cb::MathProgBase.MathProgCallbackData)
         lp_solution = MathProgBase.cbgetlpsolution(cb)
         dir_sol = lp_solution[dir_indices]
-        xr_sol = lp_solution[xr_indices]
 
         # TODO: The method for finding these data should be solver-agnostic.
         current_node = GLPK.ios_curr_node(cb.tree)

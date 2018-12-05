@@ -14,7 +14,9 @@ const CVXNLPWaterModel = GenericWaterModel{StandardCVXNLPForm}
 "CVXNLP constructor."
 CVXNLPWaterModel(data::Dict{String, Any}; kwargs...) = GenericWaterModel(data, StandardCVXNLPForm; kwargs...)
 
-function variable_flow_cvxnlp(wm::GenericWaterModel, n::Int = wm.cnw) where T <: AbstractCVXNLPForm
+function constraint_select_resistance(wm::GenericWaterModel, a::Int, n::Int = wm.cnw)
+
+function variable_flow(wm::GenericWaterModel, n::Int = wm.cnw) where T <: AbstractCVXNLPForm
     # Get all connections (e.g., pipes) in the network.
     connections = wm.ref[:nw][n][:connection]
 
@@ -29,17 +31,17 @@ function variable_flow_cvxnlp(wm::GenericWaterModel, n::Int = wm.cnw) where T <:
                                     basename = "qn_$(n)", start = 1.0e-6)
 end
 
-function constraint_flow_conservation_cvx(wm::GenericWaterModel, i::Int, n::Int = wm.cnw) where T <: AbstractCVXNLPForm
+function constraint_flow_conservation(wm::GenericWaterModel, i::Int, n::Int = wm.cnw) where T <: AbstractCVXNLPForm
     # Collect the required variables.
     connections = wm.ref[:nw][n][:connection]
 
     out_arcs = collect(keys(filter(is_out_node_function(i), connections)))
-    out_p_vars = Array{JuMP.Variable}([wm.var[:nw][n][:qp][a] for a in out_arcs])
-    out_n_vars = Array{JuMP.Variable}([wm.var[:nw][n][:qn][a] for a in out_arcs])
+    out_p_vars = Array{JuMP.Variable}([wm.var[:nw][n][:qp][a][1] for a in out_arcs])
+    out_n_vars = Array{JuMP.Variable}([wm.var[:nw][n][:qn][a][1] for a in out_arcs])
 
     in_arcs = collect(keys(filter(is_in_node_function(i), connections)))
-    in_p_vars = Array{JuMP.Variable}([wm.var[:nw][n][:qp][a] for a in in_arcs])
-    in_n_vars = Array{JuMP.Variable}([wm.var[:nw][n][:qn][a] for a in in_arcs])
+    in_p_vars = Array{JuMP.Variable}([wm.var[:nw][n][:qp][a][1] for a in in_arcs])
+    in_n_vars = Array{JuMP.Variable}([wm.var[:nw][n][:qn][a][1] for a in in_arcs])
 
     # Add the flow conservation constraints for junction nodes.
     if !haskey(wm.con[:nw][n], :flow_conservation)
