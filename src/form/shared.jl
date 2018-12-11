@@ -21,12 +21,14 @@ function constraint_select_flow_term(wm::GenericWaterModel, a::Int, n::Int = wm.
     wm.con[:nw][n][:select_flow_term_4][a] = Dict{Int, ConstraintRef}()
 
     for r in 1:length(wm.ref[:nw][n][:resistance][a])
-        q_p_r = wm.var[:nw][n][:qp][a][r]
         q_n_r = wm.var[:nw][n][:qn][a][r]
+        q_n_r_ub = getupperbound(q_n_r)
+
+        q_p_r = wm.var[:nw][n][:qp][a][r]
+        q_p_r_ub = getupperbound(q_p_r)
+
         x_dir = wm.var[:nw][n][:dir][a]
         x_r = wm.var[:nw][n][:xr][a][r]
-        q_p_r_ub = getupperbound(q_p_r)
-        q_n_r_ub = getupperbound(q_n_r)
 
         con_1 = @constraint(wm.model, q_p_r <= q_p_r_ub * x_r)
         wm.con[:nw][n][:select_flow_term_1][a][r] = con_1

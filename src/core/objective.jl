@@ -49,14 +49,11 @@ function objective_cvx_hw(wm::GenericWaterModel)
     objective = zero(AffExpr)
 
     for n in nws(wm)
-        # TODO: Address the efficiency here, too.
-        R = calc_resistances_hw(wm, n)
-
         for (a, connection) in wm.ref[:nw][n][:connection]
             q_p = wm.var[:nw][n][:qp][a][1]
             q_n = wm.var[:nw][n][:qn][a][1]
             L = connection["length"]
-            coeff = R[a][1] * L * 0.350631
+            coeff = wm.ref[:nw][n][:resistance][a][1] * L * 0.350631
             term = @variable(wm.model, lowerbound = 0.0, category = :Cont, start = 1.0e-6)
             @NLconstraint(wm.model, term >= coeff * (q_p * (q_p^2)^0.926 + q_n * (q_n^2)^0.926))
             objective += term

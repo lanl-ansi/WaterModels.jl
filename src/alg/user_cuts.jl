@@ -1,7 +1,8 @@
 export user_cut_callback_generator
 
-import CPLEX
+#import CPLEX
 import GLPK
+import Gurobi
 import Random
 
 function compute_q_tilde(q_hat::Float64, r_hat::Float64, r::Float64)
@@ -42,9 +43,6 @@ function compute_q_n_cut(dh::JuMP.Variable, q::Array{JuMP.Variable}, dir::JuMP.V
 end
 
 function user_cut_callback_generator(wm::GenericWaterModel, params::Dict{String, Any}, n::Int = wm.cnw)
-    # TODO: Not efficient... we need another method for storing resistances.
-    R = calc_resistances_hw(wm, n)
-
     # Get indices associated with the MathProgBase model.
     arcs = collect(ids(wm, n, :connection))
     dir_indices = linearindex.(wm.var[:nw][n][:dir][:])
@@ -53,18 +51,21 @@ function user_cut_callback_generator(wm::GenericWaterModel, params::Dict{String,
     function user_cut_callback(cb::MathProgBase.MathProgCallbackData)
         lp_solution = MathProgBase.cbgetlpsolution(cb)
         dir_sol = lp_solution[dir_indices]
-        current_objective = d = nothing
+        current_objective = d = 0.0
+        current_node = 0
 
         if typeof(cb) == GLPKMathProgInterface.GLPKInterfaceMIP.GLPKCallbackData
             current_node = GLPK.ios_curr_node(cb.tree)
             current_problem = GLPK.ios_get_prob(cb.tree)
             current_objective = GLPK.get_obj_val(current_problem)
             d = convert(Float64, GLPK.ios_node_level(cb.tree, current_node))
-        elseif typeof(cb) == CPLEX.CplexCutCallbackData
-            current_node = 1 #CPLEX.CPX_CALLBACK_INFO_NODE_NODENUM
-            d = 1.0 #CPLEX.CPX_CALLBACK_INFO_NODE_DEPTH
-            current_objective = 1.0 #cbgetnodeobjval(cb)
         end
+
+        #elseif typeof(cb) == CPLEX.CplexCutCallbackData
+        #    current_node = 1 #CPLEX.CPX_CALLBACK_INFO_NODE_NODENUM
+        #    d = 1.0 #CPLEX.CPX_CALLBACK_INFO_NODE_DEPTH
+        #    current_objective = 1.0 #cbgetnodeobjval(cb)
+        #end
 
         # Update objective values.
         params["obj_last"] = params["obj_curr"]
@@ -86,6 +87,7 @@ function user_cut_callback_generator(wm::GenericWaterModel, params::Dict{String,
         # if depth_satisfied && obj_improved && num_rounds_satisfied
         if true #depth_satisfied && obj_improved && num_rounds_satisfied
             for (relative_index, a) in enumerate(arcs)
+                R_a = wm.ref[:nw][n][:resistance][a]
                 L = wm.ref[:nw][n][:connection][a]["length"]
                 dir = wm.var[:nw][n][:dir][a]
 
@@ -94,14 +96,14 @@ function user_cut_callback_generator(wm::GenericWaterModel, params::Dict{String,
                     q_hat = lp_solution[linearindex.(q)]
                     negative_indices = findall(signbit, q_hat)
                     q_hat[negative_indices] .= 0.0
-                    phi_max, r_hat = findmax([R[a][r] * q_hat[r]^(1.852) for r in 1:length(q_hat)])
+                    phi_max, r_hat = findmax([R_a[r] * q_hat[r]^(1.852) for r in 1:length(q_hat)])
 
                     dh = wm.var[:nw][n][:dhp][a]
                     dh_hat = lp_solution[linearindex(dh)]
 
                     if -dh_hat / L + phi_max > params["epsilon"]
                         push!(params["oa_p"][a], (q_hat[r_hat], r_hat))
-                        lhs = compute_q_p_cut(dh, q, dir, q_hat, R[a], r_hat, L)
+                        lhs = compute_q_p_cut(dh, q, dir, q_hat, R_a, r_hat, L)
                         @usercut(cb, lhs <= 0.0)
                     end
                 else
@@ -109,14 +111,14 @@ function user_cut_callback_generator(wm::GenericWaterModel, params::Dict{String,
                     q_hat = lp_solution[linearindex.(q)]
                     negative_indices = findall(signbit, q_hat)
                     q_hat[negative_indices] .= 0.0
-                    phi_max, r_hat = findmax([R[a][r] * q_hat[r]^(1.852) for r in 1:length(q_hat)])
+                    phi_max, r_hat = findmax([R_a[r] * q_hat[r]^(1.852) for r in 1:length(q_hat)])
 
                     dh = wm.var[:nw][n][:dhn][a]
                     dh_hat = lp_solution[linearindex(dh)]
 
                     if -dh_hat / L + phi_max > params["epsilon"]
                         push!(params["oa_n"][a], (q_hat[r_hat], r_hat))
-                        lhs = compute_q_n_cut(dh, q, dir, q_hat, R[a], r_hat, L)
+                        lhs = compute_q_n_cut(dh, q, dir, q_hat, R_a, r_hat, L)
                         @usercut(cb, lhs <= 0.0)
                     end
                 end

@@ -10,14 +10,14 @@ function constraint_directed_flow_conservation(wm::GenericWaterModel, i::Int, n:
     flow_sum = AffExpr(0.0)
 
     for a in collect(keys(filter(is_in_node_function(i), connections)))
-        for r in 1:length(wm.ref[:nw][n][:resistance])
+        for r in 1:length(wm.ref[:nw][n][:resistance][a])
             flow_sum += wm.var[:nw][n][:qp][a][r]
             flow_sum -= wm.var[:nw][n][:qn][a][r]
         end
     end
 
     for a in collect(keys(filter(is_out_node_function(i), connections)))
-        for r in 1:length(wm.ref[:nw][n][:resistance])
+        for r in 1:length(wm.ref[:nw][n][:resistance][a])
             flow_sum -= wm.var[:nw][n][:qp][a][r]
             flow_sum += wm.var[:nw][n][:qn][a][r]
         end

@@ -1,6 +1,5 @@
 export lazy_cut_callback_generator
 
-import CPLEX
 import GLPK
 import GLPKMathProgInterface
 import MathProgBase
@@ -13,19 +12,21 @@ function lazy_cut_callback_generator(wm::GenericWaterModel, params::Dict{String,
 
     function lazy_cut_callback(cb::MathProgBase.MathProgCallbackData)
         lp_solution = current_objective = nothing
+        lp_solution = MathProgBase.cbgetmipsolution(cb)
 
         if typeof(cb) == GLPKMathProgInterface.GLPKInterfaceMIP.GLPKCallbackData
             lp_solution = MathProgBase.cbgetlpsolution(cb)
             current_problem = GLPK.ios_get_prob(cb.tree)
             current_objective = GLPK.get_obj_val(current_problem)
-        elseif typeof(cb) == CPLEX.CplexLazyCallbackData
-            lp_solution = MathProgBase.cbgetmipsolution(cb)
-            current_objective = params["obj_curr"] #cbgetnodeobjval(cb)
         end
+        #elseif typeof(cb) == CPLEX.CplexLazyCallbackData
+        #    lp_solution = MathProgBase.cbgetmipsolution(cb)
+        #    current_objective = params["obj_curr"] #cbgetnodeobjval(cb)
+        #end
 
         # Update objective values.
         params["obj_last"] = params["obj_curr"]
-        params["obj_curr"] = current_objective
+        params["obj_curr"] = 0.0 #current_objective
 
         # Set up variable arrays that will be used for cuts.
         xr_ones = Array{JuMP.Variable, 1}()
@@ -50,7 +51,7 @@ function lazy_cut_callback_generator(wm::GenericWaterModel, params::Dict{String,
             @lazyconstraint(cb, sum(xr_ones) - sum(xr_zeros) <= num_arcs - 1)
         elseif !WaterModels.solution_is_feasible(cvx, n)
             num_arcs = length(wm.ref[:nw][n][:connection])
-            @lazyconstraint(cb, sum(xr_ones) - sum(xr_zeros) <= num_arcs - 1)
+            #@lazyconstraint(cb, sum(xr_ones) - sum(xr_zeros) <= num_arcs - 1)
         end
     end
 

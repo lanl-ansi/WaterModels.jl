@@ -50,10 +50,10 @@ function solve_global(network_path::String, problem_path::String, nlp_solver::So
 
     # Set the solver for the problem and add the required callbacks.
     setsolver(mmilp.model, mip_solver)
-    #user_cut_callback = user_cut_callback_generator(mmilp, params, mmilp.cnw)
-    #addcutcallback(mmilp.model, user_cut_callback)
-    #lazy_cut_callback = lazy_cut_callback_generator(mmilp, params, nlp_solver, mmilp.cnw)
-    #addlazycallback(mmilp.model, lazy_cut_callback)
+    user_cut_callback = user_cut_callback_generator(mmilp, params, mmilp.cnw)
+    addcutcallback(mmilp.model, user_cut_callback)
+    lazy_cut_callback = lazy_cut_callback_generator(mmilp, params, nlp_solver, mmilp.cnw)
+    addlazycallback(mmilp.model, lazy_cut_callback)
 
     # Solve the problem and return the status.
     return JuMP.solve(mmilp.model, relaxation = false)
