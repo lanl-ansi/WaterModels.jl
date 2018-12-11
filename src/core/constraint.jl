@@ -6,21 +6,18 @@ function constraint_directed_flow_conservation(wm::GenericWaterModel, i::Int, n:
     # Collect the required variables.
     connections = wm.ref[:nw][n][:connection]
 
-    # TODO: Not efficient... we need another method for storing resistances.
-    R = calc_resistances_hw(wm, n)
-
     # Initialize the flow sum expression.
     flow_sum = AffExpr(0.0)
 
     for a in collect(keys(filter(is_in_node_function(i), connections)))
-        for r in 1:length(R[a])
+        for r in 1:length(wm.ref[:nw][n][:resistance])
             flow_sum += wm.var[:nw][n][:qp][a][r]
             flow_sum -= wm.var[:nw][n][:qn][a][r]
         end
     end
 
     for a in collect(keys(filter(is_out_node_function(i), connections)))
-        for r in 1:length(R[a])
+        for r in 1:length(wm.ref[:nw][n][:resistance])
             flow_sum -= wm.var[:nw][n][:qp][a][r]
             flow_sum += wm.var[:nw][n][:qn][a][r]
         end

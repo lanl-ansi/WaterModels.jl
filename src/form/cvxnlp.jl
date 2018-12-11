@@ -14,47 +14,47 @@ const CVXNLPWaterModel = GenericWaterModel{StandardCVXNLPForm}
 "CVXNLP constructor."
 CVXNLPWaterModel(data::Dict{String, Any}; kwargs...) = GenericWaterModel(data, StandardCVXNLPForm; kwargs...)
 
-function constraint_select_resistance(wm::GenericWaterModel, a::Int, n::Int = wm.cnw)
+#function constraint_select_resistance(wm::GenericWaterModel, a::Int, n::Int = wm.cnw)
 
-function variable_flow(wm::GenericWaterModel, n::Int = wm.cnw) where T <: AbstractCVXNLPForm
-    # Get all connections (e.g., pipes) in the network.
-    connections = wm.ref[:nw][n][:connection]
-
-    # Create the flow variables associated with positive directions (i to j).
-    wm.var[:nw][n][:qp] = @variable(wm.model, [id in keys(connections)],
-                                    category = :Cont, lowerbound = 0.0,
-                                    basename = "qp_$(n)", start = 1.0e-6)
-
-    # Create the flow variables associated with negative directions (j to i).
-    wm.var[:nw][n][:qn] = @variable(wm.model, [id in keys(connections)],
-                                    category = :Cont, lowerbound = 0.0,
-                                    basename = "qn_$(n)", start = 1.0e-6)
-end
-
-function constraint_flow_conservation(wm::GenericWaterModel, i::Int, n::Int = wm.cnw) where T <: AbstractCVXNLPForm
-    # Collect the required variables.
-    connections = wm.ref[:nw][n][:connection]
-
-    out_arcs = collect(keys(filter(is_out_node_function(i), connections)))
-    out_p_vars = Array{JuMP.Variable}([wm.var[:nw][n][:qp][a][1] for a in out_arcs])
-    out_n_vars = Array{JuMP.Variable}([wm.var[:nw][n][:qn][a][1] for a in out_arcs])
-
-    in_arcs = collect(keys(filter(is_in_node_function(i), connections)))
-    in_p_vars = Array{JuMP.Variable}([wm.var[:nw][n][:qp][a][1] for a in in_arcs])
-    in_n_vars = Array{JuMP.Variable}([wm.var[:nw][n][:qn][a][1] for a in in_arcs])
-
-    # Add the flow conservation constraints for junction nodes.
-    if !haskey(wm.con[:nw][n], :flow_conservation)
-        wm.con[:nw][n][:flow_conservation] = Dict{Int, ConstraintRef}()
-    end    
-
-    demand = wm.ref[:nw][n][:junctions][i]["demand"]
-
-    wm.con[:nw][n][:flow_conservation][i] = @constraint(wm.model, sum(in_p_vars) + sum(out_n_vars) -
-                                                        sum(out_p_vars) - sum(in_n_vars) == demand)
-end
-
-function solution_is_feasible(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: AbstractCVXNLPForm
+#function variable_flow(wm::GenericWaterModel, n::Int = wm.cnw) where T <: AbstractCVXNLPForm
+#    # Get all connections (e.g., pipes) in the network.
+#    connections = wm.ref[:nw][n][:connection]
+#
+#    # Create the flow variables associated with positive directions (i to j).
+#    wm.var[:nw][n][:qp] = @variable(wm.model, [id in keys(connections)],
+#                                    category = :Cont, lowerbound = 0.0,
+#                                    basename = "qp_$(n)", start = 1.0e-6)
+#
+#    # Create the flow variables associated with negative directions (j to i).
+#    wm.var[:nw][n][:qn] = @variable(wm.model, [id in keys(connections)],
+#                                    category = :Cont, lowerbound = 0.0,
+#                                    basename = "qn_$(n)", start = 1.0e-6)
+#end
+#
+#function constraint_flow_conservation(wm::GenericWaterModel, i::Int, n::Int = wm.cnw) where T <: AbstractCVXNLPForm
+#    # Collect the required variables.
+#    connections = wm.ref[:nw][n][:connection]
+#
+#    out_arcs = collect(keys(filter(is_out_node_function(i), connections)))
+#    out_p_vars = Array{JuMP.Variable}([wm.var[:nw][n][:qp][a][1] for a in out_arcs])
+#    out_n_vars = Array{JuMP.Variable}([wm.var[:nw][n][:qn][a][1] for a in out_arcs])
+#
+#    in_arcs = collect(keys(filter(is_in_node_function(i), connections)))
+#    in_p_vars = Array{JuMP.Variable}([wm.var[:nw][n][:qp][a][1] for a in in_arcs])
+#    in_n_vars = Array{JuMP.Variable}([wm.var[:nw][n][:qn][a][1] for a in in_arcs])
+#
+#    # Add the flow conservation constraints for junction nodes.
+#    if !haskey(wm.con[:nw][n], :flow_conservation)
+#        wm.con[:nw][n][:flow_conservation] = Dict{Int, ConstraintRef}()
+#    end    
+#
+#    demand = wm.ref[:nw][n][:junctions][i]["demand"]
+#
+#    wm.con[:nw][n][:flow_conservation][i] = @constraint(wm.model, sum(in_p_vars) + sum(out_n_vars) -
+#                                                        sum(out_p_vars) - sum(in_n_vars) == demand)
+#end
+#
+function solution_is_feasible(wm::GenericWaterModel, n::Int = wm.cnw)
     num_junctions = length(wm.ref[:nw][n][:junctions])
     num_reservoirs = length(wm.ref[:nw][n][:reservoirs])
     num_nodes = num_junctions + num_reservoirs
@@ -65,11 +65,10 @@ function solution_is_feasible(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T
     for (a, connection) in wm.ref[:nw][n][:connection]
         A[a, parse(Int, connection["node1"])] = 1
         A[a, parse(Int, connection["node2"])] = -1
-        q_p = getvalue(wm.var[:nw][n][:qp][a])
-        q_n = getvalue(wm.var[:nw][n][:qn][a])
-        r = calc_resistance_per_length_hw(connection)
-        q = (q_p - q_n)
-        b[a] = connection["length"] * r * q * abs(q)^(0.852)
+        q_p = getvalue(wm.var[:nw][n][:qp][a][1])
+        q_n = getvalue(wm.var[:nw][n][:qn][a][1])
+        resistance = connection["length"] * wm.ref[:nw][n][:resistance][a][1]
+        b[a] = resistance * (q_p - q_n) * abs(q_p - q_n)^(0.852)
     end
 
     k = 1
@@ -77,10 +76,10 @@ function solution_is_feasible(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T
         row = num_arcs + k
         A[row, i] = 1
         b[row] = reservoir["head"]
+        k += 1
     end
 
     h = A \ b
-
     junctions = wm.ref[:nw][n][:junctions]
     reservoirs = wm.ref[:nw][n][:reservoirs]
     max_junc_elev = maximum([junc["elev"] for junc in values(junctions)])

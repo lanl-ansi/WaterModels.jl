@@ -127,6 +127,37 @@ function calc_resistances_hw(wm::GenericWaterModel, n::Int = wm.cnw)
     return resistances
 end
 
+function calc_resistances_hw(connections::Dict{Int, Any})
+    # Get placeholders for junctions and reservoirs.
+    resistances = Dict([(a, Array{Float64, 1}()) for a in keys(connections)])
+
+    # Initialize the dictionaries for minimum and maximum head differences.
+    for (a, connection) in connections
+        if haskey(connection, "resistances")
+            resistances[a] = sort(connection["resistances"], rev = true)
+        elseif haskey(connection, "resistance")
+            resistance = connection["resistance"]
+            resistances[a] = vcat(resistances[a], resistance)
+        elseif haskey(connection, "diameters")
+            for entry in connection["diameters"]
+                diameter = entry["diameter"]
+                roughness = connection["roughness"]
+                r = 10.67 / (roughness^1.852 * diameter^4.87)
+                resistances[a] = vcat(resistances[a], r)
+            end
+
+            resistances[a] = sort(resistances[a], rev = true)
+        else
+            diameter = connection["diameter"]
+            roughness = connection["roughness"]
+            r = 10.67 / (roughness^1.852 * diameter^4.87)
+            resistances[a] = vcat(resistances[a], r)
+        end
+    end
+
+    return resistances
+end
+
 function calc_resistance_costs(wm::GenericWaterModel, n::Int = wm.cnw)
     # Get placeholders for junctions and reservoirs.
     connections = wm.ref[:nw][n][:connection]
@@ -140,10 +171,9 @@ function calc_resistance_costs(wm::GenericWaterModel, n::Int = wm.cnw)
             for entry in connection["diameters"]
                 diameter = entry["diameter"]
                 roughness = connection["roughness"]
-                r = 10.67 / (roughness^1.852 * diameter^4.87)
-                resistances = vcat(resistances, r)
-                cost = entry["costPerUnitLength"]
-                costs[a] = vcat(costs[a], cost)
+                resistance = 10.67 / (roughness^1.852 * diameter^4.87)
+                resistances = vcat(resistances, resistance)
+                costs[a] = vcat(costs[a], entry["costPerUnitLength"])
             end
 
             sort_indices = sortperm(resistances, rev = true)

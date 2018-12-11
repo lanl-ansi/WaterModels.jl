@@ -4,7 +4,7 @@ function constraint_select_resistance(wm::GenericWaterModel, a::Int, n::Int = wm
     end
 
     con = @constraint(wm.model, sum(wm.var[:nw][n][:xr][a]) == 1)
-    wm.con[:nw][n][:select_resistance] = con
+    wm.con[:nw][n][:select_resistance][a] = con
 end
 
 function constraint_select_flow_term(wm::GenericWaterModel, a::Int, n::Int = wm.cnw)
@@ -20,7 +20,7 @@ function constraint_select_flow_term(wm::GenericWaterModel, a::Int, n::Int = wm.
     wm.con[:nw][n][:select_flow_term_3][a] = Dict{Int, ConstraintRef}()
     wm.con[:nw][n][:select_flow_term_4][a] = Dict{Int, ConstraintRef}()
 
-    for r in keys(wm.var[:nw][n][:xr][a])
+    for r in 1:length(wm.ref[:nw][n][:resistance][a])
         q_p_r = wm.var[:nw][n][:qp][a][r]
         q_n_r = wm.var[:nw][n][:qn][a][r]
         x_dir = wm.var[:nw][n][:dir][a]
@@ -79,20 +79,18 @@ function constraint_potential_loss_slope(wm::GenericWaterModel, a::Int, n::Int =
     dhp = wm.var[:nw][n][:dhp][a]
     dhn = wm.var[:nw][n][:dhn][a]
     L = wm.ref[:nw][n][:connection][a]["length"]
+    R_a = wm.ref[:nw][n][:resistance][a]
 
-    # TODO: Not efficient... we need another method for storing resistances.
-    R = calc_resistances_hw(wm, n)
-
-    qp_ubs = [getupperbound(wm.var[:nw][n][:qp][a][r]) for r in 1:length(R[a])]
-    slopes_p = [R[a][r]*qp_ubs[r]^(1.852) / qp_ubs[r] for r in 1:length(R[a])]
+    qp_ubs = [getupperbound(wm.var[:nw][n][:qp][a][r]) for r in 1:length(R_a)]
+    slopes_p = [R_a[r]*qp_ubs[r]^(1.852) / qp_ubs[r] for r in 1:length(R_a)]
     nan_indices = findall(isnan, slopes_p)
     setindex!(slopes_p, zeros(size(nan_indices, 1)), nan_indices)
     rhs_1 = AffExpr(wm.var[:nw][n][:qp][a], slopes_p, 0.0)
     con_1 = @constraint(wm.model, dhp / L <= rhs_1)
     wm.con[:nw][n][:potential_loss_slope_1] = con_1
 
-    qn_ubs = [getupperbound(wm.var[:nw][n][:qn][a][r]) for r in 1:length(R[a])]
-    slopes_n = [R[a][r]*qn_ubs[r]^(1.852) / qn_ubs[r] for r in 1:length(R[a])]
+    qn_ubs = [getupperbound(wm.var[:nw][n][:qn][a][r]) for r in 1:length(R_a)]
+    slopes_n = [R_a[r]*qn_ubs[r]^(1.852) / qn_ubs[r] for r in 1:length(R_a)]
     nan_indices = findall(isnan, slopes_n)
     setindex!(slopes_n, zeros(size(nan_indices, 1)), nan_indices)
     rhs_2 = AffExpr(wm.var[:nw][n][:qn][a], slopes_n, 0.0)

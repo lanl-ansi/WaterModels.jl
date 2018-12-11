@@ -1,5 +1,6 @@
 export user_cut_callback_generator
 
+import CPLEX
 import GLPK
 import Random
 
@@ -52,12 +53,18 @@ function user_cut_callback_generator(wm::GenericWaterModel, params::Dict{String,
     function user_cut_callback(cb::MathProgBase.MathProgCallbackData)
         lp_solution = MathProgBase.cbgetlpsolution(cb)
         dir_sol = lp_solution[dir_indices]
+        current_objective = d = nothing
 
-        # TODO: The method for finding these data should be solver-agnostic.
-        current_node = GLPK.ios_curr_node(cb.tree)
-        current_problem = GLPK.ios_get_prob(cb.tree)
-        current_objective = GLPK.get_obj_val(current_problem)
-        d = convert(Float64, GLPK.ios_node_level(cb.tree, current_node))
+        if typeof(cb) == GLPKMathProgInterface.GLPKInterfaceMIP.GLPKCallbackData
+            current_node = GLPK.ios_curr_node(cb.tree)
+            current_problem = GLPK.ios_get_prob(cb.tree)
+            current_objective = GLPK.get_obj_val(current_problem)
+            d = convert(Float64, GLPK.ios_node_level(cb.tree, current_node))
+        elseif typeof(cb) == CPLEX.CplexCutCallbackData
+            current_node = 1 #CPLEX.CPX_CALLBACK_INFO_NODE_NODENUM
+            d = 1.0 #CPLEX.CPX_CALLBACK_INFO_NODE_DEPTH
+            current_objective = 1.0 #cbgetnodeobjval(cb)
+        end
 
         # Update objective values.
         params["obj_last"] = params["obj_curr"]
@@ -76,7 +83,8 @@ function user_cut_callback_generator(wm::GenericWaterModel, params::Dict{String,
         # Check satisfaction of the number of rounds.
         num_rounds_satisfied = params["n"][current_node] <= params["M_oa"]
 
-        if depth_satisfied && obj_improved && num_rounds_satisfied
+        # if depth_satisfied && obj_improved && num_rounds_satisfied
+        if true #depth_satisfied && obj_improved && num_rounds_satisfied
             for (relative_index, a) in enumerate(arcs)
                 L = wm.ref[:nw][n][:connection][a]["length"]
                 dir = wm.var[:nw][n][:dir][a]

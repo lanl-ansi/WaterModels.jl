@@ -35,8 +35,6 @@ function post_wf_hw(wm::GenericWaterModel; kwargs...)
     for i in collect(ids(wm, :junctions))
         constraint_directed_flow_conservation(wm, i)
     end
-
-    objective_minimize_resistance_cost(wm)
 end
 
 function post_wf_dw(wm::GenericWaterModel; kwargs...)

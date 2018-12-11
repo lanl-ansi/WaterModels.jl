@@ -37,7 +37,7 @@ include("form/shared.jl")
 #include("form/exact.jl")
 #include("form/relaxed.jl")
 
-#include("prob/cvx.jl")
+include("prob/cvx.jl")
 include("prob/ne.jl")
 include("prob/wf.jl")
 

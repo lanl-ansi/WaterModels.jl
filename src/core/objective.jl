@@ -26,33 +26,37 @@ end
 
 function objective_minimize_resistance_cost(wm::GenericWaterModel)
     objective = zero(AffExpr)
+    max_cost = 0.0
 
     for n in nws(wm)
-        R = calc_resistances_hw(wm, n)
         C = calc_resistance_costs(wm, n)
 
         for (a, connection) in wm.ref[:nw][n][:connection]
             L_a = connection["length"]
 
-            for r in 1:length(R[a])
+            for r in 1:length(C[a])
                 objective += (L_a * C[a][r]) * wm.var[:nw][n][:xr][a][r]
             end
+
+            max_cost += L_a * C[a][1]
         end
     end
 
     return @objective(wm.model, Min, objective)
 end
 
-function objective_cvxnlp(wm::GenericWaterModel, exponent::Float64 = 1.852)
+function objective_cvx_hw(wm::GenericWaterModel)
     objective = zero(AffExpr)
 
     for n in nws(wm)
+        # TODO: Address the efficiency here, too.
+        R = calc_resistances_hw(wm, n)
+
         for (a, connection) in wm.ref[:nw][n][:connection]
-            q_p = wm.var[:nw][n][:qp][a]
-            q_n = wm.var[:nw][n][:qn][a]
+            q_p = wm.var[:nw][n][:qp][a][1]
+            q_n = wm.var[:nw][n][:qn][a][1]
             L = connection["length"]
-            r = calc_resistance_per_length_hw(connection)
-            coeff = r * L * 0.350631
+            coeff = R[a][1] * L * 0.350631
             term = @variable(wm.model, lowerbound = 0.0, category = :Cont, start = 1.0e-6)
             @NLconstraint(wm.model, term >= coeff * (q_p * (q_p^2)^0.926 + q_n * (q_n^2)^0.926))
             objective += term
@@ -62,8 +66,8 @@ function objective_cvxnlp(wm::GenericWaterModel, exponent::Float64 = 1.852)
     for n in nws(wm)
         for (i, reservoir) in wm.ref[:nw][n][:reservoirs]
             for (a, connection) in wm.ref[:nw][n][:connection]
-                q_p = wm.var[:nw][n][:qp][a]
-                q_n = wm.var[:nw][n][:qn][a]
+                q_p = wm.var[:nw][n][:qp][a][1]
+                q_n = wm.var[:nw][n][:qn][a][1]
                 objective -= reservoir["head"] * (q_p - q_n)
             end
         end

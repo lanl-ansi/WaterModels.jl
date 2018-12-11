@@ -26,17 +26,17 @@ function post_ne_hw(wm::GenericWaterModel; kwargs...)
 
     for a in collect(ids(wm, :connection))
         constraint_select_resistance(wm, a)
-        constraint_select_flow_term(wm, a)
-        constraint_head_difference(wm, a)
+        #constraint_select_flow_term(wm, a)
+        #constraint_head_difference(wm, a)
         constraint_potential_loss(wm, a)
-        constraint_potential_loss_slope(wm, a)
+        #constraint_potential_loss_slope(wm, a)
     end
 
     for i in collect(ids(wm, :junctions))
         constraint_directed_flow_conservation(wm, i)
     end
 
-    objective_minimize_resistance_cost(wm)
+    #objective_minimize_resistance_cost(wm)
 end
 
 function post_ne_bt_hw(wm::GenericWaterModel; kwargs...)

@@ -1,3 +1,5 @@
+CPLEX
+GLPK
 GLPKMathProgInterface
 Ipopt
 Pavito
