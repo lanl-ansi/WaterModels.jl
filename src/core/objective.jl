@@ -26,19 +26,13 @@ end
 
 function objective_minimize_resistance_cost(wm::GenericWaterModel)
     objective = zero(AffExpr)
-    max_cost = 0.0
 
     for n in nws(wm)
-        C = calc_resistance_costs(wm, n)
-
         for (a, connection) in wm.ref[:nw][n][:connection]
             L_a = connection["length"]
-
-            for r in 1:length(C[a])
-                objective += (L_a * C[a][r]) * wm.var[:nw][n][:xr][a][r]
-            end
-
-            max_cost += L_a * C[a][1]
+            x_a = wm.var[:nw][n][:xr][a]
+            C_a = wm.ref[:nw][n][:resistance_cost][a]
+            objective += sum(L_a * C_a[r] * x_a[r] for r in 1:length(C_a))
         end
     end
 

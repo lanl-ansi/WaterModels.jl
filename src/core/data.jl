@@ -69,19 +69,20 @@ function calc_directed_flow_upper_bounds(wm::GenericWaterModel, n::Int = wm.cnw,
     # Get a dictionary of resistance values.
     dh_lb, dh_ub = calc_head_difference_bounds(wm, n)
 
-    # TODO: Deal with H-W and D-W elegantly.
-    R = calc_resistances_hw(wm, n)
-
     connections = wm.ref[:nw][n][:connection]
-    ub_n = Dict([(a, Dict{Int, Float64}()) for a in keys(connections)])
-    ub_p = Dict([(a, Dict{Int, Float64}()) for a in keys(connections)])
+    ub_n = Dict([(a, Float64[]) for a in keys(connections)])
+    ub_p = Dict([(a, Float64[]) for a in keys(connections)])
 
     for (a, connection) in connections
         L = connection["length"]
+        R_a = wm.ref[:nw][n][:resistance][a]
 
-        for r in 1:length(R[a])
-            ub_n[a][r] = abs(dh_lb[a] / (L * R[a][r]))^(1.0 / exponent)
-            ub_p[a][r] = abs(dh_ub[a] / (L * R[a][r]))^(1.0 / exponent)
+        ub_n[a] = zeros(Float64, (length(R_a),))
+        ub_p[a] = zeros(Float64, (length(R_a),))
+
+        for r in 1:length(R_a)
+            ub_n[a][r] = abs(dh_lb[a] / (L * R_a[r]))^(1.0 / exponent)
+            ub_p[a][r] = abs(dh_ub[a] / (L * R_a[r]))^(1.0 / exponent)
 
             if connection["flow_direction"] == POSITIVE || dh_lb[a] >= 0.0
                 ub_n[a][r] = 0.0
@@ -158,9 +159,8 @@ function calc_resistances_hw(connections::Dict{Int, Any})
     return resistances
 end
 
-function calc_resistance_costs(wm::GenericWaterModel, n::Int = wm.cnw)
-    # Get placeholders for junctions and reservoirs.
-    connections = wm.ref[:nw][n][:connection]
+function calc_resistance_costs_hw(connections::Dict{Int, Any})
+    # Create placeholder costs dictionary.
     costs = Dict([(a, Array{Float64, 1}()) for a in keys(connections)])
 
     # Initialize the dictionaries for minimum and maximum head differences.

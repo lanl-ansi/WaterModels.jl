@@ -76,38 +76,39 @@ function variable_resistance(wm::GenericWaterModel, n::Int = wm.cnw)
     end
 end
 
-function variable_directed_flow(wm::GenericWaterModel, n::Int = wm.cnw)
-    # Get indices for all network arcs.
-    arcs = collect(ids(wm, n, :connection))
-
-    # Compute sets of resistances.
-    R = calc_resistances_hw(wm, n)
-    ub_n, ub_p = calc_directed_flow_upper_bounds(wm, n)
-
-    # Initialize directed flow variables. The variables qp correspond to flow
-    # from i to j, and the variables qn correspond to flow from j to i.
-    wm.var[:nw][n][:qp] = Dict{Int, Array{Variable, 1}}()
-    wm.var[:nw][n][:qn] = Dict{Int, Array{Variable, 1}}()
-
-    for (a, connection) in wm.ref[:nw][n][:connection]
-        # Initialize variables associated with flow from i to j.
-        wm.var[:nw][n][:qp][a] = @variable(wm.model, [r in 1:length(R[a])],
-                                           lowerbound = 0.0,
-                                           upperbound = ub_p[a][r],
-                                           start = 0.0, category = :Cont,
-                                           basename = "qp_$(n)_$(a)")
-
-        # Initialize flow for the variable with least resistance.
-        setvalue(wm.var[:nw][n][:qp][a][1], ub_p[a][1])
-
-        # Initialize variables associated with flow from j to i.
-        wm.var[:nw][n][:qn][a] = @variable(wm.model, [r in 1:length(R[a])],
-                                           lowerbound = 0.0,
-                                           upperbound = ub_n[a][r],
-                                           start = 0.0, category = :Cont,
-                                           basename = "qn_$(n)_$(a)")
-    end
-end
+#function variable_directed_flow(wm::GenericWaterModel, n::Int = wm.cnw) where T <: StandardMINLPForm
+#    # Get indices for all network arcs.
+#    arcs = collect(ids(wm, n, :connection))
+#
+#    # Compute sets of resistances.
+#    ub_n, ub_p = calc_directed_flow_upper_bounds(wm, n)
+#
+#    # Initialize directed flow variables. The variables qp correspond to flow
+#    # from i to j, and the variables qn correspond to flow from j to i.
+#    wm.var[:nw][n][:qp] = Dict{Int, Array{Variable, 1}}()
+#    wm.var[:nw][n][:qn] = Dict{Int, Array{Variable, 1}}()
+#
+#    for (a, connection) in wm.ref[:nw][n][:connection]
+#        R_a = wm.ref[:nw][n][:resistance][a]
+#
+#        # Initialize variables associated with flow from i to j.
+#        wm.var[:nw][n][:qp][a] = @variable(wm.model, [r in 1:length(R_a)],
+#                                           lowerbound = 0.0,
+#                                           upperbound = ub_p[a][r],
+#                                           start = 0.0, category = :Cont,
+#                                           basename = "qp_$(n)_$(a)")
+#
+#        # Initialize flow for the variable with least resistance.
+#        setvalue(wm.var[:nw][n][:qp][a][end], ub_p[a][end])
+#
+#        # Initialize variables associated with flow from j to i.
+#        wm.var[:nw][n][:qn][a] = @variable(wm.model, [r in 1:length(R_a)],
+#                                           lowerbound = 0.0,
+#                                           upperbound = ub_n[a][r],
+#                                           start = 0.0, category = :Cont,
+#                                           basename = "qn_$(n)_$(a)")
+#    end
+#end
 
 #function variable_flow(wm::GenericWaterModel, n::Int = wm.cnw)
 #    lbs, ubs = calc_flow_bounds(wm.ref[:nw][n][:pipes])

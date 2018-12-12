@@ -170,6 +170,7 @@ function build_ref(data::Dict{String, Any})
         ref[:connection_known_direction] = filter(has_known_flow_direction, ref[:connection])
         ref[:connection_unknown_direction] = filter(!has_known_flow_direction, ref[:connection])
         ref[:resistance] = calc_resistances_hw(ref[:connection])
+        ref[:resistance_cost] = calc_resistance_costs_hw(ref[:connection])
 
         junction_ids = [collect(keys(ref[:junctions])); collect(keys(ref[:reservoirs]))]
         ref[:junction_connections] = Dict(i => [] for i in junction_ids)

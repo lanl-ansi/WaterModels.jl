@@ -100,6 +100,43 @@ function constraint_potential_loss_slope(wm::GenericWaterModel, a::Int, n::Int =
     wm.con[:nw][n][:potential_loss_slope_2] = con_2
 end
 
+"These problem forms use binary variables to specify flow direction."
+AbstractDirectedForm = Union{AbstractMINLPForm, AbstractMILPRForm}
+
+function variable_directed_flow(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: AbstractDirectedForm
+    # Get indices for all network arcs.
+    arcs = collect(ids(wm, n, :connection))
+
+    # Compute sets of resistances.
+    ub_n, ub_p = calc_directed_flow_upper_bounds(wm, n)
+
+    # Initialize directed flow variables. The variables qp correspond to flow
+    # from i to j, and the variables qn correspond to flow from j to i.
+    wm.var[:nw][n][:qp] = Dict{Int, Array{Variable, 1}}()
+    wm.var[:nw][n][:qn] = Dict{Int, Array{Variable, 1}}()
+
+    for (a, connection) in wm.ref[:nw][n][:connection]
+        R_a = wm.ref[:nw][n][:resistance][a]
+
+        # Initialize variables associated with flow from i to j.
+        wm.var[:nw][n][:qp][a] = @variable(wm.model, [r in 1:length(R_a)],
+                                           lowerbound = 0.0,
+                                           upperbound = ub_p[a][r],
+                                           start = 0.0, category = :Cont,
+                                           basename = "qp_$(n)_$(a)")
+
+        # Initialize flow for the variable with least resistance.
+        setvalue(wm.var[:nw][n][:qp][a][end], ub_p[a][end])
+
+        # Initialize variables associated with flow from j to i.
+        wm.var[:nw][n][:qn][a] = @variable(wm.model, [r in 1:length(R_a)],
+                                           lowerbound = 0.0,
+                                           upperbound = ub_n[a][r],
+                                           start = 0.0, category = :Cont,
+                                           basename = "qn_$(n)_$(a)")
+    end
+end
+
 #"Set new bounds for q given some specified direction of flow (-1 or 1)."
 #function fix_flow_direction(q::JuMP.Variable, direction::Int)
 #    # Fix the direction of the flow.
