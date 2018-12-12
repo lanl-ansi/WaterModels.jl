@@ -8,6 +8,9 @@ function lazy_cut_callback_generator(wm::GenericWaterModel, params::Dict{String,
     resistances = wm.ref[:nw][n][:resistance]
     network = deepcopy(wm.data)
 
+    connection_ids = collect(ids(wm, n, :connection))
+    R_id = Dict{Int, Int}(a => 1 for a in connection_ids)
+
     function lazy_cut_callback(cb::MathProgBase.MathProgCallbackData)
         # Set up variable arrays that will be used for cuts.
         xr_ones = Array{JuMP.Variable, 1}()
@@ -19,7 +22,7 @@ function lazy_cut_callback_generator(wm::GenericWaterModel, params::Dict{String,
         # Update resistances used throughout the network.
         for (a, connection) in wm.ref[:nw][n][:connection]
             xr_a = getvalue(wm.var[:nw][n][:xr][a])
-            r = findfirst(r -> isapprox(xr_a[r], 1.0, atol = 0.01), 1:length(xr_a))
+            R_id[a] = r = findfirst(r -> isapprox(xr_a[r], 1.0, atol = 0.01), 1:length(xr_a))
             network["pipes"][string(a)]["resistance"] = resistances[a][r]
             zero_indices = setdiff(1:length(xr_a), [r])
             xr_ones = vcat(xr_ones, wm.var[:nw][n][:xr][a][r])
@@ -33,25 +36,10 @@ function lazy_cut_callback_generator(wm::GenericWaterModel, params::Dict{String,
         params["obj_curr"] = current_objective
 
         # Solve the convex program.
-        cvx = build_generic_model(network, CVXNLPWaterModel, WaterModels.post_cvx_hw)
-        setsolver(cvx.model, nlp_solver)
-        status = JuMP.solve(cvx.model, relaxation = true, suppress_warnings = true)
-        h = get_head_solution(cvx, nlp_solver, cvx.cnw)
-        solution_is_feasible = true
+        sol_feasible, tmp = repair_solution(wm, R_id, params, nlp_solver,
+                                            feasibility_check = true)
 
-        for (i, junction) in wm.ref[:nw][n][:junctions]
-            if h[i] > getupperbound(wm.var[:nw][n][:h][i])
-                solution_is_feasible = false
-            elseif h[i] < getlowerbound(wm.var[:nw][n][:h][i])
-                solution_is_feasible = false
-            end
-        end
-
-        # Add cuts when solutions to the CVXNLP are not physically feasible.
-        if status != :LocalOptimal && status != :Optimal
-            num_arcs = length(wm.ref[:nw][n][:connection])
-            @lazyconstraint(cb, sum(xr_ones) - sum(xr_zeros) <= num_arcs - 1)
-        elseif !solution_is_feasible
+        if !sol_feasible
             num_arcs = length(wm.ref[:nw][n][:connection])
             @lazyconstraint(cb, sum(xr_ones) - sum(xr_zeros) <= num_arcs - 1)
         else

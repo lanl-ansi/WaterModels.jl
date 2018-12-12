@@ -41,9 +41,11 @@ include("prob/cvx.jl")
 include("prob/ne.jl")
 include("prob/wf.jl")
 
+include("alg/repair.jl")
+include("alg/find_initial_solution.jl")
+include("alg/set_initial_solution.jl")
 include("alg/user_cuts.jl")
 include("alg/lazy_cuts.jl")
-include("alg/repair.jl")
 include("alg/solve_global.jl")
 
 end

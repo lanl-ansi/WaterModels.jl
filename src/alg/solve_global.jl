@@ -17,10 +17,6 @@ function solve_global(network_path::String, problem_path::String, nlp_solver::So
     setsolver(rnlp.model, nlp_solver)
     rnlp_status = JuMP.solve(rnlp.model, relaxation = true)
 
-    # Initialize the set of points at which outer approximations will be made.
-    oa_p = [Set{Tuple{Float64, Int}}() for a in collect(ids(rnlp, :connection))]
-    oa_n = [Set{Tuple{Float64, Int}}() for a in collect(ids(rnlp, :connection))]
-
     # Set initial points for the outer approximation (Lines 2 through 5).
     for (a, connection) in rnlp.ref[:nw][rnlp.cnw][:connection]
         # Get possible resistances for the arc.
@@ -46,10 +42,8 @@ function solve_global(network_path::String, problem_path::String, nlp_solver::So
 
     # Initialize the master MILP (mMILP) problem.
     mmilp = build_generic_model(network, MILPRWaterModel, WaterModels.post_ne_hw)
-
-    #R = rnlp.ref[:nw][rnlp.cnw][:resistance]
-    #R_ids = Dict{Int, Int}(a => length(R[a]) for a in keys(R))
-    #repair_solution(mmilp.data, R, R_ids, params, nlp_solver)
+    R_best = find_initial_solution(mmilp, params, nlp_solver)
+    set_initial_solution(mmilp, R_best, nlp_solver)
 
     # Set the solver for the problem and add the required callbacks.
     setsolver(mmilp.model, mip_solver)

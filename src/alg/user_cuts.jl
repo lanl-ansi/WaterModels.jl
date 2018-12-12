@@ -27,7 +27,7 @@ function compute_q_p_cut(dh::JuMP.Variable, q::Array{JuMP.Variable}, dir::JuMP.V
     expr = zero(AffExpr)
     expr += -dh / L + phi_prime_hat * q[r_hat]
     expr += (phi_hat - phi_prime_hat * q_sol[r_hat]) * dir
-    expr += sum(R[r] * head_loss_hw_prime(q_tilde[r]) * q[r] for r in rneq)
+    #expr += sum(R[r] * head_loss_hw_prime(q_tilde[r]) * q[r] for r in rneq)
     return expr
 end
 
@@ -40,7 +40,7 @@ function compute_q_n_cut(dh::JuMP.Variable, q::Array{JuMP.Variable}, dir::JuMP.V
     expr = zero(AffExpr)
     expr += -dh / L + phi_prime_hat * q[r_hat]
     expr += (phi_hat - phi_prime_hat * q_sol[r_hat]) * (1 - dir)
-    expr += sum(R[r] * head_loss_hw_prime(q_tilde[r]) * q[r] for r in rneq)
+    #expr += sum(R[r] * head_loss_hw_prime(q_tilde[r]) * q[r] for r in rneq)
     return expr
 end
 
@@ -54,6 +54,8 @@ function user_cut_callback_generator(wm::GenericWaterModel, params::Dict{String,
         dir_sol = lp_solution[dir_indices]
 
         # Initialize the objective value.
+        depth_satisfied = num_rounds_satisfied = true
+        current_node = 0
         current_objective = 0.0
 
         for (a, connection) in wm.ref[:nw][n][:connection]
@@ -67,6 +69,25 @@ function user_cut_callback_generator(wm::GenericWaterModel, params::Dict{String,
             current_node = GLPK.ios_curr_node(cb.tree)
             current_problem = GLPK.ios_get_prob(cb.tree)
             d = convert(Float64, GLPK.ios_node_level(cb.tree, current_node))
+
+            # Check satisfaction of node depth.
+            depth_satisfied = Random.rand() <= params["Beta_oa"] * 2^(-d)
+
+            # Initialize the number of cut rounds added per node.
+            if !haskey(params["n"], current_node)
+                params["n"][current_node] = 0
+            end
+
+            # Check satisfaction of the number of rounds.
+            num_rounds_satisfied = params["n"][current_node] <= params["M_oa"]
+        else
+            # Initialize the number of cut rounds added per node.
+            if !haskey(params["n"], current_node)
+                params["n"][current_node] = 0
+            end
+
+            depth_satisfied = true
+            num_rounds_satisfied = true
         end
 
         # Update objective values.
@@ -74,17 +95,8 @@ function user_cut_callback_generator(wm::GenericWaterModel, params::Dict{String,
         params["obj_curr"] = current_objective
 
         # Conditions for adding outer approximations.
-        depth_satisfied = Random.rand() <= params["Beta_oa"] * 2^(-d)
         obj_rel_change = (params["obj_curr"] - params["obj_last"]) / params["obj_last"]
         obj_improved = obj_rel_change >= params["K_oa"]
-       
-        # Initialize the number of cut rounds added per node.
-        if !haskey(params["n"], current_node)
-            params["n"][current_node] = 0
-        end
-
-        # Check satisfaction of the number of rounds.
-        num_rounds_satisfied = params["n"][current_node] <= params["M_oa"]
 
         if depth_satisfied && obj_improved && num_rounds_satisfied
             for (relative_index, a) in enumerate(arcs)
