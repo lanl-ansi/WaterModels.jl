@@ -34,9 +34,7 @@ function lazy_cut_callback_generator(wm::GenericWaterModel, params::Dict{String,
         cvx = build_generic_model(network, CVXNLPWaterModel, WaterModels.post_cvx_hw)
         setsolver(cvx.model, nlp_solver)
         status = JuMP.solve(cvx.model, relaxation = true, suppress_warnings = true)
-
-        h = get_head_solution(cvx, nlp_solver)
-        println(h)
+        h = get_head_solution(cvx, nlp_solver, cvx.cnw)
 
         ## Add cuts when solutions to the CVXNLP are not physically feasible.
         #if status != :LocalOptimal && status != :Optimal

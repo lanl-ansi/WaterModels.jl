@@ -42,7 +42,7 @@ function variable_directed_flow(wm::GenericWaterModel{T}, n::Int = wm.cnw) where
     end
 end
 
-function get_head_solution(wm::GenericWaterModel, solver::MathProgBase.AbstractMathProgSolver, n::Int = wm.cnw) where T <: StandardCVXNLPForm
+function get_head_solution(wm::GenericWaterModel{T}, solver::MathProgBase.AbstractMathProgSolver, n::Int = wm.cnw) where T <: StandardCVXNLPForm
     # Initialize variables associated with head.
     model = Model(solver = solver)
     nodes = [collect(ids(wm, n, :junctions)); collect(ids(wm, n, :reservoirs))]
@@ -50,21 +50,20 @@ function get_head_solution(wm::GenericWaterModel, solver::MathProgBase.AbstractM
 
     for (a, connection) in wm.ref[:nw][n][:connection]
         L = connection["length"]
-        #i = parse(Int, connection["node1"])
-        #j = parse(Int, connection["node2"])
-        #resistance = wm.ref[:nw][n][:resistance][a][1]
-        #q_hat = getvalue(wm.var[:nw][n][:qp][a][1]) -
-        #        getvalue(wm.var[:nw][n][:qn][a][1])
-        #@constraint(wm, h_i - h_j == L * resistance * q * abs(q)^(0.852))
+        h_i = h[parse(Int, connection["node1"])]
+        h_j = h[parse(Int, connection["node2"])]
+        resistance = wm.ref[:nw][n][:resistance][a][1]
+        q = getvalue(wm.var[:nw][n][:qp][a][1]) -
+            getvalue(wm.var[:nw][n][:qn][a][1])
+        @constraint(wm, h_i - h_j == L * resistance * q * abs(q)^(0.852))
     end
 
-    #for (i, reservoir) in wm.ref[:nw][n][:reservoirs]
-    #    @constraint(wm, h[i] == reservoir["head"])
-    #end
+    for (i, reservoir) in wm.ref[:nw][n][:reservoirs]
+        @constraint(wm, h[i] == reservoir["head"])
+    end
 
-    #cvx = build_generic_model(network, CVXNLPWaterModel, WaterModels.post_cvx_hw)
-    #status = JuMP.solve(cvx.model, relaxation = true, suppress_warnings = true)
-    #return getvalue(h)
+    status = JuMP.solve(model, relaxation = true, suppress_warnings = true)
+    return getvalue(h)
 end
 
 #function constraint_select_resistance(wm::GenericWaterModel, a::Int, n::Int = wm.cnw)
