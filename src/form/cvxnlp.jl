@@ -43,19 +43,26 @@ function variable_directed_flow(wm::GenericWaterModel{T}, n::Int = wm.cnw) where
 end
 
 function get_head_solution(wm::GenericWaterModel{T}, solver::MathProgBase.AbstractMathProgSolver, n::Int = wm.cnw) where T <: StandardCVXNLPForm
-    # Initialize variables associated with head.
+    # Initialie the model.
     model = Model(solver = solver)
+
+    # Initialize variables associated with head.
     nodes = [collect(ids(wm, n, :junctions)); collect(ids(wm, n, :reservoirs))]
     h = @variable(model, [i in nodes], start = 0.0, category = :Cont)
 
     for (a, connection) in wm.ref[:nw][n][:connection]
         L = connection["length"]
+        resistance = wm.ref[:nw][n][:resistance][a][1]
+
+        qp = wm.var[:nw][n][:qp][a][1]
+        qn = wm.var[:nw][n][:qn][a][1]
+        q = getvalue(qp) - getvalue(qn)
+
         h_i = h[parse(Int, connection["node1"])]
         h_j = h[parse(Int, connection["node2"])]
-        resistance = wm.ref[:nw][n][:resistance][a][1]
-        q = getvalue(wm.var[:nw][n][:qp][a][1]) -
-            getvalue(wm.var[:nw][n][:qn][a][1])
-        @constraint(model, h_i - h_j == L * resistance * q * abs(q)^(0.852))
+
+        @constraint(model, sign(q) * h_i - h_j <= L * resistance * abs(q)^(1.852) + 1.0e-4)
+        @constraint(model, sign(q) * h_i - h_j >= L * resistance * abs(q)^(1.852) - 1.0e-4)
     end
 
     for (i, reservoir) in wm.ref[:nw][n][:reservoirs]
@@ -63,8 +70,40 @@ function get_head_solution(wm::GenericWaterModel{T}, solver::MathProgBase.Abstra
     end
 
     status = JuMP.solve(model)
+
     return getvalue(h)
 end
+
+#function solution_is_feasible(cvx::GenericWaterModel, wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: StandardCVXNLPForm
+#    # Initialie the model.
+#    model = Model(solver = solver)
+#
+#    # Initialize variables associated with head.
+#    nodes = [collect(ids(wm, n, :junctions)); collect(ids(wm, n, :reservoirs))]
+#    h = @variable(model, [i in nodes], start = 0.0, category = :Cont)
+#
+#    for (a, connection) in wm.ref[:nw][n][:connection]
+#        L = connection["length"]
+#        resistance = wm.ref[:nw][n][:resistance][a][1]
+#
+#        qp = cvx.var[:nw][n][:qp][a][1]
+#        qn = cvx.var[:nw][n][:qn][a][1]
+#
+#        h_i = h[parse(Int, connection["node1"])]
+#        h_j = h[parse(Int, connection["node2"])]
+#
+#        @constraint(model, h_i - h_j <= L * resistance * q * (q^2)^0.426 + 1.0e-4)
+#        @constraint(model, h_i - h_j >= L * resistance * q * (q^2)^0.426 - 1.0e-4)
+#    end
+#
+#    for (i, reservoir) in wm.ref[:nw][n][:reservoirs]
+#        @constraint(model, h[i] == reservoir["head"])
+#    end
+#
+#    status = JuMP.solve(model)
+#
+#    return getvalue(h)
+#end
 
 #function constraint_select_resistance(wm::GenericWaterModel, a::Int, n::Int = wm.cnw)
 

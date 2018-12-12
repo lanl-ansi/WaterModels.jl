@@ -2,7 +2,9 @@ export lazy_cut_callback_generator
 
 import MathProgBase
 
-function lazy_cut_callback_generator(wm::GenericWaterModel, params::Dict{String, Any}, nlp_solver::MathProgBase.AbstractMathProgSolver, n::Int = wm.cnw)
+function lazy_cut_callback_generator(wm::GenericWaterModel, params::Dict{String, Any},
+                                     nlp_solver::MathProgBase.AbstractMathProgSolver,
+                                     n::Int = wm.cnw)
     resistances = wm.ref[:nw][n][:resistance]
     network = deepcopy(wm.data)
 
@@ -35,17 +37,26 @@ function lazy_cut_callback_generator(wm::GenericWaterModel, params::Dict{String,
         setsolver(cvx.model, nlp_solver)
         status = JuMP.solve(cvx.model, relaxation = true, suppress_warnings = true)
         h = get_head_solution(cvx, nlp_solver, cvx.cnw)
+        solution_is_feasible = true
 
-        ## Add cuts when solutions to the CVXNLP are not physically feasible.
-        #if status != :LocalOptimal && status != :Optimal
-        #    num_arcs = length(wm.ref[:nw][n][:connection])
-        #    @lazyconstraint(cb, sum(xr_ones) - sum(xr_zeros) <= num_arcs - 1)
-        #elseif !WaterModels.solution_is_feasible(cvx, n)
-        #    num_arcs = length(wm.ref[:nw][n][:connection])
-        #    @lazyconstraint(cb, sum(xr_ones) - sum(xr_zeros) <= num_arcs - 1)
-        #else
-        #    params["obj_best"] = min(current_objective, params["obj_best"])
-        #end
+        for (i, junction) in wm.ref[:nw][n][:junctions]
+            if h[i] > getupperbound(wm.var[:nw][n][:h][i])
+                solution_is_feasible = false
+            elseif h[i] < getlowerbound(wm.var[:nw][n][:h][i])
+                solution_is_feasible = false
+            end
+        end
+
+        # Add cuts when solutions to the CVXNLP are not physically feasible.
+        if status != :LocalOptimal && status != :Optimal
+            num_arcs = length(wm.ref[:nw][n][:connection])
+            @lazyconstraint(cb, sum(xr_ones) - sum(xr_zeros) <= num_arcs - 1)
+        elseif !solution_is_feasible
+            num_arcs = length(wm.ref[:nw][n][:connection])
+            @lazyconstraint(cb, sum(xr_ones) - sum(xr_zeros) <= num_arcs - 1)
+        else
+            params["obj_best"] = min(current_objective, params["obj_best"])
+        end
     end
 
     return lazy_cut_callback
