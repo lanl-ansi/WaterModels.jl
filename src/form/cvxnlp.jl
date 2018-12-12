@@ -55,14 +55,14 @@ function get_head_solution(wm::GenericWaterModel{T}, solver::MathProgBase.Abstra
         resistance = wm.ref[:nw][n][:resistance][a][1]
         q = getvalue(wm.var[:nw][n][:qp][a][1]) -
             getvalue(wm.var[:nw][n][:qn][a][1])
-        @constraint(wm, h_i - h_j == L * resistance * q * abs(q)^(0.852))
+        @constraint(model, h_i - h_j == L * resistance * q * abs(q)^(0.852))
     end
 
     for (i, reservoir) in wm.ref[:nw][n][:reservoirs]
-        @constraint(wm, h[i] == reservoir["head"])
+        @constraint(model, h[i] == reservoir["head"])
     end
 
-    status = JuMP.solve(model, relaxation = true, suppress_warnings = true)
+    status = JuMP.solve(model)
     return getvalue(h)
 end
 
