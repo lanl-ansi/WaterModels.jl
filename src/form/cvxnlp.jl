@@ -42,44 +42,44 @@ function variable_directed_flow(wm::GenericWaterModel{T}, n::Int = wm.cnw) where
     end
 end
 
-function get_head_solution(cvx::GenericWaterModel{T}, n::Int = cvx.cnw) where T <: StandardCVXNLPForm
-    junction_ids = collect(ids(cvx, n, :junctions))
-    reservoir_ids = collect(ids(cvx, n, :reservoirs))
-    connection_ids = collect(ids(cvx, n, :connection))
-    node_ids = [junction_ids; reservoir_ids]
-    node_mapping = Dict{Int, Int}(node_ids[i] => i for i in 1:length(node_ids))
-
-    num_reservoirs = length(reservoir_ids)
-    num_nodes = length(node_ids)
-    num_arcs = length(connection_ids)
-
-    # Create matrices for the left- and right-hand sides (for Ax = b).
-    A = zeros(Float64, num_arcs + num_reservoirs, num_nodes)
-    b = zeros(Float64, num_arcs + num_reservoirs, 1)
-
-    for (i, a) in enumerate(connection_ids)
-        connection = cvx.ref[:nw][n][:connection][a]
-
-        node_i = parse(Int, connection["node1"])
-        A[i, node_mapping[node_i]] = 1
-
-        node_j = parse(Int, connection["node2"])
-        A[i, node_mapping[node_j]] = -1
-
-        q_p = getvalue(cvx.var[:nw][n][:qp][a][1])
-        q_n = getvalue(cvx.var[:nw][n][:qn][a][1])
-
-        L = connection["length"]
-        resistance = cvx.ref[:nw][n][:resistance][a][1]
-
-        b[i] = L * resistance * (q_p - q_n) * abs(q_p - q_n)^(0.852)
-    end
-
-    for (i, reservoir_id) in enumerate(reservoir_ids)
-        A[num_arcs + i, node_mapping[reservoir_id]] = 1
-        b[num_arcs + i] = cvx.ref[:nw][n][:reservoirs][reservoir_id]["head"]
-    end
-
-    h = A \ b # Get the solution for head variables.
-    return Dict(i => h[node_mapping[i]] for i in node_ids)
-end
+#function get_head_solution(cvx::GenericWaterModel{T}, n::Int = cvx.cnw) where T <: StandardCVXNLPForm
+#    junction_ids = collect(ids(cvx, n, :junctions))
+#    reservoir_ids = collect(ids(cvx, n, :reservoirs))
+#    connection_ids = collect(ids(cvx, n, :connection))
+#    node_ids = [junction_ids; reservoir_ids]
+#    node_mapping = Dict{Int, Int}(node_ids[i] => i for i in 1:length(node_ids))
+#
+#    num_reservoirs = length(reservoir_ids)
+#    num_nodes = length(node_ids)
+#    num_arcs = length(connection_ids)
+#
+#    # Create matrices for the left- and right-hand sides (for Ax = b).
+#    A = zeros(Float64, num_arcs + num_reservoirs, num_nodes)
+#    b = zeros(Float64, num_arcs + num_reservoirs, 1)
+#
+#    for (i, a) in enumerate(connection_ids)
+#        connection = cvx.ref[:nw][n][:connection][a]
+#
+#        node_i = parse(Int, connection["node1"])
+#        A[i, node_mapping[node_i]] = 1
+#
+#        node_j = parse(Int, connection["node2"])
+#        A[i, node_mapping[node_j]] = -1
+#
+#        q_p = getvalue(cvx.var[:nw][n][:qp][a][1])
+#        q_n = getvalue(cvx.var[:nw][n][:qn][a][1])
+#
+#        L = connection["length"]
+#        resistance = cvx.ref[:nw][n][:resistance][a][1]
+#
+#        b[i] = L * resistance * (q_p - q_n) * abs(q_p - q_n)^(0.852)
+#    end
+#
+#    for (i, reservoir_id) in enumerate(reservoir_ids)
+#        A[num_arcs + i, node_mapping[reservoir_id]] = 1
+#        b[num_arcs + i] = cvx.ref[:nw][n][:reservoirs][reservoir_id]["head"]
+#    end
+#
+#    h = A \ b # Get the solution for head variables.
+#    return Dict(i => h[node_mapping[i]] for i in node_ids)
+#end

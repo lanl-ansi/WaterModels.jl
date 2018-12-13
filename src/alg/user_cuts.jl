@@ -1,4 +1,4 @@
-export user_cut_callback_generator
+export user_cut_callback_generator, compute_q_tilde, compute_q_p_cut, compute_q_n_cut
 
 #import CPLEX
 import GLPK
@@ -18,28 +18,28 @@ function compute_q_tilde(q_hat::Float64, r_hat::Float64, r::Float64)
     end
 end
 
-function compute_q_p_cut(dh::JuMP.Variable, q::Array{JuMP.Variable}, dir::JuMP.Variable, q_sol::Array{Float64}, R::Array{Float64}, r_hat::Int, L::Float64)
-    phi_hat = R[r_hat] * head_loss_hw_func(q_sol[r_hat])
-    phi_prime_hat = R[r_hat] * head_loss_hw_prime(q_sol[r_hat])
-    q_tilde = [compute_q_tilde(q_sol[r_hat], R[r_hat], R[r]) for r in 1:length(R)]
+function compute_q_p_cut(dh::JuMP.Variable, q::Array{JuMP.Variable}, dir::JuMP.Variable, q_sol::Float64, R::Array{Float64}, r_hat::Int, L::Float64)
+    phi_hat = R[r_hat] * head_loss_hw_func(q_sol)
+    phi_prime_hat = R[r_hat] * head_loss_hw_prime(q_sol)
+    q_tilde = [compute_q_tilde(q_sol, R[r_hat], R[r]) for r in 1:length(R)]
     rneq = setdiff(1:length(R), [r_hat])
 
     expr = zero(AffExpr)
     expr += -dh / L + phi_prime_hat * q[r_hat]
-    expr += (phi_hat - phi_prime_hat * q_sol[r_hat]) * dir
+    expr += (phi_hat - phi_prime_hat * q_sol) * dir
     #expr += sum(R[r] * head_loss_hw_prime(q_tilde[r]) * q[r] for r in rneq)
     return expr
 end
 
-function compute_q_n_cut(dh::JuMP.Variable, q::Array{JuMP.Variable}, dir::JuMP.Variable, q_sol::Array{Float64}, R::Array{Float64}, r_hat::Int, L::Float64)
-    phi_hat = R[r_hat] * head_loss_hw_func(q_sol[r_hat])
-    phi_prime_hat = R[r_hat] * head_loss_hw_prime(q_sol[r_hat])
-    q_tilde = [compute_q_tilde(q_sol[r_hat], R[r_hat], R[r]) for r in 1:length(R)]
+function compute_q_n_cut(dh::JuMP.Variable, q::Array{JuMP.Variable}, dir::JuMP.Variable, q_sol::Float64, R::Array{Float64}, r_hat::Int, L::Float64)
+    phi_hat = R[r_hat] * head_loss_hw_func(q_sol)
+    phi_prime_hat = R[r_hat] * head_loss_hw_prime(q_sol)
+    q_tilde = [compute_q_tilde(q_sol, R[r_hat], R[r]) for r in 1:length(R)]
     rneq = setdiff(1:length(R), [r_hat])
 
     expr = zero(AffExpr)
     expr += -dh / L + phi_prime_hat * q[r_hat]
-    expr += (phi_hat - phi_prime_hat * q_sol[r_hat]) * (1 - dir)
+    expr += (phi_hat - phi_prime_hat * q_sol) * (1 - dir)
     #expr += sum(R[r] * head_loss_hw_prime(q_tilde[r]) * q[r] for r in rneq)
     return expr
 end
@@ -115,7 +115,7 @@ function user_cut_callback_generator(wm::GenericWaterModel, params::Dict{String,
                     phi_max, r_hat = findmax([R_a[r] * qp_hat[r]^(1.852) for r in 1:length(R_a)])
 
                     if -dhp_hat / L_a + phi_max > params["epsilon"]
-                        lhs = compute_q_p_cut(dhp, qp, dir, qp_hat, R_a, r_hat, L_a)
+                        lhs = compute_q_p_cut(dhp, qp, dir, qp_hat[r_hat], R_a, r_hat, L_a)
                         @usercut(cb, lhs <= 0.0)
                     end
                 else
@@ -129,7 +129,7 @@ function user_cut_callback_generator(wm::GenericWaterModel, params::Dict{String,
                     phi_max, r_hat = findmax([R_a[r] * qn_hat[r]^(1.852) for r in 1:length(R_a)])
 
                     if -dhn_hat / L_a + phi_max > params["epsilon"]
-                        lhs = compute_q_n_cut(dhn, qn, dir, qn_hat, R_a, r_hat, L_a)
+                        lhs = compute_q_n_cut(dhn, qn, dir, qn_hat[r_hat], R_a, r_hat, L_a)
                         @usercut(cb, lhs <= 0.0)
                     end
                 end

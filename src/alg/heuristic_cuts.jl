@@ -64,6 +64,22 @@ function heuristic_cut_callback_generator(wm::GenericWaterModel, params::Dict{St
                 for r in rneq
                     setsolutionvalue(cb, wm.var[:nw][n][:xr][a][r], 0)
                 end
+
+                dir_var = wm.var[:nw][n][:dir][a]
+                L_a = connection["length"]
+
+                # Add cuts.
+                if qp_sol - qn_sol >= 0.0
+                    qp = wm.var[:nw][n][:qp][a]
+                    dhp = wm.var[:nw][n][:dhp][a]
+                    lhs = compute_q_p_cut(dhp, qp, dir_var, qp_sol, resistances[a], R_id[a], L_a)
+                    @usercut(cb, lhs <= 0.0)
+                else
+                    qn = wm.var[:nw][n][:qn][a]
+                    dhn = wm.var[:nw][n][:dhn][a]
+                    lhs = compute_q_n_cut(dhn, qn, dir_var, qn_sol, resistances[a], R_id[a], L_a)
+                    @usercut(cb, lhs <= 0.0)
+                end
             end
 
             addsolution(cb)

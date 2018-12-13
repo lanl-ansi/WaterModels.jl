@@ -2,12 +2,12 @@ export lazy_cut_callback_generator
 
 import MathProgBase
 
-function lazy_cut_callback_generator(wm::GenericWaterModel, params::Dict{String, Any},
+function lazy_cut_callback_generator(wm::GenericWaterModel,
+                                     params::Dict{String, Any},
                                      nlp_solver::MathProgBase.AbstractMathProgSolver,
                                      n::Int = wm.cnw)
-    resistances = wm.ref[:nw][n][:resistance]
     network = deepcopy(wm.data)
-
+    resistances = wm.ref[:nw][n][:resistance]
     connection_ids = collect(ids(wm, n, :connection))
     R_id = Dict{Int, Int}(a => 1 for a in connection_ids)
 
@@ -22,13 +22,13 @@ function lazy_cut_callback_generator(wm::GenericWaterModel, params::Dict{String,
         # Update resistances used throughout the network.
         for (a, connection) in wm.ref[:nw][n][:connection]
             xr_a = getvalue(wm.var[:nw][n][:xr][a])
-            R_id[a] = r = findfirst(r -> isapprox(xr_a[r], 1.0, atol = 0.01), 1:length(xr_a))
-            network["pipes"][string(a)]["resistance"] = resistances[a][r]
-            zero_indices = setdiff(1:length(xr_a), [r])
-            xr_ones = vcat(xr_ones, wm.var[:nw][n][:xr][a][r])
+            R_id[a] = findfirst(r -> isapprox(xr_a[r], 1.0, atol = 0.01), 1:length(xr_a))
+            network["pipes"][string(a)]["resistance"] = resistances[a][R_id[a]]
+            zero_indices = setdiff(1:length(xr_a), [R_id[a]])
+            xr_ones = vcat(xr_ones, wm.var[:nw][n][:xr][a][R_id[a]])
             xr_zeros = vcat(xr_zeros, wm.var[:nw][n][:xr][a][zero_indices])
             L_a = wm.ref[:nw][n][:connection][a]["length"]
-            current_objective += L_a * wm.ref[:nw][n][:resistance_cost][a][r]
+            current_objective += L_a * wm.ref[:nw][n][:resistance_cost][a][R_id[a]]
         end
 
         # Update objective values.
@@ -36,10 +36,12 @@ function lazy_cut_callback_generator(wm::GenericWaterModel, params::Dict{String,
         params["obj_curr"] = current_objective
 
         # Solve the convex program.
-        sol_feasible, tmp = repair_solution(wm, R_id, params, nlp_solver,
-                                            feasibility_check = true)
+        q, h = get_cvx_solution(wm, R_id, nlp_solver)
+        qlb, qub, hlb, hub = check_solution_bounds(wm, q, h, R_id, n)
+        solution_is_feasible = all([all(collect(values(qlb))), all(collect(values(qub))),
+                                    all(collect(values(hlb))), all(collect(values(hub)))])
 
-        if !sol_feasible
+        if !solution_is_feasible
             num_arcs = length(wm.ref[:nw][n][:connection])
             @lazyconstraint(cb, sum(xr_ones) - sum(xr_zeros) <= num_arcs - 1)
         else

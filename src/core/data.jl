@@ -101,6 +101,12 @@ function calc_resistance_per_length_hw(pipe)
     return 10.67 / (roughness^1.852 * diameter^4.87)
 end
 
+function get_node_ids(connection::Dict{String, Any})
+    i = parse(Int, connection["node1"])
+    j = parse(Int, connection["node2"])
+    return i, j
+end
+
 function calc_resistances_hw(wm::GenericWaterModel, n::Int = wm.cnw)
     # Get placeholders for junctions and reservoirs.
     connections = wm.ref[:nw][n][:connection]
