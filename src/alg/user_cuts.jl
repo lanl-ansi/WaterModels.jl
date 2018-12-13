@@ -27,7 +27,7 @@ function compute_q_p_cut(dh::JuMP.Variable, q::Array{JuMP.Variable}, dir::JuMP.V
     expr = zero(AffExpr)
     expr += -dh / L + phi_prime_hat * q[r_hat]
     expr += (phi_hat - phi_prime_hat * q_sol[r_hat]) * dir
-    #expr += sum(R[r] * head_loss_hw_prime(q_tilde[r]) * q[r] for r in rneq)
+    expr += sum(R[r] * head_loss_hw_prime(q_tilde[r]) * q[r] for r in rneq)
     return expr
 end
 
@@ -40,7 +40,7 @@ function compute_q_n_cut(dh::JuMP.Variable, q::Array{JuMP.Variable}, dir::JuMP.V
     expr = zero(AffExpr)
     expr += -dh / L + phi_prime_hat * q[r_hat]
     expr += (phi_hat - phi_prime_hat * q_sol[r_hat]) * (1 - dir)
-    #expr += sum(R[r] * head_loss_hw_prime(q_tilde[r]) * q[r] for r in rneq)
+    expr += sum(R[r] * head_loss_hw_prime(q_tilde[r]) * q[r] for r in rneq)
     return expr
 end
 

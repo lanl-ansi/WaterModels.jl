@@ -46,6 +46,7 @@ include("alg/find_initial_solution.jl")
 include("alg/set_initial_solution.jl")
 include("alg/user_cuts.jl")
 include("alg/lazy_cuts.jl")
+include("alg/heuristic_cuts.jl")
 include("alg/solve_global.jl")
 
 end

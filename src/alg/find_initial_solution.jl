@@ -13,7 +13,7 @@ function find_initial_solution(wm::GenericWaterModel, params::Dict{String, Any},
         params["obj_best"] += L_a * wm.ref[:nw][n][:resistance_cost][a][end]
     end
 
-    while num_rounds <= 50
+    while num_rounds <= 100
         objective = 0.0
 
         for (a, connection) in wm.ref[:nw][n][:connection]
