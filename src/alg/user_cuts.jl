@@ -98,7 +98,7 @@ function user_cut_callback_generator(wm::GenericWaterModel, params::Dict{String,
         obj_rel_change = (params["obj_curr"] - params["obj_last"]) / params["obj_last"]
         obj_improved = obj_rel_change >= params["K_oa"]
 
-        if depth_satisfied && obj_improved && num_rounds_satisfied
+        if true #depth_satisfied && obj_improved && num_rounds_satisfied
             for (relative_index, a) in enumerate(arcs)
                 R_a = wm.ref[:nw][n][:resistance][a]
                 L_a = wm.ref[:nw][n][:connection][a]["length"]

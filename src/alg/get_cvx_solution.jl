@@ -103,7 +103,7 @@ function check_solution_bounds(wm::GenericWaterModel,
         # Get the selected resistance index for this arc.
         r_a = resistance_indices[a]
 
-        if (q[a] >= 0.0)
+        if q[a] > 0.0
             # Compute bound satisfaction for flow from i to j.
             q_sat_lb[a] = q[a] >= getlowerbound(wm.var[:nw][n][:qp][a][r_a])
             q_sat_ub[a] = q[a] <= getupperbound(wm.var[:nw][n][:qp][a][r_a])
