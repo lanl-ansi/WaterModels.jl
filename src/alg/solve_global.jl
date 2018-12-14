@@ -43,25 +43,36 @@ function solve_global(network_path::String, problem_path::String,
                                "max_repair_iters" => 50, "obj_best" => Inf,
                                "M_oa" => 5.0, "epsilon" => 1.0e-6)
 
-
     # Initialize the master MILP (mMILP) problem.
     mmilp = build_generic_model(network, MILPRWaterModel, WaterModels.post_ne_hw)
 
     # Find an initial solution for the master MILP.
     resistance_indices = find_initial_solution(mmilp, 20, 20, 0.85, nlp_solver)
-    set_initial_solution(mmilp, resistance_indices, nlp_solver)
-    objective_value = compute_objective(mmilp, resistance_indices)
-    println(resistance_indices, " ", objective_value)
+
+    # Confirm that the solution is valid.
+    q, h = get_cvx_solution(mmilp, resistance_indices, nlp_solver)
+    qlb, qub, hlb, hub = check_solution_bounds(mmilp, q, h, resistance_indices)
+
+    solution_is_feasible = all([all(collect(values(qlb))),
+                                all(collect(values(qub))),
+                                all(collect(values(hlb))),
+                                all(collect(values(hub)))])
+
+    println(solution_is_feasible)
+
+    #set_initial_solution(mmilp, resistance_indices, nlp_solver)
+    #objective_value = compute_objective(mmilp, resistance_indices)
+    #println(resistance_indices, objective_value)
 
     return :Optimal
 
-    ## Set the solver for the problem and add the required callbacks.
-    #user_cut_callback = user_cut_callback_generator(mmilp, params, mmilp.cnw)
+    # Set the solver for the problem and add the required callbacks.
+    #user_cut_callback = user_cut_callback_generator(mmilp, params, nlp_solver)
     #addcutcallback(mmilp.model, user_cut_callback)
     #lazy_cut_callback = lazy_cut_callback_generator(mmilp, params, nlp_solver)
     #addlazycallback(mmilp.model, lazy_cut_callback)
-    ##heuristic_cut_callback = heuristic_cut_callback_generator(mmilp, params, nlp_solver, mmilp.cnw)
-    ##addheuristiccallback(mmilp.model, heuristic_cut_callback)
+    ####heuristic_cut_callback = heuristic_cut_callback_generator(mmilp, params, nlp_solver, mmilp.cnw)
+    ####addheuristiccallback(mmilp.model, heuristic_cut_callback)
 
     ## Solve the problem and return the status.
     #setsolver(mmilp.model, mip_solver)

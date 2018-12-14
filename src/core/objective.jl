@@ -42,14 +42,17 @@ end
 function objective_cvx_hw(wm::GenericWaterModel)
     objective = zero(AffExpr)
 
+    # Register the integrated head loss JuMP function.
+    function_head_loss_integrated_hw(wm)
+
     for n in nws(wm)
         for (a, connection) in wm.ref[:nw][n][:connection]
             q_p = wm.var[:nw][n][:qp][a][1]
             q_n = wm.var[:nw][n][:qn][a][1]
             L = connection["length"]
-            coeff = wm.ref[:nw][n][:resistance][a][1] * L * 0.350631
+            coeff = wm.ref[:nw][n][:resistance][a][1] * L
             term = @variable(wm.model, lowerbound = 0.0, category = :Cont, start = 1.0e-6)
-            @NLconstraint(wm.model, term >= coeff * (q_p * (q_p^2)^0.926 + q_n * (q_n^2)^0.926))
+            @NLconstraint(wm.model, term == coeff * (head_loss_integrated_hw(q_p) + head_loss_integrated_hw(q_n)))
             objective += term
         end
     end

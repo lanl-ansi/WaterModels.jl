@@ -16,7 +16,7 @@ setlevel!(getlogger(WaterModels), "error")
 # Solver setup.
 glpk = GLPKSolverMIP(msg_lev = GLPK.MSG_ON, presolve = false)
 gurobi = GurobiSolver(OutputFlag = 1)
-ipopt = IpoptSolver(print_level = 1, tol = 1.0e-9)
+ipopt = IpoptSolver(print_level = 1, tol = 1.0e-16)
 pavito = PavitoSolver(cont_solver = ipopt, mip_solver = gurobi)
 
 # Perform the tests.

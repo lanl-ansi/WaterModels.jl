@@ -26,16 +26,17 @@ function variable_directed_flow(wm::GenericWaterModel{T}, n::Int = wm.cnw) where
     wm.var[:nw][n][:qn] = Dict{Int, Array{Variable, 1}}()
 
     for (a, connection) in wm.ref[:nw][n][:connection]
-        R_a = wm.ref[:nw][n][:resistance][a]
+        # Get the number of possible resistances for this arc.
+        num_resistances = length(wm.ref[:nw][n][:resistance][a])
 
         # Initialize variables associated with flow from i to j.
-        wm.var[:nw][n][:qp][a] = @variable(wm.model, [r in 1:length(R_a)],
+        wm.var[:nw][n][:qp][a] = @variable(wm.model, [r in 1:num_resistances],
                                            lowerbound = 0.0, start = 0.0,
                                            category = :Cont,
                                            basename = "qp_$(n)_$(a)")
 
         # Initialize variables associated with flow from j to i.
-        wm.var[:nw][n][:qn][a] = @variable(wm.model, [r in 1:length(R_a)],
+        wm.var[:nw][n][:qn][a] = @variable(wm.model, [r in 1:num_resistances],
                                            lowerbound = 0.0, start = 0.0,
                                            category = :Cont,
                                            basename = "qn_$(n)_$(a)")

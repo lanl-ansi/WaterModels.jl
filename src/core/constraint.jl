@@ -31,6 +31,7 @@ function constraint_directed_flow_conservation(wm::GenericWaterModel, i::Int, n:
     demand = wm.ref[:nw][n][:junctions][i]["demand"]
     con = @constraint(wm.model, flow_sum == demand)
     wm.con[:nw][n][:flow_conservation][i] = con
+    println(i, " ", flow_sum, " ", demand)
 end
 
 function constraint_flow_conservation(wm::GenericWaterModel, i::Int, n::Int = wm.cnw)

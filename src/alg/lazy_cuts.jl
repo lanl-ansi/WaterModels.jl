@@ -9,7 +9,6 @@ function lazy_cut_callback_generator(wm::GenericWaterModel,
     network = deepcopy(wm.data)
     resistances = wm.ref[:nw][n][:resistance]
     connection_ids = collect(ids(wm, n, :connection))
-    R_id = Dict{Int, Int}(a => 1 for a in connection_ids)
 
     function lazy_cut_callback(cb::MathProgBase.MathProgCallbackData)
         # Set up variable arrays that will be used for cuts.
@@ -18,6 +17,7 @@ function lazy_cut_callback_generator(wm::GenericWaterModel,
 
         # Initialize the objective value.
         current_objective = 0.0
+        R_id = Dict{Int, Int}(a => 0 for a in connection_ids)
 
         # Update resistances used throughout the network.
         for (a, connection) in wm.ref[:nw][n][:connection]
@@ -38,8 +38,11 @@ function lazy_cut_callback_generator(wm::GenericWaterModel,
         # Solve the convex program.
         q, h = get_cvx_solution(wm, R_id, nlp_solver)
         qlb, qub, hlb, hub = check_solution_bounds(wm, q, h, R_id, n)
-        solution_is_feasible = all([all(collect(values(qlb))), all(collect(values(qub))),
-                                    all(collect(values(hlb))), all(collect(values(hub)))])
+        println(all(values(qlb)), " ", all(values(qub)), " ", all(values(hlb)), " ", all(values(hub)))
+        solution_is_feasible = all([all(collect(values(qlb))),
+                                    all(collect(values(qub))),
+                                    all(collect(values(hlb))),
+                                    all(collect(values(hub)))])
 
         if !solution_is_feasible
             num_arcs = length(wm.ref[:nw][n][:connection])

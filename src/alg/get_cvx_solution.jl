@@ -11,6 +11,7 @@ function get_cvx_solution(wm::GenericWaterModel,
         # Remove unnecessary data from the network specification.
         delete!(network["pipes"][string(a)], "diameter")
         delete!(network["pipes"][string(a)], "diameters")
+        delete!(network["pipes"][string(a)], "resistances")
 
         # Set the resistance to the selected resistance.
         resistances = wm.ref[:nw][n][:resistance][a]
@@ -35,15 +36,15 @@ end
 function get_flow_solution(cvx::GenericWaterModel{T}, n::Int = cvx.cnw) where T <: StandardCVXNLPForm
     # Create a dictionary for the flow solution.
     connection_ids = collect(ids(cvx, n, :connection))
-    q = Dict{Int, Float64}(a => 0.0 for a in connection_ids)
+    q_sol = Dict{Int, Float64}(a => 0.0 for a in connection_ids)
 
     for (a, connection) in cvx.ref[:nw][n][:connection]
         qp_sol = getvalue(cvx.var[:nw][n][:qp][a][1])
         qn_sol = getvalue(cvx.var[:nw][n][:qn][a][1])
-        q[a] = qp_sol - qn_sol
+        q_sol[a] = qp_sol - qn_sol
     end
 
-    return q
+    return q_sol
 end
 
 function get_head_solution(cvx::GenericWaterModel{T}, n::Int = cvx.cnw) where T <: StandardCVXNLPForm
@@ -103,14 +104,16 @@ function check_solution_bounds(wm::GenericWaterModel,
         # Get the selected resistance index for this arc.
         r_a = resistance_indices[a]
 
-        if q[a] > 0.0
+        if q[a] >= 0.0
             # Compute bound satisfaction for flow from i to j.
-            q_sat_lb[a] = q[a] >= getlowerbound(wm.var[:nw][n][:qp][a][r_a])
-            q_sat_ub[a] = q[a] <= getupperbound(wm.var[:nw][n][:qp][a][r_a])
+            q_sat_lb[a] = q[a] >= getlowerbound(wm.var[:nw][n][:qp][a][r_a]) - 1.0e-6
+            q_sat_ub[a] = q[a] <= getupperbound(wm.var[:nw][n][:qp][a][r_a]) + 1.0e-6
+            println(q[a], " ", getlowerbound(wm.var[:nw][n][:qp][a][r_a]), " ", getupperbound(wm.var[:nw][n][:qp][a][r_a]))
         else
             # Compute bound satisfaction for flow from j to i.
-            q_sat_lb[a] = -q[a] >= getlowerbound(wm.var[:nw][n][:qn][a][r_a])
-            q_sat_ub[a] = -q[a] <= getupperbound(wm.var[:nw][n][:qn][a][r_a])
+            q_sat_lb[a] = -q[a] >= getlowerbound(wm.var[:nw][n][:qn][a][r_a]) - 1.0e-6
+            q_sat_ub[a] = -q[a] <= getupperbound(wm.var[:nw][n][:qn][a][r_a]) + 1.0e-6
+            println(-q[a], " ", getlowerbound(wm.var[:nw][n][:qn][a][r_a]), " ", getupperbound(wm.var[:nw][n][:qn][a][r_a]))
         end
     end
 
@@ -123,8 +126,9 @@ function check_solution_bounds(wm::GenericWaterModel,
 
     # Compute bound satisfaction results for head variables.
     for (i, junction) in wm.ref[:nw][n][:junctions]
-        h_sat_lb[i] = h[i] >= getlowerbound(wm.var[:nw][n][:h][i])
-        h_sat_ub[i] = h[i] <= getupperbound(wm.var[:nw][n][:h][i])
+        h_sat_lb[i] = h[i] >= getlowerbound(wm.var[:nw][n][:h][i]) - 1.0e-6
+        h_sat_ub[i] = h[i] <= getupperbound(wm.var[:nw][n][:h][i]) + 1.0e-6
+        println(h[i], " ", getlowerbound(wm.var[:nw][n][:h][i]), " ", getupperbound(wm.var[:nw][n][:h][i]))
     end
 
     # Return dictionaries of variable bound satisfaction results.
