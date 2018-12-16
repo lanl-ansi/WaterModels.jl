@@ -6,84 +6,75 @@ import MathProgBase
 function heuristic_cut_callback_generator(wm::GenericWaterModel, params::Dict{String, Any},
                                           nlp_solver::MathProgBase.AbstractMathProgSolver,
                                           n::Int = wm.cnw)
-    resistances = wm.ref[:nw][n][:resistance]
-    network = deepcopy(wm.data)
-    connection_ids = collect(ids(wm, n, :connection))
-    R_id = Dict{Int, Int}(a => 1 for a in connection_ids)
-
     function heuristic_cut_callback(cb::MathProgBase.MathProgCallbackData)
-        # Set up variable arrays that will be used for cuts.
-        xr_ones = Array{JuMP.Variable, 1}()
-        xr_zeros = Array{JuMP.Variable, 1}()
-
-        # Initialize the objective value.
-        current_objective = 0.0
+        resistances = wm.ref[:nw][n][:resistance]
+        connection_ids = collect(ids(wm, n, :connection))
+        resistance_indices = Dict{Int, Int}(a => 1 for a in connection_ids)
 
         # Update resistances used throughout the network.
         for (a, connection) in wm.ref[:nw][n][:connection]
             xr_a = getvalue(wm.var[:nw][n][:xr][a])
             xr_ones = findall(r -> isapprox(xr_a[r], 1.0, atol = 0.01), 1:length(xr_a))
             xr_zeros = findall(r -> isapprox(xr_a[r], 0.0, atol = 0.01), 1:length(xr_a))
-            xr_integers = (length(xr_ones) + length(xr_zeros)) == length(xr_a)
+            xr_are_integers = (length(xr_ones) + length(xr_zeros)) == length(xr_a)
 
             dir = getvalue(wm.var[:nw][n][:dir][a])
-            dir_integer = isapprox(dir, 1.0, atol = 0.01) || isapprox(dir, 0.0, atol = 0.01)
+            dir_is_integer = isapprox(dir, 1.0, atol = 0.01) || isapprox(dir, 0.0, atol = 0.01)
 
-            if !(xr_integers && dir_integer)
+            if !(xr_are_integers && dir_is_integer)
                 return
             else
-                R_id[a] = xr_ones[1]
-                L_a = connection["length"]
-                network["pipes"][string(a)]["resistance"] = resistances[a][R_id[a]]
-                current_objective += L_a * wm.ref[:nw][n][:resistance_cost][a][R_id[a]]
+                resistance_indices[a] = xr_ones[1]
             end
         end
 
-        repaired, R_id = repair_solution(wm, R_id, params, nlp_solver)
+        repaired, resistance_indices = repair_solution(wm, resistance_indices,
+                                                       params["max_repair_iters"],
+                                                       params["obj_best"],
+                                                       nlp_solver, n)
 
         if repaired
+            # Update objective values.
+            current_objective = compute_objective(wm, resistance_indices, n)
+            params["obj_last"] = params["obj_curr"]
+            params["obj_curr"] = current_objective
+            params["obj_best"] = min(params["obj_curr"], params["obj_best"])
+
+            q, h = get_cvx_solution(wm, resistance_indices, nlp_solver)
+
+            # Set the integer values appropriately.
             for (a, connection) in wm.ref[:nw][n][:connection]
-                network["pipes"][string(a)]["resistance"] = resistances[a][R_id[a]]
-            end
+                setsolutionvalue(cb, wm.var[:nw][n][:dir][a], q[a] >= 0.0 ? 1 : 0)
 
-            cvx = build_generic_model(network, CVXNLPWaterModel, WaterModels.post_cvx_hw)
-            setsolver(cvx.model, nlp_solver)
-            status = JuMP.solve(cvx.model)
-            h = get_head_solution(cvx, n)
+                resistance_index = resistance_indices[a]
+                setsolutionvalue(cb, wm.var[:nw][n][:xr][a][resistance_index], 1)
 
-            # Set resistances appropriately.
-            for (a, connection) in wm.ref[:nw][n][:connection]
-                qp_sol = getvalue(cvx.var[:nw][n][:qp][a][1])
-                qn_sol = getvalue(cvx.var[:nw][n][:qn][a][1])
-                dir = (qp_sol - qn_sol) > 0.0 ? 1 : 0
-                rneq = setdiff(1:length(resistances[a]), [R_id[a]])
-
-                setsolutionvalue(cb, wm.var[:nw][n][:dir][a], dir)
-                setsolutionvalue(cb, wm.var[:nw][n][:xr][a][R_id[a]], 1)
-
-                for r in rneq
+                for r in setdiff(1:length(resistances[a]), [resistance_index])
                     setsolutionvalue(cb, wm.var[:nw][n][:xr][a][r], 0)
                 end
 
-                dir_var = wm.var[:nw][n][:dir][a]
+                # Add outer-approximation user cuts.
                 L_a = connection["length"]
 
-                # Add cuts.
-                if qp_sol - qn_sol >= 0.0
+                if q[a] >= 0.0
                     qp = wm.var[:nw][n][:qp][a]
                     dhp = wm.var[:nw][n][:dhp][a]
-                    lhs = compute_q_p_cut(dhp, qp, dir_var, qp_sol, resistances[a], R_id[a], L_a)
+                    lhs = compute_q_p_cut(dhp, qp, wm.var[:nw][n][:dir][a],
+                                          q[a], resistances[a],
+                                          resistance_index, L_a)
                     @usercut(cb, lhs <= 0.0)
                 else
                     qn = wm.var[:nw][n][:qn][a]
                     dhn = wm.var[:nw][n][:dhn][a]
-                    lhs = compute_q_n_cut(dhn, qn, dir_var, qn_sol, resistances[a], R_id[a], L_a)
+                    lhs = compute_q_n_cut(dhn, qn, wm.var[:nw][n][:dir][a],
+                                          -q[a], resistances[a],
+                                          resistance_index, L_a)
                     @usercut(cb, lhs <= 0.0)
                 end
             end
 
+            # Register the solution via the callback.
             addsolution(cb)
-            params["obj_best"] = min(current_objective, params["obj_best"])
         end
     end
 

@@ -14,9 +14,9 @@ function repair_solution(wm::GenericWaterModel,
         q, h = get_cvx_solution(wm, resistance_indices, solver)
 
         # Get bound test results and determine if the solution is feasible.
-        qlb, qub, hlb, hub = check_solution_bounds(wm, q, h, resistance_indices)
-        solution_is_feasible = all([all(values(qlb)); all(values(qub));
-                                    all(values(hlb)); all(values(hub))])
+        qlb, qub, hlb, hub = check_solution_bounds(wm, q, h, resistance_indices, n)
+        solution_is_feasible = all([all(values(qlb)), all(values(qub)),
+                                    all(values(hlb)), all(values(hub))])
 
         if solution_is_feasible
             repaired = true # Solution does not need to be repaired.
@@ -46,8 +46,8 @@ function repair_solution(wm::GenericWaterModel,
                         i, j = get_node_ids(connection)
 
                         # Compute if a downstream node violation has occurred.
-                        violation = (q[a] > 0.0 && !hlb[j] && hlb[i]) ||
-                                    (q[a] <= 0.0 && !hlb[i] && hlb[j])
+                        violation = (q[a] >= 0.0 && !hlb[j] && hlb[i]) ||
+                                    (q[a] < 0.0 && !hlb[i] && hlb[j])
 
                         # If a downstream node violation has occurred...
                         if violation && resistance_indices[a] < n_r

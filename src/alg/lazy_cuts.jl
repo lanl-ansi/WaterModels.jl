@@ -38,11 +38,8 @@ function lazy_cut_callback_generator(wm::GenericWaterModel,
         # Solve the convex program.
         q, h = get_cvx_solution(wm, R_id, nlp_solver)
         qlb, qub, hlb, hub = check_solution_bounds(wm, q, h, R_id, n)
-        println(all(values(qlb)), " ", all(values(qub)), " ", all(values(hlb)), " ", all(values(hub)))
-        solution_is_feasible = all([all(collect(values(qlb))),
-                                    all(collect(values(qub))),
-                                    all(collect(values(hlb))),
-                                    all(collect(values(hub)))])
+        solution_is_feasible = all([all(values(qlb)), all(values(qub)),
+                                    all(values(hlb)), all(values(hub))])
 
         if !solution_is_feasible
             num_arcs = length(wm.ref[:nw][n][:connection])

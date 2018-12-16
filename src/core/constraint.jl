@@ -9,14 +9,14 @@ function constraint_directed_flow_conservation(wm::GenericWaterModel, i::Int, n:
     # Initialize the flow sum expression.
     flow_sum = AffExpr(0.0)
 
-    for a in collect(keys(filter(is_in_node_function(i), connections)))
+    for (a, conn) in filter(a -> i == parse(Int, a.second["node2"]), connections)
         for r in 1:length(wm.ref[:nw][n][:resistance][a])
             flow_sum += wm.var[:nw][n][:qp][a][r]
             flow_sum -= wm.var[:nw][n][:qn][a][r]
         end
     end
 
-    for a in collect(keys(filter(is_out_node_function(i), connections)))
+    for (a, conn) in filter(a -> i == parse(Int, a.second["node1"]), connections)
         for r in 1:length(wm.ref[:nw][n][:resistance][a])
             flow_sum -= wm.var[:nw][n][:qp][a][r]
             flow_sum += wm.var[:nw][n][:qn][a][r]
@@ -31,7 +31,6 @@ function constraint_directed_flow_conservation(wm::GenericWaterModel, i::Int, n:
     demand = wm.ref[:nw][n][:junctions][i]["demand"]
     con = @constraint(wm.model, flow_sum == demand)
     wm.con[:nw][n][:flow_conservation][i] = con
-    println(i, " ", flow_sum, " ", demand)
 end
 
 function constraint_flow_conservation(wm::GenericWaterModel, i::Int, n::Int = wm.cnw)

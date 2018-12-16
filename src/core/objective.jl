@@ -24,42 +24,55 @@ function get_diameter_cost_function(wm::GenericWaterModel)
     return cost_function
 end
 
-function objective_minimize_resistance_cost(wm::GenericWaterModel)
-    objective = zero(AffExpr)
+function get_resistance_cost_expression(wm::GenericWaterModel)
+    cost = zero(AffExpr)
 
     for n in nws(wm)
         for (a, connection) in wm.ref[:nw][n][:connection]
             L_a = connection["length"]
             x_a = wm.var[:nw][n][:xr][a]
             C_a = wm.ref[:nw][n][:resistance_cost][a]
-            objective += sum(L_a * C_a[r] * x_a[r] for r in 1:length(C_a))
+            cost += sum(L_a * C_a[r] * x_a[r] for r in 1:length(C_a))
         end
     end
 
+    return cost
+end
+
+function objective_minimize_resistance_cost(wm::GenericWaterModel)
+    objective = get_resistance_cost_expression(wm)
     return @objective(wm.model, Min, objective)
 end
 
 function objective_cvx_hw(wm::GenericWaterModel)
-    objective = zero(AffExpr)
-
     # Register the integrated head loss JuMP function.
     function_head_loss_integrated_hw(wm)
 
+    # Initialize the objective.
+    objective = zero(AffExpr)
+
+    connection_ids = collect(ids(wm, :connection))
+
     for n in nws(wm)
+        terms = @variable(wm.model, [a in connection_ids], start = 0.0,
+                          lowerbound = 0.0, category = :Cont,
+                          basename = "term_$(n)")
+
         for (a, connection) in wm.ref[:nw][n][:connection]
             q_p = wm.var[:nw][n][:qp][a][1]
             q_n = wm.var[:nw][n][:qn][a][1]
             L = connection["length"]
             coeff = wm.ref[:nw][n][:resistance][a][1] * L
-            term = @variable(wm.model, lowerbound = 0.0, category = :Cont, start = 1.0e-6)
-            @NLconstraint(wm.model, term == coeff * (head_loss_integrated_hw(q_p) + head_loss_integrated_hw(q_n)))
-            objective += term
+            con = @NLconstraint(wm.model, coeff * (head_loss_integrated_hw(q_p) +
+                                head_loss_integrated_hw(q_n)) <= terms[a])
+            objective += terms[a]
         end
     end
 
     for n in nws(wm)
+        connections = wm.ref[:nw][n][:connection]
         for (i, reservoir) in wm.ref[:nw][n][:reservoirs]
-            for (a, connection) in wm.ref[:nw][n][:connection]
+            for (a, connection) in filter(a -> i == parse(Int, a.second["node1"]), connections)
                 q_p = wm.var[:nw][n][:qp][a][1]
                 q_n = wm.var[:nw][n][:qn][a][1]
                 objective -= reservoir["head"] * (q_p - q_n)
