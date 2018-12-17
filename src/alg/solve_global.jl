@@ -20,9 +20,11 @@ function solve_global(network_path::String, problem_path::String,
     mmilp = build_generic_model(network, MILPRWaterModel, WaterModels.post_ne_hw)
 
     # Find an initial solution for the master MILP.
-    resistance_indices = find_initial_solution(mmilp, 200, 20, 0.85, nlp_solver)
+    resistance_indices = find_initial_solution(mmilp, 50, 20, 0.85, nlp_solver)
     set_initial_solution(mmilp, resistance_indices, nlp_solver)
     best_objective = compute_objective(mmilp, resistance_indices)
+    rnlp = build_generic_model(network, MINLPWaterModel, WaterModels.post_ne_hw)
+    bound_tightening(mmilp, rnlp, best_objective, 2, nlp_solver)
 
     params = Dict{String, Any}("obj_last" => best_objective,
                                "obj_curr" => best_objective,
@@ -34,9 +36,8 @@ function solve_global(network_path::String, problem_path::String,
 
     println(resistance_indices, params["obj_best"])
     # Solve a relaxed version of the convex MINLP (Line 1).
-    rnlp = build_generic_model(network, MINLPWaterModel, WaterModels.post_ne_hw)
     rnlp_cost = get_resistance_cost_expression(rnlp)
-    @constraint(rnlp.model, rnlp_cost <= best_objective)
+    @objective(rnlp.model, Min, rnlp_cost)
     setsolver(rnlp.model, nlp_solver)
     rnlp_status = JuMP.solve(rnlp.model, relaxation = true)
 

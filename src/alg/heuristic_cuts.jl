@@ -28,10 +28,16 @@ function heuristic_cut_callback_generator(wm::GenericWaterModel, params::Dict{St
             end
         end
 
+        # TODO: Toggle this on and off and examine the effects.
+        if compute_objective(wm, resistance_indices, n) >= params["obj_best"]
+            return
+        end
+
         repaired, resistance_indices = repair_solution(wm, resistance_indices,
                                                        params["max_repair_iters"],
                                                        params["obj_best"],
                                                        nlp_solver, n)
+
 
         if repaired
             # Update objective values.

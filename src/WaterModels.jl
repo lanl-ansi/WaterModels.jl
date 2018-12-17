@@ -41,6 +41,7 @@ include("prob/cvx.jl")
 include("prob/ne.jl")
 include("prob/wf.jl")
 
+include("alg/bound_tightening.jl")
 include("alg/get_cvx_solution.jl")
 include("alg/compute_objective.jl")
 include("alg/repair_solution.jl")
