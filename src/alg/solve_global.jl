@@ -20,9 +20,11 @@ function solve_global(network_path::String, problem_path::String,
     mmilp = build_generic_model(network, MILPRWaterModel, WaterModels.post_ne_hw)
 
     # Find an initial solution for the master MILP.
-    resistance_indices = find_initial_solution(mmilp, 50, 20, 0.85, nlp_solver)
+    resistance_indices = find_initial_solution(mmilp, 20, 20, 0.85, nlp_solver)
     set_initial_solution(mmilp, resistance_indices, nlp_solver)
     best_objective = compute_objective(mmilp, resistance_indices)
+    println("Starting objective value: ", best_objective)
+
     rnlp = build_generic_model(network, MINLPWaterModel, WaterModels.post_ne_hw)
     bound_tightening(mmilp, rnlp, best_objective, 2, nlp_solver)
 
@@ -34,15 +36,16 @@ function solve_global(network_path::String, problem_path::String,
                                "max_repair_iters" => 50,
                                "M_oa" => 5.0, "epsilon" => 1.0e-6)
 
-    println(resistance_indices, params["obj_best"])
     # Solve a relaxed version of the convex MINLP (Line 1).
     rnlp_cost = get_resistance_cost_expression(rnlp)
     @objective(rnlp.model, Min, rnlp_cost)
     setsolver(rnlp.model, nlp_solver)
     rnlp_status = JuMP.solve(rnlp.model, relaxation = true)
+    relaxed_objective_value = getobjectivevalue(rnlp.model)
+    println("Relaxed NLP objective value: ", relaxed_objective_value)
 
     # Set initial points for the outer approximation (Lines 2 through 5).
-    for (a, connection) in rnlp.ref[:nw][rnlp.cnw][:connection]
+    for (a, connection) in mmilp.ref[:nw][mmilp.cnw][:connection]
         # Get possible resistances for the arc.
         R_a = mmilp.ref[:nw][mmilp.cnw][:resistance][a]
         L_a = mmilp.ref[:nw][mmilp.cnw][:connection][a]["length"]

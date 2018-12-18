@@ -16,6 +16,7 @@ function find_initial_solution(wm::GenericWaterModel,
 
     # Initialize the best objective value obtained thus far.
     best_objective_value = compute_objective(wm, best_resistance_indices, n)
+    println("Worst possible objective value: ", best_objective_value)
 
     # Initialize the number of iterations used in the search procedure.
     num_rounds = 1
@@ -54,6 +55,10 @@ function find_initial_solution(wm::GenericWaterModel,
                         argmax_cost_reduction = a
                     end
                 end
+            end
+
+            if argmax_cost_reduction == nothing
+                break
             end
 
             # Compute the resistance change and its corresponding objective.

@@ -18,7 +18,17 @@ function calc_head_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
     head_min = Dict([(i, -Inf) for i in nodes])
     head_max = Dict([(i, Inf) for i in nodes])
 
+    sum_demand = sum([junction["demand"] for junction in values(junctions)])
+    connections = wm.ref[:nw][n][:connection]
+    resistances = wm.ref[:nw][n][:resistance]
+
     for (i, junction) in junctions
+        out_arcs = filter(a -> i == parse(Int, a.second["node1"]), connections)
+        in_arcs = filter(a -> i == parse(Int, a.second["node2"]), connections)
+        arcs = keys(vcat(out_arcs, in_arcs))
+        max_coeff, k = maximum([resistances[a][1] * connections[a]["length"] for a in arcs])
+        max_diff = max_coeff * sum_demand^(1.852)
+
         # The minimum head at junctions must be above the initial elevation.
         if haskey(junction, "minimumHead")
             head_min[i] = max(junction["elev"], junction["minimumHead"])
@@ -32,6 +42,8 @@ function calc_head_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
         else
             head_max[i] = max(max_elev, max_head)
         end
+
+        head_max[i] = min(junction["elev"] + max_diff, head_max[i])
     end
 
     for (i, reservoir) in reservoirs
@@ -73,6 +85,9 @@ function calc_directed_flow_upper_bounds(wm::GenericWaterModel, n::Int = wm.cnw,
     ub_n = Dict([(a, Float64[]) for a in keys(connections)])
     ub_p = Dict([(a, Float64[]) for a in keys(connections)])
 
+    junctions = values(wm.ref[:nw][n][:junctions])
+    sum_demand = sum(junction["demand"] for junction in junctions)
+
     for (a, connection) in connections
         L = connection["length"]
         R_a = wm.ref[:nw][n][:resistance][a]
@@ -82,7 +97,10 @@ function calc_directed_flow_upper_bounds(wm::GenericWaterModel, n::Int = wm.cnw,
 
         for r in 1:length(R_a)
             ub_n[a][r] = abs(dh_lb[a] / (L * R_a[r]))^(1.0 / exponent)
+            ub_n[a][r] = min(ub_n[a][r], sum_demand)
+
             ub_p[a][r] = abs(dh_ub[a] / (L * R_a[r]))^(1.0 / exponent)
+            ub_p[a][r] = min(ub_p[a][r], sum_demand)
 
             if connection["flow_direction"] == POSITIVE || dh_lb[a] >= 0.0
                 ub_n[a][r] = 0.0
@@ -179,7 +197,7 @@ function calc_resistance_costs_hw(connections::Dict{Int, Any})
                 roughness = connection["roughness"]
                 resistance = 10.67 / (roughness^1.852 * diameter^4.87)
                 resistances = vcat(resistances, resistance)
-                costs[a] = vcat(costs[a], entry["costPerUnitLength"])
+                costs[a] = vcat(costs[a], entry["costPerUnitLength"] * 1.0)
             end
 
             sort_indices = sortperm(resistances, rev = true)

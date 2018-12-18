@@ -14,8 +14,8 @@ function set_initial_solution(wm::GenericWaterModel, R_id::Dict{Int, Int}, nlp_s
         dir = q[a] > 0.0 ? 1 : 0
         setvalue(wm.var[:nw][n][:dir][a], dir)
 
-        setvalue.(wm.var[:nw][n][:xr][a], 0.0)
-        setvalue(wm.var[:nw][n][:xr][a][R_id[a]], 1.0)
+        setvalue.(wm.var[:nw][n][:xr][a], 0)
+        setvalue(wm.var[:nw][n][:xr][a][R_id[a]], 1)
 
         i = parse(Int, connection["node1"])
         j = parse(Int, connection["node2"])

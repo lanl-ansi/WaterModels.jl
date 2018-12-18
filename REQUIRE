@@ -1,5 +1,8 @@
-julia 1.0
+julia 0.7
+CPLEX
 GLPK
+GLPKMathProgInterface
+Gurobi
 JSON
 InfrastructureModels
 MathProgBase

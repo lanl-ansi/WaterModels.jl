@@ -51,18 +51,18 @@ function bound_tightening(wm::GenericWaterModel,
     for num_iteration in 1:num_iterations
         # Tighten direction bounds.
         for (a, connection) in wm.ref[:nw][n][:connection]
-            if sum(getupperbound.(nlp.var[:nw][n][:qn][a])) < 1.0e-6
+            if sum(getupperbound.(nlp.var[:nw][n][:qn][a])) < 1.0e-9
                 setlowerbound(wm.var[:nw][n][:dir][a], 1)
+                setupperbound(wm.var[:nw][n][:dhn][a], 0.0)
                 setlowerbound(nlp.var[:nw][n][:dir][a], 1)
                 setupperbound(nlp.var[:nw][n][:dhn][a], 0.0)
-                setupperbound(wm.var[:nw][n][:dhn][a], 0.0)
             end
 
-            if sum(getupperbound.(nlp.var[:nw][n][:qp][a])) < 1.0e-6
+            if sum(getupperbound.(nlp.var[:nw][n][:qp][a])) < 1.0e-9
                 setupperbound(wm.var[:nw][n][:dir][a], 0)
+                setupperbound(wm.var[:nw][n][:dhp][a], 0.0)
                 setupperbound(nlp.var[:nw][n][:dir][a], 0)
                 setupperbound(nlp.var[:nw][n][:dhp][a], 0.0)
-                setupperbound(wm.var[:nw][n][:dhp][a], 0.0)
             end
         end
 
@@ -73,15 +73,15 @@ function bound_tightening(wm::GenericWaterModel,
                 q_p_nlp = nlp.var[:nw][n][:qp][a][r]
                 @objective(nlp.model, Max, q_p_nlp)
                 status = JuMP.solve(nlp.model, relaxation = true)
-                setupperbound(q_p_wm, getvalue(q_p_nlp))
-                setupperbound(q_p_nlp, getvalue(q_p_nlp))
+                setupperbound(q_p_wm, getvalue(q_p_nlp) + 1.0e-6)
+                setupperbound(q_p_nlp, getvalue(q_p_nlp) + 1.0e-6)
 
                 q_n_wm = wm.var[:nw][n][:qn][a][r]
                 q_n_nlp = nlp.var[:nw][n][:qn][a][r]
                 @objective(nlp.model, Max, q_n_nlp)
                 status = JuMP.solve(nlp.model, relaxation = true)
-                setupperbound(q_n_wm, getvalue(q_n_nlp))
-                setupperbound(q_n_nlp, getvalue(q_n_nlp))
+                setupperbound(q_n_wm, getvalue(q_n_nlp) + 1.0e-6)
+                setupperbound(q_n_nlp, getvalue(q_n_nlp) + 1.0e-6)
             end
         end
 
@@ -91,13 +91,13 @@ function bound_tightening(wm::GenericWaterModel,
 
             @objective(nlp.model, Min, h_nlp)
             status = JuMP.solve(nlp.model, relaxation = true)
-            setlowerbound(h_wm, getvalue(h_nlp))
-            setlowerbound(h_nlp, getvalue(h_nlp))
+            setlowerbound(h_wm, max(junction["elev"], getvalue(h_nlp) - 1.0e-6))
+            setlowerbound(h_nlp, max(junction["elev"], getvalue(h_nlp) - 1.0e-6))
 
             @objective(nlp.model, Max, h_nlp)
             status = JuMP.solve(nlp.model, relaxation = true)
-            setupperbound(h_wm, getvalue(h_nlp))
-            setupperbound(h_nlp, getvalue(h_nlp))
+            setupperbound(h_wm, getvalue(h_nlp) + 1.0e-6)
+            setupperbound(h_nlp, getvalue(h_nlp) + 1.0e-6)
         end
     end
 end

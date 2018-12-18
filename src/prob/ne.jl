@@ -32,8 +32,16 @@ function post_ne_hw(wm::GenericWaterModel; kwargs...)
         constraint_potential_loss_slope(wm, a)
     end
 
-    for i in collect(ids(wm, :junctions))
+    for (i, junction) in wm.ref[:nw][wm.cnw][:junctions]
         constraint_directed_flow_conservation(wm, i)
+
+        if junction["demand"] > 0.0
+            constraint_sink_flow(wm, i)
+        end
+    end
+
+    for i in collect(ids(wm, :reservoirs))
+        constraint_source_flow(wm, i)
     end
 
     objective_minimize_resistance_cost(wm)
