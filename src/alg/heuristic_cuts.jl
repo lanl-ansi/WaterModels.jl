@@ -16,7 +16,7 @@ function heuristic_cut_callback_generator(wm::GenericWaterModel, params::Dict{St
         if (num_nodes_explored > 0) && (num_nodes_explored % 500 == 0)
             for (a, connection) in wm.ref[:nw][n][:connection]
                 xr_a = getvalue(wm.var[:nw][n][:xr][a])
-                geq_indices = filter(r -> xr_a[r] > 1.0 / length(xr_a), 1:length(xr_a))
+                geq_indices = filter(r -> xr_a[r] >= 1.0 / length(xr_a), 1:length(xr_a))
                 r_val, r_rel = findmin([xr_a[r] for r in geq_indices])
                 resistance_indices[a] = geq_indices[r_rel]
             end

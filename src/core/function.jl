@@ -1,5 +1,5 @@
 function head_loss_integrated_hw_func(x)
-    return 0.350631 * (x^2)^1.426
+    return (250.0 * x * (x^2)^(463.0 / 500.0)) / 713.0
 end
 
 function head_loss_hw_func(x)
@@ -8,7 +8,7 @@ end
 
 function head_loss_hw_prime(x)
     if x > 0.0
-        return (1.852 * x) / (x^2)^(0.074)
+        return (463.0 * x) / (250.0 * (x^2)^(37.0 / 500.0))
     else
         return 0.0
     end
@@ -16,7 +16,8 @@ end
 
 function head_loss_hw_prime_prime(x)
     if x > 0.0
-        return -0.274096 / (x^2)^0.074 + 1.852 / (x^2)^0.074
+        return 463.0 / (250.0 * (x^2)^(37.0 / 500.0)) -
+               (17131.0*x^2) / (62500.0*(x^2)^(537.0 / 500.0))
     else
         return 0.0
     end

@@ -29,10 +29,9 @@ function get_resistance_cost_expression(wm::GenericWaterModel)
 
     for n in nws(wm)
         for (a, connection) in wm.ref[:nw][n][:connection]
-            L_a = connection["length"]
-            x_a = wm.var[:nw][n][:xr][a]
-            C_a = wm.ref[:nw][n][:resistance_cost][a]
-            cost += sum(L_a * C_a[r] * x_a[r] for r in 1:length(C_a))
+            xr = wm.var[:nw][n][:xr][a]
+            C_a = connection["length"] * wm.ref[:nw][n][:resistance_cost][a]
+            cost += sum(C_a[r] * xr[r] for r in 1:length(xr))
         end
     end
 
@@ -77,6 +76,12 @@ function objective_cvx_hw(wm::GenericWaterModel)
                 q_n = wm.var[:nw][n][:qn][a][1]
                 objective -= reservoir["head"] * (q_p - q_n)
             end
+
+            #for (a, connection) in filter(a -> i == parse(Int, a.second["node2"]), connections)
+            #    q_p = wm.var[:nw][n][:qp][a][1]
+            #    q_n = wm.var[:nw][n][:qn][a][1]
+            #    objective -= reservoir["head"] * (q_n - q_p)
+            #end
         end
     end
 

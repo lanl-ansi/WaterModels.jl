@@ -16,17 +16,18 @@ function solve_global(network_path::String, problem_path::String,
     modifications = WaterModels.parse_file(problem_path)
     InfrastructureModels.update_data!(network, modifications)
 
-    # Initialize the master MILP (mMILP) problem.
+    # Initialize the master MILP (mMILP) and relaxed NLP (RNLP) problems.
     mmilp = build_generic_model(network, MILPRWaterModel, WaterModels.post_ne_hw)
+    rnlp = build_generic_model(network, MINLPWaterModel, WaterModels.post_ne_hw)
 
     # Find an initial solution for the master MILP.
-    resistance_indices = find_initial_solution(mmilp, 20, 20, 0.85, nlp_solver)
+    resistance_indices = find_initial_solution(mmilp, 100, 50, 0.80, nlp_solver)
     set_initial_solution(mmilp, resistance_indices, nlp_solver)
     best_objective = compute_objective(mmilp, resistance_indices)
     println("Starting objective value: ", best_objective)
 
-    rnlp = build_generic_model(network, MINLPWaterModel, WaterModels.post_ne_hw)
-    bound_tightening(mmilp, rnlp, best_objective, 2, nlp_solver)
+    # Tighten bounds for both of the models above.
+    #bound_tightening(mmilp, rnlp, best_objective, 2, nlp_solver)
 
     params = Dict{String, Any}("obj_last" => best_objective,
                                "obj_curr" => best_objective,
@@ -78,5 +79,8 @@ function solve_global(network_path::String, problem_path::String,
 
     # Solve the problem and return the status.
     setsolver(mmilp.model, mip_solver)
-    return JuMP.solve(mmilp.model)
+    status = JuMP.solve(mmilp.model)
+    final_objective_value = getobjectivevalue(mmilp.model)
+    println("Final objective value: ", final_objective_value)
+    return status
 end

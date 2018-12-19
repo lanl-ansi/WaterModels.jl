@@ -10,10 +10,7 @@ import Roots
 function compute_q_tilde(q_hat::Float64, r_hat::Float64, r::Float64)
     # TODO: Mitigate loss of precision when computing q_tilde.
     b = r_hat * (head_loss_hw_prime(q_hat) * q_hat - head_loss_hw_func(q_hat))
-    q_tilde = 1.0903341484 * (b / r)^0.53995680345
-
-    # Return a corrected term to account for loss of precision.
-    return q_tilde #max(0.0, q_tilde - 1.0e-2)
+    return 1.0903341484 * (b / r)^0.53995680345
 end
 
 function compute_q_p_cut(dh::JuMP.Variable, q::Array{JuMP.Variable}, dir::JuMP.Variable, q_sol::Float64, R::Array{Float64}, r_hat::Int, L::Float64)
@@ -27,7 +24,10 @@ function compute_q_p_cut(dh::JuMP.Variable, q::Array{JuMP.Variable}, dir::JuMP.V
     expr = zero(AffExpr)
     expr += -dh / L + phi_prime_hat * q[r_hat]
     expr += (phi_hat - phi_prime_hat * q_sol) * dir
-    #expr += sum(coeffs[r] * q[r] for r in setdiff(1:length(R), [r_hat]))
+
+    for r in setdiff(1:length(R), [r_hat])
+        expr += coeffs[r] * q[r]
+    end
 
     return expr
 end
@@ -43,7 +43,10 @@ function compute_q_n_cut(dh::JuMP.Variable, q::Array{JuMP.Variable}, dir::JuMP.V
     expr = zero(AffExpr)
     expr += -dh / L + phi_prime_hat * q[r_hat]
     expr += (phi_hat - phi_prime_hat * q_sol) * (1 - dir)
-    #expr += sum(coeffs[r] * q[r] for r in setdiff(1:length(R), [r_hat]))
+
+    for r in setdiff(1:length(R), [r_hat])
+        expr += coeffs[r] * q[r]
+    end
 
     return expr
 end

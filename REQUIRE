@@ -3,9 +3,10 @@ CPLEX
 GLPK
 GLPKMathProgInterface
 Gurobi
-JSON
 InfrastructureModels
-MathProgBase
+JSON
 JuMP
+LinearAlgebra
+MathProgBase
 Memento
 Roots
