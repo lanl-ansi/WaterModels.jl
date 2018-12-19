@@ -1,14 +1,8 @@
 export user_cut_callback_generator, compute_q_tilde, compute_q_p_cut, compute_q_n_cut
 
-#import CPLEX
-import GLPK
-import GLPKMathProgInterface
-import Gurobi
 import Random
-import Roots
 
 function compute_q_tilde(q_hat::Float64, r_hat::Float64, r::Float64)
-    # TODO: Mitigate loss of precision when computing q_tilde.
     b = r_hat * (head_loss_hw_prime(q_hat) * q_hat - head_loss_hw_func(q_hat))
     return 1.0903341484 * (b / r)^0.53995680345
 end
@@ -147,31 +141,6 @@ function user_cut_callback_generator(wm::GenericWaterModel,
             current_objective += sum(lp_solution[xr_ids] .* C_a)
         end
 
-        if typeof(cb) == GLPKMathProgInterface.GLPKInterfaceMIP.GLPKCallbackData
-            current_node = GLPK.ios_curr_node(cb.tree)
-            current_problem = GLPK.ios_get_prob(cb.tree)
-            d = convert(Float64, GLPK.ios_node_level(cb.tree, current_node))
-
-            # Check satisfaction of node depth.
-            depth_satisfied = Random.rand() <= params["Beta_oa"] * 2^(-d)
-
-            # Initialize the number of cut rounds added per node.
-            if !haskey(params["n"], current_node)
-                params["n"][current_node] = 0
-            end
-
-            # Check satisfaction of the number of rounds.
-            num_rounds_satisfied = params["n"][current_node] <= params["M_oa"]
-        else
-            # Initialize the number of cut rounds added per node.
-            if !haskey(params["n"], current_node)
-                params["n"][current_node] = 0
-            end
-
-            depth_satisfied = true
-            num_rounds_satisfied = true
-        end
-
         # Update objective values.
         params["obj_last"] = params["obj_curr"]
         params["obj_curr"] = current_objective
@@ -180,7 +149,7 @@ function user_cut_callback_generator(wm::GenericWaterModel,
         obj_rel_change = (params["obj_curr"] - params["obj_last"]) / params["obj_last"]
         obj_improved = obj_rel_change >= params["K_oa"]
 
-        if obj_improved #depth_satisfied && obj_improved && num_rounds_satisfied
+        if obj_improved
             for (relative_index, a) in enumerate(arcs)
                 R_a = wm.ref[:nw][n][:resistance][a]
                 L_a = wm.ref[:nw][n][:connection][a]["length"]
@@ -216,8 +185,6 @@ function user_cut_callback_generator(wm::GenericWaterModel,
                     end
                 end
             end
-
-            params["n"][current_node] += 1
         end
     end
 

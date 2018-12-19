@@ -1,6 +1,5 @@
 export heuristic_cut_callback_generator
 
-import CPLEX
 import JuMP
 import MathProgBase
 

@@ -33,7 +33,6 @@ function solve_global(network_path::String, problem_path::String,
                                "obj_curr" => best_objective,
                                "obj_best" => best_objective,
                                "Beta_oa" => 5.0, "K_oa" => 1.0e-3,
-                               "n" => Dict{Int, Int}(),
                                "max_repair_iters" => 50,
                                "M_oa" => 5.0, "epsilon" => 1.0e-6)
 
