@@ -3,6 +3,10 @@
         "1": {
             "diameters": [
                 {
+                    "costPerUnitLength": 170.0,
+                    "diameter": 0.508
+                },
+                {
                     "costPerUnitLength": 300.0,
                     "diameter": 0.5588
                 },
@@ -14,6 +18,10 @@
         },
         "2": {
             "diameters": [
+                {
+                    "costPerUnitLength": 170.0,
+                    "diameter": 0.508
+                },
                 {
                     "costPerUnitLength": 300.0,
                     "diameter": 0.5588
@@ -27,6 +35,10 @@
         "3": {
             "diameters": [
                 {
+                    "costPerUnitLength": 170.0,
+                    "diameter": 0.508
+                },
+                {
                     "costPerUnitLength": 300.0,
                     "diameter": 0.5588
                 },
@@ -38,6 +50,10 @@
         },
         "4": {
             "diameters": [
+                {
+                    "costPerUnitLength": 170.0,
+                    "diameter": 0.508
+                },
                 {
                     "costPerUnitLength": 300.0,
                     "diameter": 0.5588
@@ -51,6 +67,10 @@
         "5": {
             "diameters": [
                 {
+                    "costPerUnitLength": 170.0,
+                    "diameter": 0.508
+                },
+                {
                     "costPerUnitLength": 300.0,
                     "diameter": 0.5588
                 },
@@ -62,6 +82,10 @@
         },
         "6": {
             "diameters": [
+                {
+                    "costPerUnitLength": 170.0,
+                    "diameter": 0.508
+                },
                 {
                     "costPerUnitLength": 300.0,
                     "diameter": 0.5588
@@ -75,6 +99,10 @@
         "7": {
             "diameters": [
                 {
+                    "costPerUnitLength": 170.0,
+                    "diameter": 0.508
+                },
+                {
                     "costPerUnitLength": 300.0,
                     "diameter": 0.5588
                 },
@@ -86,6 +114,10 @@
         },
         "8": {
             "diameters": [
+                {
+                    "costPerUnitLength": 170.0,
+                    "diameter": 0.508
+                },
                 {
                     "costPerUnitLength": 300.0,
                     "diameter": 0.5588
