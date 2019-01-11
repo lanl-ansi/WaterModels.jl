@@ -14,7 +14,7 @@ setlevel!(getlogger(WaterModels), "error")
 # Solver setup.
 glpk = GLPKSolverMIP(presolve = false)
 ipopt = IpoptSolver(print_level = 1, tol = 1.0e-9)
-pavito = PavitoSolver(cont_solver = ipopt, mip_solver = glpk)
+pavito = PavitoSolver(cont_solver = ipopt, mip_solver = glpk, log_level = 3)
 
 # Perform the tests.
 @testset "WaterModels" begin
