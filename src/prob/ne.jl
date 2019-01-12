@@ -16,7 +16,7 @@ function run_ne_dw(file, modifications_path, model_constructor, solver; kwargs..
     return run_generic_model(file, modifications_path, model_constructor, solver, post_ne_dw; kwargs...)
 end
 
-function post_ne_hw_segmented(wm::GenericWaterModel, n_n::Int = wm.cnw, n_s::Int = 3)
+function post_ne_hw_segmented(wm::GenericWaterModel, n_n::Int = wm.cnw, n_s::Int = 2)
     variable_head(wm, n_n)
     variable_segment(wm, n_n, n_s)
     variable_segmented_directed_flow(wm, n_n, n_s)
@@ -30,8 +30,8 @@ function post_ne_hw_segmented(wm::GenericWaterModel, n_n::Int = wm.cnw, n_s::Int
         constraint_select_resistance(wm, a, n_n)
         constraint_select_segmented_flow_term(wm, a, n_n, n_s)
         constraint_head_difference(wm, a, n_n)
-        constraint_potential_loss_segmented(wm, a, n_n, n_s)
-        constraint_potential_loss_slope_segmented(wm, a, n_n, n_s)
+        #constraint_potential_loss_segmented(wm, a, n_n, n_s)
+        #constraint_potential_loss_slope_segmented(wm, a, n_n, n_s)
     end
 
     for (i, junction) in wm.ref[:nw][n_n][:junctions]

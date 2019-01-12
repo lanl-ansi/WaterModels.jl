@@ -20,7 +20,7 @@ function lazy_cut_callback_generator(wm::GenericWaterModel,
         # Update resistances used throughout the network.
         for (a, connection) in wm.ref[:nw][n][:connection]
             xr = getvalue(wm.var[:nw][n][:xr][a])
-            r = findfirst(i -> isapprox(xr[i], 1.0; atol = 1.0e-6), 1:length(xr))
+            r = findfirst(i -> isapprox(xr[i], 1.0; atol = 0.01), 1:length(xr))
             resistance_indices[a] = r
 
             zero_indices = setdiff(1:length(xr), [r])

@@ -32,6 +32,9 @@ function construct_dw_separators(q::JuMP.Variable, lambda::Float64, n::Int = 3)
     return [f_evals[i] + (q - q_points[i]) * df_evals[i] for i in 1:n]
 end
 
+function constraint_potential_loss_segmented(wm::GenericWaterModel{T}, a::Int, n_n::Int, n_s::Int) where T <: StandardMILPRForm
+end
+
 function constraint_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int = wm.cnw) where T <: StandardMILPRForm
     if !haskey(wm.con[:nw][n], :potential_loss_1)
         wm.con[:nw][n][:potential_loss_1] = Dict{Int, Dict{Int, ConstraintRef}}()

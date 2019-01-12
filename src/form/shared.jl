@@ -12,13 +12,14 @@ function constraint_select_segment(wm::GenericWaterModel, a::Int, n_n::Int)
         wm.con[:nw][n_n][:select_segment] = Dict{Int, Dict{Int, ConstraintRef}}()
     end
 
+    wm.con[:nw][n_n][:select_segment][a] = Dict{Int, ConstraintRef}()
+
     for r in 1:length(wm.ref[:nw][n_n][:resistance][a])
         x_r = wm.var[:nw][n_n][:xr][a][r]
         x_s_p = wm.var[:nw][n_n][:xsp][a][:, r]
         x_s_n = wm.var[:nw][n_n][:xsn][a][:, r]
 
         con = @constraint(wm.model, sum(x_s_p) + sum(x_s_n) == x_r)
-        wm.con[:nw][n_n][:select_segment][a] = Dict{Int, ConstraintRef}()
         wm.con[:nw][n_n][:select_segment][a][r] = con
     end
 end
@@ -45,7 +46,6 @@ function constraint_select_segmented_flow_term(wm::GenericWaterModel, a::Int, n_
     wm.con[:nw][n_n][:select_flow_term_8][a] = Dict{Int, Dict{Int, ConstraintRef}}()
 
     for k in 1:n_s
-
         wm.con[:nw][n_n][:select_flow_term_1][a][k] = Dict{Int, ConstraintRef}()
         wm.con[:nw][n_n][:select_flow_term_2][a][k] = Dict{Int, ConstraintRef}()
         wm.con[:nw][n_n][:select_flow_term_3][a][k] = Dict{Int, ConstraintRef}()
@@ -55,43 +55,46 @@ function constraint_select_segmented_flow_term(wm::GenericWaterModel, a::Int, n_
         wm.con[:nw][n_n][:select_flow_term_7][a][k] = Dict{Int, ConstraintRef}()
         wm.con[:nw][n_n][:select_flow_term_8][a][k] = Dict{Int, ConstraintRef}()
 
-        for r in 1:length(wm.ref[:nw][n_n][:resistance][a])
-            q_n_akr = wm.var[:nw][n_n][:qn][a][k, r]
-            q_n_lb_akr = getlowerbound(q_n_akr)
-            q_n_ub_akr = getupperbound(q_n_akr)
-
-            q_p_akr = wm.var[:nw][n_n][:qp][a][k, r]
-            q_p_lb_akr = getlowerbound(q_p_akr)
-            q_p_ub_akr = getupperbound(q_p_akr)
-
-            x_dir = wm.var[:nw][n_n][:dir][a]
-            x_r = wm.var[:nw][n_n][:xr][a][r]
-            x_s_n = wm.var[:nw][n_n][:xsn][a][k, r]
-            x_s_p = wm.var[:nw][n_n][:xsn][a][k, r]
-
-            con_1 = @constraint(wm.model, q_p_akr <= q_p_ub_akr * x_s_p)
-            wm.con[:nw][n_n][:select_flow_term_1][a][k][r] = con_1
-
-            con_2 = @constraint(wm.model, q_p_akr >= q_p_lb_akr * x_s_p)
-            wm.con[:nw][n_n][:select_flow_term_2][a][k][r] = con_2
-
             con_3 = @constraint(wm.model, q_p_akr <= q_p_ub_akr * x_dir)
             wm.con[:nw][n_n][:select_flow_term_3][a][k][r] = con_3
 
             con_4 = @constraint(wm.model, q_p_akr >= q_p_lb_akr * x_dir)
             wm.con[:nw][n_n][:select_flow_term_4][a][k][r] = con_4
 
-            con_5 = @constraint(wm.model, q_n_akr <= q_n_ub_akr * x_s_n)
-            wm.con[:nw][n_n][:select_flow_term_5][a][k][r] = con_5
-
-            con_6 = @constraint(wm.model, q_n_akr >= q_n_lb_akr * x_s_n)
-            wm.con[:nw][n_n][:select_flow_term_6][a][k][r] = con_6
-
             con_7 = @constraint(wm.model, q_n_akr <= q_n_ub_akr * (1 - x_dir))
             wm.con[:nw][n_n][:select_flow_term_7][a][k][r] = con_7
 
             con_8 = @constraint(wm.model, q_n_akr >= q_n_lb_akr * (1 - x_dir))
             wm.con[:nw][n_n][:select_flow_term_8][a][k][r] = con_8
+
+        for r in 1:length(wm.ref[:nw][n_n][:resistance][a])
+            q_n_lb_akr = q_p_lb_akr = 0.0
+            q_n_akr = wm.var[:nw][n_n][:qn][a][k, r]
+            q_n_ub_akr = getupperbound(q_n_akr)
+            q_p_akr = wm.var[:nw][n_n][:qp][a][k, r]
+            q_p_ub_akr = getupperbound(q_p_akr)
+
+            if k > 1
+                q_n_lb_akr = getupperbound(wm.var[:nw][n_n][:qn][a][k-1, r])
+                q_p_lb_akr = getupperbound(wm.var[:nw][n_n][:qp][a][k-1, r])
+            end
+
+            x_dir = wm.var[:nw][n_n][:dir][a]
+            x_r = wm.var[:nw][n_n][:xr][a][r]
+            x_s_n = wm.var[:nw][n_n][:xsn][a][k, r]
+            x_s_p = wm.var[:nw][n_n][:xsp][a][k, r]
+
+            con_5 = @constraint(wm.model, q_p_akr <= q_p_ub_akr * x_s_p)
+            wm.con[:nw][n_n][:select_flow_term_5][a][k][r] = con_1
+
+            con_6 = @constraint(wm.model, q_p_akr >= q_p_lb_akr * x_s_p)
+            wm.con[:nw][n_n][:select_flow_term_6][a][k][r] = con_2
+
+            con_7 = @constraint(wm.model, q_n_akr <= q_n_ub_akr * x_s_n)
+            wm.con[:nw][n_n][:select_flow_term_7][a][k][r] = con_5
+
+            con_8 = @constraint(wm.model, q_n_akr >= q_n_lb_akr * x_s_n)
+            wm.con[:nw][n_n][:select_flow_term_8][a][k][r] = con_6
         end
     end
 end
@@ -176,9 +179,9 @@ function constraint_potential_loss_slope_segmented(wm::GenericWaterModel, a::Int
     qp_lbs = vcat(zeros((1, length(R_a))), qp_lbs)
     qp_ubs = [getupperbound(wm.var[:nw][n_n][:qp][a][k, r]) for k in 1:n_s, r in 1:length(R_a)]
     dqp = [qp_ubs[k, r] - qp_lbs[k, r] for k in 1:n_s, r in 1:length(R_a)]
-    dfp = [qp_ubs[k, r]^(1.852) - qp_lbs[k, r]^(1.852) for k in 1:n_s, r in 1:length(R_a)]
+    dfp = [R_a[r] * (qp_ubs[k, r]^(1.852) - qp_lbs[k, r]^(1.852)) for k in 1:n_s, r in 1:length(R_a)]
     qp_slopes = [dfp[k, r] / dqp[k, r] for k in 1:n_s, r in 1:length(R_a)]
-    qp_constants = [qp_lbs[k, r]^(1.852) for k in 1:n_s, r in 1:length(R_a)]
+    qp_constants = [R_a[r] * qp_lbs[k, r]^(1.852) for k in 1:n_s, r in 1:length(R_a)]
     qp_slopes = vcat(qp_slopes...)
     nan_indices = findall(isnan, qp_slopes)
     setindex!(qp_slopes, zeros(size(nan_indices, 1)), nan_indices)
@@ -193,9 +196,9 @@ function constraint_potential_loss_slope_segmented(wm::GenericWaterModel, a::Int
     qn_lbs = vcat(zeros((1, length(R_a))), qn_lbs)
     qn_ubs = [getupperbound(wm.var[:nw][n_n][:qn][a][k, r]) for k in 1:n_s, r in 1:length(R_a)]
     dqn = [qn_ubs[k, r] - qn_lbs[k, r] for k in 1:n_s, r in 1:length(R_a)]
-    dfn = [qn_ubs[k, r]^(1.852) - qn_lbs[k, r]^(1.852) for k in 1:n_s, r in 1:length(R_a)]
+    dfn = [R_a[r] * (qn_ubs[k, r]^(1.852) - qn_lbs[k, r]^(1.852)) for k in 1:n_s, r in 1:length(R_a)]
     qn_slopes = [dfn[k, r] / dqn[k, r] for k in 1:n_s, r in 1:length(R_a)]
-    qn_constants = [qn_lbs[k, r]^(1.852) for k in 1:n_s, r in 1:length(R_a)]
+    qn_constants = [R_a[r] * qn_lbs[k, r]^(1.852) for k in 1:n_s, r in 1:length(R_a)]
     qn_slopes = vcat(qn_slopes...)
     nan_indices = findall(isnan, qn_slopes)
     setindex!(qn_slopes, zeros(size(nan_indices, 1)), nan_indices)

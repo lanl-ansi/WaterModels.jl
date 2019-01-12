@@ -17,10 +17,10 @@ function run_cvx_dw(file, modifications_path, model_constructor, solver; kwargs.
 end
 
 function post_cvx_hw(wm::GenericWaterModel; kwargs...)
-    variable_directed_flow(wm)
+    variable_directed_flow(wm, wm.cnw)
 
-    for i in collect(ids(wm, :junctions))
-        constraint_directed_flow_conservation(wm, i)
+    for i in collect(ids(wm, wm.cnw, :junctions))
+        constraint_directed_flow_conservation(wm, i, wm.cnw)
     end
 
     objective_cvx_hw(wm)
