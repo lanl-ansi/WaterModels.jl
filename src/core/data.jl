@@ -193,7 +193,7 @@ function calc_resistance_costs_hw(connections::Dict{Int, Any})
                 roughness = connection["roughness"]
                 resistance = 10.67 / (roughness^1.852 * diameter^4.87)
                 resistances = vcat(resistances, resistance)
-                costs[a] = vcat(costs[a], entry["costPerUnitLength"] * 1.0)
+                costs[a] = vcat(costs[a], entry["costPerUnitLength"])
             end
 
             sort_indices = sortperm(resistances, rev = true)

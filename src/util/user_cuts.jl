@@ -1,19 +1,13 @@
 export user_cut_callback_generator, compute_q_tilde, compute_q_p_cut, compute_q_n_cut
 
-#import CPLEX
-import GLPK
-import GLPKMathProgInterface
-import Gurobi
 import Random
-import Roots
 
 function compute_q_tilde(q_hat::Float64, r_hat::Float64, r::Float64)
-    # TODO: Mitigate loss of precision when computing q_tilde.
     b = r_hat * (head_loss_hw_prime(q_hat) * q_hat - head_loss_hw_func(q_hat))
     return 1.0903341484 * (b / r)^0.53995680345
 end
 
-function compute_q_p_cut(dh::JuMP.Variable, q::Array{JuMP.Variable}, dir::JuMP.Variable, q_sol::Float64, R::Array{Float64}, r_hat::Int, L::Float64)
+function compute_q_p_cut(dh::JuMP.Variable, q::Array{JuMP.Variable, 2}, dir::JuMP.Variable, q_sol::Float64, R::Array{Float64}, r_hat::Int, L::Float64)
     phi_hat = R[r_hat] * head_loss_hw_func(q_sol)
     phi_prime_hat = R[r_hat] * head_loss_hw_prime(q_sol)
     q_tilde = [compute_q_tilde(q_sol, R[r_hat], R[r]) for r in 1:length(R)]
@@ -22,17 +16,17 @@ function compute_q_p_cut(dh::JuMP.Variable, q::Array{JuMP.Variable}, dir::JuMP.V
     setindex!(coeffs, zeros(size(zero_indices, 1)), zero_indices)
 
     expr = zero(AffExpr)
-    expr += -dh / L + phi_prime_hat * q[r_hat]
+    expr += -dh / L + phi_prime_hat * sum(q[:, r_hat])
     expr += (phi_hat - phi_prime_hat * q_sol) * dir
 
     for r in setdiff(1:length(R), [r_hat])
-        expr += coeffs[r] * q[r]
+        expr += coeffs[r] * sum(q[:, r])
     end
 
     return expr
 end
 
-function compute_q_n_cut(dh::JuMP.Variable, q::Array{JuMP.Variable}, dir::JuMP.Variable, q_sol::Float64, R::Array{Float64}, r_hat::Int, L::Float64)
+function compute_q_n_cut(dh::JuMP.Variable, q::Array{JuMP.Variable, 2}, dir::JuMP.Variable, q_sol::Float64, R::Array{Float64}, r_hat::Int, L::Float64)
     phi_hat = R[r_hat] * head_loss_hw_func(q_sol)
     phi_prime_hat = R[r_hat] * head_loss_hw_prime(q_sol)
     q_tilde = [compute_q_tilde(q_sol, R[r_hat], R[r]) for r in 1:length(R)]
@@ -41,17 +35,17 @@ function compute_q_n_cut(dh::JuMP.Variable, q::Array{JuMP.Variable}, dir::JuMP.V
     setindex!(coeffs, zeros(size(zero_indices, 1)), zero_indices)
 
     expr = zero(AffExpr)
-    expr += -dh / L + phi_prime_hat * q[r_hat]
+    expr += -dh / L + phi_prime_hat * sum(q[:, r_hat])
     expr += (phi_hat - phi_prime_hat * q_sol) * (1 - dir)
 
     for r in setdiff(1:length(R), [r_hat])
-        expr += coeffs[r] * q[r]
+        expr += coeffs[r] * sum(q[:, r])
     end
 
     return expr
 end
 
-function solution_is_integer(wm::GenericWaterModel, lp_solution::Array{Float64,1}, n::Int = wm.cnw)
+function solution_is_integer(wm::GenericWaterModel, lp_solution::Array{Float64, 1}, n::Int = wm.cnw)
     dir_indices = linearindex.(wm.var[:nw][n][:dir][:])
     dir_sol = lp_solution[dir_indices]
 
@@ -147,31 +141,6 @@ function user_cut_callback_generator(wm::GenericWaterModel,
             current_objective += sum(lp_solution[xr_ids] .* C_a)
         end
 
-        if typeof(cb) == GLPKMathProgInterface.GLPKInterfaceMIP.GLPKCallbackData
-            current_node = GLPK.ios_curr_node(cb.tree)
-            current_problem = GLPK.ios_get_prob(cb.tree)
-            d = convert(Float64, GLPK.ios_node_level(cb.tree, current_node))
-
-            # Check satisfaction of node depth.
-            depth_satisfied = Random.rand() <= params["Beta_oa"] * 2^(-d)
-
-            # Initialize the number of cut rounds added per node.
-            if !haskey(params["n"], current_node)
-                params["n"][current_node] = 0
-            end
-
-            # Check satisfaction of the number of rounds.
-            num_rounds_satisfied = params["n"][current_node] <= params["M_oa"]
-        else
-            # Initialize the number of cut rounds added per node.
-            if !haskey(params["n"], current_node)
-                params["n"][current_node] = 0
-            end
-
-            depth_satisfied = true
-            num_rounds_satisfied = true
-        end
-
         # Update objective values.
         params["obj_last"] = params["obj_curr"]
         params["obj_curr"] = current_objective
@@ -180,7 +149,7 @@ function user_cut_callback_generator(wm::GenericWaterModel,
         obj_rel_change = (params["obj_curr"] - params["obj_last"]) / params["obj_last"]
         obj_improved = obj_rel_change >= params["K_oa"]
 
-        if obj_improved #depth_satisfied && obj_improved && num_rounds_satisfied
+        if obj_improved
             for (relative_index, a) in enumerate(arcs)
                 R_a = wm.ref[:nw][n][:resistance][a]
                 L_a = wm.ref[:nw][n][:connection][a]["length"]
@@ -194,10 +163,10 @@ function user_cut_callback_generator(wm::GenericWaterModel,
 
                     dhp = wm.var[:nw][n][:dhp][a]
                     dhp_hat = lp_solution[linearindex(dhp)]
-                    phi_max, r_hat = findmax([R_a[r] * qp_hat[r]^(1.852) for r in 1:length(R_a)])
+                    phi_max, r_hat = findmax([R_a[r] * sum(qp_hat[:, r])^(1.852) for r in 1:length(R_a)])
 
                     if -dhp_hat / L_a + phi_max > params["epsilon"]
-                        lhs = compute_q_p_cut(dhp, qp, dir, qp_hat[r_hat], R_a, r_hat, L_a)
+                        lhs = compute_q_p_cut(dhp, qp, dir, sum(qp_hat[:, r_hat]), R_a, r_hat, L_a)
                         @usercut(cb, lhs <= 0.0)
                     end
                 else
@@ -208,16 +177,14 @@ function user_cut_callback_generator(wm::GenericWaterModel,
 
                     dhn = wm.var[:nw][n][:dhn][a]
                     dhn_hat = lp_solution[linearindex(dhn)]
-                    phi_max, r_hat = findmax([R_a[r] * qn_hat[r]^(1.852) for r in 1:length(R_a)])
+                    phi_max, r_hat = findmax([R_a[r] * sum(qn_hat[:, r])^(1.852) for r in 1:length(R_a)])
 
                     if -dhn_hat / L_a + phi_max > params["epsilon"]
-                        lhs = compute_q_n_cut(dhn, qn, dir, qn_hat[r_hat], R_a, r_hat, L_a)
+                        lhs = compute_q_n_cut(dhn, qn, dir, sum(qn_hat[:, r_hat]), R_a, r_hat, L_a)
                         @usercut(cb, lhs <= 0.0)
                     end
                 end
             end
-
-            params["n"][current_node] += 1
         end
     end
 
