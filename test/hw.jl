@@ -25,8 +25,8 @@
     #end
 
     @testset "Shamir network (diameter selection, global algorithm)." begin
-        network_path = "/Users/tasseff/Data/WaterModels/epanet/hanoi.inp"
-        modification_path = "/Users/tasseff/Data/WaterModels/json/hanoi.json"
+        network_path = "../test/data/epanet/shamir.inp"
+        modification_path = "../test/data/json/shamir-reduced.json"
         status = solve_global(network_path, modification_path, ipopt, gurobi)
         @test status == :LocalOptimal || status == :Optimal
     end
