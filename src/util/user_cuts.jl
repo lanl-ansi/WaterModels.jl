@@ -163,7 +163,7 @@ function user_cut_callback_generator(wm::GenericWaterModel,
 
                     dhp = wm.var[:nw][n][:dhp][a]
                     dhp_hat = lp_solution[linearindex(dhp)]
-                    phi_max, r_hat = findmax([R_a[r] * sum(qp_hat[:, r])^(1.852) for r in 1:length(R_a)])
+                    phi_max, r_hat = findmax([R_a[r] * sum(qp_hat[:, r].^(1.852)) for r in 1:length(R_a)])
 
                     if -dhp_hat / L_a + phi_max > params["epsilon"]
                         lhs = compute_q_p_cut(dhp, qp, dir, sum(qp_hat[:, r_hat]), R_a, r_hat, L_a)
@@ -177,7 +177,7 @@ function user_cut_callback_generator(wm::GenericWaterModel,
 
                     dhn = wm.var[:nw][n][:dhn][a]
                     dhn_hat = lp_solution[linearindex(dhn)]
-                    phi_max, r_hat = findmax([R_a[r] * sum(qn_hat[:, r])^(1.852) for r in 1:length(R_a)])
+                    phi_max, r_hat = findmax([R_a[r] * sum(qn_hat[:, r].^(1.852)) for r in 1:length(R_a)])
 
                     if -dhn_hat / L_a + phi_max > params["epsilon"]
                         lhs = compute_q_n_cut(dhn, qn, dir, sum(qn_hat[:, r_hat]), R_a, r_hat, L_a)

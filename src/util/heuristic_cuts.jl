@@ -64,9 +64,13 @@ function heuristic_cut_callback_generator(wm::GenericWaterModel, params::Dict{St
 
                 resistance_index = resistance_indices[a]
                 setsolutionvalue(cb, wm.var[:nw][n][:xr][a][resistance_index], 1)
+                #setsolutionvalue(cb, wm.var[:nw][n][:xsp][a][k_star, resistance_index], q[a] >= 0.0 ? 1 : 0)
+                #setsolutionvalue(cb, wm.var[:nw][n][:xsn][a][k_star, resistance_index], q[a] >= 0.0 ? 0 : 1)
 
                 for r in setdiff(1:length(resistances[a]), [resistance_index])
                     setsolutionvalue(cb, wm.var[:nw][n][:xr][a][r], 0)
+                    #setsolutionvalue(cb, wm.var[:nw][n][:xsp][a][k, r], 0)
+                    #setsolutionvalue(cb, wm.var[:nw][n][:xsn][a][k, r], 0)
                 end
 
                 ## Add outer-approximation user cuts.
