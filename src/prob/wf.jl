@@ -17,39 +17,41 @@ function run_wf_dw(file, modifications_path, model_constructor, solver; kwargs..
 end
 
 function post_wf_hw(wm::GenericWaterModel; kwargs...)
-    variable_flow(wm)
     variable_head(wm)
+    variable_directed_flow(wm)
+
+    variable_head_difference(wm)
+    variable_flow_direction(wm)
+    variable_resistance(wm)
+
+    for a in collect(ids(wm, :connection))
+        constraint_select_resistance(wm, a)
+        constraint_select_flow_term(wm, a)
+        constraint_head_difference(wm, a)
+        constraint_potential_loss(wm, a)
+        constraint_potential_loss_slope(wm, a)
+    end
+
+    for i in collect(ids(wm, :junctions))
+        constraint_directed_flow_conservation(wm, i)
+    end
+end
+
+function post_wf_dw(wm::GenericWaterModel; kwargs...)
+    #variable_flow(wm)
+    #variable_head(wm)
 
     #for i in [collect(ids(wm, :junctions)); collect(ids(wm, :reservoirs))]
     #    constraint_junction_mass_flow(wm, i)
     #end
 
     #for a in collect(ids(wm, :connection_unknown_direction))
-    #    constraint_hw_unknown_direction(wm, a)
+    #    constraint_dw_unknown_direction(wm, a)
     #end
 
     #for a in collect(ids(wm, :connection_known_direction))
-    #    constraint_hw_known_direction(wm, a)
+    #    constraint_dw_known_direction(wm, a)
     #end
 
-    objective_dummy(wm)
-end
-
-function post_wf_dw(wm::GenericWaterModel; kwargs...)
-    variable_flow(wm)
-    variable_head(wm)
-
-    for i in [collect(ids(wm, :junctions)); collect(ids(wm, :reservoirs))]
-        constraint_junction_mass_flow(wm, i)
-    end
-
-    for a in collect(ids(wm, :connection_unknown_direction))
-        constraint_dw_unknown_direction(wm, a)
-    end
-
-    for a in collect(ids(wm, :connection_known_direction))
-        constraint_dw_known_direction(wm, a)
-    end
-
-    objective_dummy(wm)
+    #objective_dummy(wm)
 end

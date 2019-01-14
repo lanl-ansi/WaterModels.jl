@@ -2,6 +2,8 @@
 
 export CVXNLPWaterModel, StandardCVXNLPForm
 
+import MathProgBase
+
 "AbstractCVXNLPForm is derived from AbstractWaterFormulation"
 abstract type AbstractCVXNLPForm <: AbstractWaterFormulation end
 
@@ -14,82 +16,71 @@ const CVXNLPWaterModel = GenericWaterModel{StandardCVXNLPForm}
 "CVXNLP constructor."
 CVXNLPWaterModel(data::Dict{String, Any}; kwargs...) = GenericWaterModel(data, StandardCVXNLPForm; kwargs...)
 
-function variable_flow_cvxnlp(wm::GenericWaterModel, n::Int = wm.cnw) where T <: AbstractCVXNLPForm
-    # Get all connections (e.g., pipes) in the network.
-    connections = wm.ref[:nw][n][:connection]
+function variable_directed_flow(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: StandardCVXNLPForm
+    # Get indices for all network arcs.
+    arcs = collect(ids(wm, n, :connection))
 
-    # Create the flow variables associated with positive directions (i to j).
-    wm.var[:nw][n][:qp] = @variable(wm.model, [id in keys(connections)],
-                                    category = :Cont, lowerbound = 0.0,
-                                    basename = "qp_$(n)", start = 1.0e-6)
-
-    # Create the flow variables associated with negative directions (j to i).
-    wm.var[:nw][n][:qn] = @variable(wm.model, [id in keys(connections)],
-                                    category = :Cont, lowerbound = 0.0,
-                                    basename = "qn_$(n)", start = 1.0e-6)
-end
-
-function constraint_flow_conservation_cvx(wm::GenericWaterModel, i::Int, n::Int = wm.cnw) where T <: AbstractCVXNLPForm
-    # Collect the required variables.
-    connections = wm.ref[:nw][n][:connection]
-
-    out_arcs = collect(keys(filter(is_out_node_function(i), connections)))
-    out_p_vars = Array{JuMP.Variable}([wm.var[:nw][n][:qp][a] for a in out_arcs])
-    out_n_vars = Array{JuMP.Variable}([wm.var[:nw][n][:qn][a] for a in out_arcs])
-
-    in_arcs = collect(keys(filter(is_in_node_function(i), connections)))
-    in_p_vars = Array{JuMP.Variable}([wm.var[:nw][n][:qp][a] for a in in_arcs])
-    in_n_vars = Array{JuMP.Variable}([wm.var[:nw][n][:qn][a] for a in in_arcs])
-
-    # Add the flow conservation constraints for junction nodes.
-    if !haskey(wm.con[:nw][n], :flow_conservation)
-        wm.con[:nw][n][:flow_conservation] = Dict{Int, ConstraintRef}()
-    end    
-
-    demand = wm.ref[:nw][n][:junctions][i]["demand"]
-
-    wm.con[:nw][n][:flow_conservation][i] = @constraint(wm.model, sum(in_p_vars) + sum(out_n_vars) -
-                                                        sum(out_p_vars) - sum(in_n_vars) == demand)
-end
-
-function solution_is_feasible(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: AbstractCVXNLPForm
-    num_junctions = length(wm.ref[:nw][n][:junctions])
-    num_reservoirs = length(wm.ref[:nw][n][:reservoirs])
-    num_nodes = num_junctions + num_reservoirs
-    num_arcs = length(wm.ref[:nw][n][:connection])
-    A = zeros(Float64, num_arcs + num_reservoirs, num_nodes)
-    b = zeros(Float64, num_arcs + num_reservoirs, 1)
+    # Initialize directed flow variables. The variables qp correspond to flow
+    # from i to j, and the variables qn correspond to flow from j to i.
+    wm.var[:nw][n][:qp] = Dict{Int, Array{Variable, 1}}()
+    wm.var[:nw][n][:qn] = Dict{Int, Array{Variable, 1}}()
 
     for (a, connection) in wm.ref[:nw][n][:connection]
-        A[a, parse(Int, connection["node1"])] = 1
-        A[a, parse(Int, connection["node2"])] = -1
-        q_p = getvalue(wm.var[:nw][n][:qp][a])
-        q_n = getvalue(wm.var[:nw][n][:qn][a])
-        r = calc_resistance_per_length_hw(connection)
-        q = (q_p - q_n)
-        b[a] = connection["length"] * r * q * abs(q)^(0.852)
+        # Get the number of possible resistances for this arc.
+        num_resistances = length(wm.ref[:nw][n][:resistance][a])
+
+        # Initialize variables associated with flow from i to j.
+        wm.var[:nw][n][:qp][a] = @variable(wm.model, [r in 1:num_resistances],
+                                           lowerbound = 0.0, start = 0.0,
+                                           category = :Cont,
+                                           basename = "qp_$(n)_$(a)")
+
+        # Initialize variables associated with flow from j to i.
+        wm.var[:nw][n][:qn][a] = @variable(wm.model, [r in 1:num_resistances],
+                                           lowerbound = 0.0, start = 0.0,
+                                           category = :Cont,
+                                           basename = "qn_$(n)_$(a)")
     end
-
-    k = 1
-    for (i, reservoir) in wm.ref[:nw][n][:reservoirs]
-        row = num_arcs + k
-        A[row, i] = 1
-        b[row] = reservoir["head"]
-    end
-
-    h = A \ b
-
-    junctions = wm.ref[:nw][n][:junctions]
-    reservoirs = wm.ref[:nw][n][:reservoirs]
-    max_junc_elev = maximum([junc["elev"] for junc in values(junctions)])
-    max_res_head = maximum([res["head"] for res in values(reservoirs)])
-    max_head = max(max_junc_elev, max_res_head)
-
-    for (i, junction) in wm.ref[:nw][n][:junctions]
-        if h[i] < junction["elev"] || h[i] > max_head
-            return false
-        end
-    end
-
-    return true
 end
+
+#function get_head_solution(cvx::GenericWaterModel{T}, n::Int = cvx.cnw) where T <: StandardCVXNLPForm
+#    junction_ids = collect(ids(cvx, n, :junctions))
+#    reservoir_ids = collect(ids(cvx, n, :reservoirs))
+#    connection_ids = collect(ids(cvx, n, :connection))
+#    node_ids = [junction_ids; reservoir_ids]
+#    node_mapping = Dict{Int, Int}(node_ids[i] => i for i in 1:length(node_ids))
+#
+#    num_reservoirs = length(reservoir_ids)
+#    num_nodes = length(node_ids)
+#    num_arcs = length(connection_ids)
+#
+#    # Create matrices for the left- and right-hand sides (for Ax = b).
+#    A = zeros(Float64, num_arcs + num_reservoirs, num_nodes)
+#    b = zeros(Float64, num_arcs + num_reservoirs, 1)
+#
+#    for (i, a) in enumerate(connection_ids)
+#        connection = cvx.ref[:nw][n][:connection][a]
+#
+#        node_i = parse(Int, connection["node1"])
+#        A[i, node_mapping[node_i]] = 1
+#
+#        node_j = parse(Int, connection["node2"])
+#        A[i, node_mapping[node_j]] = -1
+#
+#        q_p = getvalue(cvx.var[:nw][n][:qp][a][1])
+#        q_n = getvalue(cvx.var[:nw][n][:qn][a][1])
+#
+#        L = connection["length"]
+#        resistance = cvx.ref[:nw][n][:resistance][a][1]
+#
+#        b[i] = L * resistance * (q_p - q_n) * abs(q_p - q_n)^(0.852)
+#    end
+#
+#    for (i, reservoir_id) in enumerate(reservoir_ids)
+#        A[num_arcs + i, node_mapping[reservoir_id]] = 1
+#        b[num_arcs + i] = cvx.ref[:nw][n][:reservoirs][reservoir_id]["head"]
+#    end
+#
+#    h = A \ b # Get the solution for head variables.
+#    return Dict(i => h[node_mapping[i]] for i in node_ids)
+#end

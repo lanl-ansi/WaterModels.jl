@@ -1,9 +1,9 @@
 @testset "Hazen-Williams CVXNLP Problems" begin
-    @testset "Shamir network (unknown flow directions)." begin
-        network_path = "../test/data/epanet/shamir.inp"
-        solution = run_cvx_hw(network_path, CVXNLPWaterModel, ipopt)
-        @test solution["status"] == :LocalOptimal
-    end
+    #@testset "Shamir network (unknown flow directions)." begin
+    #    network_path = "../test/data/epanet/shamir.inp"
+    #    solution = run_cvx_hw(network_path, CVXNLPWaterModel, ipopt)
+    #    @test solution["status"] == :LocalOptimal
+    #end
 
     #@testset "Shamir network (known flow directions)." begin
     #    network_path = "../test/data/epanet/shamir.inp"
@@ -13,12 +13,21 @@
     #end
 end
 
-@testset "Hazen-Williams NLP Problems" begin
+@testset "Hazen-Williams MINLP Problems" begin
     @testset "Shamir network (unknown flow directions)." begin
         network_path = "../test/data/epanet/shamir.inp"
-        solution = run_wf_hw(network_path, NLPWaterModel, ipopt)
-        @test solution["status"] == :LocalOptimal
+        solution = run_wf_hw(network_path, MINLPWaterModel, pavito)
+        status = solution["status"]
+        @test status == :LocalOptimal || status == :Optimal
     end
+end
+
+@testset "Hazen-Williams NLP Problems" begin
+    #@testset "Shamir network (unknown flow directions)." begin
+    #    network_path = "../test/data/epanet/shamir.inp"
+    #    solution = run_wf_hw(network_path, NLPWaterModel, ipopt)
+    #    @test solution["status"] == :LocalOptimal
+    #end
 
     #@testset "Shamir network (known flow directions)." begin
     #    network_path = "../test/data/epanet/shamir.inp"
@@ -74,11 +83,11 @@ end
 end
 
 @testset "Hazen-Williams MILP-R Problems" begin
-    @testset "Shamir network (unknown flow directions)." begin
-        network_path = "../test/data/epanet/shamir.inp"
-        solution = run_wf_hw(network_path, MILPRWaterModel, cbc)
-        @test solution["status"] == :Optimal
-    end
+    #@testset "Shamir network (unknown flow directions)." begin
+    #    network_path = "../test/data/epanet/shamir.inp"
+    #    solution = run_wf_hw(network_path, MILPRWaterModel, cbc)
+    #    @test solution["status"] == :Optimal
+    #end
 
     #@testset "Shamir network (known flow directions)." begin
     #    network_path = "../test/data/epanet/shamir.inp"

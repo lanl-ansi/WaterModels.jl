@@ -58,7 +58,8 @@
                     "costPerUnitLength": 550.0,
                     "diameter": 0.6096
                 }
-            ]
+            ],
+            "maximumVelocity": 2.0
         },
         "2": {
             "diameters": [
@@ -118,7 +119,8 @@
                     "costPerUnitLength": 550.0,
                     "diameter": 0.6096
                 }
-            ]
+            ],
+            "maximumVelocity": 2.0
         },
         "3": {
             "diameters": [
@@ -178,7 +180,8 @@
                     "costPerUnitLength": 550.0,
                     "diameter": 0.6096
                 }
-            ]
+            ],
+            "maximumVelocity": 2.0
         },
         "4": {
             "diameters": [
@@ -238,7 +241,8 @@
                     "costPerUnitLength": 550.0,
                     "diameter": 0.6096
                 }
-            ]
+            ],
+            "maximumVelocity": 2.0
         },
         "5": {
             "diameters": [
@@ -298,7 +302,8 @@
                     "costPerUnitLength": 550.0,
                     "diameter": 0.6096
                 }
-            ]
+            ],
+            "maximumVelocity": 2.0
         },
         "6": {
             "diameters": [
@@ -358,7 +363,8 @@
                     "costPerUnitLength": 550.0,
                     "diameter": 0.6096
                 }
-            ]
+            ],
+            "maximumVelocity": 2.0
         },
         "7": {
             "diameters": [
@@ -418,7 +424,8 @@
                     "costPerUnitLength": 550.0,
                     "diameter": 0.6096
                 }
-            ]
+            ],
+            "maximumVelocity": 2.0
         },
         "8": {
             "diameters": [
@@ -478,7 +485,8 @@
                     "costPerUnitLength": 550.0,
                     "diameter": 0.6096
                 }
-            ]
+            ],
+            "maximumVelocity": 2.0
         }
     }
 }
