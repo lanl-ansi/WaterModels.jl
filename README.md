@@ -14,9 +14,9 @@
 
 ## Introduction
 WaterModels.jl is a Julia package for steady state water network optimization.
-It is designed to enable computational evaluation of emerging water network formulations and algorithms in a common platform.
-The code is engineered to decouple problem specifications (e.g., feasibility, network expansion) from water network formulations (e.g., mixed-integer linear, mixed-integer nonlinear).
-This enables the definition of a wide variety of water network optimization formulations and their comparison on common problem specifications.
+It is designed to enable computational evaluation of historical and emerging water network formulations and algorithms using a common platform.
+The software is engineered to decouple problem specifications (e.g., feasibility, network expansion) from water network optimization formulations (e.g., mixed-integer linear, mixed-integer nonlinear).
+This decoupling enables the definition of a wide variety of water network optimization formulations and their comparison on common problem specifications.
 
 **Core Problem Specifications**
 * Water Flow (wf)
@@ -26,7 +26,7 @@ This enables the definition of a wide variety of water network optimization form
 * MINLP-R (relaxation-based mixed-integer nonlinear program)
 * MILP-R (relaxation-based mixed-integer linear program)
 
-## Highlights in v0.0.1 (2018-09-26)
+## Highlights in v0.0.1 (2019-01-21)
 
 ## Usage at a Glance
 
@@ -38,9 +38,9 @@ See [CONTRIBUTING.md](https://github.com/lanl-ansi/WaterModels.jl/blob/master/CO
 
 ## Acknowledgments
 This code has been developed as part of the Advanced Network Science Initiative at Los Alamos National Laboratory.
-The primary developer is [Byron Tasseff](@tasseff) with support from the following contributors:
-- [Russell Bent](@rb004f), Los Alamos National Laboratory
-- [Carleton Coffrin](@ccoffrin), Los Alamos National Laboratory
+The primary developer is [Byron Tasseff](https://github.com/tasseff) with support from the following contributors:
+- [Russell Bent](https://github.com/rb004f), Los Alamos National Laboratory
+- [Carleton Coffrin](https://github.com/ccoffrin), Los Alamos National Laboratory
 
 ## License
 This code is provided under a [modified BSD license](https://github.com/lanl-ansi/WaterModels.jl/blob/master/LICENSE.md) as part of the Multi-Infrastructure Control and Optimization Toolkit (MICOT), LA-CC-13-108.
