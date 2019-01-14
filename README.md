@@ -2,7 +2,7 @@
 
 ## A Julia Package for Water Network Optimization
 
-## Build status
+## Build Status
 | [Linux][ci-link]  | [OSX][ci-link]    | [Codecov][cov-link]   |
 | :---------------: | :---------------: | :-------------------: |
 | ![ci-badge]       | ![ci-badge]       | ![cov-badge]          |
