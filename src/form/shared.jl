@@ -1,26 +1,26 @@
-function constraint_select_resistance(wm::GenericWaterModel, a::Int, n_n::Int)
-    if !haskey(wm.con[:nw][n_n], :select_resistance)
-        wm.con[:nw][n_n][:select_resistance] = Dict{Int, ConstraintRef}()
+function constraint_select_resistance(wm::GenericWaterModel, a::Int, n::Int = wm.cnw)
+    if !haskey(wm.con[:nw][n], :select_resistance)
+        wm.con[:nw][n][:select_resistance] = Dict{Int, ConstraintRef}()
     end
 
-    con = @constraint(wm.model, sum(wm.var[:nw][n_n][:xr][a]) == 1)
-    wm.con[:nw][n_n][:select_resistance][a] = con
+    con = @constraint(wm.model, sum(wm.var[:nw][n][:xr][a]) == 1)
+    wm.con[:nw][n][:select_resistance][a] = con
 end
 
-function constraint_select_segment(wm::GenericWaterModel, a::Int, n_n::Int)
-    if !haskey(wm.con[:nw][n_n], :select_segment)
-        wm.con[:nw][n_n][:select_segment] = Dict{Int, Dict{Int, ConstraintRef}}()
+function constraint_select_segment(wm::GenericWaterModel, a::Int, n::Int = wm.cnw)
+    if !haskey(wm.con[:nw][n], :select_segment)
+        wm.con[:nw][n][:select_segment] = Dict{Int, Dict{Int, ConstraintRef}}()
     end
 
-    wm.con[:nw][n_n][:select_segment][a] = Dict{Int, ConstraintRef}()
+    wm.con[:nw][n][:select_segment][a] = Dict{Int, ConstraintRef}()
 
-    for r in 1:length(wm.ref[:nw][n_n][:resistance][a])
-        x_r = wm.var[:nw][n_n][:xr][a][r]
-        x_s_p = wm.var[:nw][n_n][:xsp][a][:, r]
-        x_s_n = wm.var[:nw][n_n][:xsn][a][:, r]
+    for r in 1:length(wm.ref[:nw][n][:resistance][a])
+        xr_ar = wm.var[:nw][n][:xr][a][r]
+        xsn_ar = wm.var[:nw][n][:xsn][a][:, r]
+        xsp_ar = wm.var[:nw][n][:xsp][a][:, r]
 
-        con = @constraint(wm.model, sum(x_s_p) + sum(x_s_n) == x_r)
-        wm.con[:nw][n_n][:select_segment][a][r] = con
+        con = @constraint(wm.model, sum(xsn_ar) + sum(xsp_ar) <= xr_ar)
+        wm.con[:nw][n][:select_segment][a][r] = con
     end
 end
 
@@ -47,44 +47,46 @@ function constraint_select_segmented_flow_term(wm::GenericWaterModel, a::Int, n_
         wm.con[:nw][n_n][:select_flow_term_5][a][r] = Dict{Int, ConstraintRef}()
         wm.con[:nw][n_n][:select_flow_term_6][a][r] = Dict{Int, ConstraintRef}()
 
-        qn_ar = wm.var[:nw][n_n][:qn][a][:, r]
-        qn_ar_ub = getupperbound(qn_ar[end])
-        qp_ar = wm.var[:nw][n_n][:qp][a][:, r]
-        qp_ar_ub = getupperbound(qp_ar[end])
         x_dir = wm.var[:nw][n_n][:dir][a]
         x_r = wm.var[:nw][n_n][:xr][a][r]
 
+        qn_ar = wm.var[:nw][n_n][:qn][a][:, r]
+        qn_ar_ub = maximum(getupperbound.(qn_ar))
         con_1 = @constraint(wm.model, sum(qn_ar) <= qn_ar_ub * (1 - x_dir))
         wm.con[:nw][n_n][:select_flow_term_1][a][r] = con_1
 
+        qp_ar = wm.var[:nw][n_n][:qp][a][:, r]
+        qp_ar_ub = maximum(getupperbound.(qp_ar))
         con_2 = @constraint(wm.model, sum(qp_ar) <= qp_ar_ub * x_dir)
         wm.con[:nw][n_n][:select_flow_term_2][a][r] = con_2
 
         for k in 1:n_s
-            q_n_lb_akr = q_p_lb_akr = 0.0
-            q_n_akr = wm.var[:nw][n_n][:qn][a][k, r]
-            q_n_ub_akr = getupperbound(q_n_akr)
-            q_p_akr = wm.var[:nw][n_n][:qp][a][k, r]
-            q_p_ub_akr = getupperbound(q_p_akr)
+            qn_akr_lb = qp_akr_lb = 0.0
+            qn_akr = wm.var[:nw][n_n][:qn][a][k, r]
+            qn_akr_ub = getupperbound(qn_akr)
+            qp_akr = wm.var[:nw][n_n][:qp][a][k, r]
+            qp_akr_ub = getupperbound(qp_akr)
 
             if k > 1
-                q_n_lb_akr = getupperbound(wm.var[:nw][n_n][:qn][a][k-1, r])
-                q_p_lb_akr = getupperbound(wm.var[:nw][n_n][:qp][a][k-1, r])
+                qn_akr_lb = getupperbound(wm.var[:nw][n_n][:qn][a][k-1, r])
+                qn_akr_lb = qn_akr_lb < qn_akr_ub ? qn_akr_lb : qn_akr_ub
+                qp_akr_lb = getupperbound(wm.var[:nw][n_n][:qp][a][k-1, r])
+                qp_akr_lb = qp_akr_lb < qp_akr_ub ? qp_akr_lb : qp_akr_ub
             end
 
-            x_s_n = wm.var[:nw][n_n][:xsn][a][k, r]
-            x_s_p = wm.var[:nw][n_n][:xsp][a][k, r]
+            xsn_akr = wm.var[:nw][n_n][:xsn][a][k, r]
+            xsp_akr = wm.var[:nw][n_n][:xsp][a][k, r]
 
-            con_3 = @constraint(wm.model, q_p_akr <= q_p_ub_akr * x_s_p)
+            con_3 = @constraint(wm.model, qp_akr <= qp_akr_ub * xsp_akr)
             wm.con[:nw][n_n][:select_flow_term_3][a][r][k] = con_3
 
-            con_4 = @constraint(wm.model, q_p_akr >= q_p_lb_akr * x_s_p)
+            con_4 = @constraint(wm.model, qp_akr >= qp_akr_lb * xsp_akr)
             wm.con[:nw][n_n][:select_flow_term_4][a][r][k] = con_4
-
-            con_5 = @constraint(wm.model, q_n_akr <= q_n_ub_akr * x_s_n)
+            
+            con_5 = @constraint(wm.model, qn_akr <= qn_akr_ub * xsn_akr)
             wm.con[:nw][n_n][:select_flow_term_5][a][r][k] = con_5
 
-            con_6 = @constraint(wm.model, q_n_akr >= q_n_lb_akr * x_s_n)
+            con_6 = @constraint(wm.model, qn_akr >= qn_akr_lb * xsn_akr)
             wm.con[:nw][n_n][:select_flow_term_6][a][r][k] = con_6
         end
     end
@@ -238,20 +240,17 @@ function variable_segment(wm::GenericWaterModel{T}, n_n::Int, n_s::Int) where T 
     for (a, connection) in wm.ref[:nw][n_n][:connection]
         n_r = length(wm.ref[:nw][n_n][:resistance][a])
 
-        for r in 1:n_r
-            # Initialize variables associated with flow from i to j.
-            wm.var[:nw][n_n][:xsp][a] = @variable(wm.model,
-                                                  [k in 1:n_s, r in 1:n_r],
-                                                  start = 0, category = :Bin,
-                                                  basename = "xsp_$(n_n)_$(a)")
+        wm.var[:nw][n_n][:xsn][a] = @variable(wm.model,
+                                              [k in 1:n_s, r in 1:n_r],
+                                              start = 0, category = :Bin,
+                                              basename = "xsn_$(n_n)_$(a)")
 
-            wm.var[:nw][n_n][:xsn][a] = @variable(wm.model,
-                                                  [k in 1:n_s, r in 1:n_r],
-                                                  start = 0, category = :Bin,
-                                                  basename = "xsn_$(n_n)_$(a)")
+        wm.var[:nw][n_n][:xsp][a] = @variable(wm.model,
+                                              [k in 1:n_s, r in 1:n_r],
+                                              start = 0, category = :Bin,
+                                              basename = "xsp_$(n_n)_$(a)")
 
-            setvalue(wm.var[:nw][n_n][:xsp][a][1, end], 1)
-        end
+        #setvalue(wm.var[:nw][n_n][:xsp][a][1, end], 1)
     end
 end
 
@@ -270,6 +269,13 @@ function variable_segmented_directed_flow(wm::GenericWaterModel{T}, n_n::Int, n_
     for (a, connection) in wm.ref[:nw][n_n][:connection]
         n_r = length(wm.ref[:nw][n_n][:resistance][a])
 
+        # Initialize variables associated with flow from j to i.
+        wm.var[:nw][n_n][:qn][a] = @variable(wm.model, [k in 1:n_s, r in 1:n_r],
+                                             lowerbound = 0.0,
+                                             upperbound = k / n_s * ub_n[a][r],
+                                             start = 0.0, category = :Cont,
+                                             basename = "qn_$(n_n)_$(a)")
+
         # Initialize variables associated with flow from i to j.
         wm.var[:nw][n_n][:qp][a] = @variable(wm.model, [k in 1:n_s, r in 1:n_r],
                                              lowerbound = 0.0,
@@ -279,13 +285,6 @@ function variable_segmented_directed_flow(wm::GenericWaterModel{T}, n_n::Int, n_
 
         # Initialize flow for the variable with least resistance.
         setvalue(wm.var[:nw][n_n][:qp][a][1, end], ub_p[a][1, end])
-
-        # Initialize variables associated with flow from j to i.
-        wm.var[:nw][n_n][:qn][a] = @variable(wm.model, [k in 1:n_s, r in 1:n_r],
-                                             lowerbound = 0.0,
-                                             upperbound = k/n_s * ub_n[a][r],
-                                             start = 0.0, category = :Cont,
-                                             basename = "qn_$(n_n)_$(a)")
     end
 end
 
@@ -311,15 +310,15 @@ function variable_directed_flow(wm::GenericWaterModel{T}, n_n::Int) where T <: A
                                              start = 0.0, category = :Cont,
                                              basename = "qp_$(n_n)_$(a)")
 
-        # Initialize flow for the variable with least resistance.
-        setvalue(wm.var[:nw][n_n][:qp][a][1], ub_p[a][1])
-
         # Initialize variables associated with flow from j to i.
         wm.var[:nw][n_n][:qn][a] = @variable(wm.model, [r in 1:length(R_a)],
                                              lowerbound = 0.0,
                                              upperbound = ub_n[a][r],
                                              start = 0.0, category = :Cont,
                                              basename = "qn_$(n_n)_$(a)")
+
+        # Initialize flow for the variable with least resistance.
+        setvalue(wm.var[:nw][n_n][:qp][a][1], ub_p[a][1])
     end
 end
 

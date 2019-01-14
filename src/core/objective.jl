@@ -58,10 +58,12 @@ function objective_cvx_hw(wm::GenericWaterModel)
                           basename = "term_$(n)")
 
         for (a, connection) in wm.ref[:nw][n][:connection]
-            q_p = wm.var[:nw][n][:qp][a][1]
             q_n = wm.var[:nw][n][:qn][a][1]
+            q_p = wm.var[:nw][n][:qp][a][1]
+
             L = connection["length"]
             coeff = wm.ref[:nw][n][:resistance][a][1] * L
+
             con = @NLconstraint(wm.model, coeff * (head_loss_integrated_hw(q_p) +
                                 head_loss_integrated_hw(q_n)) <= terms[a])
             objective += terms[a]
@@ -70,18 +72,19 @@ function objective_cvx_hw(wm::GenericWaterModel)
 
     for n in nws(wm)
         connections = wm.ref[:nw][n][:connection]
+
         for (i, reservoir) in wm.ref[:nw][n][:reservoirs]
             for (a, connection) in filter(a -> i == parse(Int, a.second["node1"]), connections)
-                q_p = wm.var[:nw][n][:qp][a][1]
                 q_n = wm.var[:nw][n][:qn][a][1]
+                q_p = wm.var[:nw][n][:qp][a][1]
                 objective -= reservoir["head"] * (q_p - q_n)
             end
 
-            #for (a, connection) in filter(a -> i == parse(Int, a.second["node2"]), connections)
-            #    q_p = wm.var[:nw][n][:qp][a][1]
-            #    q_n = wm.var[:nw][n][:qn][a][1]
-            #    objective -= reservoir["head"] * (q_n - q_p)
-            #end
+            for (a, connection) in filter(a -> i == parse(Int, a.second["node2"]), connections)
+                q_n = wm.var[:nw][n][:qn][a][1]
+                q_p = wm.var[:nw][n][:qp][a][1]
+                objective -= reservoir["head"] * (q_n - q_p)
+            end
         end
     end
 

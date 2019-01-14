@@ -20,7 +20,6 @@ function post_ne_hw_segmented(wm::GenericWaterModel, n_n::Int = wm.cnw, n_s::Int
     variable_head(wm, n_n)
     variable_segment(wm, n_n, n_s)
     variable_segmented_directed_flow(wm, n_n, n_s)
-
     variable_head_difference(wm, n_n)
     variable_flow_direction(wm, n_n)
     variable_resistance(wm, n_n)
@@ -36,6 +35,14 @@ function post_ne_hw_segmented(wm::GenericWaterModel, n_n::Int = wm.cnw, n_s::Int
 
     for (i, junction) in wm.ref[:nw][n_n][:junctions]
         constraint_directed_segmented_flow_conservation(wm, i, n_n)
+
+        if junction["demand"] > 0.0
+            constraint_sink_flow(wm, i)
+        end
+    end
+
+    for i in collect(ids(wm, :reservoirs))
+        constraint_source_flow(wm, i)
     end
 
     objective_minimize_resistance_cost(wm)
