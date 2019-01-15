@@ -6,9 +6,6 @@
 #                                                                          #
 ############################################################################
 
-# Declare special types.
-@enum FLOW_DIRECTION POSITIVE=1 NEGATIVE=-1 UNKNOWN=0
-
 function parse_epanet_file(path::String)
     file_contents = read(open(path), String)
     file_contents = replace(file_contents, "\t" => "    ")
