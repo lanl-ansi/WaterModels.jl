@@ -6,7 +6,16 @@
 #                                                                          #
 ############################################################################
 
-function parse_epanet_file(path::String)
+"""
+    parse_file(path)
+
+Parses an [EPANET](https://www.epa.gov/water-research/epanet) (.inp) file from
+the file path `path` and returns a WaterModels data structure (a dictionary of
+data). See the [OpenWaterAnalytics
+Wiki](https://github.com/OpenWaterAnalytics/EPANET/wiki/Input-File-Format) for
+a thorough description of the EPANET format and its components.
+"""
+function parse_epanet(path::String)
     file_contents = read(open(path), String)
     file_contents = replace(file_contents, "\t" => "    ")
     lines = split(file_contents, '\n')

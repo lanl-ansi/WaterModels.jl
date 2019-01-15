@@ -21,10 +21,4 @@
         pipe_1_max_velocity = data["pipes"]["1"]["maximumVelocity"]
         @test pipe_1_max_velocity == 2.0
     end
-
-    #@testset "print_solution" begin
-    #    pipes = Dict{String, Any}("1" => Dict{String, Float64}("q" => 1.0))
-    #    solution = Dict{String, Any}("multinetwork" => false, "pipes" => pipes)
-    #    WaterModels.print_solution(solution)
-    #end
 end
