@@ -10,20 +10,20 @@ The software is engineered to decouple problem specifications (e.g., feasibility
 This decoupling enables the definition of a wide variety of water network optimization formulations and their comparison on common problem specifications.
 
 ## Installation
-The latest stable release of WaterModels can be installed using the Julia package manager with
+The latest stable release of WaterModels can be installed using the Julia package manager using
 
 ```julia
 using Pkg
 Pkg.add("WaterModels")
 ```
 
-For the current development version, "check out" this package with
+For the current development version, "check out" this package using
 ```julia
 using Pkg
 Pkg.checkout("WaterModels")
 ```
 
-You can test that the package works by running
+Finally, you can test that the package works by running
 ```julia
 using Pkg
 Pkg.test("WaterModels")

@@ -2,7 +2,7 @@
 
 ## Notation for Sets
 A water distribution network can be represented by a directed graph $\mathcal{G} := (\mathcal{N}, \mathcal{A})$, where $\mathcal{N}$ is the set of nodes (e.g., [junctions](https://github.com/OpenWaterAnalytics/EPANET/wiki/[JUNCTIONS]) and [reservoirs](https://github.com/OpenWaterAnalytics/EPANET/wiki/[RESERVOIRS])) and $\mathcal{A}$ is the set of arcs (e.g., [pipes](https://github.com/OpenWaterAnalytics/EPANET/wiki/[PIPES]) and [valves](https://github.com/OpenWaterAnalytics/EPANET/wiki/[VALVES])).
-Herein, the set of pipes in the network is denoted as $\mathcal{P} \subset \mathcal{A}$, the set of reservoirs (or sources) is denoted as $\mathcal{S} \subset \mathcal{N}$, and the set of junctions is denoted as $\mathcal{J} \subset \mathcal{N}$.
+Herein, the set of pipes in the network is denoted as $\mathcal{P} \subset \mathcal{A}$, the set of reservoirs (or sources) as $\mathcal{S} \subset \mathcal{N}$, and the set of junctions as $\mathcal{J} \subset \mathcal{N}$.
 The set of arcs incident on node $i \in \mathcal{N}$, where $i$ is the tail of the arc, is denoted as $\mathcal{A}^{-}(i) := \{(i, j) \in \mathcal{A}\}$.
 The set of arcs incident on node $i \in \mathcal{N}$, where $i$ is the head of the arc, is denoted as $\mathcal{A}^{+}(i) := \{(j, i) \in \mathcal{A}\}$.
 Reservoirs are always considered to be supply (or source) nodes, and junctions are typically considered to be demand nodes (i.e., the demand for flow at the node is positive).
@@ -11,8 +11,8 @@ Finally, many network design problems are concerned with selecting from among a 
 
 In summary, the following sets are commonly used when defining a WaterModels problem formulation:
 
-| Notation                                 | WaterModels Translation            | Description                                     |
-| :--------------------------------------  | :-----------------------------     | :-------------------------                      |
+| Notation                                 | WaterModels Translation            | Description                              |
+| :--------------------------------------  | :-----------------------------     | :-------------------------               |
 | $\mathcal{N}$                            | `wm.ref[:nw][n][:nodes]`           | nodes                                    |
 | $\mathcal{J} \subset \mathcal{N}$        | `wm.ref[:nw][n][:junctions]`       | junctions                                |
 | $\mathcal{S} \subset \mathcal{N}$        | `wm.ref[:nw][n][:reservoirs]`      | reservoirs                               |
