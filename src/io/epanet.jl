@@ -6,17 +6,19 @@ function get_lines(path::String)
     return split(file_contents, "\n")
 end
 
-function add_section(line::String, data::Dict{String, Any})
+function add_section(line::SubString{String}, next_line::SubString{String}, data::Dict{String, Any})
     # Determine the title of the section and convert to lowercase.
     section_title = lowercase(strip(line, ['[', ']']))
 
     # Check if column headings exist for the section.
-    headings_exist = occursin(r"^;", lines[i+1])
+    headings_exist = occursin(r"^;", next_line)
 
     if !headings_exist
         # Initialize the section dictionary.
-        sections["$section"] = Dict{String, Any}()
+        data["$(section_title)"] = Dict{String, Any}()
     end
+
+    return section_title, headings_exist
 end
 
 function get_sections(lines::Array{SubString{String}, 1})
@@ -27,16 +29,7 @@ function get_sections(lines::Array{SubString{String}, 1})
     for (i, line) in enumerate(lines)
         # Section headings always look like [SECTION_TITLE].
         if occursin(r"^\s*\[(.*)\]", line) # If a section title...
-            # Determine the title of the section and convert to lowercase.
-            section = lowercase(strip(line, ['[', ']']))
-
-            # Check if column headings exist for the section.
-            headings_exist = occursin(r"^;", lines[i+1])
-
-            if !headings_exist
-                # Initialize the section dictionary.
-                sections["$section"] = Dict{String, Any}()
-            end
+            section, headings_exist = add_section(line, lines[i+1], sections)
         elseif occursin(r"^;", line) # If a section heading....
             # Determine the column headings.
             headings = split(lowercase(strip(line, [';'])))
