@@ -101,42 +101,65 @@ Herein, to remove the source of nonlinearity in the Swamee-Jain equation, $v_{ij
 
 When all variables in a head loss equation _except_ $q_{ij}$ are fixed (as in the relations described above), both the Darcy-Weisbach and Hazen-Williams formulations for head loss reduce to a convenient form, namely
 ```math
-	h_{i} - h_{j} = r_{ij} q_{ij} \lvert q_{ij} \rvert^{\alpha}.
+	h_{i} - h_{j} = L_{ij} r_{ij} q_{ij} \lvert q_{ij} \rvert^{\alpha}.
 ```
-Here, $r_{ij}$ represents the fixed resistance term, and $\alpha$ is the exponent required by the head loss relationship (i.e., one for Darcy-Weisbach and $0.852$ for Hazen-Williams).
-Thus, the Darcy-Weisbach resistance is
+Here, $r_{ij}$ represents the resistance per unit length, and $\alpha$ is the exponent required by the head loss relationship (i.e., one for Darcy-Weisbach and $0.852$ for Hazen-Williams).
+Thus, the Darcy-Weisbach resistance per unit length is
 ```math
-	r_{ij} = \frac{8 L_{ij} \lambda_{ij}}{\pi^{2} g D_{ij}^{5}},
+	r_{ij} = \frac{8 \lambda_{ij}}{\pi^{2} g D_{ij}^{5}},
 ```
-and the Hazen-Williams resistance is
+and the Hazen-Williams resistance per unit length is
 ```math
-	r_{ij} = \frac{10.67 L_{ij}}{\kappa_{ij}^{1.852} D_{ij}^{4.87}}.
+	r_{ij} = \frac{10.67}{\kappa_{ij}^{1.852} D_{ij}^{4.87}}.
 ```
 
 ## Non-convex Nonlinear Program
-The full non-convex formulation of the feasibility problem, incorporating all constraints from []
+The full non-convex formulation of the physical feasibility problem (NCNLP), which incorporates all requirements from [Physical Feasibility](#Physical-Feasibility-1), may be written as a system that satisfies the following constraints:
+```math
+\begin{align}
+    h_{i} - h_{j} &= L_{ij} r_{ij} q_{ij} \lvert q_{ij} \rvert^{\alpha}, ~ \forall (i, j) \in \mathcal{A} \label{eqn:ncnlp-head-loss} \\
+    h_{i} &= h_{i}^{\textrm{src}}, ~ \forall i \in \mathcal{S} \label{eqn:ncnlp-head-source} \\
+    \sum_{(j, i) \in \mathcal{A}^{-}(i)} q_{ji} - \sum_{(i, j) \in \mathcal{A}^{+}(i)} q_{ij} &= q_{i}^{\textrm{dem}}, ~ \forall i \in \mathcal{J} \label{eqn:ncnlp-flow-conservation} \\
+    \underline{h}_{i} \leq h_{i} &\leq \overline{h}_{i}, ~ \forall i \in \mathcal{J} \label{eqn:ncnlp-head-bounds} \\
+    \underline{q}_{ij} \leq q_{ij} &\leq \overline{q}_{ij}, ~ \forall (i, j) \in \mathcal{A} \label{eqn:ncnlp-flow-bounds}.
+\end{align}
+```
+Here, Constraints $\eqref{eqn:ncnlp-head-loss}$ are [head loss relationships](#Head-Loss-Relationships-1), Constraints $\eqref{eqn:ncnlp-head-source}$ are [head bounds](#Satisfaction-of-Head-Bounds-1) at source nodes, Constraints $\eqref{eqn:ncnlp-flow-conservation}$ are [flow conservation constraints](#Conservation-of-Flow-at-Non-supply-Nodes-1), Constraints $\eqref{eqn:ncnlp-head-bounds}$ [head bounds](#Satisfaction-of-Head-Bounds-1) at junctions, and Constraints $\eqref{eqn:ncnlp-flow-bounds}$ are [flow bounds](#Satisfaction-of-Flow-Bounds-1).
+Note that the sources of non-convexity and nonlinearity are Constraints $\eqref{eqn:ncnlp-head-loss}$.
 
+## Convex Nonlinear Program
+Note that the sources of non-convexity and nonlinearity in the full [non-convex formulation of the physical feasibility problem](#Non-convex-Nonlinear-Program-1) are Constraints $\eqref{eqn:ncnlp-head-loss}$.
+Because of the symmetry of the head loss relationship, the problem can be modeled instead as a disjunctive program.
+Here, the disjunction arises from the direction of flow, i.e.,
+```math
+\begin{equation}
+   \left[
+	\begin{aligned}[c]
+		 h_{i} - h_{j} &= L_{ij} r_{ij} q_{ij}^{1 + \alpha} \\
+              q_{ij} &\geq 0
+	\end{aligned}
+   \right]
+   \lor
+   \left[
+	\begin{aligned}[c]
+		 h_{i} - h_{j} &= L_{ij} r_{ij} (-q_{ij})^{1 + \alpha} \\
+              q_{ij} &< 0
+	\end{aligned}
+   \right], ~ \forall (i, j) \in \mathcal{A}, \label{eqn:dnlp-head-loss}
+\end{equation}
+```
+which replaces Constraints $\eqref{eqn:ncnlp-head-loss}$ in the [NCNLP formulation](#Non-convex-Nonlinear-Program-1).
+To model the disjunction, each flow variable $q_{ij}$ can be decomposed into two nonnegative flow variables, $q_{ij}^{+}$ and $q_{ij}^{-}$, where $q_{ij} := q_{ij}^{+} - q_{ij}^{-}$.
+With this in mind, the following _convex_ nonlinear program (CNLP) can be formulated, which is adapted from Section 3 of [_Global Optimization of Nonlinear Network Design_ by Raghunathan (2013)](https://epubs.siam.org/doi/abs/10.1137/110827387):
 ```math
 \begin{align}
     & \text{minimize}
-    & & \sum_{(i, j) \in \mathcal{A}} L_{ij} \left(\sum_{D \in \mathcal{D}_{ij}} c_{ij}^{D} z_{ij}^{D}\right) \label{eqn:nlp-objective} \\
+    & & \sum_{(i, j) \in \mathcal{A}} \frac{L_{ij} r_{ij}}{2 + \alpha} \left((q_{ij}^{+})^{2 + \alpha} + (q_{ij}^{-})^{2 + \alpha}\right) - \sum_{i \in \mathcal{S}} h_{i}^{\textrm{src}} \left(\sum_{(i, j) \in \mathcal{A}^{-}(i)} (q_{ij}^{+} - q_{ij}^{-}) - \sum_{(j, i) \in \mathcal{A}^{+}(i)} (q_{ji}^{+} - q_{ji}^{-})\right) \\
     & \text{subject to}
-    & & \sum_{D \in \mathcal{D}_{ij}} z_{ij}^{D} \leq 1, ~ \forall (i, j) \in \mathcal{A} \label{eqn:nlp-select-one-diameter} \\
-    & & & \sum_{(j, i) \in \mathcal{A}} q_{ji} - \sum_{(i, j) \in \mathcal{A}} q_{ij} = d_{i}, ~ \forall i \in \mathcal{J} \label{eqn:nlp-flow-conservation} \\
-    & & & \sum_{(i, j) \in \mathcal{A}} q_{ij} - \sum_{(j, i) \in \mathcal{A}} q_{ji} \geq 0, ~ \forall i \in \mathcal{R} \label{eqn:nlp-reservoir-outflow} \\
-    & & & \sum_{(i, j) \in \mathcal{A}} q_{ij} - \sum_{(j, i) \in \mathcal{A}} q_{ji} \leq \sum_{k \in \mathcal{J}} d_{k}, ~ \forall i \in \mathcal{R} \label{eqn:nlp-reservoir-outflow-bound} \\
-    & & & \sum_{D \in \mathcal{D}_{ij}} \gamma^{D}_{ij} (a^{D}_{ij})^{-1} = q_{ij} \lvert q_{ij} \rvert^{\alpha}, ~ \forall (i, j) \in \mathcal{A} \label{eqn:nlp-head-loss} \\
-    & & & z_{ij}^{D} (\underline{h}_{i} - \overline{h}_{j}) \leq \gamma_{ij}^{D}, ~ \forall (i, j) \in \mathcal{A}, ~ \forall D \in \mathcal{D}_{ij} \label{eqn:nlp-gamma-define-1} \\
-    & & & z_{ij}^{D} (\overline{h}_{i} - \underline{h}_{j}) \geq \gamma_{ij}^{D}, ~ \forall (i, j) \in \mathcal{A}, ~ \forall D \in \mathcal{D}_{ij} \label{eqn:nlp-gamma-define-2} \\
-    & & & (h_{i} - h_{j}) - (1 - z_{ij}^{D}) (\overline{h}_{i} - \underline{h}_{j}) \leq \gamma_{ij}^{D}, ~ \forall (i, j) \in \mathcal{A}, ~ \forall D \in \mathcal{D}_{ij} \label{eqn:nlp-gamma-define-3} \\
-    & & & (h_{i} - h_{j}) - (1 - z_{ij}^{D}) (\underline{h}_{i} - \overline{h}_{j}) \geq \gamma_{ij}^{D}, ~ \forall (i, j) \in \mathcal{A}, ~ \forall D \in \mathcal{D}_{ij} \label{eqn:nlp-gamma-define-4} \\
-    & & & -\frac{\pi}{4} v_{ij}^{\max} \max_{D \in \mathcal{D}_{ij}}\{D^{2}\} \leq q_{ij} \leq \frac{\pi}{4} v_{ij}^{\max} \max_{D \in \mathcal{D}_{ij}}\{D^{2}\}, ~ \forall (i, j) \in \mathcal{A} \label{eqn:nlp-flow-bounds} \\
-    & & & \underline{h}_{i} \leq h_{i} \leq \overline{h}_{i}, ~ \forall i \in \mathcal{R} \cup \mathcal{J} \label{eqn:nlp-head-bounds} \\
-    & & & z_{ij}^{D} \in \mathbb{B}, ~ \forall (i, j) \in \mathcal{A}, ~ \forall D \in \mathcal{D}_{ij} \label{eqn:nlp-diameter-binary-bounds}.
+    & & \sum_{(j, i) \in \mathcal{A}_{2}(i)} (q_{ij}^{+} - q_{ij}^{-}) - \sum_{(i, j) \in \mathcal{A}_{1}(i)} (q_{ij}^{+} - q_{ij}^{-}) = q_{i}^{\textrm{dem}}, ~ \forall i \in \mathcal{J} \\
+    & & & q_{ij}^{+}, q_{ij}^{-} \geq 0, ~ \forall (i, j) \in \mathcal{A},
 \end{align}
 ```
-
-## Convex Nonlinear Program
 
 ## Mixed-integer Convex Program
 
