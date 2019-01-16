@@ -1,30 +1,32 @@
 # Mathematical Models in WaterModels
 
-## Sets
+## Notation for Sets
 A water distribution network can be represented by a directed graph $\mathcal{G} := (\mathcal{N}, \mathcal{A})$, where $\mathcal{N}$ is the set of nodes (e.g., [junctions](https://github.com/OpenWaterAnalytics/EPANET/wiki/[JUNCTIONS]) and [reservoirs](https://github.com/OpenWaterAnalytics/EPANET/wiki/[RESERVOIRS])) and $\mathcal{A}$ is the set of arcs (e.g., [pipes](https://github.com/OpenWaterAnalytics/EPANET/wiki/[PIPES]) and [valves](https://github.com/OpenWaterAnalytics/EPANET/wiki/[VALVES])).
 Herein, the set of pipes in the network is denoted as $\mathcal{P} \subset \mathcal{A}$, the set of reservoirs (or sources) is denoted as $\mathcal{S} \subset \mathcal{N}$, and the set of junctions is denoted as $\mathcal{J} \subset \mathcal{N}$.
 The set of arcs incident on node $i \in \mathcal{N}$, where $i$ is the tail of the arc, is denoted as $\mathcal{A}^{-}(i) := \{(i, j) \in \mathcal{A}\}$.
 The set of arcs incident on node $i \in \mathcal{N}$, where $i$ is the head of the arc, is denoted as $\mathcal{A}^{+}(i) := \{(j, i) \in \mathcal{A}\}$.
 Reservoirs are always considered to be supply (or source) nodes, and junctions are typically considered to be demand nodes (i.e., the demand for flow at the node is positive).
 For convenience, it is thus implied that $\mathcal{S} \cap \mathcal{J} = \emptyset$.
-Finally, many network design problems are concerned with selecting from among a set of discrete resistances $\mathcal{R}_{ij} = \{r_{ij}^{1}, r_{ij}^{2}, \dots, r_{ij}^{n_{ij}}\}$ for a given pipe $(i, j) \in \mathcal{P}$.
+Finally, many network design problems are concerned with selecting from among a set of discrete resistances $\mathcal{R}(i, j) := \{r_{1}, r_{2}, \dots, r_{n^{\mathcal{R}}_{ij}}\}$ for a given pipe $(i, j) \in \mathcal{P}$.
 
-In summary, the following sets are used when defining a WaterModels problem formulation:
-```math
-\begin{align}
-	& \mathcal{G}(\mathcal{N}, \mathcal{A}) & & ~~~ \textrm{directed graph with node set $\mathcal{N}$, arc set $\mathcal{A}$} \\
-	& \mathcal{N} & & ~~~ \textrm{set of nodes (e.g., junctions, reservoirs) in the network} \\
-	& \mathcal{J} \subset \mathcal{N} & & ~~~ \textrm{set of junctions in the network} \\
-	& \mathcal{S} \subset \mathcal{N} & & ~~~ \textrm{set of reservoirs (i.e., source nodes) in the network} \\
-	& \mathcal{A} & & ~~~ \textrm{set of directed arcs (e.g., pipes, valves) in the network} \\
-	& \mathcal{P} \subset \mathcal{A} & & ~~~ \textrm{set of pipes in the network} \\
-	& \mathcal{A}^{+}(i) \subset \mathcal{A} & & ~~~ \textrm{set of arcs where $i$ is the tail of the arc, i.e., $\{(i, j) \in \mathcal{A}\}$} \\
-	& \mathcal{A}^{-}(i) \subset \mathcal{A} & & ~~~ \textrm{set of arcs where $i$ is the head of the arc, i.e., $\{(j, i) \in \mathcal{A}\}$} \\
-   & \mathcal{R}_{ij} & & ~~~ \textrm{discrete set of resistances for a pipe $(i, j) \in \mathcal{P}$}.
-\end{align}
-```
+In summary, the following sets are commonly used when defining a WaterModels problem formulation:
 
-## Feasibility
+| Notation                                 | WaterModels Translation            | Description                                     |
+| :--------------------------------------  | :-----------------------------     | :-------------------------                      |
+| $\mathcal{N}$                            | `wm.ref[:nw][n][:nodes]`           | nodes                                    |
+| $\mathcal{J} \subset \mathcal{N}$        | `wm.ref[:nw][n][:junctions]`       | junctions                                |
+| $\mathcal{S} \subset \mathcal{N}$        | `wm.ref[:nw][n][:reservoirs]`      | reservoirs                               |
+| $\mathcal{A}$                            | `wm.ref[:nw][n][:arcs]`            | arcs                                     |
+| $\mathcal{P} \subset \mathcal{A}$        | `wm.ref[:nw][n][:pipes]`           | pipes                                    |
+| $\mathcal{A^{-}(i)} \subset \mathcal{A}$ | `wm.ref[:nw][n][:arcs_to][i]`      | arcs "to" node $i$                       |
+| $\mathcal{A^{+}(i)} \subset \mathcal{A}$ | `wm.ref[:nw][n][:arcs_from][i]`    | arcs "from" node $i$                     |
+| $\mathcal{R}(i, j)$                      | `wm.ref[:nw][n][:resistances][ij]` | resistances for $(i, j) \in \mathcal{P}$ |
+
+## Notation for Constants
+
+## Notation for Variables
+
+## Physical Feasibility
 ### Conservation of Flow at Non-supply Nodes
 For each pipe $(i, j) \in \mathcal{A}$, a variable $q_{ij}$ is used to represent the volumetric flow of water across the arc (in $\textrm{m}^{3}/\textrm{s}$).
 When $q_{ij}$ is positive, flow on arc $(i, j)$ travels from node $i$ to node $j$.

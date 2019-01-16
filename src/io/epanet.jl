@@ -1,13 +1,76 @@
-############################################################################
-#                                                                          #
-# This file provides functionality for interfacing with EPANET data files. #
-# See https://github.com/OpenWaterAnalytics/EPANET/wiki/Input-File-Format  #
-# for a thorough description of the format and its components.             #
-#                                                                          #
-############################################################################
+using JSON
+
+function get_lines(path::String)
+    file_contents = read(open(path), String)
+    file_contents = replace(file_contents, "\t" => "    ")
+    return split(file_contents, "\n")
+end
+
+function add_section(line::String, data::Dict{String, Any})
+    # Determine the title of the section and convert to lowercase.
+    section_title = lowercase(strip(line, ['[', ']']))
+
+    # Check if column headings exist for the section.
+    headings_exist = occursin(r"^;", lines[i+1])
+
+    if !headings_exist
+        # Initialize the section dictionary.
+        sections["$section"] = Dict{String, Any}()
+    end
+end
+
+function get_sections(lines::Array{SubString{String}, 1})
+    sections = Dict{String, Any}()
+    section = headings = nothing
+    headings_exist = false
+
+    for (i, line) in enumerate(lines)
+        # Section headings always look like [SECTION_TITLE].
+        if occursin(r"^\s*\[(.*)\]", line) # If a section title...
+            # Determine the title of the section and convert to lowercase.
+            section = lowercase(strip(line, ['[', ']']))
+
+            # Check if column headings exist for the section.
+            headings_exist = occursin(r"^;", lines[i+1])
+
+            if !headings_exist
+                # Initialize the section dictionary.
+                sections["$section"] = Dict{String, Any}()
+            end
+        elseif occursin(r"^;", line) # If a section heading....
+            # Determine the column headings.
+            headings = split(lowercase(strip(line, [';'])))
+
+            # Initialize the section dictionary.
+            sections["$section"] = Dict{String, Array}(s => [] for s in headings)
+        elseif length(line) == 0 # If the line has no characters...
+            continue
+        else # Otherwise, this line is data within the section.
+            if headings_exist
+                data = split(lowercase(strip(line, [';'])))
+
+                for (j, heading) in enumerate(headings)
+                    data = split(lowercase(strip(line, [';'])))
+
+                    if j <= length(data)
+                        push!(sections["$section"]["$heading"], data[j])
+                    else
+                        push!(sections["$section"]["$heading"], "")
+                    end
+                end
+            else
+                heading = strip(split(line, "  ")[1])
+                data = split(lowercase(strip(replace(line, heading => ""), [';'])))
+                sections["$section"][lowercase(heading)] = data
+            end
+        end
+    end
+
+    return sections
+end
 
 """
-    parse_file(path)
+    parse_epanet(path)
 
 Parses an [EPANET](https://www.epa.gov/water-research/epanet) (.inp) file from
 the file path `path` and returns a WaterModels data structure (a dictionary of
@@ -16,43 +79,12 @@ Wiki](https://github.com/OpenWaterAnalytics/EPANET/wiki/Input-File-Format) for
 a thorough description of the EPANET format and its components.
 """
 function parse_epanet(path::String)
-    file_contents = read(open(path), String)
-    file_contents = replace(file_contents, "\t" => "    ")
-    lines = split(file_contents, '\n')
+    lines = get_lines(path)
+    get_sections(lines)
 
     section = headings = nothing
     headings_exist = false
-    epanet_dict = Dict{String, Any}()
-
-    for (i, line) in enumerate(lines)
-        if occursin(r"^\s*\[(.*)\]", line) # If a section heading.
-            section = lowercase(strip(line, ['[', ']']))
-            headings_exist = occursin(r"^;", lines[i+1])
-            if !headings_exist
-                epanet_dict["$section"] = Dict{String, Any}()
-            end
-        elseif occursin(r"^;", line) # If a section heading.
-            headings = split(lowercase(strip(line, [';'])))
-            epanet_dict["$section"] = Dict{String, Array}(h => [] for h = headings)
-        elseif length(line) == 0
-            continue
-        else
-            if headings_exist
-                data = split(lowercase(strip(line, [';'])))
-                for (j, heading) in enumerate(headings)
-            if j <= length(data)
-                push!(epanet_dict["$section"]["$heading"], data[j])
-            else
-                push!(epanet_dict["$section"]["$heading"], "")
-            end
-                end
-            else
-                heading = strip(split(line, "  ")[1])
-                data = split(lowercase(strip(replace(line, heading => ""), [';'])))
-                epanet_dict["$section"][lowercase(heading)] = data
-            end
-        end
-    end
+    epanet_dict = get_sections(lines)
 
     # Parse important options first.
     options = parse_options(epanet_dict["options"])
