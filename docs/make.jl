@@ -2,7 +2,7 @@ using Documenter, WaterModels
 
 makedocs(
     modules = [WaterModels],
-    format = Documenter.HTML(prettyurls = false),
+    format = Documenter.HTML(),
     sitename = "WaterModels",
     authors = "Byron Tasseff, Russell Bent, Carleton Coffrin, Clayton Barrows, Sai Krishna Kanth Hari, and contributors.",
     analytics = "",

@@ -165,6 +165,9 @@ function build_ref(data::Dict{String, Any})
             end
         end
 
+        ref[:nodes] = [ref[:junctions]; ref[:reservoirs]]
+        ref[:arcs] = [ref[:pipes]; ref[:valves]]
+
         ref[:connection] = ref[:pipes]
         ref[:ne_pipe] = filter(is_ne_pipe, ref[:pipes])
         ref[:connection_known_direction] = filter(has_known_flow_direction, ref[:connection])

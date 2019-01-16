@@ -19,5 +19,5 @@ pavito = PavitoSolver(cont_solver = ipopt, mip_solver = glpk)
 # Perform the tests.
 @testset "WaterModels" begin
     include("io.jl")
-    #include("hw.jl")
+    include("hw.jl")
 end
