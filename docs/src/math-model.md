@@ -154,10 +154,22 @@ With this in mind, the following _convex_ nonlinear program (CNLP) can be formul
 ```math
 \begin{align}
     & \text{minimize}
-    & & \sum_{(i, j) \in \mathcal{A}} \frac{L_{ij} r_{ij}}{2 + \alpha} \left((q_{ij}^{+})^{2 + \alpha} + (q_{ij}^{-})^{2 + \alpha}\right) - \sum_{i \in \mathcal{S}} h_{i}^{\textrm{src}} \left(\sum_{(i, j) \in \mathcal{A}^{-}(i)} (q_{ij}^{+} - q_{ij}^{-}) - \sum_{(j, i) \in \mathcal{A}^{+}(i)} (q_{ji}^{+} - q_{ji}^{-})\right) \\
+    & & \sum_{(i, j) \in \mathcal{A}} \frac{L_{ij} r_{ij}}{2 + \alpha} \left[(q_{ij}^{+})^{2 + \alpha} + (q_{ij}^{-})^{2 + \alpha}\right] - \sum_{i \in \mathcal{S}} h_{i}^{\textrm{src}} \left(\sum_{(i, j) \in \mathcal{A}^{-}(i)} (q_{ij}^{+} - q_{ij}^{-}) - \sum_{(j, i) \in \mathcal{A}^{+}(i)} (q_{ji}^{+} - q_{ji}^{-})\right) \\
     & \text{subject to}
-    & & \sum_{(j, i) \in \mathcal{A}_{2}(i)} (q_{ij}^{+} - q_{ij}^{-}) - \sum_{(i, j) \in \mathcal{A}_{1}(i)} (q_{ij}^{+} - q_{ij}^{-}) = q_{i}^{\textrm{dem}}, ~ \forall i \in \mathcal{J} \\
-    & & & q_{ij}^{+}, q_{ij}^{-} \geq 0, ~ \forall (i, j) \in \mathcal{A},
+    & & \sum_{(j, i) \in \mathcal{A}^{-}(i)} (q_{ji}^{+} - q_{ji}^{-}) - \sum_{(i, j) \in \mathcal{A}^{+}(i)} (q_{ij}^{+} - q_{ij}^{-}) = q_{i}^{\textrm{dem}}, ~ \forall i \in \mathcal{J} \label{eqn:cnlp-flow-conservation} \\
+    & & & q_{ij}^{+}, q_{ij}^{-} \geq 0, ~ \forall (i, j) \in \mathcal{A} \label{eqn:cnlp-flow-bounds}.
+\end{align}
+```
+$\renewcommand{\hat}[1]{\widehat{#1}}$
+Suppose that $\hat{\mathbf{q}}^{+}, \hat{\mathbf{q}}^{-} \in \mathbb{R}^{\lvert A \rvert}$ solves (CNLP) with the associated dual solution $\hat{\mathbf{h}} \in \mathbb{R}^{\lvert \mathcal{J} \rvert}$, corresponding to the flow conservation Constraints $\eqref{eqn:cnlp-flow-conservation}$, and $\hat{\mathbf{u}}^{+}, \hat{\mathbf{u}}^{-} \in \mathbb{R}^{\lvert \mathcal{A} \rvert}$, corresponding to the nonnegativity Constraints $\eqref{eqn:cnlp-flow-bounds}$.
+This solution must satisfy the first-order necessary conditions
+```math
+\begin{align}
+    \hat{h}_{i} - \hat{h}_{j} &= L_{ij} r_{ij} \hat{q}_{ij} \lvert q_{ij} \rvert^{\alpha}, ~ \forall (i, j) \in \mathcal{A} \\
+    h_{i} &= h_{i}^{\textrm{src}}, ~ \forall i \in \mathcal{S} \\
+    \sum_{(j, i) \in \mathcal{A}^{-}(i)} q_{ji} - \sum_{(i, j) \in \mathcal{A}^{+}(i)} q_{ij} &= q_{i}^{\textrm{dem}}, ~ \forall i \in \mathcal{J} \\
+    \underline{h}_{i} \leq h_{i} &\leq \overline{h}_{i}, ~ \forall i \in \mathcal{J} \\
+    \underline{q}_{ij} \leq q_{ij} &\leq \overline{q}_{ij}, ~ \forall (i, j) \in \mathcal{A}.
 \end{align}
 ```
 
