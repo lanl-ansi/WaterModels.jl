@@ -43,6 +43,7 @@ include("prob/wf.jl")
 
 include("util/bound_tightening.jl")
 include("util/get_cvx_solution.jl")
+include("util/get_partitioning.jl")
 include("util/compute_objective.jl")
 include("util/repair_solution.jl")
 include("util/find_initial_solution.jl")

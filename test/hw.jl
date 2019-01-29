@@ -26,10 +26,9 @@
 
     @testset "Shamir network (diameter selection, global algorithm)." begin
         network_path = "../test/data/epanet/shamir.inp"
-        modification_path = "../test/data/json/shamir-reduced.json"
-        wm = build_generic_model(network_path, modification_path, MINLPWaterModel, post_ne_hw)
-        #status = solve_global(network_path, modification_path, ipopt, gurobi)
-        #@test status == :LocalOptimal || status == :Optimal
+        modification_path = "../test/data/json/shamir.json"
+        status = solve_global(network_path, modification_path, ipopt, glpk)
+        @test status == :LocalOptimal || status == :Optimal
     end
 end
 

@@ -16,7 +16,7 @@ function run_ne_dw(file, modifications_path, model_constructor, solver; kwargs..
     return run_generic_model(file, modifications_path, model_constructor, solver, post_ne_dw; kwargs...)
 end
 
-function post_ne_hw_segmented(wm::GenericWaterModel, n_n::Int = wm.cnw, n_s::Int = 1)
+function post_ne_hw_segmented(wm::GenericWaterModel, n_n::Int = wm.cnw, n_s::Int = 3)
     variable_head(wm, n_n)
     variable_segment(wm, n_n, n_s)
     variable_segmented_directed_flow(wm, n_n, n_s)
