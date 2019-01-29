@@ -39,8 +39,8 @@ function get_flow_solution(cvx::GenericWaterModel{T}, n::Int = cvx.cnw) where T 
     q_sol = Dict{Int, Float64}(a => 0.0 for a in connection_ids)
 
     for (a, connection) in cvx.ref[:nw][n][:connection]
-        qn_sol = getvalue(cvx.var[:nw][n][:qn][a][1])
         qp_sol = getvalue(cvx.var[:nw][n][:qp][a][1])
+        qn_sol = getvalue(cvx.var[:nw][n][:qn][a][1])
         q_sol[a] = qp_sol - qn_sol
     end
 
@@ -105,12 +105,12 @@ function check_solution_bounds(wm::GenericWaterModel,
 
         if q[a] >= 0.0
             # Compute bound satisfaction for flow from i to j.
-            q_sat_lb[a] = q[a] >= minimum(getlowerbound.(wm.var[:nw][n][:qp][a][:, r_a]))
-            q_sat_ub[a] = q[a] <= maximum(getupperbound.(wm.var[:nw][n][:qp][a][:, r_a]))
+            q_sat_lb[a] = q[a] >= getlowerbound(wm.var[:nw][n][:qp][a][r_a])
+            q_sat_ub[a] = q[a] <= getupperbound(wm.var[:nw][n][:qp][a][r_a])
         else
             # Compute bound satisfaction for flow from j to i.
-            q_sat_lb[a] = -q[a] >= minimum(getlowerbound.(wm.var[:nw][n][:qn][a][:, r_a]))
-            q_sat_ub[a] = -q[a] <= maximum(getupperbound.(wm.var[:nw][n][:qn][a][:, r_a]))
+            q_sat_lb[a] = -q[a] >= getlowerbound(wm.var[:nw][n][:qn][a][r_a])
+            q_sat_ub[a] = -q[a] <= getupperbound(wm.var[:nw][n][:qn][a][r_a])
         end
     end
 

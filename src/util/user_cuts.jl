@@ -7,7 +7,7 @@ function compute_q_tilde(q_hat::Float64, r_hat::Float64, r::Float64)
     return 1.0903341484 * (b / r)^0.53995680345
 end
 
-function compute_q_p_cut(dh::JuMP.Variable, q::Array{JuMP.Variable, 2}, dir::JuMP.Variable, q_sol::Float64, R::Array{Float64}, r_hat::Int, L::Float64)
+function compute_q_p_cut(dh::JuMP.Variable, q::Array{JuMP.Variable}, dir::JuMP.Variable, q_sol::Float64, R::Array{Float64}, r_hat::Int, L::Float64)
     phi_hat = R[r_hat] * head_loss_hw_func(q_sol)
     phi_prime_hat = R[r_hat] * head_loss_hw_prime(q_sol)
     q_tilde = [compute_q_tilde(q_sol, R[r_hat], R[r]) for r in 1:length(R)]
@@ -16,17 +16,17 @@ function compute_q_p_cut(dh::JuMP.Variable, q::Array{JuMP.Variable, 2}, dir::JuM
     setindex!(coeffs, zeros(size(zero_indices, 1)), zero_indices)
 
     expr = zero(AffExpr)
-    expr += -dh / L + phi_prime_hat * sum(q[:, r_hat])
+    expr += -dh / L + phi_prime_hat * q[r_hat]
     expr += (phi_hat - phi_prime_hat * q_sol) * dir
 
     for r in setdiff(1:length(R), [r_hat])
-        expr += coeffs[r] * sum(q[:, r])
+        expr += coeffs[r] * q[r]
     end
 
     return expr
 end
 
-function compute_q_n_cut(dh::JuMP.Variable, q::Array{JuMP.Variable, 2}, dir::JuMP.Variable, q_sol::Float64, R::Array{Float64}, r_hat::Int, L::Float64)
+function compute_q_n_cut(dh::JuMP.Variable, q::Array{JuMP.Variable}, dir::JuMP.Variable, q_sol::Float64, R::Array{Float64}, r_hat::Int, L::Float64)
     phi_hat = R[r_hat] * head_loss_hw_func(q_sol)
     phi_prime_hat = R[r_hat] * head_loss_hw_prime(q_sol)
     q_tilde = [compute_q_tilde(q_sol, R[r_hat], R[r]) for r in 1:length(R)]
@@ -35,17 +35,17 @@ function compute_q_n_cut(dh::JuMP.Variable, q::Array{JuMP.Variable, 2}, dir::JuM
     setindex!(coeffs, zeros(size(zero_indices, 1)), zero_indices)
 
     expr = zero(AffExpr)
-    expr += -dh / L + phi_prime_hat * sum(q[:, r_hat])
+    expr += -dh / L + phi_prime_hat * q[r_hat]
     expr += (phi_hat - phi_prime_hat * q_sol) * (1 - dir)
 
     for r in setdiff(1:length(R), [r_hat])
-        expr += coeffs[r] * sum(q[:, r])
+        expr += coeffs[r] * q[r]
     end
 
     return expr
 end
 
-function solution_is_integer(wm::GenericWaterModel, lp_solution::Array{Float64, 1}, n::Int = wm.cnw)
+function solution_is_integer(wm::GenericWaterModel, lp_solution::Array{Float64,1}, n::Int = wm.cnw)
     dir_indices = linearindex.(wm.var[:nw][n][:dir][:])
     dir_sol = lp_solution[dir_indices]
 
@@ -163,10 +163,10 @@ function user_cut_callback_generator(wm::GenericWaterModel,
 
                     dhp = wm.var[:nw][n][:dhp][a]
                     dhp_hat = lp_solution[linearindex(dhp)]
-                    phi_max, r_hat = findmax([R_a[r] * sum(qp_hat[:, r].^(1.852)) for r in 1:length(R_a)])
+                    phi_max, r_hat = findmax([R_a[r] * qp_hat[r]^(1.852) for r in 1:length(R_a)])
 
                     if -dhp_hat / L_a + phi_max > params["epsilon"]
-                        lhs = compute_q_p_cut(dhp, qp, dir, sum(qp_hat[:, r_hat]), R_a, r_hat, L_a)
+                        lhs = compute_q_p_cut(dhp, qp, dir, qp_hat[r_hat], R_a, r_hat, L_a)
                         @usercut(cb, lhs <= 0.0)
                     end
                 else
@@ -177,10 +177,10 @@ function user_cut_callback_generator(wm::GenericWaterModel,
 
                     dhn = wm.var[:nw][n][:dhn][a]
                     dhn_hat = lp_solution[linearindex(dhn)]
-                    phi_max, r_hat = findmax([R_a[r] * sum(qn_hat[:, r].^(1.852)) for r in 1:length(R_a)])
+                    phi_max, r_hat = findmax([R_a[r] * qn_hat[r]^(1.852) for r in 1:length(R_a)])
 
                     if -dhn_hat / L_a + phi_max > params["epsilon"]
-                        lhs = compute_q_n_cut(dhn, qn, dir, sum(qn_hat[:, r_hat]), R_a, r_hat, L_a)
+                        lhs = compute_q_n_cut(dhn, qn, dir, qn_hat[r_hat], R_a, r_hat, L_a)
                         @usercut(cb, lhs <= 0.0)
                     end
                 end

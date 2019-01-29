@@ -3,6 +3,5 @@ function get_partitioning(wm::GenericWaterModel,
                           solver::MathProgBase.AbstractMathProgSolver,
                           n::Int = wm.cnw)
     q, h = get_cvx_solution(wm, resistance_indices, solver, n)
-    println(q)
-    println(h)
+    println(wm.data)
 end
