@@ -41,7 +41,7 @@ function solve_global(network_path::String, problem_path::String,
 
     # Initialize the outer approximation.
     add_outer_approximation(mmilp, rnlp, resistance_indices, nlp_solver)
-    #add_upper_approximation(mmilp, resistance_indices, nlp_solver)
+    add_upper_approximation(mmilp, resistance_indices, nlp_solver)
 
     # Set the solver for the problem and add the required callbacks.
     user_cut_callback = user_cut_callback_generator(mmilp, params, nlp_solver)
