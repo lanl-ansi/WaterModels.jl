@@ -30,21 +30,26 @@ function bound_tightening(wm::GenericWaterModel,
 
         # Update resistances used throughout the network.
         for (a, connection) in wm.ref[:nw][n][:connection]
+            @objective(nlp.model, Max, sum(nlp.var[:nw][n][:qn][a]))
+            status = JuMP.solve(nlp.model, relaxation = true)
+            qn_objective_val = getobjectivevalue(nlp.model)
+
+            for r in 1:length(wm.ref[:nw][n][:resistance][a])
+                q_n_wm = wm.var[:nw][n][:qn][a][r]
+                q_n_nlp = nlp.var[:nw][n][:qn][a][r]
+                setupperbound(q_n_wm, min(getupperbound(q_n_nlp), qn_objective_val + 1.0e-6))
+                setupperbound(q_n_nlp, min(getupperbound(q_n_nlp), qn_objective_val + 1.0e-6))
+            end
+
+            @objective(nlp.model, Max, sum(nlp.var[:nw][n][:qp][a]))
+            status = JuMP.solve(nlp.model, relaxation = true)
+            qp_objective_val = getobjectivevalue(nlp.model)
+
             for r in 1:length(wm.ref[:nw][n][:resistance][a])
                 q_p_wm = wm.var[:nw][n][:qp][a][r]
                 q_p_nlp = nlp.var[:nw][n][:qp][a][r]
-                q_n_wm = wm.var[:nw][n][:qn][a][r]
-                q_n_nlp = nlp.var[:nw][n][:qn][a][r]
-
-                @objective(nlp.model, Max, q_p_nlp)
-                status = JuMP.solve(nlp.model, relaxation = true)
-                setupperbound(q_p_wm, min(getupperbound(q_p_nlp), getvalue(q_p_nlp) + 1.0e-6))
-                setupperbound(q_p_nlp, min(getupperbound(q_p_nlp), getvalue(q_p_nlp) + 1.0e-6))
-
-                @objective(nlp.model, Max, q_n_nlp)
-                status = JuMP.solve(nlp.model, relaxation = true)
-                setupperbound(q_n_wm, min(getupperbound(q_n_nlp), getvalue(q_n_nlp) + 1.0e-6))
-                setupperbound(q_n_nlp, min(getupperbound(q_n_nlp), getvalue(q_n_nlp) + 1.0e-6))
+                setupperbound(q_p_wm, min(getupperbound(q_p_nlp), qp_objective_val + 1.0e-6))
+                setupperbound(q_p_nlp, min(getupperbound(q_p_nlp), qp_objective_val + 1.0e-6))
             end
         end
 

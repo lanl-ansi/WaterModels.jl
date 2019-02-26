@@ -1,9 +1,6 @@
 export get_cvx_solution, check_solution_bounds
 
-function get_cvx_solution(wm::GenericWaterModel,
-                          resistance_indices::Dict{Int, Int},
-                          solver::MathProgBase.AbstractMathProgSolver,
-                          n::Int = wm.cnw)
+function get_cvx_network(wm::GenericWaterModel, n::Int = wm.cnw)
     # Create a copy of the original network data.
     network = deepcopy(wm.data)
 
@@ -12,11 +9,21 @@ function get_cvx_solution(wm::GenericWaterModel,
         delete!(network["pipes"][string(a)], "diameter")
         delete!(network["pipes"][string(a)], "diameters")
         delete!(network["pipes"][string(a)], "resistances")
+    end
 
+    # Return the network.
+    return network
+end
+
+function get_cvx_solution(wm::GenericWaterModel,
+                          resistance_indices::Dict{Int, Int},
+                          solver::MathProgBase.AbstractMathProgSolver,
+                          n::Int = wm.cnw)
+    network = get_cvx_network(wm, n)
+
+    for (a, connection) in wm.ref[:nw][n][:connection]
         # Set the resistance to the selected resistance.
-        resistances = wm.ref[:nw][n][:resistance][a]
-        resistance_index = resistance_indices[a]
-        selected_resistance = resistances[resistance_index]
+        selected_resistance = wm.ref[:nw][n][:resistance][a][resistance_indices[a]]
         network["pipes"][string(a)]["resistance"] = selected_resistance
     end
 
@@ -32,6 +39,7 @@ function get_cvx_solution(wm::GenericWaterModel,
     # Return the solution.
     return q, h
 end
+#end
 
 function get_flow_solution(cvx::GenericWaterModel{T}, n::Int = cvx.cnw) where T <: StandardCVXNLPForm
     # Create a dictionary for the flow solution.

@@ -27,5 +27,7 @@ Parses a JavaScript Object Notation (JSON) file from the file path `path` and
 returns a WaterModels data structure (a dictionary of data).
 """
 function parse_json(path::String)
-    return JSON.parsefile(path)
+    dict = JSON.parsefile(path)
+    dict["per_unit"] = false
+    return dict
 end

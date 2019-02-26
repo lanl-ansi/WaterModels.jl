@@ -1,5 +1,3 @@
-using Interpolations
-
 function add_outer_approximation(wm::GenericWaterModel,
                                  rwm::GenericWaterModel,
                                  resistance_indices::Dict{Int, Int},
