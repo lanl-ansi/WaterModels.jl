@@ -78,6 +78,13 @@ function add_upper_approximation(wm::GenericWaterModel,
     q, h = get_cvx_solution(wm, resistance_indices, solver)
     num_breakpoints = 4
 
+    wm.ref[:nw][n][:qn_bp] = Dict{Int, Dict{Int, Array{Float64}}}()
+    wm.ref[:nw][n][:qp_bp] = Dict{Int, Dict{Int, Array{Float64}}}()
+
+    wm.var[:nw][n][:x_par] = Dict{Int, Array{Variable, 1}}()
+    wm.var[:nw][n][:lambda_n] = Dict{Int, Array{Variable, 2}}()
+    wm.var[:nw][n][:lambda_p] = Dict{Int, Array{Variable, 2}}()
+
     # Set initial points for the outer approximation (Lines 2 through 5).
     for (a, connection) in wm.ref[:nw][n][:connection]
         # Get possible resistances for the arc.
@@ -86,20 +93,27 @@ function add_upper_approximation(wm::GenericWaterModel,
         r_hat = resistance_indices[a]
 
         # Create partition variables and constrain the number of partitions.
-        x_par = @variable(wm.model, [k in 1:num_breakpoints-1], category = :Bin, start = 0)
+        wm.var[:nw][n][:x_par][a] = @variable(wm.model, [k in 1:num_breakpoints-1], category = :Bin, start = 0)
+
+        wm.var[:nw][n][:lambda_n][a] = @variable(wm.model, [r in 1:length(R_a), k in 1:num_breakpoints],
+                                                  category = :Cont, lowerbound = 0.0,
+                                                  upperbound = 1.0, start = 0.0)
+
+        wm.var[:nw][n][:lambda_p][a] = @variable(wm.model, [r in 1:length(R_a), k in 1:num_breakpoints],
+                                                 category = :Cont, lowerbound = 0.0,
+                                                 upperbound = 1.0, start = 0.0)
+
+        x_par = wm.ref[:nw][n][:x_par][a]
+        lambda_n = wm.var[:nw][n][:lambda_n][a]
+        lambda_p = wm.var[:nw][n][:lambda_p][a]
 
         con_x_par = @constraint(wm.model, sum(x_par) == 1)
 
-        lambda_p = @variable(wm.model, [r in 1:length(R_a), k in 1:num_breakpoints],
-                             category = :Cont, lowerbound = 0.0,
-                             upperbound = 1.0, start = 0.0)
-
-        lambda_n = @variable(wm.model, [r in 1:length(R_a), k in 1:num_breakpoints],
-                             category = :Cont, lowerbound = 0.0,
-                             upperbound = 1.0, start = 0.0)
-
         f_hat_p = zero(AffExpr)
         f_hat_n = zero(AffExpr)
+
+        wm.ref[:nw][n][:qn_bp][a] = Dict{Int, Array{Float64}}()
+        wm.ref[:nw][n][:qp_bp][a] = Dict{Int, Array{Float64}}()
 
         for r in 1:length(R_a)
             x_res = wm.var[:nw][n][:xr][a][r]
@@ -122,11 +136,13 @@ function add_upper_approximation(wm::GenericWaterModel,
             qp = generate_breakpoints(wm.var[:nw][n][:qp][a][r], qp_c, num_breakpoints)
             fp = [R_a[r] * qp[k]^1.852 for k in 1:num_breakpoints]
             f_hat_p += AffExpr(lambda_p[r, :], fp, 0.0)
+            wm.ref[:nw][n][:qp_bp][a] = qn
 
             qn_c = max(0.0, getvalue(rwm.var[:nw][n][:qn][a][r]))
             qn = generate_breakpoints(wm.var[:nw][n][:qn][a][r], qn_c, num_breakpoints)
             fn = [R_a[r] * qn[k]^1.852 for k in 1:num_breakpoints]
             f_hat_n += AffExpr(lambda_n[r, :], fn, 0.0)
+            wm.ref[:nw][n][:qn_bp][a] = qn
 
             for k in 1:num_breakpoints-1
                 if q[a] > 0.0 && r == r_hat

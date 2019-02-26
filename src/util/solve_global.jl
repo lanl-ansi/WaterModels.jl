@@ -73,7 +73,7 @@ function solve_global(network_path::String, problem_path::String,
     nodes_explored = getnodecount(mmilp.model)
     objective_value = getobjectivevalue(mmilp.model)
     objective_bound = getobjbound(mmilp.model)
-    objective_gap = getobjgap(mmilp.model)
+    objective_gap = abs(objective_bound - objective_value) / abs(objective_value)
 
     # Get the total time.
     total_time = initialize_models_time + find_initial_solution_time +
