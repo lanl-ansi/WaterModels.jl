@@ -1,3 +1,5 @@
+using JuMP
+
 export lazy_cut_callback_generator
 
 import MathProgBase

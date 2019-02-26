@@ -18,18 +18,15 @@ function eliminate_variables(wm::GenericWaterModel, nlp::GenericWaterModel,
             resistance_indices[a] = resistance_index
             q, h = get_cvx_solution(wm, resistance_indices, solver)
             qlb, qub, hlb, hub = check_solution_bounds(wm, q, h, resistance_indices, n)
-            solution_is_feasible = all([all(values(hlb)), all(values(hub))])
 
             # TODO: Why does the below entail bad cuts on some instances (e.g., Hanoi)?
-            #solution_is_feasible = all([all(values(qlb)), all(values(qub)),
-            #                            all(values(hlb)), all(values(hub))])
+            solution_is_feasible = all([all(values(qlb)), all(values(qub)),
+                                        all(values(hlb)), all(values(hub))])
 
             if !solution_is_feasible
                 setupperbound(wm.var[:nw][n][:xr][a][resistance_index], 0)
-                setupperbound.(wm.var[:nw][n][:qn][a][:, resistance_index], 0.0)
-                setupperbound.(wm.var[:nw][n][:qp][a][:, resistance_index], 0.0)
-                setupperbound.(wm.var[:nw][n][:xsn][a][:, resistance_index], 0)
-                setupperbound.(wm.var[:nw][n][:xsp][a][:, resistance_index], 0)
+                setupperbound(wm.var[:nw][n][:qn][a][resistance_index], 0.0)
+                setupperbound(wm.var[:nw][n][:qp][a][resistance_index], 0.0)
                 setupperbound(nlp.var[:nw][n][:xr][a][resistance_index], 0)
                 setupperbound(nlp.var[:nw][n][:qn][a][resistance_index], 0.0)
                 setupperbound(nlp.var[:nw][n][:qp][a][resistance_index], 0.0)

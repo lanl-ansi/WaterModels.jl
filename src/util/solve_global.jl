@@ -1,3 +1,5 @@
+using Gurobi
+
 export solve_global
 
 const SolverType = MathProgBase.AbstractMathProgSolver
@@ -29,9 +31,10 @@ function solve_global(network_path::String, problem_path::String,
     best_objective = compute_objective(mmilp, resistance_indices)
     println("Starting objective value: ", best_objective)
 
-    ## Tighten bounds.
-    #bound_tightening(mmilp, rnlp, best_objective, 2, nlp_solver)
+    ### Tighten bounds.
+    ##bound_tightening(mmilp, rnlp, best_objective, 2, nlp_solver)
 
+    # Initialize solving parameters.
     params = Dict{String, Any}("obj_last" => best_objective,
                                "obj_curr" => best_objective,
                                "obj_best" => best_objective,
@@ -41,15 +44,15 @@ function solve_global(network_path::String, problem_path::String,
 
     # Initialize the outer approximation.
     add_outer_approximation(mmilp, rnlp, resistance_indices, nlp_solver)
-    add_upper_approximation(mmilp, resistance_indices, nlp_solver)
+    #add_upper_approximation(mmilp, rnlp, resistance_indices, nlp_solver)
 
     # Set the solver for the problem and add the required callbacks.
     user_cut_callback = user_cut_callback_generator(mmilp, params, nlp_solver)
     addcutcallback(mmilp.model, user_cut_callback)
     lazy_cut_callback = lazy_cut_callback_generator(mmilp, params, nlp_solver)
     addlazycallback(mmilp.model, lazy_cut_callback)
-    ##heuristic_cut_callback = heuristic_cut_callback_generator(mmilp, params, nlp_solver, 3, mmilp.cnw)
-    ##addheuristiccallback(mmilp.model, heuristic_cut_callback)
+    heuristic_cut_callback = heuristic_cut_callback_generator(mmilp, params, nlp_solver)
+    addheuristiccallback(mmilp.model, heuristic_cut_callback)
 
     # Solve the problem and return the status.
     setsolver(mmilp.model, mip_solver)

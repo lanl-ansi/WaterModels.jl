@@ -5,7 +5,7 @@ import MathProgBase
 
 function heuristic_cut_callback_generator(wm::GenericWaterModel, params::Dict{String, Any},
                                           nlp_solver::MathProgBase.AbstractMathProgSolver,
-                                          n_s::Int, n::Int = wm.cnw)
+                                          n::Int = wm.cnw)
     function heuristic_cut_callback(cb::MathProgBase.MathProgCallbackData)
         num_nodes_explored = convert(Int, MathProgBase.cbgetexplorednodes(cb))
         resistances = wm.ref[:nw][n][:resistance]
@@ -60,45 +60,33 @@ function heuristic_cut_callback_generator(wm::GenericWaterModel, params::Dict{St
 
             # Set the integer values appropriately.
             for (a, connection) in wm.ref[:nw][n][:connection]
-                segment_selected = false
-                resistance_index = resistance_indices[a]
                 setsolutionvalue(cb, wm.var[:nw][n][:dir][a], q[a] >= 0.0 ? 1 : 0)
+
+                resistance_index = resistance_indices[a]
                 setsolutionvalue(cb, wm.var[:nw][n][:xr][a][resistance_index], 1)
 
                 for r in setdiff(1:length(resistances[a]), [resistance_index])
                     setsolutionvalue(cb, wm.var[:nw][n][:xr][a][r], 0)
-
-                    for k in 1:n_s
-                        setsolutionvalue(cb, wm.var[:nw][n][:xsp][a][k, r], 0)
-                        setsolutionvalue(cb, wm.var[:nw][n][:xsn][a][k, r], 0)
-                    end
                 end
 
-                for k in 1:n_s
-                    if q[a] >= 0.0
-                        qp_ar = wm.var[:nw][n][:qp][a][:, resistance_index]
-                        qp_ark_lb = k > 1 ? getupperbound(qp_ar[k-1]) : 0.0
-                        qp_ark_ub = getupperbound(qp_ar[k])
+                ## Add outer-approximation user cuts.
+                #L_a = connection["length"]
 
-                        if q[a] >= qp_ark_lb && q[a] <= qp_ark_ub && !segment_selected
-                            segment_selected = true
-                            setsolutionvalue(cb, wm.var[:nw][n][:xsp][a][k, resistance_index], 1)
-                        else
-                            setsolutionvalue(cb, wm.var[:nw][n][:xsp][a][k, resistance_index], 0)
-                        end
-                    else
-                        qn_ar = wm.var[:nw][n][:qn][a][:, resistance_index]
-                        qn_ark_lb = k > 1 ? getupperbound(qn_ar[k-1]) : 0.0
-                        qn_ark_ub = getupperbound(qn_ar[k])
-
-                        if -q[a] >= qn_ark_lb && -q[a] <= qn_ark_ub && !segment_selected
-                            segment_selected = true
-                            setsolutionvalue(cb, wm.var[:nw][n][:xsn][a][k, resistance_index], 1)
-                        else
-                            setsolutionvalue(cb, wm.var[:nw][n][:xsn][a][k, resistance_index], 0)
-                        end
-                    end
-                end
+                #if q[a] >= 0.0
+                #    qp = wm.var[:nw][n][:qp][a]
+                #    dhp = wm.var[:nw][n][:dhp][a]
+                #    lhs = compute_q_p_cut(dhp, qp, wm.var[:nw][n][:dir][a],
+                #                          q[a], resistances[a],
+                #                          resistance_index, L_a)
+                #    @usercut(cb, lhs <= 0.0)
+                #else
+                #    qn = wm.var[:nw][n][:qn][a]
+                #    dhn = wm.var[:nw][n][:dhn][a]
+                #    lhs = compute_q_n_cut(dhn, qn, wm.var[:nw][n][:dir][a],
+                #                          -q[a], resistances[a],
+                #                          resistance_index, L_a)
+                #    @usercut(cb, lhs <= 0.0)
+                #end
             end
 
             # Register the solution via the callback.
