@@ -69,24 +69,33 @@ function heuristic_cut_callback_generator(wm::GenericWaterModel, params::Dict{St
                     setsolutionvalue(cb, wm.var[:nw][n][:xr][a][r], 0)
                 end
 
-                ## Add outer-approximation user cuts.
-                #L_a = connection["length"]
+                x_par = wm.var[:nw][n][:x_par][a]
+                lambda_n = wm.var[:nw][n][:lambda_n][a]
+                lambda_p = wm.var[:nw][n][:lambda_p][a]
 
-                #if q[a] >= 0.0
-                #    qp = wm.var[:nw][n][:qp][a]
-                #    dhp = wm.var[:nw][n][:dhp][a]
-                #    lhs = compute_q_p_cut(dhp, qp, wm.var[:nw][n][:dir][a],
-                #                          q[a], resistances[a],
-                #                          resistance_index, L_a)
-                #    @usercut(cb, lhs <= 0.0)
-                #else
-                #    qn = wm.var[:nw][n][:qn][a]
-                #    dhn = wm.var[:nw][n][:dhn][a]
-                #    lhs = compute_q_n_cut(dhn, qn, wm.var[:nw][n][:dir][a],
-                #                          -q[a], resistances[a],
-                #                          resistance_index, L_a)
-                #    @usercut(cb, lhs <= 0.0)
-                #end
+                for r in 1:length(resistances[a])
+                    x_res = wm.var[:nw][n][:xr][a][r]
+                    qn = wm.ref[:nw][n][:qn_bp][a][r]
+                    qp = wm.ref[:nw][n][:qp_bp][a][r]
+
+                    for k in 1:length(qp)-1
+                        if q[a] > 0.0 && r == resistance_indices[a]
+                            if q[a] >= qp[k] && q[a] <= qp[k+1]
+                                setsolutionvalue(cb, x_par[k], 1)
+                                lambda_val = (q[a] - qp[k]) / (qp[k+1] - qp[k])
+                                setsolutionvalue(cb, lambda_p[r, k+1], lambda_val)
+                                setsolutionvalue(cb, lambda_p[r, k], 1.0 - lambda_val)
+                            end
+                        elseif q[a] <= 0.0 && r == resistance_indices[a]
+                            if -q[a] >= qn[k] && -q[a] <= qn[k+1]
+                                setsolutionvalue(cb, x_par[k], 1)
+                                lambda_val = (-q[a] - qn[k]) / (qn[k+1] - qn[k])
+                                setsolutionvalue(cb, lambda_n[r, k+1], lambda_val)
+                                setsolutionvalue(cb, lambda_n[r, k], 1.0 - lambda_val)
+                            end
+                        end
+                    end
+                end
             end
 
             # Register the solution via the callback.

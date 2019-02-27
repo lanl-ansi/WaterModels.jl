@@ -103,7 +103,7 @@ function add_upper_approximation(wm::GenericWaterModel,
                                                  category = :Cont, lowerbound = 0.0,
                                                  upperbound = 1.0, start = 0.0)
 
-        x_par = wm.ref[:nw][n][:x_par][a]
+        x_par = wm.var[:nw][n][:x_par][a]
         lambda_n = wm.var[:nw][n][:lambda_n][a]
         lambda_p = wm.var[:nw][n][:lambda_p][a]
 
@@ -136,13 +136,13 @@ function add_upper_approximation(wm::GenericWaterModel,
             qp = generate_breakpoints(wm.var[:nw][n][:qp][a][r], qp_c, num_breakpoints)
             fp = [R_a[r] * qp[k]^1.852 for k in 1:num_breakpoints]
             f_hat_p += AffExpr(lambda_p[r, :], fp, 0.0)
-            wm.ref[:nw][n][:qp_bp][a] = qn
+            wm.ref[:nw][n][:qp_bp][a][r] = qp
 
             qn_c = max(0.0, getvalue(rwm.var[:nw][n][:qn][a][r]))
             qn = generate_breakpoints(wm.var[:nw][n][:qn][a][r], qn_c, num_breakpoints)
             fn = [R_a[r] * qn[k]^1.852 for k in 1:num_breakpoints]
             f_hat_n += AffExpr(lambda_n[r, :], fn, 0.0)
-            wm.ref[:nw][n][:qn_bp][a] = qn
+            wm.ref[:nw][n][:qn_bp][a][r] = qn
 
             for k in 1:num_breakpoints-1
                 if q[a] > 0.0 && r == r_hat
