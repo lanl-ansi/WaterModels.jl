@@ -13,7 +13,7 @@ function set_initial_solution(wm::GenericWaterModel,
         setvalue.(wm.var[:nw][n][:qn][a], 0.0)
         setvalue(wm.var[:nw][n][:qn][a][resistance_indices[a]], max(0.0, -q[a]))
 
-        dir = q[a] > 0.0 ? 1 : 0
+        dir = q[a] >= 0.0 ? 1 : 0
         setvalue(wm.var[:nw][n][:dir][a], dir)
 
         setvalue.(wm.var[:nw][n][:xr][a], 0)

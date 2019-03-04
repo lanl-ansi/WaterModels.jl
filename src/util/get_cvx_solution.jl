@@ -23,7 +23,9 @@ function get_cvx_solution(wm::GenericWaterModel,
 
     for (a, connection) in wm.ref[:nw][n][:connection]
         # Set the resistance to the selected resistance.
-        selected_resistance = wm.ref[:nw][n][:resistance][a][resistance_indices[a]]
+        resistance_index = resistance_indices[a]
+        resistances = wm.ref[:nw][n][:resistance][a]
+        selected_resistance = resistances[resistance_index]
         network["pipes"][string(a)]["resistance"] = selected_resistance
     end
 
@@ -39,7 +41,6 @@ function get_cvx_solution(wm::GenericWaterModel,
     # Return the solution.
     return q, h
 end
-#end
 
 function get_flow_solution(cvx::GenericWaterModel{T}, n::Int = cvx.cnw) where T <: StandardCVXNLPForm
     # Create a dictionary for the flow solution.
@@ -111,7 +112,7 @@ function check_solution_bounds(wm::GenericWaterModel,
         # Get the selected resistance index for this arc.
         r_a = resistance_indices[a]
 
-        if q[a] >= 0.0
+        if q[a] > 0.0
             # Compute bound satisfaction for flow from i to j.
             q_sat_lb[a] = q[a] >= getlowerbound(wm.var[:nw][n][:qp][a][r_a])
             q_sat_ub[a] = q[a] <= getupperbound(wm.var[:nw][n][:qp][a][r_a])

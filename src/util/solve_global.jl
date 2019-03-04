@@ -8,9 +8,6 @@ design problem. (This is a reproduction of Algorithm 1 in Raghunathan (2013).)
 """
 
 function initialize_models(network_path::String, problem_path::String)
-    # Set the random seed.
-    Random.seed!(1)
-
     # Load the required network data.
     network = WaterModels.parse_file(network_path)
     modifications = WaterModels.parse_file(problem_path)
@@ -26,6 +23,9 @@ end
 
 function solve_global(network_path::String, problem_path::String,
                       nlp_solver::SolverType, mip_solver::SolverType)
+    # Set the random seed.
+    Random.seed!(1)
+
     # Initialize the master MILP and relaxed NLP models.
     (mmilp, rnlp), initialize_models_time = @timed initialize_models(network_path, problem_path)
 
@@ -33,11 +33,12 @@ function solve_global(network_path::String, problem_path::String,
     nothing, eliminate_variables_time = @timed eliminate_variables(mmilp, rnlp, nlp_solver)
 
     # Find an initial solution for the master MILP.
-    resistance_indices, find_initial_solution_time = @timed find_initial_solution(mmilp, 100, 50, 0.85, nlp_solver)
+    resistance_indices, find_initial_solution_time = @timed find_initial_solution(mmilp, 250, 100, 0.90, nlp_solver)
 
     # Set the initial solution.
     nothing, set_initial_solution_time = @timed set_initial_solution(mmilp, resistance_indices, nlp_solver)
-    objective_initial = best_objective = compute_objective(mmilp, resistance_indices)
+    best_objective = compute_objective(mmilp, resistance_indices)
+    objective_initial = best_objective
 
     # Tighten bounds.
     nothing, bound_tightening_time = @timed bound_tightening(mmilp, rnlp, best_objective, 2, nlp_solver)
@@ -55,7 +56,6 @@ function solve_global(network_path::String, problem_path::String,
                                "Beta_oa" => 5.0, "K_oa" => 1.0e-3,
                                "max_repair_iters" => 50,
                                "M_oa" => 5.0, "epsilon" => 1.0e-6)
-
 
     # Set the solver for the problem and add the required callbacks.
     user_cut_callback = user_cut_callback_generator(mmilp, params, nlp_solver)
