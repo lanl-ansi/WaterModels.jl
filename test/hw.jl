@@ -1,10 +1,10 @@
-@testset "Hazen-Williams MINLP Problems" begin
-    #@testset "Shamir network (physical feasibility, relaxation)." begin
-    #    network_path = "../test/data/epanet/shamir.inp"
-    #    solution = run_wf_hw(network_path, MINLPWaterModel, pavito)
-    #    status = solution["status"]
-    #    @test status == :LocalOptimal || status == :Optimal
-    #end
+@testset "Hazen-Williams CVXNLP Problems" begin
+    @testset "Shamir network (physical feasibility)." begin
+        network_path = "../test/data/epanet/shamir.inp"
+        solution = run_wf(network_path, CVXNLPWaterModel, ipopt_solver, alpha = 1.852)
+        #status = solution["status"]
+        #@test status == :LocalOptimal || status == :Optimal
+    end
 
     #@testset "Shamir network (diameter selection (reduced), relaxation)." begin
     #    network_path = "../test/data/epanet/shamir.inp"
@@ -24,12 +24,12 @@
     #    @test status == :LocalOptimal || status == :Optimal
     #end
 
-    @testset "Shamir network (diameter selection, global algorithm)." begin
-        network_path = "/home/btasseff/Data/WaterModels.jl/epanet/hanoi.inp"
-        modification_path = "/home/btasseff/Data/WaterModels.jl/json/hanoi.json"
-        status = solve_global(network_path, modification_path, ipopt, glpk)
-        @test status == :LocalOptimal || status == :Optimal
-    end
+    #@testset "Shamir network (diameter selection, global algorithm)." begin
+    #    network_path = "/Users/tasseff/Data/WaterModels.jl/epanet/hanoi.inp"
+    #    modification_path = "/Users/tasseff/Data/WaterModels.jl/json/hanoi.json"
+    #    status = solve_global(network_path, modification_path, ipopt, glpk)
+    #    @test status == :LocalOptimal || status == :Optimal
+    #end
 end
 
 #@testset "Hazen-Williams NLP Problems" begin

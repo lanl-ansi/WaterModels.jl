@@ -15,8 +15,8 @@ const MILPRWaterModel = GenericWaterModel{StandardMILPRForm}
 MILPRWaterModel(data::Dict{String, Any}; kwargs...) = GenericWaterModel(data, StandardMILPRForm; kwargs...)
 
 "Return values that approximate the Hazen-Williams head loss constraint."
-function construct_hw_separators(q::JuMP.Variable, lambda::Float64, n::Int = 3)
-    q_points = LinRange(getlowerbound(q), getupperbound(q), n)
+function construct_hw_separators(q::JuMP.VariableRef, lambda::Float64, n::Int = 3)
+    q_points = LinRange(lower_bound(q), upper_bound(q), n)
     f_evals = [lambda * (x^2)^0.926 for x in q_points]
     df_evals = [lambda * 1.852*x / (x^2)^0.074 for x in q_points]
     nan_indices = findall(isnan, df_evals)
@@ -25,24 +25,21 @@ function construct_hw_separators(q::JuMP.Variable, lambda::Float64, n::Int = 3)
 end
 
 "Return values that approximate the Darcy-Weisbach head loss constraint."
-function construct_dw_separators(q::JuMP.Variable, lambda::Float64, n::Int = 3)
-    q_points = LinRange(getlowerbound(q), getupperbound(q), n)
+function construct_dw_separators(q::JuMP.VariableRef, lambda::Float64, n::Int = 3)
+    q_points = LinRange(lower_bound(q), upper_bound(q), n)
     f_evals = [lambda * x^2 for x in q_points]
     df_evals = [2.0 * lambda * x for x in q_points]
     return [f_evals[i] + (q - q_points[i]) * df_evals[i] for i in 1:n]
 end
 
-function constraint_potential_loss_segmented(wm::GenericWaterModel{T}, a::Int, n_n::Int, n_s::Int) where T <: StandardMILPRForm
-end
-
 function constraint_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int = wm.cnw) where T <: StandardMILPRForm
     if !haskey(wm.con[:nw][n], :potential_loss_1)
-        wm.con[:nw][n][:potential_loss_1] = Dict{Int, Dict{Int, ConstraintRef}}()
-        wm.con[:nw][n][:potential_loss_2] = Dict{Int, Dict{Int, ConstraintRef}}()
+        wm.con[:nw][n][:potential_loss_1] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
+        wm.con[:nw][n][:potential_loss_2] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
     end
 
-    wm.con[:nw][n][:potential_loss_1][a] = Dict{Int, ConstraintRef}()
-    wm.con[:nw][n][:potential_loss_2][a] = Dict{Int, ConstraintRef}()
+    wm.con[:nw][n][:potential_loss_1][a] = Dict{Int, JuMP.ConstraintRef}()
+    wm.con[:nw][n][:potential_loss_2][a] = Dict{Int, JuMP.ConstraintRef}()
 
     dhp = wm.var[:nw][n][:dhp][a]
     dhn = wm.var[:nw][n][:dhn][a]
@@ -132,7 +129,7 @@ end
 #    @constraint(wm.model, gamma_sum == sum(wm.var[:nw][n][:gamma][a]))
 #
 #    # Compute the number of separators assuming intervals of 0.01.
-#    q_diff = getupperbound(q) - getlowerbound(q)
+#    q_diff = upper_bound(q) - lower_bound(q)
 #    #num_separators = max(3, Int(1 + ceil(q_diff / 0.01)))
 #    num_separators = 250
 #

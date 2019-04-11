@@ -78,12 +78,13 @@ function parse_epanet(path::String)
     section = headings = nothing
     headings_exist = false
     epanet_dict = get_sections(lines)
+    dict = Dict{String, Any}()
 
     # Parse important options first.
     options = parse_options(epanet_dict["options"])
+    dict["options"] = Dict{String, String}("headloss" => options["headloss"])
 
     # Parse relevant data into a more structured format.
-    dict = Dict{String, Any}()
     dict["title"] = parse_title(epanet_dict["title"])
     dict["junctions"] = parse_junctions(epanet_dict["junctions"], options)
     dict["pipes"] = parse_pipes(epanet_dict["pipes"], options)

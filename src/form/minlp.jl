@@ -11,62 +11,29 @@ const MINLPWaterModel = GenericWaterModel{StandardMINLPForm}
 "Default MINLP constructor."
 MINLPWaterModel(data::Dict{String,Any}; kwargs...) = GenericWaterModel(data, StandardMINLPForm; kwargs...)
 
-function constraint_potential_loss_segmented(wm::GenericWaterModel{T}, a::Int, n_n::Int, n_s::Int) where T <: StandardMINLPForm
-    if !haskey(wm.con[:nw][n_n], :potential_loss_1)
-        function_head_loss_hw(wm) # Register the head loss JuMP function.
-        wm.con[:nw][n_n][:potential_loss_1] = Dict{Int, Dict{Int, Dict{Int, ConstraintRef}}}()
-        wm.con[:nw][n_n][:potential_loss_2] = Dict{Int, Dict{Int, Dict{Int, ConstraintRef}}}()
+function constraint_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int) where T <: StandardMINLPForm
+    if !haskey(wm.con[:nw][n], :potential_loss_1)
+        wm.con[:nw][n][:potential_loss_1] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
+        wm.con[:nw][n][:potential_loss_2] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
     end
 
-    wm.con[:nw][n_n][:potential_loss_1][a] = Dict{Int, Dict{Int, ConstraintRef}}()
-    wm.con[:nw][n_n][:potential_loss_2][a] = Dict{Int, Dict{Int, ConstraintRef}}()
+    wm.con[:nw][n][:potential_loss_1][a] = Dict{Int, JuMP.ConstraintRef}()
+    wm.con[:nw][n][:potential_loss_2][a] = Dict{Int, JuMP.ConstraintRef}()
 
-    dhp = wm.var[:nw][n_n][:dhp][a]
-    dhn = wm.var[:nw][n_n][:dhn][a]
-    L = wm.ref[:nw][n_n][:connection][a]["length"]
+    dhp = wm.var[:nw][n][:dhp][a]
+    dhn = wm.var[:nw][n][:dhn][a]
+    L = wm.ref[:nw][n][:connection][a]["length"]
 
-    for k in 1:n_s
-        wm.con[:nw][n_n][:potential_loss_1][a][k] = Dict{Int, ConstraintRef}()
-        wm.con[:nw][n_n][:potential_loss_2][a][k] = Dict{Int, ConstraintRef}()
+    for r in 1:length(wm.ref[:nw][n][:resistance][a])
+        q_n_a_r = wm.var[:nw][n][:qn][a][r]
+        q_p_a_r = wm.var[:nw][n][:qp][a][r]
+        resistance = wm.ref[:nw][n][:resistance][a][r]
 
-        for r in 1:length(wm.ref[:nw][n_n][:resistance][a])
-            q_n_akr = wm.var[:nw][n_n][:qn][a][k, r]
-            q_p_akr = wm.var[:nw][n_n][:qp][a][k, r]
-            resistance = wm.ref[:nw][n_n][:resistance][a][r]
+        con_1 = JuMP.@NLconstraint(wm.model, dhp / L >= resistance * f_alpha(q_p_a_r))
+        wm.con[:nw][n][:potential_loss_1][a][r] = con_1
 
-            con_1 = @NLconstraint(wm.model, dhn / L >= resistance * head_loss_hw(q_n_akr))
-            wm.con[:nw][n_n][:potential_loss_1][a][k][r] = con_1
-
-            con_2 = @NLconstraint(wm.model, dhp / L >= resistance * head_loss_hw(q_p_akr))
-            wm.con[:nw][n_n][:potential_loss_2][a][k][r] = con_2
-        end
-    end
-end
-
-function constraint_potential_loss(wm::GenericWaterModel{T}, a::Int, n_n::Int) where T <: StandardMINLPForm
-    if !haskey(wm.con[:nw][n_n], :potential_loss_1)
-        function_head_loss_hw(wm) # Register the head loss JuMP function.
-        wm.con[:nw][n_n][:potential_loss_1] = Dict{Int, Dict{Int, ConstraintRef}}()
-        wm.con[:nw][n_n][:potential_loss_2] = Dict{Int, Dict{Int, ConstraintRef}}()
-    end
-
-    wm.con[:nw][n_n][:potential_loss_1][a] = Dict{Int, ConstraintRef}()
-    wm.con[:nw][n_n][:potential_loss_2][a] = Dict{Int, ConstraintRef}()
-
-    dhp = wm.var[:nw][n_n][:dhp][a]
-    dhn = wm.var[:nw][n_n][:dhn][a]
-    L = wm.ref[:nw][n_n][:connection][a]["length"]
-
-    for r in 1:length(wm.ref[:nw][n_n][:resistance][a])
-        q_n_r = wm.var[:nw][n_n][:qn][a][r]
-        q_p_r = wm.var[:nw][n_n][:qp][a][r]
-        resistance = wm.ref[:nw][n_n][:resistance][a][r]
-
-        con_1 = @NLconstraint(wm.model, dhp / L >= resistance * head_loss_hw(q_p_r))
-        wm.con[:nw][n_n][:potential_loss_1][a][r] = con_1
-
-        con_2 = @NLconstraint(wm.model, dhn / L >= resistance * head_loss_hw(q_n_r))
-        wm.con[:nw][n_n][:potential_loss_2][a][r] = con_2
+        con_2 = JuMP.@NLconstraint(wm.model, dhn / L >= resistance * f_alpha(q_n_a_r))
+        wm.con[:nw][n][:potential_loss_2][a][r] = con_2
     end
 end
 

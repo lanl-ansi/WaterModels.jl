@@ -1,35 +1,28 @@
-function head_loss_integrated_hw_func(x)
-    return (250.0 * x * (x^2)^(463.0 / 500.0)) / 713.0
+###############################################################################
+# This file defines the nonlinear head loss functions for water systems models.
+###############################################################################
+
+function if_alpha(alpha::Float64)
+    return function(x::Float64) return inv(2.0 + alpha) * (x*x)^(1.0 + 0.5*alpha) end
 end
 
-function head_loss_hw_func(x)
-    return (x^2)^(0.926)
+function f_alpha(alpha::Float64)
+    # Stable version of x * abs(x)^(alpha)
+    return function(x::Float64) return x >= 0.0 ? (x*x)^alpha : -(x*x)^alpha end
 end
 
-function head_loss_hw_prime(x)
-    if x > 0.0
-        return (463.0 * x) / (250.0 * (x^2)^(37.0 / 500.0))
-    else
-        return 0.0
-    end
+function df_alpha(alpha::Float64)
+    return function(x::Float64) return (1.0 + alpha) * (x*x)^(0.5*alpha) end
 end
 
-function head_loss_hw_prime_prime(x)
-    if x > 0.0
-        return 463.0 / (250.0 * (x^2)^(37.0 / 500.0)) -
-               (17131.0*x^2) / (62500.0*(x^2)^(537.0 / 500.0))
-    else
-        return 0.0
-    end
+function d2f_alpha(alpha::Float64)
+    return function(x::Float64) return x >= 0.0 ? alpha * (1.0 + alpha) * (x*x)^(0.5*alpha - 0.5) : -alpha * (1.0 + alpha) * (x*x)^(0.5*alpha - 0.5) end
 end
 
-function function_head_loss_hw(wm::GenericWaterModel, n::Int = wm.cnw)
-    JuMP.register(wm.model, :head_loss_hw, 1, head_loss_hw_func,
-                  head_loss_hw_prime, head_loss_hw_prime_prime)
+function function_f_alpha(wm::GenericWaterModel, alpha::Float64)
+    JuMP.register(wm.model, :f_alpha, 1, f_alpha(alpha), df_alpha(alpha), d2f_alpha(alpha))
 end
 
-function function_head_loss_integrated_hw(wm::GenericWaterModel, n::Int = wm.cnw)
-    JuMP.register(wm.model, :head_loss_integrated_hw, 1,
-                  head_loss_integrated_hw_func,
-                  head_loss_hw_func, head_loss_hw_prime)
+function function_if_alpha(wm::GenericWaterModel, alpha::Float64)
+    JuMP.register(wm.model, :if_alpha, 1, if_alpha(alpha), f_alpha(alpha), df_alpha(alpha))
 end

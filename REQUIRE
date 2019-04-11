@@ -1,6 +1,6 @@
-julia 0.7
+julia 1.0
 InfrastructureModels
 JSON
-JuMP
-MathProgBase
+JuMP 0.19
+MathOptInterface
 Memento

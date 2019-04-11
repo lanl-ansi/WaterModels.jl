@@ -1,4 +1,3 @@
-GLPK
-GLPKMathProgInterface
+julia 1.0
+Cbc
 Ipopt
-Pavito
