@@ -7,15 +7,8 @@ end
 
 function get_post_wf(alpha::Float64; kwargs...)
     return function (wm::GenericWaterModel{T}; kwargs...) where T <: StandardCVXNLPForm
-        function_f_alpha(wm, alpha)
         function_if_alpha(wm, alpha)
-
         variable_directed_flow(wm)
-        variable_wf_objective_term(wm)
-
-        for a in collect(ids(wm, :connection))
-            constraint_wf_objective_term(wm, a)
-        end
 
         for i in collect(ids(wm, :junctions))
             constraint_directed_flow_conservation(wm, i)
@@ -24,18 +17,6 @@ function get_post_wf(alpha::Float64; kwargs...)
         objective_wf(wm)
     end
 end
-#
-#function post_wf(wm::GenericWaterModel; kwargs...)
-#    function_f_alpha(wm, alpha = alpha)
-#    function_if_alpha(wm, alpha = alpha)
-#
-#
-#    #for i in collect(ids(wm, :junctions))
-#    #    constraint_directed_flow_conservation(wm, i)
-#    #end
-#
-#    #objective_cvx(wm)
-#end
 
 #function post_wf_hw(wm::GenericWaterModel; kwargs...)
 #    variable_head(wm)
@@ -56,23 +37,4 @@ end
 #    for i in collect(ids(wm, :junctions))
 #        constraint_directed_flow_conservation(wm, i)
 #    end
-#end
-#
-#function post_wf_dw(wm::GenericWaterModel; kwargs...)
-#    #variable_flow(wm)
-#    #variable_head(wm)
-#
-#    #for i in [collect(ids(wm, :junctions)); collect(ids(wm, :reservoirs))]
-#    #    constraint_junction_mass_flow(wm, i)
-#    #end
-#
-#    #for a in collect(ids(wm, :connection_unknown_direction))
-#    #    constraint_dw_unknown_direction(wm, a)
-#    #end
-#
-#    #for a in collect(ids(wm, :connection_known_direction))
-#    #    constraint_dw_known_direction(wm, a)
-#    #end
-#
-#    #objective_dummy(wm)
 #end

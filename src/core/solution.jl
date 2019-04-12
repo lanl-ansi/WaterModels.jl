@@ -31,6 +31,7 @@ function build_solution(wm::GenericWaterModel, status, solve_time; objective = N
     memory = Sys.total_memory()
 
     solution = Dict{String,Any}(
+        "termination_status" => JuMP.termination_status(wm.model),
         "primal_status" => JuMP.primal_status(wm.model),
         "dual_status" => JuMP.dual_status(wm.model),
         "objective_value" => JuMP.objective_value(wm.model),

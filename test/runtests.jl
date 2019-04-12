@@ -11,11 +11,15 @@ import Ipopt
 import JuMP
 import JSON
 
+import MathOptInterface
+const MOI = MathOptInterface
+const MOIU = MathOptInterface.Utilities
+
 using Test
 
 # default setup for optimizers
-ipopt = JuMP.with_optimizer(Ipopt.Optimizer, tol=1.0e-9, print_level=5)
-cbc = JuMP.with_optimizer(Cbc.Optimizer, logLevel=1)
+const ipopt = JuMP.with_optimizer(Ipopt.Optimizer, tol=1.0e-9, print_level=5)
+const cbc = JuMP.with_optimizer(Cbc.Optimizer, logLevel=1)
 
 @testset "WaterModels" begin
 
