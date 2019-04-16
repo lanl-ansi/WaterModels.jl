@@ -22,7 +22,7 @@ function constraint_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int) whe
 
     dhp = wm.var[:nw][n][:dhp][a]
     dhn = wm.var[:nw][n][:dhn][a]
-    L = wm.ref[:nw][n][:connection][a]["length"]
+    L = wm.ref[:nw][n][:links][a]["length"]
 
     for r in 1:length(wm.ref[:nw][n][:resistance][a])
         q_n_a_r = wm.var[:nw][n][:qn][a][r]

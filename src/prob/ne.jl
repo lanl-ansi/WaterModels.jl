@@ -1,12 +1,12 @@
 export run_ne
 
-function run_ne(file, model_constructor, optimizer; kwargs...)
+function run_ne(network, model_constructor, optimizer; kwargs...)
     post_ne = get_post_ne(kwargs[:alpha]; kwargs...)
-    return run_generic_model(file, model_constructor, optimizer, post_ne; kwargs...)
+    return run_generic_model(network, model_constructor, optimizer, post_ne; kwargs...)
 end
 
 function get_post_ne(alpha::Float64; kwargs...)
-    function post_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <: AbstractRelaxedForm
+    function (wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <: Union{StandardMILPRForm}
         if T == StandardMINLPForm
             function_f_alpha(wm, alpha)
         end
@@ -18,15 +18,15 @@ function get_post_ne(alpha::Float64; kwargs...)
         variable_flow_direction(wm, n)
         variable_resistance(wm, n)
 
-        for a in collect(ids(wm, :connection))
-            constraint_select_resistance(wm, a, n)
-            constraint_select_flow_term(wm, a, n)
+        for (a, arc) in wm.ref[:nw][n][:links]
+            constraint_resistance_selection(wm, a, n)
+            constraint_flow_direction_selection(wm, a, n)
             constraint_head_difference(wm, a, n)
             constraint_potential_loss(wm, a, n)
             constraint_potential_loss_slope(wm, a, n)
         end
 
-        for i in collect(ids(wm, :reservoirs))
+        for (i, reservoir) in wm.ref[:nw][n][:reservoirs]
             constraint_source_flow(wm, i)
         end
 

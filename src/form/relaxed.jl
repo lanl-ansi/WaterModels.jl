@@ -3,20 +3,20 @@ AbstractRelaxedForm = Union{AbstractMICPForm, AbstractMILPRForm}
 
 "Create variables associated with the head difference for the MICP and MILP-R problems."
 function variable_absolute_head_difference(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: AbstractRelaxedForm
-    connection_ids = collect(ids(wm, :connection_unknown_direction))
-    gamma_lb = Dict([(id, 0.0) for id in connection_ids])
-    gamma_ub = Dict([(id, Inf) for id in connection_ids])
+    link_ids = collect(ids(wm, :link_unknown_direction))
+    gamma_lb = Dict([(id, 0.0) for id in link_ids])
+    gamma_ub = Dict([(id, Inf) for id in link_ids])
 
-    for (id, connection) in wm.ref[:nw][n][:connection_unknown_direction]
-        h_i = wm.var[:nw][n][:h][parse(Int, connection["node1"])]
-        h_j = wm.var[:nw][n][:h][parse(Int, connection["node2"])]
+    for (id, link) in wm.ref[:nw][n][:link_unknown_direction]
+        h_i = wm.var[:nw][n][:h][link["node1"]]
+        h_j = wm.var[:nw][n][:h][link["node2"]]
         diff_ub = getupperbound(h_i) - getlowerbound(h_j)
         diff_lb = getlowerbound(h_i) - getupperbound(h_j)
         gamma_ub[id] = max(abs(diff_lb), abs(diff_ub))
     end
 
     # Create variables that correspond to the absolute value of the head difference.
-    wm.var[:nw][n][:gamma] = @variable(wm.model, [id in connection_ids],
+    wm.var[:nw][n][:gamma] = @variable(wm.model, [id in link_ids],
                                        start = gamma_ub[id],
                                        lowerbound = gamma_lb[id],
                                        upperbound = gamma_ub[id],
@@ -26,16 +26,16 @@ end
 #"Create variables associated with flow directions for the MICP and MILP-R problems."
 #function variable_flow_direction(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: AbstractRelaxedForm
 #    # Create variables that correspond to flow moving from i to j.
-#    connection_ids = collect(ids(wm, :connection_unknown_direction))
-#    wm.var[:nw][n][:yp] = @variable(wm.model, [a in connection_ids], start = 1,
+#    link_ids = collect(ids(wm, :link_unknown_direction))
+#    wm.var[:nw][n][:yp] = @variable(wm.model, [a in link_ids], start = 1,
 #                                    category = :Bin, basename = "yp_$(n)")
-#    wm.var[:nw][n][:yn] = @variable(wm.model, [a in connection_ids], start = 0,
+#    wm.var[:nw][n][:yn] = @variable(wm.model, [a in link_ids], start = 0,
 #                                    category = :Bin, basename = "yn_$(n)")
 #
 #    # Fix these variables if the head bounds imply they can be fixed.
-#    for (id, connection) in wm.ref[:nw][n][:connection_unknown_direction]
-#        h_i = wm.var[:nw][n][:h][parse(Int, connection["node1"])]
-#        h_j = wm.var[:nw][n][:h][parse(Int, connection["node2"])]
+#    for (id, link) in wm.ref[:nw][n][:link_unknown_direction]
+#        h_i = wm.var[:nw][n][:h][parse(Int, link["node1"])]
+#        h_j = wm.var[:nw][n][:h][parse(Int, link["node2"])]
 #        diff_lb = getlowerbound(h_i) - getupperbound(h_j)
 #        diff_ub = getupperbound(h_i) - getlowerbound(h_j)
 #
@@ -93,8 +93,8 @@ function variable_pipe_ne(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: 
                                             start = 0)
 
         # Compute the lower and upper bounds for the head difference.
-        h_i = wm.var[:nw][n][:h][parse(Int, pipe["node1"])]
-        h_j = wm.var[:nw][n][:h][parse(Int, pipe["node2"])]
+        h_i = wm.var[:nw][n][:h][pipe["node1"]]
+        h_j = wm.var[:nw][n][:h][pipe["node2"]]
         diff_lb = getlowerbound(h_i) - getupperbound(h_j)
         diff_ub = getupperbound(h_i) - getlowerbound(h_j)
 
@@ -219,7 +219,7 @@ function set_initial_solution_ne(wm::GenericWaterModel{T}, wm_solved::GenericWat
 
     objective_value = 0.0
 
-    for ij in collect(ids(wm, :connection))
+    for ij in collect(ids(wm, :link))
         i = parse(Int, wm_solved.ref[:nw][wm_solved.cnw][:pipes][ij]["node1"])
         j = parse(Int, wm_solved.ref[:nw][wm_solved.cnw][:pipes][ij]["node2"])
         q_ij_sol = getvalue(wm_solved.var[:nw][wm_solved.cnw][:q][ij])
@@ -267,17 +267,17 @@ function set_initial_solution_from_cvx(wm::GenericWaterModel{T}, cvx::GenericWat
     num_junctions = length(cvx.ref[:nw][cvx.cnw][:junctions])
     num_reservoirs = length(cvx.ref[:nw][cvx.cnw][:reservoirs])
     num_nodes = num_junctions + num_reservoirs
-    num_arcs = length(cvx.ref[:nw][cvx.cnw][:connection])
+    num_arcs = length(cvx.ref[:nw][cvx.cnw][:links])
     A = zeros(Float64, num_arcs + num_reservoirs, num_nodes)
     b = zeros(Float64, num_arcs + num_reservoirs, 1)
 
-    for (a, connection) in cvx.ref[:nw][cvx.cnw][:connection]
-        A[a, parse(Int, connection["node1"])] = 1
-        A[a, parse(Int, connection["node2"])] = -1
+    for (a, link) in cvx.ref[:nw][cvx.cnw][:links]
+        A[a, link["node1"]] = 1
+        A[a, link["node2"]] = -1
         q_p = getvalue(cvx.var[:nw][cvx.cnw][:qp][a])
         q_n = getvalue(cvx.var[:nw][cvx.cnw][:qn][a])
-        r = calc_resistance_per_length_hw(connection)
-        b[a] = connection["length"] * r * (q_p - q_n)
+        r = calc_resistance_per_length_hw(link)
+        b[a] = link["length"] * r * (q_p - q_n)
     end
 
     k = 1
@@ -301,19 +301,19 @@ function set_initial_solution_from_cvx(wm::GenericWaterModel{T}, cvx::GenericWat
 
     q_sol = Dict{Int, Float64}()
 
-    for (ij, connection) in wm.ref[:nw][wm.cnw][:connection]
+    for (ij, link) in wm.ref[:nw][wm.cnw][:links]
         i = parse(Int, cvx.ref[:nw][cvx.cnw][:pipes][ij]["node1"])
         j = parse(Int, cvx.ref[:nw][cvx.cnw][:pipes][ij]["node2"])
         q_p_ij = getvalue(cvx.var[:nw][cvx.cnw][:qp][ij])
         q_n_ij = getvalue(cvx.var[:nw][cvx.cnw][:qn][ij])
         q_sol[ij] = q_p_ij - q_n_ij
-        L = connection["length"]
-        r = calc_resistance_per_length_hw(connection)
+        L = link["length"]
+        r = calc_resistance_per_length_hw(link)
     end
 
     objective_value = 0.0
 
-    for ij in collect(ids(wm, :connection))
+    for ij in collect(ids(wm, :link))
         i = parse(Int, cvx.ref[:nw][cvx.cnw][:pipes][ij]["node1"])
         j = parse(Int, cvx.ref[:nw][cvx.cnw][:pipes][ij]["node2"])
 
@@ -383,7 +383,7 @@ function constraint_junction_mass_flow(wm::GenericWaterModel{T}, i::Int, n::Int 
         constraint_sink_flow(wm, i, n)
     end
 
-    node_degree = length(wm.ref[:nw][n][:junction_connections][i])
+    node_degree = length(wm.ref[:nw][n][:junction_links][i])
     if !is_reservoir && !has_demand && node_degree == 2
         constraint_degree_two(wm, i, n)
     end
@@ -409,13 +409,13 @@ function constraint_degree_two(wm::GenericWaterModel{T}, idx, n::Int = wm.cnw) w
     first = nothing
     last = nothing
 
-    for i in wm.ref[:nw][n][:junction_connections][idx]
-        connection = wm.ref[:nw][n][:connection][i]
+    for i in wm.ref[:nw][n][:junction_links][idx]
+        link = wm.ref[:nw][n][:links][i]
 
-        if parse(Int, connection["node1"]) == idx
-            other = parse(Int, connection["node2"])
+        if parse(Int, link["node1"]) == idx
+            other = link["node2"]
         else
-            other = parse(Int, connection["node1"])
+            other = link["node1"]
         end
 
         if first == nothing
@@ -429,10 +429,10 @@ function constraint_degree_two(wm::GenericWaterModel{T}, idx, n::Int = wm.cnw) w
         end
     end
 
-    yp_first = filter(i -> parse(Int, wm.ref[:nw][n][:connection][i]["node1"]) == first, wm.ref[:nw][n][:junction_connections][idx])
-    yn_first = filter(i -> parse(Int, wm.ref[:nw][n][:connection][i]["node2"]) == first, wm.ref[:nw][n][:junction_connections][idx])
-    yp_last  = filter(i -> parse(Int, wm.ref[:nw][n][:connection][i]["node2"]) == last,  wm.ref[:nw][n][:junction_connections][idx])
-    yn_last  = filter(i -> parse(Int, wm.ref[:nw][n][:connection][i]["node1"]) == last,  wm.ref[:nw][n][:junction_connections][idx])
+    yp_first = filter(i -> wm.ref[:nw][n][:links][i]["node1"] == first, wm.ref[:nw][n][:junction_links][idx])
+    yn_first = filter(i -> wm.ref[:nw][n][:links][i]["node2"] == first, wm.ref[:nw][n][:junction_links][idx])
+    yp_last  = filter(i -> wm.ref[:nw][n][:links][i]["node2"] == last,  wm.ref[:nw][n][:junction_links][idx])
+    yn_last  = filter(i -> wm.ref[:nw][n][:links][i]["node1"] == last,  wm.ref[:nw][n][:junction_links][idx])
 
     yp = wm.var[:nw][n][:yp]
     yn = wm.var[:nw][n][:yn]

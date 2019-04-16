@@ -19,7 +19,7 @@ end
 
 function variable_head_difference(wm::GenericWaterModel, n::Int=wm.cnw)
     # Get indices for all network arcs.
-    arcs = collect(ids(wm, n, :connection))
+    arcs = collect(ids(wm, n, :links))
 
     # Get the bounds for the head difference variables.
     lbs, ubs = calc_head_difference_bounds(wm, n)
@@ -37,7 +37,7 @@ end
 
 function variable_flow_direction(wm::GenericWaterModel, n::Int=wm.cnw)
     # Get indices for all network arcs.
-    arcs = collect(ids(wm, n, :connection))
+    arcs = collect(ids(wm, n, :links))
 
     # Initialize variables associated with flow direction. If this variable is
     # equal to one, the flow direction is from i to j. If it is equal to zero,
@@ -47,7 +47,7 @@ function variable_flow_direction(wm::GenericWaterModel, n::Int=wm.cnw)
 
     # Fix direction bounds if they can be fixed.
     dh_lbs, dh_ubs = calc_head_difference_bounds(wm, n)
-    for (a, connection) in wm.ref[:nw][n][:connection]
+    for (a, link) in wm.ref[:nw][n][:links]
         #if (dh_lbs[a] >= 0.0)
         #    JuMP.fix(wm.var[:nw][n][:dir][a], 1)
         #elseif (dh_ubs[a] <= 0.0)
@@ -56,16 +56,24 @@ function variable_flow_direction(wm::GenericWaterModel, n::Int=wm.cnw)
     end
 end
 
+function variable_undirected_flow(wm::GenericWaterModel, n::Int=wm.cnw)
+    # Get indices for all network arcs.
+    links = collect(ids(wm, n, :links))
+
+    wm.var[:nw][n][:q] = JuMP.@variable(wm.model, [a in links], start=0.0,
+                                        base_name="q[$(n)]")
+end
+
 function variable_resistance(wm::GenericWaterModel, n::Int=wm.cnw)
     # Get indices for all network arcs.
-    arcs = collect(ids(wm, n, :connection))
+    arcs = collect(ids(wm, n, :links))
 
     # Initialize variables associated with flow direction. If this variable is
     # equal to one, the flow direction is from i to j. If it is equal to zero,
     # the flow direction is from j to i.
     wm.var[:nw][n][:xr] = Dict{Int, Array{JuMP.VariableRef, 1}}()
 
-    for (a, connection) in wm.ref[:nw][n][:connection]
+    for (a, link) in wm.ref[:nw][n][:links]
         R_a = wm.ref[:nw][n][:resistance][a]
 
         wm.var[:nw][n][:xr][a] = JuMP.@variable(wm.model, [r in 1:length(R_a)],
@@ -78,7 +86,7 @@ end
 
 ##function variable_directed_flow(wm::GenericWaterModel, n::Int = wm.cnw) where T <: StandardMINLPForm
 ##    # Get indices for all network arcs.
-##    arcs = collect(ids(wm, n, :connection))
+##    arcs = collect(ids(wm, n, :link))
 ##
 ##    # Compute sets of resistances.
 ##    ub_n, ub_p = calc_directed_flow_upper_bounds(wm, n)
@@ -88,7 +96,7 @@ end
 ##    wm.var[:nw][n][:qp] = Dict{Int, Array{Variable, 1}}()
 ##    wm.var[:nw][n][:qn] = Dict{Int, Array{Variable, 1}}()
 ##
-##    for (a, connection) in wm.ref[:nw][n][:connection]
+##    for (a, link) in wm.ref[:nw][n][:links]
 ##        R_a = wm.ref[:nw][n][:resistance][a]
 ##
 ##        # Initialize variables associated with flow from i to j.

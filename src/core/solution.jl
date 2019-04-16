@@ -18,13 +18,13 @@ function build_solution(wm::GenericWaterModel, status, solve_time; objective = N
             wm.cnw = parse(Int, n)
             solution_builder(wm, sol_nw)
             data_nws[n] = Dict("name" => get(nw_data, "name", "anonymous"),
-                               "bus_count" => length(nw_data["bus"]),
-                               "branch_count" => length(nw_data["branch"]))
+                               "link_count" => length(wm[:ref][n][:links]),
+                               "node_count" => length(wm[:ref][n][:nodes]))
         end
     else
         solution_builder(wm, sol)
-        #data["bus_count"] = length(wm.data["bus"])
-        #data["branch_count"] = length(wm.data["branch"])
+        data["link_count"] = length(wm.ref[:nw][wm.cnw][:links])
+        data["node_count"] = length(wm.ref[:nw][wm.cnw][:nodes])
     end
 
     cpu = Sys.cpu_info()[1].model
@@ -41,7 +41,6 @@ function build_solution(wm::GenericWaterModel, status, solve_time; objective = N
         "data" => data)
 
     wm.solution = solution
-
     return solution
 end
 
@@ -53,6 +52,7 @@ end
 
 ""
 function get_solution(wm::GenericWaterModel, sol::Dict{String,<:Any})
+    add_pipe_flow_setpoint(sol, wm)
     #add_bus_voltage_setpoint(sol, wm)
     #add_generator_power_setpoint(sol, wm)
     #add_storage_setpoint(sol, wm)
@@ -61,6 +61,43 @@ function get_solution(wm::GenericWaterModel, sol::Dict{String,<:Any})
 
     #add_kcl_duals(sol, wm)
     #add_sm_duals(sol, wm) # Adds the duals of the transmission lines' thermal limits.
+end
+
+function add_pipe_flow_setpoint(sol, wm::GenericWaterModel)
+    add_setpoint(sol, wm, "pipes", "q", :q)
+end
+
+"adds values based on JuMP variables"
+function add_setpoint(sol::Dict{String, Any}, wm::GenericWaterModel,
+                      dict_name::String, param_name::String,
+                      variable_symbol::Symbol; index_name::String="id",
+                      default_value=(item) -> NaN, scale=(x, item) -> x,
+                      extract_var=(var, idx, item) -> var[idx],
+                      sol_dict=get(sol, dict_name, Dict{String, Any}()))
+    if InfrastructureModels.ismultinetwork(wm.data)
+        data_dict = wm.data["nw"]["$(wm.cnw)"][dict_name]
+    else
+        data_dict = wm.data[dict_name]
+    end
+
+    if length(data_dict) > 0
+        sol[dict_name] = sol_dict
+    end
+
+    for (i, item) in data_dict
+        idx = parse(Int, item[index_name])
+        sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
+        sol_item[param_name] = default_value(item)
+
+        try
+            variable = extract_var(var(wm, wm.cnw, variable_symbol), idx, item)
+            sol_item[param_name] = scale(JuMP.value(variable), item, 1)
+        catch
+        end
+
+
+        sol_item[param_name] = sol_item[param_name][1]
+    end
 end
 
 #function build_solution(wm::GenericWaterModel, status, solve_time;

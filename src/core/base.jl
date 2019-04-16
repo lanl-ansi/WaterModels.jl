@@ -207,10 +207,14 @@ components, and storing system-wide values that need to be computed globally.
 Some of the common keys include:
 
 * `:pipes` -- the set of pipes in the network,
-* `:reservoirs` -- the set of reservoirs in the network,
-* `:junctions` -- the set of junctions in the network,
+* `:pumps` -- the set of pumps in the network,
 * `:valves` -- the set of valves in the network,
-* `:tanks` -- the set of tanks in the network
+* `:links` -- the set of all links in the network,
+* `:junctions` -- the set of junctions in the network,
+* `:reservoirs` -- the set of reservoirs in the network,
+* `:tanks` -- the set of tanks in the network,
+* `:emitters` -- the set of emitters in the network,
+* `:nodes` -- the set of all nodes in the network
 """
 function build_ref(data::Dict{String,<:Any})
     refs = Dict{Symbol,Any}()
@@ -236,25 +240,14 @@ function build_ref(data::Dict{String,<:Any})
             end
         end
 
-        ref[:nodes] = [ref[:junctions]; ref[:reservoirs]]
-        ref[:arcs] = [ref[:pipes]; ref[:valves]]
+        ref[:links] = merge(ref[:pipes], ref[:valves], ref[:pumps])
+        ref[:links_ne] = filter(is_ne_link, ref[:links])
+        ref[:links_known_direction] = filter(has_known_flow_direction, ref[:links])
+        ref[:links_unknown_direction] = filter(!has_known_flow_direction, ref[:links])
+        ref[:nodes] = merge(ref[:junctions], ref[:reservoirs], ref[:emitters])
 
-        ref[:connection] = ref[:pipes]
-        ref[:ne_pipe] = filter(is_ne_pipe, ref[:pipes])
-        ref[:connection_known_direction] = filter(has_known_flow_direction, ref[:connection])
-        ref[:connection_unknown_direction] = filter(!has_known_flow_direction, ref[:connection])
-        ref[:resistance] = calc_resistances_hw(ref[:connection])
-        ref[:resistance_cost] = calc_resistance_costs_hw(ref[:connection])
-
-        junction_ids = [collect(keys(ref[:junctions])); collect(keys(ref[:reservoirs]))]
-        ref[:junction_connections] = Dict(i => [] for i in junction_ids)
-
-        for (idx, connection) in ref[:connection]
-            i = parse(Int, connection["node1"])
-            j = parse(Int, connection["node2"])
-            push!(ref[:junction_connections][i], idx)
-            push!(ref[:junction_connections][j], idx)
-        end
+        ref[:resistance] = calc_resistances_hw(ref[:links])
+        ref[:resistance_cost] = calc_resistance_costs_hw(ref[:links])
     end
 
     return refs

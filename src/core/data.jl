@@ -46,17 +46,17 @@ end
 
 function calc_head_difference_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
     # Get placeholders for junctions and reservoirs.
-    connections = wm.ref[:nw][n][:connection]
+    links = wm.ref[:nw][n][:links]
 
     # Initialize the dictionaries for minimum and maximum head differences.
     head_lbs, head_ubs = calc_head_bounds(wm, n)
-    head_diff_min = Dict([(a, -Inf) for a in keys(connections)])
-    head_diff_max = Dict([(a, Inf) for a in keys(connections)])
+    head_diff_min = Dict([(a, -Inf) for a in keys(links)])
+    head_diff_max = Dict([(a, Inf) for a in keys(links)])
 
     # Compute the head difference bounds.
-    for (a, connection) in connections
-        i = parse(Int, connection["node1"])
-        j = parse(Int, connection["node2"])
+    for (a, link) in links
+        i = link["node1"]
+        j = link["node2"]
         head_diff_min[a] = head_lbs[i] - head_ubs[j]
         head_diff_max[a] = head_ubs[i] - head_lbs[j]
     end
@@ -69,15 +69,15 @@ function calc_directed_flow_upper_bounds(wm::GenericWaterModel, n::Int = wm.cnw,
     # Get a dictionary of resistance values.
     dh_lb, dh_ub = calc_head_difference_bounds(wm, n)
 
-    connections = wm.ref[:nw][n][:connection]
-    ub_n = Dict([(a, Float64[]) for a in keys(connections)])
-    ub_p = Dict([(a, Float64[]) for a in keys(connections)])
+    links = wm.ref[:nw][n][:links]
+    ub_n = Dict([(a, Float64[]) for a in keys(links)])
+    ub_p = Dict([(a, Float64[]) for a in keys(links)])
 
     junctions = values(wm.ref[:nw][n][:junctions])
     sum_demand = sum(junction["demand"] for junction in junctions)
 
-    for (a, connection) in connections
-        L = connection["length"]
+    for (a, link) in links
+        L = link["length"]
         R_a = wm.ref[:nw][n][:resistance][a]
 
         ub_n[a] = zeros(Float64, (length(R_a),))
@@ -90,15 +90,15 @@ function calc_directed_flow_upper_bounds(wm::GenericWaterModel, n::Int = wm.cnw,
             ub_p[a][r] = abs(dh_ub[a] / (L * R_a[r]))^(1.0 / exponent)
             ub_p[a][r] = min(ub_p[a][r], sum_demand)
 
-            if connection["flow_direction"] == POSITIVE || dh_lb[a] >= 0.0
+            if link["flow_direction"] == POSITIVE || dh_lb[a] >= 0.0
                 ub_n[a][r] = 0.0
-            elseif connection["flow_direction"] == NEGATIVE || dh_ub[a] <= 0.0
+            elseif link["flow_direction"] == NEGATIVE || dh_ub[a] <= 0.0
                 ub_p[a][r] = 0.0
             end
 
-            if haskey(connection, "diameters") && haskey(connection, "maximumVelocity")
-                D_a = connection["diameters"][r]["diameter"]
-                v_a = connection["maximumVelocity"]
+            if haskey(link, "diameters") && haskey(link, "maximumVelocity")
+                D_a = link["diameters"][r]["diameter"]
+                v_a = link["maximumVelocity"]
                 rate_bound = 0.25 * pi * v_a * D_a * D_a
                 ub_n[a][r] = min(ub_n[a][r], rate_bound)
                 ub_p[a][r] = min(ub_p[a][r], rate_bound)
@@ -115,31 +115,31 @@ function calc_resistance_per_length_hw(pipe)
     return 10.67 / (roughness^1.852 * diameter^4.87)
 end
 
-function get_node_ids(connection::Dict{String, Any})
-    i = parse(Int, connection["node1"])
-    j = parse(Int, connection["node2"])
+function get_node_ids(link::Dict{String, Any})
+    i = link["node1"]
+    j = link["node2"]
     return i, j
 end
 
 function calc_resistances_hw(wm::GenericWaterModel, n::Int = wm.cnw)
     # Get placeholders for junctions and reservoirs.
-    connections = wm.ref[:nw][n][:connection]
-    resistances = Dict([(a, Array{Float64, 1}()) for a in keys(connections)])
+    links = wm.ref[:nw][n][:links]
+    resistances = Dict([(a, Array{Float64, 1}()) for a in keys(links)])
 
     # Initialize the dictionaries for minimum and maximum head differences.
-    for (a, connection) in connections
-        if haskey(connection, "diameters")
-            for entry in connection["diameters"]
+    for (a, link) in links
+        if haskey(link, "diameters")
+            for entry in link["diameters"]
                 diameter = entry["diameter"]
-                roughness = connection["roughness"]
+                roughness = link["roughness"]
                 r = 10.67 / (roughness^1.852 * diameter^4.87)
                 resistances[a] = vcat(resistances[a], r)
             end
 
             resistances = sort(resistances, rev = true)
         else
-            diameter = connection["diameter"]
-            roughness = connection["roughness"]
+            diameter = link["diameter"]
+            roughness = link["roughness"]
             r = 10.67 / (roughness^1.852 * diameter^4.87)
             resistances[a] = vcat(resistances[a], r)
         end
@@ -148,29 +148,29 @@ function calc_resistances_hw(wm::GenericWaterModel, n::Int = wm.cnw)
     return resistances
 end
 
-function calc_resistances_hw(connections::Dict{Int, Any})
+function calc_resistances_hw(links::Dict{Int, Any})
     # Get placeholders for junctions and reservoirs.
-    resistances = Dict([(a, Array{Float64, 1}()) for a in keys(connections)])
+    resistances = Dict([(a, Array{Float64, 1}()) for a in keys(links)])
 
     # Initialize the dictionaries for minimum and maximum head differences.
-    for (a, connection) in connections
-        if haskey(connection, "resistances")
-            resistances[a] = sort(connection["resistances"], rev = true)
-        elseif haskey(connection, "resistance")
-            resistance = connection["resistance"]
+    for (a, link) in links
+        if haskey(link, "resistances")
+            resistances[a] = sort(link["resistances"], rev = true)
+        elseif haskey(link, "resistance")
+            resistance = link["resistance"]
             resistances[a] = vcat(resistances[a], resistance)
-        elseif haskey(connection, "diameters")
-            for entry in connection["diameters"]
+        elseif haskey(link, "diameters")
+            for entry in link["diameters"]
                 diameter = entry["diameter"]
-                roughness = connection["roughness"]
+                roughness = link["roughness"]
                 r = 10.67 / (roughness^1.852 * diameter^4.87)
                 resistances[a] = vcat(resistances[a], r)
             end
 
             resistances[a] = sort(resistances[a], rev = true)
         else
-            diameter = connection["diameter"]
-            roughness = connection["roughness"]
+            diameter = link["diameter"]
+            roughness = link["roughness"]
             r = 10.67 / (roughness^1.852 * diameter^4.87)
             resistances[a] = vcat(resistances[a], r)
         end
@@ -179,18 +179,18 @@ function calc_resistances_hw(connections::Dict{Int, Any})
     return resistances
 end
 
-function calc_resistance_costs_hw(connections::Dict{Int, Any})
+function calc_resistance_costs_hw(links::Dict{Int, Any})
     # Create placeholder costs dictionary.
-    costs = Dict([(a, Array{Float64, 1}()) for a in keys(connections)])
+    costs = Dict([(a, Array{Float64, 1}()) for a in keys(links)])
 
     # Initialize the dictionaries for minimum and maximum head differences.
-    for (a, connection) in connections
-        if haskey(connection, "diameters")
+    for (a, link) in links
+        if haskey(link, "diameters")
             resistances = Array{Float64, 1}()
 
-            for entry in connection["diameters"]
+            for entry in link["diameters"]
                 diameter = entry["diameter"]
-                roughness = connection["roughness"]
+                roughness = link["roughness"]
                 resistance = 10.67 / (roughness^1.852 * diameter^4.87)
                 resistances = vcat(resistances, resistance)
                 costs[a] = vcat(costs[a], entry["costPerUnitLength"])
@@ -298,36 +298,33 @@ function set_maximum_diameters(data::Dict{String, Any})
     end
 end
 
-function get_maximum_diameter(connection::Pair{Int, Any})
-    if haskey(connection.second, "diameters")
-        entries = connection.second["diameters"]
+function get_maximum_diameter(link::Pair{Int, Any})
+    if haskey(link.second, "diameters")
+        entries = link.second["diameters"]
         return max([entry["diameter"] for entry in entries])
     else
-        return connection.second["diameter"]
+        return link.second["diameter"]
     end
 end
 
 
-function has_known_flow_direction(connection::Pair{Int, Any})
-    return connection.second["flow_direction"] != UNKNOWN
+function has_known_flow_direction(link::Pair{Int, Any})
+    return link.second["flow_direction"] != UNKNOWN
 end
 
-function is_ne_pipe(connection::Pair{Int, Any})
-    return haskey(connection.second, "diameters")
+function is_ne_link(link::Pair{Int, Any})
+    return haskey(link.second, "diameters") ||
+           haskey(link.second, "resistances")
 end
 
-function is_out_node_function(i::Int)
-    function is_out_node(connection::Pair{Int, Any})
-        return parse(Int, connection.second["node1"]) == i
+function is_out_node(i::Int)
+    return function (link::Pair{Int, Any})
+        return link.second["node1"] == i
     end
-
-    return is_out_node
 end
 
-function is_in_node_function(i::Int)
-    function is_in_node(connection::Pair{Int, Any})
-        return parse(Int, connection.second["node2"]) == i
+function is_in_node(i::Int)
+    return function (link::Pair{Int, Any})
+        return link.second["node2"] == i
     end
-
-    return is_in_node
 end

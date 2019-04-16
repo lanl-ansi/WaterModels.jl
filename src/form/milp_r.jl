@@ -43,7 +43,7 @@ function constraint_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int = wm
 
     dhp = wm.var[:nw][n][:dhp][a]
     dhn = wm.var[:nw][n][:dhn][a]
-    L = wm.ref[:nw][n][:connection][a]["length"]
+    L = wm.ref[:nw][n][:links][a]["length"]
 
     # TODO: Not efficient... we need another method for storing resistances.
     R = calc_resistances_hw(wm, n)

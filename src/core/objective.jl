@@ -28,9 +28,9 @@ function get_resistance_cost_expression(wm::GenericWaterModel)
     cost = JuMP.@expression(wm.model, 0.0)
 
     for n in nw_ids(wm)
-        for (a, connection) in wm.ref[:nw][n][:connection]
+        for (a, link) in wm.ref[:nw][n][:links]
             xr = wm.var[:nw][n][:xr][a]
-            C_a = connection["length"] * wm.ref[:nw][n][:resistance_cost][a]
+            C_a = link["length"] * wm.ref[:nw][n][:resistance_cost][a]
             cost += sum(C_a[r] * xr[r] for r in 1:length(xr))
         end
     end
@@ -50,13 +50,13 @@ end
 #    # Initialize the objective.
 #    objective = zero(AffExpr)
 #
-#    connection_ids = collect(ids(wm, :connection))
+#    link_ids = collect(ids(wm, :link))
 #
-#    for (a, connection) in wm.ref[:nw][n][:connection]
+#    for (a, link) in wm.ref[:nw][n][:links]
 #        q_n = wm.var[:nw][n][:q_n][a][1]
 #        q_p = wm.var[:nw][n][:q_p][a][1]
 #
-#        L = connection["length"]
+#        L = link["length"]
 #        coeff = wm.ref[:nw][n][:resistance][a][1] * L
 #        con = @NLconstraint(wm.model, coeff * (head_loss_integrated_hw(q_p) + head_loss_integrated_hw(q_n)) <= terms[a])
 #
@@ -64,16 +64,16 @@ end
 #    end
 #
 #    for n in nws(wm)
-#        connections = wm.ref[:nw][n][:connection]
+#        links = wm.ref[:nw][n][:links]
 #
 #        for (i, reservoir) in wm.ref[:nw][n][:reservoirs]
-#            for (a, connection) in filter(a -> i == parse(Int, a.second["node1"]), connections)
+#            for (a, link) in filter(a -> i == parse(Int, a.second["node1"]), links)
 #                q_n = wm.var[:nw][n][:qn][a][1]
 #                q_p = wm.var[:nw][n][:qp][a][1]
 #                objective -= reservoir["head"] * (q_p - q_n)
 #            end
 #
-#            for (a, connection) in filter(a -> i == parse(Int, a.second["node2"]), connections)
+#            for (a, link) in filter(a -> i == parse(Int, a.second["node2"]), links)
 #                q_n = wm.var[:nw][n][:qn][a][1]
 #                q_p = wm.var[:nw][n][:qp][a][1]
 #                objective -= reservoir["head"] * (q_n - q_p)

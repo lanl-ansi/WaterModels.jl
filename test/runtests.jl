@@ -17,15 +17,15 @@ const MOIU = MathOptInterface.Utilities
 
 using Test
 
-# default setup for optimizers
-const ipopt = JuMP.with_optimizer(Ipopt.Optimizer, tol=1.0e-9, print_level=5)
+# Default MINLP, MIP, and NLP optimizers.
 const cbc = JuMP.with_optimizer(Cbc.Optimizer, logLevel=1)
+const ipopt = JuMP.with_optimizer(Ipopt.Optimizer, tol=1.0e-9, print_level=5)
 
 @testset "WaterModels" begin
 
-    #include("io.jl")
+    include("io.jl")
 
-    #include("ne.jl")
+    include("ne.jl")
 
     include("wf.jl")
 
