@@ -139,39 +139,39 @@ end
 "These problem forms use binary variables to specify flow direction."
 AbstractDirectedForm = Union{AbstractMINLPForm, AbstractMILPRForm}
 
-function variable_directed_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractDirectedForm
-    # Get indices for all network arcs.
-    arcs = collect(ids(wm, n, :links))
-
-    # Compute sets of resistances.
-    ub_n, ub_p = calc_directed_flow_upper_bounds(wm, n)
-
-    # Initialize directed flow variables. The variables qp correspond to flow
-    # from i to j, and the variables qn correspond to flow from j to i.
-    wm.var[:nw][n][:qp] = Dict{Int,Array{JuMP.VariableRef,1}}()
-    wm.var[:nw][n][:qn] = Dict{Int,Array{JuMP.VariableRef,1}}()
-
-    for (a, link) in wm.ref[:nw][n][:links]
-        R_a = wm.ref[:nw][n][:resistance][a]
-
-        # Initialize variables associated with flow from i to j.
-        wm.var[:nw][n][:qp][a] = JuMP.@variable(wm.model, [r in 1:length(R_a)],
-                                                lower_bound = 0.0,
-                                                upper_bound = ub_p[a][r],
-                                                start = 0.0,
-                                                base_name = "q_p[$(n)][$(a)]")
-
-        # Initialize variables associated with flow from j to i.
-        wm.var[:nw][n][:qn][a] = JuMP.@variable(wm.model, [r in 1:length(R_a)],
-                                                lower_bound = 0.0,
-                                                upper_bound = ub_n[a][r],
-                                                start = 0.0,
-                                                base_name = "q_n[$(n)][$(a)]")
-
-        # Initialize flow for the variable with least resistance.
-        JuMP.set_start_value(wm.var[:nw][n][:qp][a][1], ub_p[a][1])
-    end
-end
+#function variable_directed_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractDirectedForm
+#    # Get indices for all network arcs.
+#    arcs = collect(ids(wm, n, :links))
+#
+#    # Compute sets of resistances.
+#    ub_n, ub_p = calc_directed_flow_upper_bounds(wm, n)
+#
+#    # Initialize directed flow variables. The variables qp correspond to flow
+#    # from i to j, and the variables qn correspond to flow from j to i.
+#    wm.var[:nw][n][:qp] = Dict{Int,Array{JuMP.VariableRef,1}}()
+#    wm.var[:nw][n][:qn] = Dict{Int,Array{JuMP.VariableRef,1}}()
+#
+#    for (a, link) in wm.ref[:nw][n][:links]
+#        R_a = wm.ref[:nw][n][:resistance][a]
+#
+#        # Initialize variables associated with flow from i to j.
+#        wm.var[:nw][n][:qp][a] = JuMP.@variable(wm.model, [r in 1:length(R_a)],
+#                                                lower_bound = 0.0,
+#                                                upper_bound = ub_p[a][r],
+#                                                start = 0.0,
+#                                                base_name = "q_p[$(n)][$(a)]")
+#
+#        # Initialize variables associated with flow from j to i.
+#        wm.var[:nw][n][:qn][a] = JuMP.@variable(wm.model, [r in 1:length(R_a)],
+#                                                lower_bound = 0.0,
+#                                                upper_bound = ub_n[a][r],
+#                                                start = 0.0,
+#                                                base_name = "q_n[$(n)][$(a)]")
+#
+#        # Initialize flow for the variable with least resistance.
+#        JuMP.set_start_value(wm.var[:nw][n][:qp][a][1], ub_p[a][1])
+#    end
+#end
 
 "Constraint to ensure at least one direction is set to take flow away from a source."
 function constraint_source_flow(wm::GenericWaterModel, i::Int, n::Int=wm.cnw)

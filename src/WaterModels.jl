@@ -38,6 +38,7 @@ include("core/constraint_template.jl")
 include("core/objective.jl")
 
 include("form/cvxnlp.jl")
+include("form/micp.jl")
 include("form/milp_r.jl")
 include("form/minlp.jl")
 include("form/shared.jl")

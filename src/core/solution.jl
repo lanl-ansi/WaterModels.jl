@@ -52,13 +52,12 @@ end
 
 ""
 function get_solution(wm::GenericWaterModel, sol::Dict{String,<:Any})
-    add_pipe_flow_setpoint(sol, wm)
+    #add_pipe_flow_setpoint(sol, wm)
     #add_bus_voltage_setpoint(sol, wm)
     #add_generator_power_setpoint(sol, wm)
     #add_storage_setpoint(sol, wm)
     #add_branch_flow_setpoint(sol, wm)
     #add_dcline_flow_setpoint(sol, wm)
-
     #add_kcl_duals(sol, wm)
     #add_sm_duals(sol, wm) # Adds the duals of the transmission lines' thermal limits.
 end

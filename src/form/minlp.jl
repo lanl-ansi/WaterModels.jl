@@ -11,6 +11,11 @@ const MINLPWaterModel = GenericWaterModel{StandardMINLPForm}
 "Default MINLP constructor."
 MINLPWaterModel(data::Dict{String,Any}; kwargs...) = GenericWaterModel(data, StandardMINLPForm; kwargs...)
 
+function variable_flow(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw; alpha::Float64=1.852) where T <: AbstractMINLPForm
+    variable_directed_flow(wm, n, alpha=alpha, bounded=true)
+    variable_directed_flow_ne(wm, n, alpha=alpha, bounded=true)
+end
+
 function constraint_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int) where T <: StandardMINLPForm
     if !haskey(wm.con[:nw][n], :potential_loss_1)
         wm.con[:nw][n][:potential_loss_1] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
@@ -36,6 +41,7 @@ function constraint_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int) whe
         wm.con[:nw][n][:potential_loss_2][a][r] = con_2
     end
 end
+
 
 #function constraint_flow_direction(wm::GenericWaterModel{T}, a::Int, n::Int = wm.cnw) where T <: StandardMINLPForm
 #    # Get source and target nodes corresponding to the edge.

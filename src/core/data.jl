@@ -55,17 +55,15 @@ function calc_head_difference_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
 
     # Compute the head difference bounds.
     for (a, link) in links
-        i = link["node1"]
-        j = link["node2"]
-        head_diff_min[a] = head_lbs[i] - head_ubs[j]
-        head_diff_max[a] = head_ubs[i] - head_lbs[j]
+        head_diff_min[a] = head_lbs[link["node1"]] - head_ubs[link["node2"]]
+        head_diff_max[a] = head_ubs[link["node1"]] - head_lbs[link["node2"]]
     end
 
     # Return the head difference bound dictionaries.
     return head_diff_min, head_diff_max
 end
 
-function calc_directed_flow_upper_bounds(wm::GenericWaterModel, n::Int = wm.cnw, exponent::Float64 = 1.852)
+function calc_directed_flow_upper_bounds(wm::GenericWaterModel, alpha::Float64=1.852, n::Int=wm.cnw)
     # Get a dictionary of resistance values.
     dh_lb, dh_ub = calc_head_difference_bounds(wm, n)
 
@@ -84,10 +82,10 @@ function calc_directed_flow_upper_bounds(wm::GenericWaterModel, n::Int = wm.cnw,
         ub_p[a] = zeros(Float64, (length(R_a),))
 
         for r in 1:length(R_a)
-            ub_n[a][r] = abs(dh_lb[a] / (L * R_a[r]))^(1.0 / exponent)
+            ub_n[a][r] = abs(dh_lb[a] / (L * R_a[r]))^(1.0 / alpha)
             ub_n[a][r] = min(ub_n[a][r], sum_demand)
 
-            ub_p[a][r] = abs(dh_ub[a] / (L * R_a[r]))^(1.0 / exponent)
+            ub_p[a][r] = abs(dh_ub[a] / (L * R_a[r]))^(1.0 / alpha)
             ub_p[a][r] = min(ub_p[a][r], sum_demand)
 
             if link["flow_direction"] == POSITIVE || dh_lb[a] >= 0.0
