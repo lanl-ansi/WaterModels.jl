@@ -16,31 +16,31 @@ function variable_flow(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw; alpha::F
     variable_directed_flow_ne(wm, n, alpha=alpha, bounded=true)
 end
 
-function constraint_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int) where T <: StandardMINLPForm
-    if !haskey(wm.con[:nw][n], :potential_loss_1)
-        wm.con[:nw][n][:potential_loss_1] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
-        wm.con[:nw][n][:potential_loss_2] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
-    end
-
-    wm.con[:nw][n][:potential_loss_1][a] = Dict{Int, JuMP.ConstraintRef}()
-    wm.con[:nw][n][:potential_loss_2][a] = Dict{Int, JuMP.ConstraintRef}()
-
-    dhp = wm.var[:nw][n][:dhp][a]
-    dhn = wm.var[:nw][n][:dhn][a]
-    L = wm.ref[:nw][n][:links][a]["length"]
-
-    for r in 1:length(wm.ref[:nw][n][:resistance][a])
-        q_n_a_r = wm.var[:nw][n][:qn][a][r]
-        q_p_a_r = wm.var[:nw][n][:qp][a][r]
-        resistance = wm.ref[:nw][n][:resistance][a][r]
-
-        con_1 = JuMP.@NLconstraint(wm.model, dhp / L >= resistance * f_alpha(q_p_a_r))
-        wm.con[:nw][n][:potential_loss_1][a][r] = con_1
-
-        con_2 = JuMP.@NLconstraint(wm.model, dhn / L >= resistance * f_alpha(q_n_a_r))
-        wm.con[:nw][n][:potential_loss_2][a][r] = con_2
-    end
-end
+#function constraint_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int) where T <: StandardMINLPForm
+#    if !haskey(wm.con[:nw][n], :potential_loss_1)
+#        wm.con[:nw][n][:potential_loss_1] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
+#        wm.con[:nw][n][:potential_loss_2] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
+#    end
+#
+#    wm.con[:nw][n][:potential_loss_1][a] = Dict{Int, JuMP.ConstraintRef}()
+#    wm.con[:nw][n][:potential_loss_2][a] = Dict{Int, JuMP.ConstraintRef}()
+#
+#    dhp = wm.var[:nw][n][:dhp][a]
+#    dhn = wm.var[:nw][n][:dhn][a]
+#    L = wm.ref[:nw][n][:links][a]["length"]
+#
+#    for r in 1:length(wm.ref[:nw][n][:resistance][a])
+#        q_n_a_r = wm.var[:nw][n][:qn][a][r]
+#        q_p_a_r = wm.var[:nw][n][:qp][a][r]
+#        resistance = wm.ref[:nw][n][:resistance][a][r]
+#
+#        con_1 = JuMP.@NLconstraint(wm.model, dhp / L >= resistance * f_alpha(q_p_a_r))
+#        wm.con[:nw][n][:potential_loss_1][a][r] = con_1
+#
+#        con_2 = JuMP.@NLconstraint(wm.model, dhn / L >= resistance * f_alpha(q_n_a_r))
+#        wm.con[:nw][n][:potential_loss_2][a][r] = con_2
+#    end
+#end
 
 
 #function constraint_flow_direction(wm::GenericWaterModel{T}, a::Int, n::Int = wm.cnw) where T <: StandardMINLPForm

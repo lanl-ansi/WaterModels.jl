@@ -24,7 +24,7 @@ function constraint_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int=wm.c
 end
 
 function constraint_flow_conservation(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: StandardCVXNLPForm
-    constraint_directed_flow_conservation(wm, i, n)
+    #constraint_directed_flow_conservation(wm, i, n)
 end
 
 #function variable_directed_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw; bounded::Bool=true) where T <: StandardCVXNLPForm

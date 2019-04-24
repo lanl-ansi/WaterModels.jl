@@ -47,7 +47,7 @@ end
 
 function get_post_wf(alpha::Float64; kwargs...)
     return function (wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <: AbstractWaterFormulation
-        if T <: AbstractCVXNLPForm
+        if T <: Union{AbstractCVXNLPForm, AbstractMINLPForm, AbstractMICPForm}
             function_if_alpha(wm, alpha)
         end
 
