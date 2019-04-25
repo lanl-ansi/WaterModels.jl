@@ -3,20 +3,27 @@
 ###############################################################################
 
 function if_alpha(alpha::Float64)
-    return function(x::Float64) return inv(2.0 + alpha) * (x*x)^(1.0 + 0.5*alpha) end
+    return function(x::Float64)
+        return inv(2.0 + alpha) * (x*x)^(1.0 + 0.5*alpha)
+    end
 end
 
 function f_alpha(alpha::Float64)
-    # Stable version of x * abs(x)^(alpha)
-    return function(x::Float64) return sign(x) * (x*x)^(0.5 + 0.5*alpha) end
+    return function(x::Float64)
+        return sign(x) * (x*x)^(0.5 + 0.5*alpha)
+    end
 end
 
 function df_alpha(alpha::Float64)
-    return function(x::Float64) return (1.0 + alpha) * (x*x)^(0.5*alpha) end
+    return function(x::Float64)
+        return (1.0 + alpha) * (x*x)^(0.5*alpha)
+    end
 end
 
 function d2f_alpha(alpha::Float64)
-    return function(x::Float64) return sign(x) * alpha * (1.0 + alpha) * (x*x)^(0.5*alpha - 0.5) end
+    return function(x::Float64)
+        return x != 0.0 ? sign(x) * alpha * (1.0 + alpha) * (x*x)^(0.5*alpha - 0.5) : 0.0
+    end
 end
 
 function function_if_alpha(wm::GenericWaterModel, alpha::Float64)

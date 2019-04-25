@@ -1,4 +1,4 @@
-# Define NCNLP (mixed-integer convex program) implementations of water distribution models.
+# Define NCNLP (non-convex nonlinear programming) implementations of water distribution models.
 
 export NCNLPWaterModel, StandardNCNLPForm
 
@@ -50,12 +50,10 @@ end
 function constraint_link_flow(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
 end
 
-function constraint_source_flow(wm::GenericWaterModel, i::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
-    constraint_undirected_source_flow(wm, i, n)
+function constraint_source_flow(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
 end
 
-function constraint_sink_flow(wm::GenericWaterModel, i::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
-    constraint_undirected_sink_flow(wm, i, n)
+function constraint_sink_flow(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
 end
 
 function constraint_directed_potential_loss_ne(wm::GenericWaterModel{T}, a::Int, n::Int) where T <: AbstractNCNLPForm
@@ -87,6 +85,8 @@ function constraint_undirected_potential_loss(wm::GenericWaterModel{T}, a::Int, 
         wm.con[:nw][n][:potential_loss] = Dict{Int, JuMP.ConstraintRef}()
     end
 
+    i = wm.ref[:nw][n][:links][a]["node1"]
+
     if i in collect(ids(wm, n, :reservoirs))
         hᵢ = wm.ref[:nw][n][:reservoirs][i]["head"]
     else
@@ -107,4 +107,8 @@ function constraint_undirected_potential_loss(wm::GenericWaterModel{T}, a::Int, 
 
     con = JuMP.@NLconstraint(wm.model, r * f_alpha(q) - inv(L) * (hᵢ - hⱼ) == 0.0)
     wm.con[:nw][n][:potential_loss][a] = con
+end
+
+function objective_wf(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: StandardNCNLPForm
+    JuMP.@objective(wm.model, MOI.MIN_SENSE, wm.var[:nw][n][:h][2])
 end

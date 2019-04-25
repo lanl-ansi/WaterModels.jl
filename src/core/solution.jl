@@ -41,6 +41,7 @@ function build_solution(wm::GenericWaterModel, status, solve_time; objective = N
         "data" => data)
 
     wm.solution = solution
+    println(solution)
     return solution
 end
 
@@ -52,7 +53,7 @@ end
 
 ""
 function get_solution(wm::GenericWaterModel, sol::Dict{String,<:Any})
-    #add_pipe_flow_setpoint(sol, wm)
+    add_pipe_flow_setpoint(sol, wm)
     #add_bus_voltage_setpoint(sol, wm)
     #add_generator_power_setpoint(sol, wm)
     #add_storage_setpoint(sol, wm)
@@ -93,7 +94,6 @@ function add_setpoint(sol::Dict{String, Any}, wm::GenericWaterModel,
             sol_item[param_name] = scale(JuMP.value(variable), item, 1)
         catch
         end
-
 
         sol_item[param_name] = sol_item[param_name][1]
     end
@@ -155,44 +155,44 @@ end
 #    data_keys = ["multinetwork"]
 #    return Dict{String,Any}(key => wm.data[key] for key in data_keys)
 #end
-#
-#function get_solution(wm::GenericWaterModel, sol::Dict{String,Any})
-#    add_setpoint(sol, wm, "pipes", "q", :q) # Get flow solutions.
-#    add_setpoint(sol, wm, "junctions", "h", :h) # Get head solutions (junctions).
-#    add_setpoint(sol, wm, "reservoirs", "h", :h) # Get head solutions (reservoirs).
-#    return sol
-#end
-#
-#function add_setpoint(sol, wm::GenericWaterModel, dict_name, param_name,
-#                      variable_symbol; index_name = "id",
-#                      default_value = (item) -> NaN, scale = (x, item) -> x,
-#                      extract_var = (var, idx, item) -> var[idx])
-#    sol_dict = get(sol, dict_name, Dict{String, Any}())
-#
-#    if InfrastructureModels.ismultinetwork(wm.data)
-#        data_dict = wm.data["nw"]["$(wm.cnw)"][dict_name]
-#    else
-#        data_dict = wm.data[dict_name]
-#    end
-#
-#    if length(data_dict) > 0
-#        sol[dict_name] = sol_dict
-#    end
-#
-#    for (i, item) in data_dict
-#        idx = parse(Int, item[index_name])
-#        sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
-#        sol_item[param_name] = default_value(item)
-#
-#        try
-#            # TODO: Use extract_var function to get the variable...
-#            variable = wm.var[:nw][wm.cnw][variable_symbol][idx]
-#            sol_item[param_name] = scale(getvalue(variable), item)
-#        catch
-#            # TODO: Put something here in case try fails...
-#        end
-#    end
-#end
+
+function get_solution(wm::GenericWaterModel, sol::Dict{String,Any})
+    add_setpoint(sol, wm, "pipes", "q", :q) # Get flow solutions.
+    add_setpoint(sol, wm, "junctions", "h", :h) # Get head solutions (junctions).
+    #add_setpoint(sol, wm, "reservoirs", "h", :h) # Get head solutions (reservoirs).
+    return sol
+end
+
+function add_setpoint(sol, wm::GenericWaterModel, dict_name, param_name,
+                      variable_symbol; index_name = "id",
+                      default_value = (item) -> NaN, scale = (x, item) -> x,
+                      extract_var = (var, idx, item) -> var[idx])
+    sol_dict = get(sol, dict_name, Dict{String, Any}())
+
+    if InfrastructureModels.ismultinetwork(wm.data)
+        data_dict = wm.data["nw"]["$(wm.cnw)"][dict_name]
+    else
+        data_dict = wm.data[dict_name]
+    end
+
+    if length(data_dict) > 0
+        sol[dict_name] = sol_dict
+    end
+
+    for (i, item) in data_dict
+        idx = parse(Int, item[index_name])
+        sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
+        sol_item[param_name] = default_value(item)
+
+        try
+            # TODO: Use extract_var function to get the variable...
+            variable = wm.var[:nw][wm.cnw][variable_symbol][idx]
+            sol_item[param_name] = scale(getvalue(variable), item)
+        catch
+            # TODO: Put something here in case try fails...
+        end
+    end
+end
 
 #""
 #function guard_objective_bound(model)

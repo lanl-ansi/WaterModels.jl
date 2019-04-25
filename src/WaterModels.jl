@@ -41,6 +41,7 @@ include("form/cvxnlp.jl")
 include("form/micp.jl")
 include("form/milp_r.jl")
 include("form/minlp.jl")
+include("form/ncnlp.jl")
 include("form/shared.jl")
 
 include("prob/ne.jl")

@@ -18,11 +18,11 @@ function variable_undirected_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw; alpha
         wm.var[:nw][n][:q] = JuMP.@variable(wm.model, [a in arcs],
                                             lower_bound = min(0.0, -maximum(ub⁻[a])),
                                             upper_bound = max(0.0, maximum(ub⁺[a])),
-                                            start = 0.0,
+                                            start = 0.5 * maximum(ub⁺[a]) + 1.0e-6,
                                             base_name = "q[$(n)]")
     else
         wm.var[:nw][n][:q] = JuMP.@variable(wm.model, [a in arcs],
-                                            start = 0.0,
+                                            start = 1.0e-6,
                                             base_name = "q[$(n)]")
     end
 end
@@ -71,23 +71,23 @@ function variable_directed_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw; alpha::
         wm.var[:nw][n][:q⁻] = JuMP.@variable(wm.model, [a in arcs],
                                              lower_bound = 0.0,
                                              upper_bound = maximum(ub⁻[a]),
-                                             start = 0.0,
+                                             start = 0.5 * maximum(ub⁻[a]),
                                              base_name = "q⁻[$(n)]")
 
         wm.var[:nw][n][:q⁺] = JuMP.@variable(wm.model, [a in arcs],
                                              lower_bound = 0.0,
                                              upper_bound = maximum(ub⁺[a]),
-                                             start = 0.0,
+                                             start = 0.5 * maximum(ub⁺[a]),
                                              base_name = "q⁺[$(n)]")
     else
         wm.var[:nw][n][:q⁻] = JuMP.@variable(wm.model, [a in arcs],
                                              lower_bound = 0.0,
-                                             start = 0.0,
+                                             start = 1.0e-6,
                                              base_name = "q⁻[$(n)]")
 
         wm.var[:nw][n][:q⁺] = JuMP.@variable(wm.model, [a in arcs],
                                              lower_bound = 0.0,
-                                             start = 0.0,
+                                             start = 1.0e-6,
                                              base_name = "q⁺[$(n)]")
     end
 end

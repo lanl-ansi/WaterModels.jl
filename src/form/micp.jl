@@ -59,11 +59,11 @@ function constraint_link_flow(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) w
     constraint_link_directed_flow(wm, a, n)
 end
 
-function constraint_source_flow(wm::GenericWaterModel, i::Int, n::Int=wm.cnw) where T <: AbstractMICPForm
+function constraint_source_flow(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractMICPForm
     constraint_directed_source_flow(wm, i, n)
 end
 
-function constraint_sink_flow(wm::GenericWaterModel, i::Int, n::Int=wm.cnw) where T <: AbstractMICPForm
+function constraint_sink_flow(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractMICPForm
     constraint_directed_sink_flow(wm, i, n)
 end
 
