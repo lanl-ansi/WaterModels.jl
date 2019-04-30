@@ -52,7 +52,7 @@ function variable_undirected_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; al
             num_resistances = length(wm.ref[:nw][n][:resistance][a])
 
             qⁿᵉ = JuMP.@variable(wm.model, [r in 1:num_resistances],
-                                 start = 0.0, base_name = "qⁿᵉ[$(n)][$(a)]")
+                                 start = 1.0e-6, base_name = "qⁿᵉ[$(n)][$(a)]")
 
             wm.var[:nw][n][:qⁿᵉ][a] = qⁿᵉ
         end

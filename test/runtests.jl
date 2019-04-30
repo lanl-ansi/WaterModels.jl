@@ -8,6 +8,7 @@ Memento.setlevel!(Memento.getlogger(WaterModels), "error")
 
 import Cbc
 import Ipopt
+import Juniper
 import JuMP
 import JSON
 
@@ -17,9 +18,10 @@ const MOIU = MathOptInterface.Utilities
 
 using Test
 
-# Default MIP and NLP optimizers.
-const cbc = JuMP.with_optimizer(Cbc.Optimizer, logLevel=1)
-const ipopt = JuMP.with_optimizer(Ipopt.Optimizer, tol=1.0e-9, print_level=5)
+# Default MIP, NLP, and MINLP optimizers.
+const cbc = JuMP.with_optimizer(Cbc.Optimizer, logLevel=0)
+const ipopt = JuMP.with_optimizer(Ipopt.Optimizer, tol=1.0e-9, print_level=0)
+const juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, log_levels=[])
 
 @testset "WaterModels" begin
 

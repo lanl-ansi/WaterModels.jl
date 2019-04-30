@@ -5,7 +5,7 @@ export NCNLPWaterModel, StandardNCNLPForm
 abstract type AbstractNCNLPForm <: AbstractWaterFormulation end
 abstract type StandardNCNLPForm <: AbstractNCNLPForm end
 
-"The default NCNLP (mixed-integer convex program) model is a relaxation of the non-convex MINLP model."
+"The default NCNLP (non-convex nonlinear programming) model retains the exact head loss physics."
 const NCNLPWaterModel = GenericWaterModel{StandardNCNLPForm}
 
 "Default NCNLP constructor."
@@ -110,5 +110,5 @@ function constraint_undirected_potential_loss(wm::GenericWaterModel{T}, a::Int, 
 end
 
 function objective_wf(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: StandardNCNLPForm
-    JuMP.@objective(wm.model, MOI.MIN_SENSE, wm.var[:nw][n][:h][2])
+    JuMP.set_objective_sense(wm.model, MOI.FEASIBILITY_SENSE)
 end

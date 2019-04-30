@@ -110,3 +110,7 @@ function constraint_directed_potential_loss(wm::GenericWaterModel{T}, a::Int, n:
     con⁺ = JuMP.@NLconstraint(wm.model, r * f_alpha(q⁺) <= inv(L) * Δh⁺)
     wm.con[:nw][n][:potential_loss⁺][a] = con⁺
 end
+
+function objective_wf(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: StandardMICPForm
+    JuMP.set_objective_sense(wm.model, MOI.FEASIBILITY_SENSE)
+end
