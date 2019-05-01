@@ -9,7 +9,7 @@
         @test balerma_data["title"] == lowercase(balerma_title)
 
         klmod_data = WaterModels.parse_file("../test/data/epanet/klmod.inp")
-        klmod_title = "Balerma Network"
+        klmod_title = "Global Water Full network - Peak Day (Avg * 1.9)"
         @test klmod_data["title"] == lowercase(klmod_title)
     end
 
