@@ -41,7 +41,6 @@ function build_solution(wm::GenericWaterModel, status, solve_time; objective = N
         "data" => data)
 
     wm.solution = solution
-    println(wm.solution)
 
     return solution
 end

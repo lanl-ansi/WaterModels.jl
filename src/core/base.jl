@@ -134,18 +134,18 @@ function optimize!(wm::GenericWaterModel, optimizer::JuMP.OptimizerFactory)
 end
 
 ""
-function run_generic_model(file::String, model_constructor, optimizer, post_method; kwargs...)
+function run_generic_model(file::String, model_constructor, optimizer, post_method; relaxed::Bool=false, kwargs...)
     data = WaterModels.parse_file(file)
-    return run_generic_model(data, model_constructor, optimizer, post_method; kwargs...)
+    return run_generic_model(data, model_constructor, optimizer, post_method, relaxed=relaxed; kwargs...)
 end
 
 ""
-function run_generic_model(data::Dict{String,<:Any}, model_constructor, optimizer, post_method; solution_builder = get_solution, kwargs...)
+function run_generic_model(data::Dict{String,<:Any}, model_constructor, optimizer, post_method; relaxed::Bool=false, solution_builder=get_solution, kwargs...)
     wm = build_generic_model(data, model_constructor, post_method; kwargs...)
     #wm, time, bytes_alloc, sec_in_gc = @timed build_generic_model(data, model_constructor, post_method; kwargs...)
     #println("model build time: $(time)")
 
-    solution = solve_generic_model(wm, optimizer; solution_builder = solution_builder)
+    solution = solve_generic_model(wm, optimizer, relaxed=relaxed; solution_builder = solution_builder)
     #solution, time, bytes_alloc, sec_in_gc = @timed solve_generic_model(wm, optimizer; solution_builder = solution_builder)
     #println("solution time: $(time)")
 
@@ -188,7 +188,11 @@ function parse_status(termination_status::MOI.TerminationStatusCode, primal_stat
 end
 
 ""
-function solve_generic_model(wm::GenericWaterModel, optimizer::JuMP.OptimizerFactory; solution_builder = get_solution)
+function solve_generic_model(wm::GenericWaterModel, optimizer::JuMP.OptimizerFactory; relaxed::Bool=false, solution_builder = get_solution)
+    if relaxed
+        relax_integrality!(wm)
+    end
+
     termination_status, primal_status, dual_status, solve_time = optimize!(wm, optimizer)
     status = parse_status(termination_status, primal_status, dual_status)
 

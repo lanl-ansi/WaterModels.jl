@@ -1,8 +1,8 @@
 export run_wf
 
-function run_wf(network, model_constructor, optimizer; kwargs...)
+function run_wf(network, model_constructor, optimizer; relaxed::Bool=false, kwargs...)
     post_wf = get_post_wf(kwargs[:alpha])
-    return run_generic_model(network, model_constructor, optimizer, post_wf; kwargs...)
+    return run_generic_model(network, model_constructor, optimizer, post_wf, relaxed=relaxed; kwargs...)
 end
 
 function get_post_wf(alpha::Float64; kwargs...)

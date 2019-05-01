@@ -1,8 +1,8 @@
 export run_ne
 
-function run_ne(network, model_constructor, optimizer; kwargs...)
+function run_ne(network, model_constructor, optimizer; relaxed::Bool=false, kwargs...)
     post_ne = get_post_ne(kwargs[:alpha]; kwargs...)
-    return run_generic_model(network, model_constructor, optimizer, post_ne; kwargs...)
+    return run_generic_model(network, model_constructor, optimizer, post_ne, relaxed=relaxed; kwargs...)
 end
 
 function get_post_ne(alpha::Float64; kwargs...)
