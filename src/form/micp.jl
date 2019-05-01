@@ -1,5 +1,4 @@
 # Define MICP (mixed-integer convex program) implementations of water distribution models.
-
 export MICPWaterModel, StandardMICPForm
 
 abstract type AbstractMICPForm <: AbstractWaterFormulation end
