@@ -101,12 +101,12 @@ function constraint_directed_potential_loss(wm::GenericWaterModel{T}, a::Int, n:
 
     q⁻ = wm.var[:nw][n][:q⁻][a]
     Δh⁻ = wm.var[:nw][n][:Δh⁻][a]
-    con⁻ = JuMP.@NLconstraint(wm.model, r * f_alpha(q⁻) <= inv(L) * Δh⁻)
+    con⁻ = JuMP.@NLconstraint(wm.model, r * f_alpha(q⁻) - inv(L) * Δh⁻ <= 0.0)
     wm.con[:nw][n][:potential_loss⁻][a] = con⁻
 
     q⁺ = wm.var[:nw][n][:q⁺][a]
     Δh⁺ = wm.var[:nw][n][:Δh⁺][a]
-    con⁺ = JuMP.@NLconstraint(wm.model, r * f_alpha(q⁺) <= inv(L) * Δh⁺)
+    con⁺ = JuMP.@NLconstraint(wm.model, r * f_alpha(q⁺) - inv(L) * Δh⁺ <= 0.0)
     wm.con[:nw][n][:potential_loss⁺][a] = con⁺
 end
 

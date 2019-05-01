@@ -56,28 +56,33 @@ end
 function constraint_sink_flow(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
 end
 
-function constraint_directed_potential_loss_ne(wm::GenericWaterModel{T}, a::Int, n::Int) where T <: AbstractNCNLPForm
-    if !haskey(wm.con[:nw][n], :potential_lossⁿᵉ⁻)
-        wm.con[:nw][n][:potential_lossⁿᵉ⁻] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
-        wm.con[:nw][n][:potential_lossⁿᵉ⁺] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
+function constraint_undirected_potential_loss_ne(wm::GenericWaterModel{T}, a::Int, n::Int) where T <: AbstractNCNLPForm
+    if !haskey(wm.con[:nw][n], :potential_lossⁿᵉ)
+        wm.con[:nw][n][:potential_lossⁿᵉ] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    wm.con[:nw][n][:potential_lossⁿᵉ⁻][a] = Dict{Int, JuMP.ConstraintRef}()
-    wm.con[:nw][n][:potential_lossⁿᵉ⁺][a] = Dict{Int, JuMP.ConstraintRef}()
+    i = wm.ref[:nw][n][:links][a]["node1"]
+
+    if i in collect(ids(wm, n, :reservoirs))
+        hᵢ = wm.ref[:nw][n][:reservoirs][i]["head"]
+    else
+        hᵢ = wm.var[:nw][n][:h][i]
+    end
+
+    j = wm.ref[:nw][n][:links][a]["node2"]
+
+    if j in collect(ids(wm, n, :reservoirs))
+        hⱼ = wm.ref[:nw][n][:reservoirs][j]["head"]
+    else
+        hⱼ = wm.var[:nw][n][:h][j]
+    end
 
     L = wm.ref[:nw][n][:links][a]["length"]
-
-    for (r_id, r) in enumerate(wm.ref[:nw][n][:resistance][a])
-        qⁿᵉ⁻ = wm.var[:nw][n][:qⁿᵉ⁻][a][r_id]
-        Δh⁻ = wm.var[:nw][n][:Δh⁻][a]
-        con⁻ = JuMP.@NLconstraint(wm.model, r * f_alpha(qⁿᵉ⁻) - inv(L) * Δh⁻ <= 0.0)
-        wm.con[:nw][n][:potential_lossⁿᵉ⁻][a][r_id] = con⁻
-
-        qⁿᵉ⁺ = wm.var[:nw][n][:qⁿᵉ⁺][a][r_id]
-        Δh⁺ = wm.var[:nw][n][:Δh⁺][a]
-        con⁺ = JuMP.@NLconstraint(wm.model, r * f_alpha(qⁿᵉ⁺) - inv(L) * Δh⁺ <= 0.0)
-        wm.con[:nw][n][:potential_lossⁿᵉ⁺][a][r_id] = con⁺
-    end
+    qⁿᵉ = wm.var[:nw][n][:qⁿᵉ][a]
+    resistances = wm.ref[:nw][n][:resistance][a]
+    con = JuMP.@NLconstraint(wm.model, sum(r * f_alpha(qⁿᵉ[r_id]) for (r_id, r)
+                             in enumerate(resistances)) - (hᵢ - hⱼ) == 0.0)
+    wm.con[:nw][n][:potential_lossⁿᵉ][a] = con
 end
 
 function constraint_undirected_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int) where T <: AbstractNCNLPForm

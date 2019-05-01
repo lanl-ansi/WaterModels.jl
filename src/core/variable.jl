@@ -43,7 +43,7 @@ function variable_undirected_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; al
             qⁿᵉ = JuMP.@variable(wm.model, [r in 1:num_resistances],
                                  lower_bound = min(0.0, -ub⁻[a][r]),
                                  upper_bound = max(0.0, ub⁺[a][r]),
-                                 start = 0.0, base_name = "qⁿᵉ[$(n)][$(a)]")
+                                 start = 1.0e-6, base_name = "qⁿᵉ[$(n)][$(a)]")
 
             wm.var[:nw][n][:qⁿᵉ][a] = qⁿᵉ
         end
@@ -143,18 +143,15 @@ end
 
 function variable_pressure_head(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractWaterFormulation
     # Get indices for all network nodes.
-    nodes = sort([collect(ids(wm, n, :junctions)); collect(ids(wm, n, :reservoirs))])
     junction_ids = sort(collect(ids(wm, n, :junctions)))
 
-    # Get the bounds associated with heads at nodes.
+    # Get the bounds associated with heads at junctions.
     lbs, ubs = calc_head_bounds(wm, n)
 
     # Initialize variables associated with head.
-    wm.var[:nw][n][:h] = JuMP.@variable(wm.model, [i in junction_ids],
-                                        lower_bound = lbs[i],
-                                        upper_bound = ubs[i],
-                                        start = ubs[i],
-                                        base_name = "h[$(n)]")
+    h = JuMP.@variable(wm.model, [i in junction_ids], lower_bound=lbs[i],
+                       upper_bound=ubs[i], start=ubs[i], base_name="h[$(n)]")
+    wm.var[:nw][n][:h] = h
 end
 
 function variable_directed_head_difference(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractWaterFormulation

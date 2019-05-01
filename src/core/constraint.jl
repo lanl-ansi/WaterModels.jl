@@ -12,12 +12,12 @@ function constraint_undirected_flow_conservation(wm::GenericWaterModel{T}, i::In
     flow_sum = JuMP.AffExpr(0.0)
 
     # Add all incoming flow to node i.
-    for (a, conn) in filter(is_in_node(i), wm.ref[:nw][n][:links])
+    for (a, link) in filter(is_in_node(i), wm.ref[:nw][n][:links])
         JuMP.add_to_expression!(flow_sum, wm.var[:nw][n][:q][a])
     end
 
     # Subtract all outgoing flow from node i.
-    for (a, conn) in filter(is_out_node(i), wm.ref[:nw][n][:links])
+    for (a, link) in filter(is_out_node(i), wm.ref[:nw][n][:links])
         JuMP.add_to_expression!(flow_sum, -wm.var[:nw][n][:q][a])
     end
 
