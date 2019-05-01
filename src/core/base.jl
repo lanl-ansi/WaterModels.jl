@@ -127,7 +127,7 @@ function optimize!(wm::GenericWaterModel, optimizer::JuMP.OptimizerFactory)
     try
         solve_time = MOI.get(wm.model, MOI.SolveTime())
     catch
-        Memento.warn(LOGGER, "the given optimizer does not provide the SolveTime() attribute, falling back on @timed.  This is not a rigorous timing value.");
+        Memento.warn(LOGGER, "The given optimizer does not provide the SolveTime() attribute, falling back on @timed. This is not a rigorous timing value.");
     end
 
     return JuMP.termination_status(wm.model), JuMP.primal_status(wm.model), JuMP.dual_status(wm.model), solve_time
@@ -164,7 +164,7 @@ function build_generic_model(data::Dict{String,<:Any}, model_constructor, post_m
     wm = model_constructor(data; kwargs...)
 
     if !multinetwork && ismultinetwork(wm)
-        Memento.error(LOGGER, "attempted to build a single-network model with multi-network data")
+        Memento.error(LOGGER, "Attempted to build a single-network model with multi-network data.")
     end
 
     post_method(wm)
@@ -237,8 +237,12 @@ function build_ref(data::Dict{String,<:Any})
 
         for (key, item) in nw_data
             if isa(item, Dict{String,Any})
-                item_lookup = Dict{Int,Any}([(parse(Int, k), v) for (k,v) in item])
-                ref[Symbol(key)] = item_lookup
+                try
+                    item_lookup = Dict{Int,Any}([(parse(Int, k), v) for (k,v) in item])
+                    ref[Symbol(key)] = item_lookup
+                catch
+                    ref[Symbol(key)] = item
+                end
             else
                 ref[Symbol(key)] = item
             end
@@ -250,8 +254,17 @@ function build_ref(data::Dict{String,<:Any})
         ref[:links_unknown_direction] = filter(!has_known_flow_direction, ref[:links])
         ref[:nodes] = merge(ref[:junctions], ref[:reservoirs], ref[:emitters])
 
-        ref[:resistance] = calc_resistances_hw(ref[:links])
-        ref[:resistance_cost] = calc_resistance_costs_hw(ref[:links])
+        # Set the resistances based on the head loss type.
+        if ref[:options]["headloss"] == "h-w"
+            ref[:resistance] = calc_resistances_hw(ref[:links])
+            ref[:resistance_cost] = calc_resistance_costs_hw(ref[:links])
+        elseif ref[:options]["headloss"] == "d-w"
+            viscosity = ref[:options]["viscosity"]
+            ref[:resistance] = calc_resistances_dw(ref[:links], viscosity)
+            ref[:resistance_cost] = calc_resistance_costs_dw(ref[:links], viscosity)
+        else
+            Memento.error(LOGGER, "Head loss formulation type is not recognized.")
+        end
     end
 
     return refs

@@ -17,7 +17,7 @@ const MOIU = MathOptInterface.Utilities
 
 using Test
 
-# Default MIP, NLP, and MINLP optimizers.
+# Default MIP and NLP optimizers.
 const cbc = JuMP.with_optimizer(Cbc.Optimizer, logLevel=0)
 const ipopt = JuMP.with_optimizer(Ipopt.Optimizer, tol=1.0e-9, print_level=0)
 

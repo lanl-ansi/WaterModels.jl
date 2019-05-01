@@ -81,8 +81,7 @@ function parse_epanet(path::String)
     dict = Dict{String, Any}()
 
     # Parse important options first.
-    options = parse_options(epanet_dict["options"])
-    dict["options"] = Dict{String, String}("headloss" => options["headloss"])
+    dict["options"] = parse_options(epanet_dict["options"])
 
     # Parse metadata.
     dict["title"] = parse_title(epanet_dict["title"])
@@ -90,14 +89,14 @@ function parse_epanet(path::String)
     dict["multinetwork"] = false
 
     # Parse link objects.
-    dict["pipes"] = parse_pipes(epanet_dict["pipes"], options)
-    dict["pumps"] = parse_pumps(epanet_dict["pumps"], options)
+    dict["pipes"] = parse_pipes(epanet_dict["pipes"], dict["options"])
+    dict["pumps"] = parse_pumps(epanet_dict["pumps"], dict["options"])
     dict["valves"] = parse_valves(epanet_dict["valves"])
 
     # Parse node objects.
-    dict["emitters"] = parse_emitters(epanet_dict["emitters"], options)
-    dict["junctions"] = parse_junctions(epanet_dict["junctions"], options)
-    dict["reservoirs"] = parse_reservoirs(epanet_dict["reservoirs"], options)
+    dict["emitters"] = parse_emitters(epanet_dict["emitters"], dict["options"])
+    dict["junctions"] = parse_junctions(epanet_dict["junctions"], dict["options"])
+    dict["reservoirs"] = parse_reservoirs(epanet_dict["reservoirs"], dict["options"])
     dict["tanks"] = parse_tanks(epanet_dict["tanks"])
 
     return dict
