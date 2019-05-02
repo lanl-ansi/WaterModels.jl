@@ -1,4 +1,11 @@
 @testset "Network Expansion Problems" begin
+    @testset "Shamir network (unknown flow directions), CNLP formulation." begin
+        network = WaterModels.parse_file("../test/data/epanet/shamir.inp")
+        modifications = WaterModels.parse_file("../test/data/json/shamir.json")
+        InfrastructureModels.update_data!(network, modifications)
+        @test_throws ErrorException run_ne(network, CNLPWaterModel, ipopt, alpha=1.852, relaxed=true)
+    end
+
     #@testset "Shamir network (unknown flow directions), MICP formulation." begin
     #    network = WaterModels.parse_file("../test/data/epanet/shamir.inp")
     #    modifications = WaterModels.parse_file("../test/data/json/shamir.json")

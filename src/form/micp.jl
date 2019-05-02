@@ -16,7 +16,7 @@ function variable_head(wm::GenericWaterModel{T}, n::Int=wm.cnw; alpha::Float64=1
 end
 
 function variable_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw; alpha::Float64=1.852) where T <: AbstractMICPForm
-    variable_undirected_flow(wm, n, alpha=alpha, bounded=true)
+    variable_undirected_flow(wm, n, bounded=true)
     variable_directed_flow(wm, n, alpha=alpha, bounded=true)
     variable_flow_direction(wm, n)
 end

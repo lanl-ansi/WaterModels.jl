@@ -63,7 +63,52 @@ function calc_head_difference_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
     return head_diff_min, head_diff_max
 end
 
-function calc_directed_flow_upper_bounds(wm::GenericWaterModel, alpha::Float64=1.852, n::Int=wm.cnw)
+function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
+    links = wm.ref[:nw][n][:links]
+    dh_lb, dh_ub = calc_head_difference_bounds(wm, n)
+
+    alpha = wm.ref[:nw][n][:alpha]
+    junctions = values(wm.ref[:nw][n][:junctions])
+    sum_demand = sum(junction["demand"] for junction in junctions)
+
+    lb = Dict([(a, Float64[]) for a in keys(links)])
+    ub = Dict([(a, Float64[]) for a in keys(links)])
+
+    for (a, link) in links
+        L = link["length"]
+        resistances = wm.ref[:nw][n][:resistance][a]
+        num_resistances = length(resistances)
+
+        lb[a] = zeros(Float64, (num_resistances,))
+        ub[a] = zeros(Float64, (num_resistances,))
+
+        for (r_id, r) in enumerate(resistances)
+            lb[a][r_id] = sign(dh_lb[a]) * (abs(dh_lb[a]) / (L * r))^(inv(alpha))
+            lb[a][r_id] = max(lb[a][r_id], -sum_demand)
+
+            ub[a][r_id] = sign(dh_ub[a]) * (abs(dh_ub[a]) / (L * r))^(inv(alpha))
+            ub[a][r_id] = min(ub[a][r_id], sum_demand)
+
+            if link["flow_direction"] == POSITIVE
+                lb[a][r_id] = max(lb[a][r_id], 0.0)
+            elseif link["flow_direction"] == NEGATIVE
+                ub[a][r_id] = min(ub[a][r_id], 0.0)
+            end
+
+            if haskey(link, "diameters") && haskey(link, "maximumVelocity")
+                D_a = link["diameters"][r_id]["diameter"]
+                v_a = link["maximumVelocity"]
+                rate_bound = 0.25 * pi * v_a * D_a * D_a
+                lb[a][r_id] = max(lb[a][r_id], -rate_bound)
+                ub[a][r_id] = min(ub[a][r_id], rate_bound)
+            end
+        end
+    end
+
+    return lb, ub
+end
+
+function calc_directed_flow_upper_bounds(wm::GenericWaterModel, alpha::Float64, n::Int=wm.cnw)
     # Get a dictionary of resistance values.
     dh_lb, dh_ub = calc_head_difference_bounds(wm, n)
 

@@ -256,9 +256,11 @@ function build_ref(data::Dict{String,<:Any})
 
         # Set the resistances based on the head loss type.
         if ref[:options]["headloss"] == "h-w"
+            ref[:alpha] = 1.852
             ref[:resistance] = calc_resistances_hw(ref[:links])
             ref[:resistance_cost] = calc_resistance_costs_hw(ref[:links])
         elseif ref[:options]["headloss"] == "d-w"
+            ref[:alpha] = 2.0
             viscosity = ref[:options]["viscosity"]
             ref[:resistance] = calc_resistances_dw(ref[:links], viscosity)
             ref[:resistance_cost] = calc_resistance_costs_dw(ref[:links], viscosity)

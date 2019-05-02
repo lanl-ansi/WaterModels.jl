@@ -6,19 +6,3 @@
 #
 # Constraint templates should always be defined over "GenericWaterModel" and
 # should never refer to model variables.
-
-#"Constraint to ensure at least one direction is set to take flow away from a source."
-#function constraint_source_flow(wm::GenericWaterModel{T}, i::Int, n::Int = wm.cnw) where T
-#    links = wm.ref[:nw][n][:links]
-#    from_branches = collect(keys(filter(is_out_node(i), links)))
-#    to_branches = collect(keys(filter(is_in_node(i), links)))
-#    constraint_source_flow(wm, i, f_branches, t_branches, n)
-#end
-#
-#"Constraint to ensure at least one direction is set to take flow to a junction with demand."
-#function constraint_sink_flow(wm::GenericWaterModel{T}, i::Int, n::Int = wm.cnw) where T
-#    links = wm.ref[:nw][n][:links]
-#    f_branches = collect(keys(filter(is_out_node(i), links)))
-#    t_branches = collect(keys(filter(is_in_node(i), links)))
-#    constraint_sink_flow(wm, i, f_branches, t_branches, n)
-#end

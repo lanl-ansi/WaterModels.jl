@@ -18,29 +18,14 @@ end
 
 function variable_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw; alpha::Float64=1.852) where T <: AbstractCNLPForm
     variable_directed_flow(wm, n, alpha=alpha, bounded=false)
-    variable_undirected_flow(wm, n, alpha=alpha, bounded=false)
-end
-
-function variable_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; alpha::Float64=1.852) where T <: AbstractCNLPForm
-end
-
-function constraint_resistance_selection_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractCNLPForm
+    variable_undirected_flow(wm, n, bounded=false)
 end
 
 function constraint_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw; alpha::Float64=1.852) where T <: AbstractCNLPForm
 end
 
-function constraint_potential_loss_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw; alpha::Float64=1.852) where T <: AbstractCNLPForm
-end
-
 function constraint_flow_conservation(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractCNLPForm
     constraint_directed_flow_conservation(wm, i, n)
-end
-
-function constraint_flow_conservation_ne(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractCNLPForm
-end
-
-function constraint_link_flow_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractCNLPForm
 end
 
 function constraint_link_flow(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw; alpha::Float64=1.852) where T <: AbstractCNLPForm

@@ -6,28 +6,29 @@ function get_start(set, item_key, value_key, default = 0.0)
     return get(get(set, item_key, Dict()), value_key, default)
 end
 
-function variable_undirected_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw; alpha::Float64=1.852, bounded::Bool=true) where T <: AbstractWaterFormulation
+function variable_undirected_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw; bounded::Bool=true) where T <: AbstractWaterFormulation
     # Get indices for all network arcs.
     arcs = sort(collect(ids(wm, n, :links)))
 
     # Initialize directed flow variables. The variables q⁺ correspond to flow
     # from i to j, and the variables q⁻ correspond to flow from j to i.
     if bounded
-        ub⁻, ub⁺ = calc_directed_flow_upper_bounds(wm, alpha, n)
+        lb, ub = calc_flow_rate_bounds(wm, n)
 
-        wm.var[:nw][n][:q] = JuMP.@variable(wm.model, [a in arcs],
-                                            lower_bound = min(0.0, -maximum(ub⁻[a])),
-                                            upper_bound = max(0.0, maximum(ub⁺[a])),
-                                            start = 0.5 * maximum(ub⁺[a]) + 1.0e-6,
-                                            base_name = "q[$(n)]")
+        q = JuMP.@variable(wm.model, [a in arcs], lower_bound=minimum(lb[a]),
+                           upper_bound=maximum(ub[a]), start=0.5*maximum(ub[a]),
+                           base_name="q[$(n)]")
+
+        wm.var[:nw][n][:q] = q
     else
-        wm.var[:nw][n][:q] = JuMP.@variable(wm.model, [a in arcs],
-                                            start = 1.0e-6,
-                                            base_name = "q[$(n)]")
+        q = JuMP.@variable(wm.model, [a in arcs], start=1.0e-6,
+                           base_name="q[$(n)]")
+
+        wm.var[:nw][n][:q] = q
     end
 end
 
-function variable_undirected_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; alpha::Float64=1.852, bounded::Bool=true) where T <: AbstractWaterFormulation
+function variable_undirected_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; bounded::Bool=true) where T <: AbstractWaterFormulation
     # Get indices for all network arcs.
     arcs = sort(collect(ids(wm, n, :links)))
     wm.var[:nw][n][:qⁿᵉ] = Dict{Int, Array{JuMP.VariableRef, 1}}()
@@ -35,15 +36,14 @@ function variable_undirected_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; al
     # Initialize directed flow variables. The variables q⁺ correspond to flow
     # from i to j, and the variables q⁻ correspond to flow from j to i.
     if bounded
-        ub⁻, ub⁺ = calc_directed_flow_upper_bounds(wm, alpha, n)
+        lb, ub = calc_flow_rate_bounds(wm, n)
 
         for a in arcs
             num_resistances = length(wm.ref[:nw][n][:resistance][a])
 
             qⁿᵉ = JuMP.@variable(wm.model, [r in 1:num_resistances],
-                                 lower_bound = min(0.0, -ub⁻[a][r]),
-                                 upper_bound = max(0.0, ub⁺[a][r]),
-                                 start = 1.0e-6, base_name = "qⁿᵉ[$(n)][$(a)]")
+                                 lower_bound=lb[a][r], upper_bound=ub[a][r],
+                                 start=1.0e-6, base_name="qⁿᵉ[$(n)][$(a)]")
 
             wm.var[:nw][n][:qⁿᵉ][a] = qⁿᵉ
         end

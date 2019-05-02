@@ -11,16 +11,16 @@ const NCNLPWaterModel = GenericWaterModel{StandardNCNLPForm}
 "Default NCNLP constructor."
 NCNLPWaterModel(data::Dict{String,Any}; kwargs...) = GenericWaterModel(data, StandardNCNLPForm; kwargs...)
 
-function variable_head(wm::GenericWaterModel{T}, n::Int=wm.cnw; alpha::Float64=1.852) where T <: AbstractNCNLPForm
+function variable_head(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractNCNLPForm
     variable_pressure_head(wm, n)
 end
 
 function variable_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw; alpha::Float64=1.852) where T <: AbstractNCNLPForm
-    variable_undirected_flow(wm, n, alpha=alpha, bounded=true)
+    variable_undirected_flow(wm, n, bounded=true)
 end
 
 function variable_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; alpha::Float64=1.852) where T <: AbstractNCNLPForm
-    variable_undirected_flow_ne(wm, n, alpha=alpha, bounded=true)
+    variable_undirected_flow_ne(wm, n, bounded=true)
 end
 
 function constraint_resistance_selection_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm

@@ -26,7 +26,7 @@ This decoupling enables the definition of a wide variety of water network optimi
 * MINLP-R (relaxation-based mixed-integer nonlinear program)
 * MILP-R (relaxation-based mixed-integer linear program)
 
-## Highlights in v0.0.1 (2019-04-12)
+## Highlights in v0.0.1 (2019-05-06)
 
 ## Usage at a Glance
 
