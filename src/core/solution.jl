@@ -54,6 +54,7 @@ end
 ""
 function get_solution(wm::GenericWaterModel, sol::Dict{String,<:Any})
     add_pipe_flow_rate_setpoint(sol, wm)
+    add_pipe_resistance_setpoint(sol, wm)
     add_junction_head_setpoint(sol, wm)
 end
 
@@ -65,6 +66,39 @@ function add_junction_head_setpoint(sol, wm::GenericWaterModel)
     if :h in keys(wm.var[:nw][wm.cnw])
         add_setpoint(sol, wm, "junctions", "h", :h)
     else
+    end
+end
+
+function add_pipe_resistance_setpoint(sol, wm::GenericWaterModel)
+    if InfrastructureModels.ismultinetwork(wm.data)
+        data_dict = wm.data["nw"]["$(wm.cnw)"]["pipes"]
+    else
+        data_dict = wm.data["pipes"]
+    end
+
+    #if length(data_dict) > 0
+    #    sol[dict_name] = sol_dict
+    #end
+
+    if :xʳᵉˢ in keys(wm.var[:nw][wm.cnw])
+        for (i, link) in data_dict
+            #sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
+            #sol_item[param_name] = default_value(item)
+
+            a = parse(Int, link["id"])
+
+            if a in keys(wm.var[:nw][wm.cnw][:xʳᵉˢ])
+                xʳᵉˢ, r_id = findmax(JuMP.value.(wm.var[:nw][wm.cnw][:xʳᵉˢ][a]))
+                link["r"] = wm.ref[:nw][wm.cnw][:resistance][a][r_id]
+            else
+                link["r"] = minimum(wm.ref[:nw][wm.cnw][:resistance][a])
+            end
+        end
+    else
+        for (i, link) in data_dict
+            a = parse(Int, link["id"])
+            link["r"] = minimum(wm.ref[:nw][wm.cnw][:resistance][a])
+        end
     end
 end
 
