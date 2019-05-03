@@ -40,14 +40,8 @@ function solve_global(network_path::String, problem_path::String,
     best_objective = compute_objective(mmilp, resistance_indices)
     objective_initial = best_objective
 
-    # Tighten bounds.
-    nothing, bound_tightening_time = @timed bound_tightening(mmilp, rnlp, best_objective, 2, nlp_solver)
-
     # Initialize the outer approximation.
     nothing, add_outer_approximation_time = @timed add_outer_approximation(mmilp, rnlp, resistance_indices, nlp_solver)
-
-    # Add the upper approximation.
-    nothing, add_upper_approximation_time = @timed add_upper_approximation(mmilp, rnlp, resistance_indices, nlp_solver)
 
     # Initialize solving parameters.
     params = Dict{String, Any}("obj_last" => best_objective,
@@ -70,15 +64,13 @@ function solve_global(network_path::String, problem_path::String,
     solve_status, solve_time = @timed JuMP.solve(mmilp.model)
 
     # Get objective value information.
-    nodes_explored = getnodecount(mmilp.model)
     objective_value = getobjectivevalue(mmilp.model)
     objective_bound = getobjbound(mmilp.model)
     objective_gap = abs(objective_bound - objective_value) / abs(objective_value)
 
     # Get the total time.
     total_time = initialize_models_time + find_initial_solution_time +
-                 set_initial_solution_time + bound_tightening_time +
-                 add_outer_approximation_time + add_upper_approximation_time +
+                 set_initial_solution_time + add_outer_approximation_time +
                  solve_time
 
     println("--------------------------- STATISTICS ---------------------------")
@@ -86,16 +78,15 @@ function solve_global(network_path::String, problem_path::String,
     println("eliminate_variables_time     = ", eliminate_variables_time)
     println("find_initial_solution_time   = ", find_initial_solution_time)
     println("set_initial_solution_time    = ", set_initial_solution_time)
-    println("bound_tightening_time        = ", bound_tightening_time)
     println("add_outer_approximation_time = ", add_outer_approximation_time)
-    println("add_upper_approximation_time = ", add_upper_approximation_time)
     println("solve_time                   = ", solve_time)
     println("total_time                   = ", total_time)
     println("solve_status                 = ", solve_status)
-    println("nodes_explored               = ", nodes_explored)
     println("objective_initial            = ", objective_initial)
     println("objective_value              = ", objective_value)
     println("objective_bound              = ", objective_bound)
     println("objective_gap                = ", objective_gap)
     println("------------------------------------------------------------------")
+
+    return solve_status
 end

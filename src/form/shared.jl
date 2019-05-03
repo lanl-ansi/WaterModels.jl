@@ -7,7 +7,7 @@ function constraint_select_resistance(wm::GenericWaterModel, a::Int, n::Int = wm
     wm.con[:nw][n][:select_resistance][a] = con
 end
 
-function constraint_select_flow_term(wm::GenericWaterModel, a::Int, n_n::Int)
+function constraint_select_flow_term(wm::GenericWaterModel, a::Int, n_n::Int = wm.cnw)
     if !haskey(wm.con[:nw][n_n], :select_flow_term_1)
         wm.con[:nw][n_n][:select_flow_term_1] = Dict{Int, Dict{Int, ConstraintRef}}()
         wm.con[:nw][n_n][:select_flow_term_2] = Dict{Int, Dict{Int, ConstraintRef}}()
@@ -44,7 +44,7 @@ function constraint_select_flow_term(wm::GenericWaterModel, a::Int, n_n::Int)
     end
 end
 
-function constraint_head_difference(wm::GenericWaterModel, a::Int, n_n::Int)
+function constraint_head_difference(wm::GenericWaterModel, a::Int, n_n::Int = wm.cnw)
     if !haskey(wm.con[:nw][n_n], :head_difference_1)
         wm.con[:nw][n_n][:head_difference_1] = Dict{Int, ConstraintRef}()
         wm.con[:nw][n_n][:head_difference_2] = Dict{Int, ConstraintRef}()
@@ -72,7 +72,7 @@ function constraint_head_difference(wm::GenericWaterModel, a::Int, n_n::Int)
     wm.con[:nw][n_n][:head_difference_3] = con_3
 end
 
-function constraint_potential_loss_slope(wm::GenericWaterModel, a::Int, n_n::Int)
+function constraint_potential_loss_slope(wm::GenericWaterModel, a::Int, n_n::Int = wm.cnw)
     if !haskey(wm.con[:nw][n_n], :potential_loss_slope_1)
         wm.con[:nw][n_n][:potential_loss_slope_1] = Dict{Int, ConstraintRef}()
         wm.con[:nw][n_n][:potential_loss_slope_2] = Dict{Int, ConstraintRef}()
@@ -99,7 +99,7 @@ end
 "These problem forms use binary variables to specify flow direction."
 AbstractDirectedForm = Union{AbstractMINLPForm, AbstractMILPRForm}
 
-function variable_directed_flow(wm::GenericWaterModel{T}, n_n::Int) where T <: AbstractDirectedForm
+function variable_directed_flow(wm::GenericWaterModel{T}, n_n::Int = wm.cnw) where T <: AbstractDirectedForm
     # Get indices for all network arcs.
     arcs = collect(ids(wm, n_n, :connection))
 
@@ -154,40 +154,3 @@ function constraint_sink_flow(wm::GenericWaterModel, i::Int, n::Int = wm.cnw)
     in_dirs = Array{JuMP.Variable}([wm.var[:nw][n][:dir][a] for a in keys(in_arcs)])
     @constraint(wm.model, sum(in_dirs) - sum(out_dirs) >= 1 - length(out_dirs))
 end
-
-#"Set new bounds for q given some specified direction of flow (-1 or 1)."
-#function fix_flow_direction(q::JuMP.Variable, direction::Int)
-#    # Fix the direction of the flow.
-#    setlowerbound(q, direction == 1 ? 0.0 : getlowerbound(q))
-#    setupperbound(q, direction == 1 ? getupperbound(q) : 0.0)
-#end
-#
-#"Get variables commonly used in the construction of head loss constraints."
-#function get_common_variables(wm::GenericWaterModel{T}, a::Int, n::Int = wm.cnw) where T <: AbstractWaterFormulation
-#    # Get source and target nodes corresponding to the edge.
-#    i = parse(Int, wm.ref[:nw][n][:pipes][a]["node1"])
-#    j = parse(Int, wm.ref[:nw][n][:pipes][a]["node2"])
-#
-#    # Collect variables needed for the constraint.
-#    q = wm.var[:nw][n][:q][a]
-#    h_i = wm.var[:nw][n][:h][i]
-#    h_j = wm.var[:nw][n][:h][j]
-#
-#    # Return the variables.
-#    return q, h_i, h_j
-#end
-#
-#"Get variables and constants used in the construction of Darcy-Weisbach constraints."
-#function get_dw_requirements(wm::GenericWaterModel{T}, a::Int, n::Int = wm.cnw) where T <: AbstractWaterFormulation
-#    q, h_i, h_j = get_common_variables(wm, a, n)
-#    viscosity = wm.ref[:nw][n][:options]["viscosity"]
-#    lambda = calc_friction_factor_dw(wm.ref[:nw][n][:pipes][a], viscosity)
-#    return q, h_i, h_j, viscosity, lambda
-#end
-#
-#"Get variables and constants used in the construction of Hazen-Williams constraints."
-#function get_hw_requirements(wm::GenericWaterModel{T}, a::Int, n::Int = wm.cnw) where T <: AbstractWaterFormulation
-#    q, h_i, h_j = get_common_variables(wm, a, n)
-#    lambda = calc_friction_factor_hw(wm.ref[:nw][n][:pipes][a])
-#    return q, h_i, h_j, lambda
-#end

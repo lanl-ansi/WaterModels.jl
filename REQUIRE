@@ -1,6 +1,6 @@
-julia 0.7
+julia 1.0
 InfrastructureModels
 JSON
-JuMP
+JuMP 0.18 0.19-
 MathProgBase
 Memento

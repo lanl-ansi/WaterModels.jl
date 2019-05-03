@@ -38,6 +38,4 @@ function eliminate_variables(wm::GenericWaterModel, nlp::GenericWaterModel,
 
         resistance_indices[a] = length(wm.ref[:nw][n][:resistance][a])
     end
-
-    # println("$(num_resistances_eliminated) of $(num_resistances) resistances eliminated.")
 end
