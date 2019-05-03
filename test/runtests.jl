@@ -24,7 +24,7 @@ const ipopt_ws = JuMP.with_optimizer(Ipopt.Optimizer, tol=1.0e-9, max_iter=9999,
 
 @testset "WaterModels" begin
 
-    include("base.jl")
+    include("common.jl")
 
     include("io.jl")
 

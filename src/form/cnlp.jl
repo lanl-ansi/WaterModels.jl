@@ -43,28 +43,29 @@ function set_start_values(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: Ab
 end
 
 function objective_wf(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: StandardCNLPForm
-    links = wm.ref[:nw][n][:links]
-    expr = JuMP.@expression(wm.model, 0.0)
-    expr_start = 0.0
+    linear_expr = JuMP.@expression(wm.model, 0.0)
+    linear_expr_start = 0.0
 
     for (i, reservoir) in wm.ref[:nw][n][:reservoirs]
-        for (a, link) in filter(a -> i == a.second["node1"], links)
+        for (a, link) in filter(a -> i == a.second["node1"], wm.ref[:nw][n][:links])
             q⁻ = wm.var[:nw][n][:q⁻][a]
             q⁺ = wm.var[:nw][n][:q⁺][a]
-            expr -= reservoir["head"] * (q⁺ - q⁻)
-            expr_start -= reservoir["head"] * (JuMP.start_value(q⁺) - JuMP.start_value(q⁻))
+            linear_expr -= reservoir["head"] * (q⁺ - q⁻)
+            linear_expr_start -= reservoir["head"] * (JuMP.start_value(q⁺) - JuMP.start_value(q⁻))
         end
 
-        for (a, link) in filter(a -> i == a.second["node2"], links)
+        for (a, link) in filter(a -> i == a.second["node2"], wm.ref[:nw][n][:links])
             q⁻ = wm.var[:nw][n][:q⁻][a]
             q⁺ = wm.var[:nw][n][:q⁺][a]
-            expr -= reservoir["head"] * (q⁻ - q⁺)
-            expr_start -= reservoir["head"] * (JuMP.start_value(q⁻) - JuMP.start_value(q⁺))
+            linear_expr -= reservoir["head"] * (q⁻ - q⁺)
+            linear_expr_start -= reservoir["head"] * (JuMP.start_value(q⁻) - JuMP.start_value(q⁺))
         end
     end
 
-    linear_term = JuMP.@variable(wm.model, base_name="linear_objective_term", start=expr_start)
-    JuMP.@constraint(wm.model, expr == linear_term)
+    # TODO: Declare this variable somewhere else? Or even better, add something
+    # to JuMP that allows for addition of affine and nonlinear expressions...
+    linear_term = JuMP.@variable(wm.model, base_name="linear_objective_term", start=linear_expr_start)
+    JuMP.@constraint(wm.model, linear_expr == linear_term)
 
     # Initialize the objective.
     objective_expr = JuMP.@NLexpression(wm.model, linear_term +

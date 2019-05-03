@@ -1,7 +1,20 @@
-@testset "Helper Functions" begin
+@testset "Common Functions" begin
     network_path = "../test/data/epanet/shamir.inp"
     post_wf = WaterModels.get_post_wf(1.852)
     wm = build_generic_model(network_path, CNLPWaterModel, post_wf)
+
+    @testset "silence" begin
+        # This should silence everything except error messages.
+        WaterModels.silence()
+
+        im_logger = Memento.getlogger(InfrastructureModels)
+        @test Memento.getlevel(im_logger) == "error"
+        Memento.warn(im_logger, "Silenced message should not be displayed.")
+
+        wm_logger = Memento.getlogger(WaterModels)
+        @test Memento.getlevel(wm_logger) == "error"
+        Memento.warn(wm_logger, "Silenced message should not be displayed.")
+    end
 
     @testset "ismultinetwork" begin
         @test ismultinetwork(wm) == false
