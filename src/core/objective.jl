@@ -43,7 +43,7 @@ function objective_minimize_resistance_cost(wm::GenericWaterModel)
     return @objective(wm.model, Min, objective)
 end
 
-function objective_cvx_hw(wm::GenericWaterModel)
+function objective_cnlp_hw(wm::GenericWaterModel)
     # Register the integrated head loss JuMP function.
     function_head_loss_integrated_hw(wm)
 

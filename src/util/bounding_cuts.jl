@@ -3,7 +3,7 @@ function add_outer_approximation(wm::GenericWaterModel,
                                  resistance_indices::Dict{Int, Int},
                                  solver::MathProgBase.AbstractMathProgSolver,
                                  n::Int = wm.cnw)
-    # Solve a relaxed version of the convex MINLP (Line 1).
+    # Solve a relaxed version of the MICP (Line 1).
     rwm_cost = get_resistance_cost_expression(rwm)
     @objective(rwm.model, Min, rwm_cost)
     setsolver(rwm.model, solver)

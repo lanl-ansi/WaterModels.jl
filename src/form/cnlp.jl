@@ -1,22 +1,22 @@
 # Define MILP-R implementations of water distribution models.
 
-export CVXNLPWaterModel, StandardCVXNLPForm
+export CNLPWaterModel, StandardCNLPForm
 
 import MathProgBase
 
-"AbstractCVXNLPForm is derived from AbstractWaterFormulation"
-abstract type AbstractCVXNLPForm <: AbstractWaterFormulation end
+"AbstractCNLPForm is derived from AbstractWaterFormulation"
+abstract type AbstractCNLPForm <: AbstractWaterFormulation end
 
-"StandardCVXNLPForm is derived from AbstractCVXNLPForm"
-abstract type StandardCVXNLPForm <: AbstractCVXNLPForm end
+"StandardCNLPForm is derived from AbstractCNLPForm"
+abstract type StandardCNLPForm <: AbstractCNLPForm end
 
-"The CVXNLP model relaxes constraints into the objective."
-const CVXNLPWaterModel = GenericWaterModel{StandardCVXNLPForm}
+"The CNLP model relaxes constraints into the objective."
+const CNLPWaterModel = GenericWaterModel{StandardCNLPForm}
 
-"CVXNLP constructor."
-CVXNLPWaterModel(data::Dict{String, Any}; kwargs...) = GenericWaterModel(data, StandardCVXNLPForm; kwargs...)
+"CNLP constructor."
+CNLPWaterModel(data::Dict{String, Any}; kwargs...) = GenericWaterModel(data, StandardCNLPForm; kwargs...)
 
-function variable_directed_flow(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: StandardCVXNLPForm
+function variable_directed_flow(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: StandardCNLPForm
     # Get indices for all network arcs.
     arcs = collect(ids(wm, n, :connection))
 

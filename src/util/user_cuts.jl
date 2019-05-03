@@ -97,7 +97,7 @@ function user_cut_callback_generator(wm::GenericWaterModel,
             params["obj_last"] = params["obj_curr"]
             params["obj_curr"] = compute_objective(wm, resistance_indices, n)
 
-            q, h = get_cvx_solution(wm, resistance_indices, nlp_solver)
+            q, h = get_cnlp_solution(wm, resistance_indices, nlp_solver)
             qlb, qub, hlb, hub = check_solution_bounds(wm, q, h, resistance_indices, n)
             solution_is_feasible = all([all(values(qlb)), all(values(qub)),
                                         all(values(hlb)), all(values(hub))])

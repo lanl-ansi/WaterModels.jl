@@ -10,8 +10,8 @@ function repair_solution(wm::GenericWaterModel,
     repaired = false # Indicates whether resistance choices have been repaired.
 
     while num_iterations <= max_iterations && !repaired && progress
-        # Get the solution to CVXNLP for the current set of resistances.
-        q, h = get_cvx_solution(wm, resistance_indices, solver)
+        # Get the solution to CNLP for the current set of resistances.
+        q, h = get_cnlp_solution(wm, resistance_indices, solver)
 
         # Get bound test results and determine if the solution is feasible.
         qlb, qub, hlb, hub = check_solution_bounds(wm, q, h, resistance_indices, n)

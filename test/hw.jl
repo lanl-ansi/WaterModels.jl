@@ -1,15 +1,15 @@
-@testset "Hazen-Williams MINLP Problems" begin
-    @testset "Shamir network (physical feasibility, relaxation)." begin
+@testset "Hazen-Williams MICP Problems" begin
+    @testset "Shamir network (physical feasibility, MICP)." begin
         network_path = "../test/data/epanet/shamir.inp"
-        solution = run_wf_hw(network_path, MINLPWaterModel, pavito)
+        solution = run_wf_hw(network_path, MICPWaterModel, pavito)
         status = solution["status"]
         @test status == :LocalOptimal || status == :Optimal
     end
 
-    @testset "Shamir network (diameter selection (reduced), relaxation)." begin
+    @testset "Shamir network (diameter selection (reduced), MICP)." begin
         network_path = "../test/data/epanet/shamir.inp"
         modification_path = "../test/data/json/shamir-reduced.json"
-        solution = run_ne_hw(network_path, modification_path, MINLPWaterModel, pavito)
+        solution = run_ne_hw(network_path, modification_path, MICPWaterModel, pavito)
         status = solution["status"]
         @test status == :LocalOptimal || status == :Optimal
     end

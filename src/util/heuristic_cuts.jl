@@ -56,7 +56,7 @@ function heuristic_cut_callback_generator(wm::GenericWaterModel, params::Dict{St
             params["obj_curr"] = current_objective
             params["obj_best"] = min(params["obj_curr"], params["obj_best"])
 
-            q, h = get_cvx_solution(wm, resistance_indices, nlp_solver)
+            q, h = get_cnlp_solution(wm, resistance_indices, nlp_solver)
 
             # Set the integer values appropriately.
             for (a, connection) in wm.ref[:nw][n][:connection]

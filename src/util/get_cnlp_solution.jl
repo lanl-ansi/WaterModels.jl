@@ -1,6 +1,6 @@
-export get_cvx_solution, check_solution_bounds
+export get_cnlp_solution, check_solution_bounds
 
-function get_cvx_network(wm::GenericWaterModel, n::Int = wm.cnw)
+function get_cnlp_network(wm::GenericWaterModel, n::Int = wm.cnw)
     # Create a copy of the original network data.
     network = deepcopy(wm.data)
 
@@ -15,11 +15,11 @@ function get_cvx_network(wm::GenericWaterModel, n::Int = wm.cnw)
     return network
 end
 
-function get_cvx_solution(wm::GenericWaterModel,
+function get_cnlp_solution(wm::GenericWaterModel,
                           resistance_indices::Dict{Int, Int},
                           solver::MathProgBase.AbstractMathProgSolver,
                           n::Int = wm.cnw)
-    network = get_cvx_network(wm, n)
+    network = get_cnlp_network(wm, n)
 
     for (a, connection) in wm.ref[:nw][n][:connection]
         # Set the resistance to the selected resistance.
@@ -29,37 +29,37 @@ function get_cvx_solution(wm::GenericWaterModel,
         network["pipes"][string(a)]["resistance"] = selected_resistance
     end
 
-    # Solve the CVXNLP model.
-    cvx = build_generic_model(network, CVXNLPWaterModel, WaterModels.post_cvx_hw)
-    setsolver(cvx.model, solver)
-    status = JuMP.solve(cvx.model)
+    # Solve the CNLP model.
+    cnlp = build_generic_model(network, CNLPWaterModel, WaterModels.post_cnlp_hw)
+    setsolver(cnlp.model, solver)
+    status = JuMP.solve(cnlp.model)
 
     # Get the solution.
-    q = get_flow_solution(cvx)
-    h = get_head_solution(cvx)
+    q = get_flow_solution(cnlp)
+    h = get_head_solution(cnlp)
 
     # Return the solution.
     return q, h
 end
 
-function get_flow_solution(cvx::GenericWaterModel{T}, n::Int = cvx.cnw) where T <: StandardCVXNLPForm
+function get_flow_solution(cnlp::GenericWaterModel{T}, n::Int = cnlp.cnw) where T <: StandardCNLPForm
     # Create a dictionary for the flow solution.
-    connection_ids = collect(ids(cvx, n, :connection))
+    connection_ids = collect(ids(cnlp, n, :connection))
     q_sol = Dict{Int, Float64}(a => 0.0 for a in connection_ids)
 
-    for (a, connection) in cvx.ref[:nw][n][:connection]
-        qp_sol = getvalue(cvx.var[:nw][n][:qp][a][1])
-        qn_sol = getvalue(cvx.var[:nw][n][:qn][a][1])
+    for (a, connection) in cnlp.ref[:nw][n][:connection]
+        qp_sol = getvalue(cnlp.var[:nw][n][:qp][a][1])
+        qn_sol = getvalue(cnlp.var[:nw][n][:qn][a][1])
         q_sol[a] = qp_sol - qn_sol
     end
 
     return q_sol
 end
 
-function get_head_solution(cvx::GenericWaterModel{T}, n::Int = cvx.cnw) where T <: StandardCVXNLPForm
-    junction_ids = collect(ids(cvx, n, :junctions))
-    reservoir_ids = collect(ids(cvx, n, :reservoirs))
-    connection_ids = collect(ids(cvx, n, :connection))
+function get_head_solution(cnlp::GenericWaterModel{T}, n::Int = cnlp.cnw) where T <: StandardCNLPForm
+    junction_ids = collect(ids(cnlp, n, :junctions))
+    reservoir_ids = collect(ids(cnlp, n, :reservoirs))
+    connection_ids = collect(ids(cnlp, n, :connection))
     node_ids = [junction_ids; reservoir_ids]
     node_mapping = Dict{Int, Int}(node_ids[i] => i for i in 1:length(node_ids))
 
@@ -72,7 +72,7 @@ function get_head_solution(cvx::GenericWaterModel{T}, n::Int = cvx.cnw) where T 
     b = zeros(Float64, num_arcs + num_reservoirs, 1)
 
     for (row, a) in enumerate(connection_ids)
-        connection = cvx.ref[:nw][n][:connection][a]
+        connection = cnlp.ref[:nw][n][:connection][a]
 
         node_i = parse(Int, connection["node1"])
         A[row, node_mapping[node_i]] = 1.0
@@ -80,17 +80,17 @@ function get_head_solution(cvx::GenericWaterModel{T}, n::Int = cvx.cnw) where T 
         node_j = parse(Int, connection["node2"])
         A[row, node_mapping[node_j]] = -1.0
 
-        q_p = getvalue(cvx.var[:nw][n][:qp][a][1])
-        q_n = getvalue(cvx.var[:nw][n][:qn][a][1])
+        q_p = getvalue(cnlp.var[:nw][n][:qp][a][1])
+        q_n = getvalue(cnlp.var[:nw][n][:qn][a][1])
 
         L = connection["length"]
-        resistance = cvx.ref[:nw][n][:resistance][a][1]
+        resistance = cnlp.ref[:nw][n][:resistance][a][1]
         b[row] = L * resistance * (q_p - q_n) * abs(q_p - q_n)^(0.852)
     end
 
     for (i, reservoir_id) in enumerate(reservoir_ids)
         A[num_arcs + i, node_mapping[reservoir_id]] = 1
-        b[num_arcs + i] = cvx.ref[:nw][n][:reservoirs][reservoir_id]["head"]
+        b[num_arcs + i] = cnlp.ref[:nw][n][:reservoirs][reservoir_id]["head"]
     end
 
     h = A \ b # Get the solution for head variables.

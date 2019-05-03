@@ -14,7 +14,7 @@ function eliminate_variables(wm::GenericWaterModel, nlp::GenericWaterModel,
     for (a, connection) in wm.ref[:nw][n][:connection]
         for resistance_index in 1:length(resistances[a])
             resistance_indices[a] = resistance_index
-            q, h = get_cvx_solution(wm, resistance_indices, solver)
+            q, h = get_cnlp_solution(wm, resistance_indices, solver)
             qlb, qub, hlb, hub = check_solution_bounds(wm, q, h, resistance_indices, n)
 
             # TODO: Why does the below entail bad cuts on some instances (e.g., Hanoi)?

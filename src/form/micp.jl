@@ -1,16 +1,16 @@
-# Defines MINLP implementations of water distribution models.
-export MINLPWaterModel, StandardMINLPForm
+# Defines MICP implementations of water distribution models.
+export MICPWaterModel, StandardMICPForm
 
-abstract type AbstractMINLPForm <: AbstractWaterFormulation end
-abstract type StandardMINLPForm <: AbstractMINLPForm end
+abstract type AbstractMICPForm <: AbstractWaterFormulation end
+abstract type StandardMICPForm <: AbstractMICPForm end
 
-"Default (convex) MINLP model."
-const MINLPWaterModel = GenericWaterModel{StandardMINLPForm}
+"Default MICP (mixed-integer convex programming) model."
+const MICPWaterModel = GenericWaterModel{StandardMICPForm}
 
-"Default MINLP constructor."
-MINLPWaterModel(data::Dict{String,Any}; kwargs...) = GenericWaterModel(data, StandardMINLPForm; kwargs...)
+"Default MICP constructor."
+MICPWaterModel(data::Dict{String,Any}; kwargs...) = GenericWaterModel(data, StandardMICPForm; kwargs...)
 
-function constraint_potential_loss(wm::GenericWaterModel{T}, a::Int, n_n::Int = wm.cnw) where T <: StandardMINLPForm
+function constraint_potential_loss(wm::GenericWaterModel{T}, a::Int, n_n::Int = wm.cnw) where T <: StandardMICPForm
     if !haskey(wm.con[:nw][n_n], :potential_loss_1)
         function_head_loss_hw(wm) # Register the head loss JuMP function.
         wm.con[:nw][n_n][:potential_loss_1] = Dict{Int, Dict{Int, ConstraintRef}}()

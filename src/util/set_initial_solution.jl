@@ -3,7 +3,7 @@ function set_initial_solution(wm::GenericWaterModel,
                               nlp_solver::MathProgBase.AbstractMathProgSolver,
                               n::Int = wm.cnw)
     # Create the initial network.
-    q, h = get_cvx_solution(wm, resistance_indices, nlp_solver, n)
+    q, h = get_cnlp_solution(wm, resistance_indices, nlp_solver, n)
 
     # Set resistances appropriately.
     for (a, connection) in wm.ref[:nw][n][:connection]

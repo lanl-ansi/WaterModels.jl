@@ -97,7 +97,7 @@ function constraint_potential_loss_slope(wm::GenericWaterModel, a::Int, n_n::Int
 end
 
 "These problem forms use binary variables to specify flow direction."
-AbstractDirectedForm = Union{AbstractMINLPForm, AbstractMILPRForm}
+AbstractDirectedForm = Union{AbstractMICPForm, AbstractMILPRForm}
 
 function variable_directed_flow(wm::GenericWaterModel{T}, n_n::Int = wm.cnw) where T <: AbstractDirectedForm
     # Get indices for all network arcs.
