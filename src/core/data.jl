@@ -156,7 +156,7 @@ function calc_resistance_hw(diameter::Float64, roughness::Float64)
     return 10.67 * inv(roughness^1.852 * diameter^4.87)
 end
 
-function calc_resistances_hw(links::Dict{Int, Any})
+function calc_resistances_hw(links::Dict{<:Any, Any})
     resistances = Dict([(a, Array{Float64, 1}()) for a in keys(links)])
 
     for (a, link) in links
@@ -180,6 +180,16 @@ function calc_resistances_hw(links::Dict{Int, Any})
     return resistances
 end
 
+function get_num_resistances(link::Dict{String, Any})
+    if haskey(link, "resistances")
+        return length(link["resistances"])
+    elseif haskey(link, "diameters")
+        return length(link["diameters"])
+    else
+        return 1
+    end
+end
+
 function calc_resistance_dw(length_::Float64, diameter::Float64, roughness::Float64, viscosity::Float64, speed::Float64, density::Float64)
     # Compute Reynold's number.
     reynolds_number = density * speed * diameter * inv(viscosity)
@@ -192,7 +202,7 @@ function calc_resistance_dw(length_::Float64, diameter::Float64, roughness::Floa
     return 0.0826 * length_ * inv(diameter^5) * inv(y3*y3)
 end
 
-function calc_resistances_dw(links::Dict{Int, Any}, viscosity::Float64)
+function calc_resistances_dw(links::Dict{<:Any, Any}, viscosity::Float64)
     resistances = Dict([(a, Array{Float64, 1}()) for a in keys(links)])
 
     for (a, link) in links
@@ -280,6 +290,26 @@ function calc_resistance_costs_dw(links::Dict{Int, Any}, viscosity::Float64)
     return costs
 end
 
+function calc_resistances(links::Dict{<:Any, Any}, viscosity::Float64, head_loss_type::String)
+    if head_loss_type == "h-w"
+        return calc_resistances_hw(links)
+    elseif head_loss_type == "d-w"
+        return calc_resistances_dw(links, viscosity)
+    else
+        Memento.error(LOGGER, "Head loss formulation type \"$(head_loss_type)\" is not recognized.")
+    end
+end
+
+function calc_resistance_costs(links::Dict{Int, Any}, viscosity::Float64, head_loss_type::String)
+    if head_loss_type == "h-w"
+        return calc_resistance_costs_hw(links)
+    elseif head_loss_type == "d-w"
+        return calc_resistance_costs_dw(links, viscosity)
+    else
+        Memento.error(LOGGER, "Head loss formulation type \"$(head_loss_type)\" is not recognized.")
+    end
+end
+
 function has_known_flow_direction(link::Pair{Int, Any})
     return link.second["flow_direction"] != UNKNOWN
 end
@@ -317,5 +347,31 @@ function set_start_directed_flow_rate!(data::Dict{String, Any})
     for (a, pipe) in data["pipes"]
         pipe["q⁻_start"] = pipe["q"] < 0.0 ? pipe["q"] : 0.0
         pipe["q⁺_start"] = pipe["q"] >= 0.0 ? pipe["q"] : 0.0
+    end
+end
+
+function set_start_resistance_ne!(data::Dict{String, Any})
+    viscosity = data["options"]["viscosity"]
+    head_loss_type = data["options"]["headloss"]
+    resistances = calc_resistances(data["pipes"], viscosity, head_loss_type)
+
+    for (a, pipe) in data["pipes"]
+        num_resistances = length(resistances[a])
+        pipe["xʳᵉˢ_start"] = zeros(Float64, num_resistances)
+        r_id = findfirst(r -> r == pipe["r"], resistances[a])
+        pipe["xʳᵉˢ_start"][r_id] = 1.0
+    end
+end
+
+function set_start_undirected_flow_rate_ne!(data::Dict{String, Any})
+    viscosity = data["options"]["viscosity"]
+    head_loss_type = data["options"]["headloss"]
+    resistances = calc_resistances(data["pipes"], viscosity, head_loss_type)
+
+    for (a, pipe) in data["pipes"]
+        num_resistances = length(resistances[a])
+        pipe["qⁿᵉ_start"] = zeros(Float64, num_resistances)
+        r_id = findfirst(r -> r == pipe["r"], resistances[a])
+        pipe["qⁿᵉ_start"][r_id] = pipe["q"]
     end
 end

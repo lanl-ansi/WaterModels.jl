@@ -2,8 +2,12 @@
 # This file defines commonly-used variables for water systems models.
 ########################################################################
 
-function get_start(set, item_key, value_key, default = 0.0)
+function get_start(set, item_key, value_key, default)
     return get(get(set, item_key, Dict()), value_key, default)
+end
+
+function get_start(set, item_key, first_value_key, second_value_key, default)
+    return get(get(get(set, item_key, Dict()), second_value_key, Dict()), first_value_key, default)
 end
 
 function variable_undirected_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw; bounded::Bool=true) where T <: AbstractWaterFormulation
@@ -45,7 +49,9 @@ function variable_undirected_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; bo
 
             qⁿᵉ = JuMP.@variable(wm.model, [r in 1:num_resistances],
                                  lower_bound=lb[a][r], upper_bound=ub[a][r],
-                                 start=1.0e-6, base_name="qⁿᵉ[$(n)][$(a)]")
+                                 base_name="qⁿᵉ[$(n)][$(a)]",
+                                 start=get_start(wm.ref[:nw][n][:links], a, r,
+                                                 "qⁿᵉ_start", 0.0))
 
             wm.var[:nw][n][:qⁿᵉ][a] = qⁿᵉ
         end
@@ -54,7 +60,9 @@ function variable_undirected_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; bo
             num_resistances = length(wm.ref[:nw][n][:resistance][a])
 
             qⁿᵉ = JuMP.@variable(wm.model, [r in 1:num_resistances],
-                                 start = 1.0e-6, base_name = "qⁿᵉ[$(n)][$(a)]")
+                                 base_name="qⁿᵉ[$(n)][$(a)]",
+                                 start=get_start(wm.ref[:nw][n][:links], a, r,
+                                                 "qⁿᵉ_start", 0.0))
 
             wm.var[:nw][n][:qⁿᵉ][a] = qⁿᵉ
         end
@@ -158,7 +166,10 @@ function variable_pressure_head(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T
 
     # Initialize variables associated with head.
     h = JuMP.@variable(wm.model, [i in junction_ids], lower_bound=lbs[i],
-                       upper_bound=ubs[i], start=ubs[i], base_name="h[$(n)]")
+                       upper_bound=ubs[i], base_name="h[$(n)]",
+                       start=get_start(wm.ref[:nw][n][:junctions], i,
+                                       "h_start", ubs[i]))
+
     wm.var[:nw][n][:h] = h
 end
 
@@ -173,12 +184,14 @@ function variable_directed_head_difference(wm::GenericWaterModel{T}, n::Int=wm.c
     Δh⁻ = JuMP.@variable(wm.model, [a in arcs], lower_bound=0.0,
                          upper_bound=abs(lbs[a]), start=abs(lbs[a]),
                          base_name="Δh⁻[$(n)]")
+
     wm.var[:nw][n][:Δh⁻] = Δh⁻
 
     # Initialize variables associated with positive head differences.
     Δh⁺ = JuMP.@variable(wm.model, [a in arcs], lower_bound=0.0,
                          upper_bound=abs(ubs[a]), start=abs(ubs[a]),
                          base_name="Δh⁺[$(n)]")
+
     wm.var[:nw][n][:Δh⁺] = Δh⁺
 end
 
@@ -205,10 +218,11 @@ function variable_resistance_ne(wm::GenericWaterModel, n::Int=wm.cnw)
     for (a, link) in wm.ref[:nw][n][:links]
         num_resistances = length(wm.ref[:nw][n][:resistance][a])
 
-        wm.var[:nw][n][:xʳᵉˢ][a] = JuMP.@variable(wm.model, [r in 1:num_resistances],
-                                                 start=0, binary=true,
-                                                 base_name="xʳᵉˢ[$(n)][$(a)]")
+        xʳᵉˢ = JuMP.@variable(wm.model, [r in 1:num_resistances], binary=true,
+                              base_name="xʳᵉˢ[$(n)][$(a)]",
+                              start=get_start(wm.ref[:nw][n][:links], a, r,
+                                              "xʳᵉˢ_start", 0.0))
 
-        JuMP.set_start_value(wm.var[:nw][n][:xʳᵉˢ][a][1], 1)
+        wm.var[:nw][n][:xʳᵉˢ][a] = xʳᵉˢ
     end
 end

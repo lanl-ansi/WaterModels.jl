@@ -255,18 +255,10 @@ function build_ref(data::Dict{String,<:Any})
         ref[:nodes] = merge(ref[:junctions], ref[:reservoirs], ref[:emitters])
 
         # Set the resistances based on the head loss type.
-        if ref[:options]["headloss"] == "h-w"
-            ref[:alpha] = 1.852
-            ref[:resistance] = calc_resistances_hw(ref[:links])
-            ref[:resistance_cost] = calc_resistance_costs_hw(ref[:links])
-        elseif ref[:options]["headloss"] == "d-w"
-            ref[:alpha] = 2.0
-            viscosity = ref[:options]["viscosity"]
-            ref[:resistance] = calc_resistances_dw(ref[:links], viscosity)
-            ref[:resistance_cost] = calc_resistance_costs_dw(ref[:links], viscosity)
-        else
-            Memento.error(LOGGER, "Head loss formulation type is not recognized.")
-        end
+        viscosity = ref[:options]["viscosity"]
+        ref[:alpha] = ref[:options]["headloss"] == "h-w" ? 1.852 : 2.0
+        ref[:resistance] = calc_resistances(ref[:links], viscosity, ref[:options]["headloss"])
+        ref[:resistance_cost] = calc_resistance_costs(ref[:links], viscosity, ref[:options]["headloss"])
     end
 
     return refs

@@ -66,6 +66,7 @@ function add_junction_head_setpoint(sol, wm::GenericWaterModel)
     if :h in keys(wm.var[:nw][wm.cnw])
         add_setpoint(sol, wm, "junctions", "h", :h)
     else
+        # TODO: Add something here to compute heads from a flow rate solution.
     end
 end
 
@@ -76,28 +77,31 @@ function add_pipe_resistance_setpoint(sol, wm::GenericWaterModel)
         data_dict = wm.data["pipes"]
     end
 
-    #if length(data_dict) > 0
-    #    sol[dict_name] = sol_dict
-    #end
+    sol_dict = get(sol, "pipes", Dict{String, Any}())
+
+    if length(data_dict) > 0
+        sol["pipes"] = sol_dict
+    end
 
     if :xʳᵉˢ in keys(wm.var[:nw][wm.cnw])
         for (i, link) in data_dict
-            #sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
-            #sol_item[param_name] = default_value(item)
-
             a = parse(Int, link["id"])
+            sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
 
             if a in keys(wm.var[:nw][wm.cnw][:xʳᵉˢ])
                 xʳᵉˢ, r_id = findmax(JuMP.value.(wm.var[:nw][wm.cnw][:xʳᵉˢ][a]))
-                link["r"] = wm.ref[:nw][wm.cnw][:resistance][a][r_id]
+                sol_item["r"] = wm.ref[:nw][wm.cnw][:resistance][a][r_id]
             else
-                link["r"] = minimum(wm.ref[:nw][wm.cnw][:resistance][a])
+                xʳᵉˢ, r_id = findmin(wm.ref[:nw][wm.cnw][:resistance][a])
+                sol_item["r"] = wm.ref[:nw][wm.cnw][:resistance][a][r_id]
             end
         end
     else
         for (i, link) in data_dict
             a = parse(Int, link["id"])
-            link["r"] = minimum(wm.ref[:nw][wm.cnw][:resistance][a])
+            sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
+            xʳᵉˢ, r_id = findmin(wm.ref[:nw][wm.cnw][:resistance][a])
+            sol_item["r"] = wm.ref[:nw][wm.cnw][:resistance][a][r_id]
         end
     end
 end

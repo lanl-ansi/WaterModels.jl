@@ -39,8 +39,6 @@ include("core/objective.jl")
 
 include("form/cnlp.jl")
 include("form/micp.jl")
-include("form/milp_r.jl")
-include("form/minlp.jl")
 include("form/ncnlp.jl")
 
 include("prob/ne.jl")

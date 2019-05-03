@@ -80,8 +80,10 @@ function constraint_undirected_potential_loss_ne(wm::GenericWaterModel{T}, a::In
     L = wm.ref[:nw][n][:links][a]["length"]
     qⁿᵉ = wm.var[:nw][n][:qⁿᵉ][a]
     resistances = wm.ref[:nw][n][:resistance][a]
+
     con = JuMP.@NLconstraint(wm.model, sum(r * f_alpha(qⁿᵉ[r_id]) for (r_id, r)
-                             in enumerate(resistances)) - (hᵢ - hⱼ) == 0.0)
+                             in enumerate(resistances)) - inv(L) * (hᵢ - hⱼ) == 0.0)
+
     wm.con[:nw][n][:potential_lossⁿᵉ][a] = con
 end
 
@@ -111,6 +113,7 @@ function constraint_undirected_potential_loss(wm::GenericWaterModel{T}, a::Int, 
     q = wm.var[:nw][n][:q][a]
 
     con = JuMP.@NLconstraint(wm.model, r * f_alpha(q) - inv(L) * (hᵢ - hⱼ) == 0.0)
+
     wm.con[:nw][n][:potential_loss][a] = con
 end
 
