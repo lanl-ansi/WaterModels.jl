@@ -16,13 +16,15 @@ function variable_undirected_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw; bound
         lb, ub = calc_flow_rate_bounds(wm, n)
 
         q = JuMP.@variable(wm.model, [a in arcs], lower_bound=minimum(lb[a]),
-                           upper_bound=maximum(ub[a]), start=0.5*maximum(ub[a]),
-                           base_name="q[$(n)]")
+                           upper_bound=maximum(ub[a]), base_name="q[$(n)]",
+                           start=get_start(wm.ref[:nw][n][:links], a,
+                                           "q_start", 1.0e-6))
 
         wm.var[:nw][n][:q] = q
     else
-        q = JuMP.@variable(wm.model, [a in arcs], start=1.0e-6,
-                           base_name="q[$(n)]")
+        q = JuMP.@variable(wm.model, [a in arcs], base_name="q[$(n)]",
+                           start=get_start(wm.ref[:nw][n][:links], a,
+                                           "q_start", 1.0e-6))
 
         wm.var[:nw][n][:q] = q
     end
@@ -68,27 +70,33 @@ function variable_directed_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw; alpha::
     if bounded
         ub⁻, ub⁺ = calc_directed_flow_upper_bounds(wm, alpha, n)
 
-        wm.var[:nw][n][:q⁻] = JuMP.@variable(wm.model, [a in arcs],
-                                             lower_bound = 0.0,
-                                             upper_bound = maximum(ub⁻[a]),
-                                             start = 0.5 * maximum(ub⁻[a]),
-                                             base_name = "q⁻[$(n)]")
+        q⁻ = JuMP.@variable(wm.model, [a in arcs], lower_bound=0.0,
+                            upper_bound=maximum(ub⁻[a]), base_name="q⁻[$(n)]",
+                            start=get_start(wm.ref[:nw][n][:links], a,
+                                            "q⁻_start", 1.0e-6))
 
-        wm.var[:nw][n][:q⁺] = JuMP.@variable(wm.model, [a in arcs],
-                                             lower_bound = 0.0,
-                                             upper_bound = maximum(ub⁺[a]),
-                                             start = 0.5 * maximum(ub⁺[a]),
-                                             base_name = "q⁺[$(n)]")
+        wm.var[:nw][n][:q⁻] = q⁻
+
+        q⁺ = JuMP.@variable(wm.model, [a in arcs], lower_bound=0.0,
+                            upper_bound=maximum(ub⁺[a]), base_name="q⁺[$(n)]",
+                            start=get_start(wm.ref[:nw][n][:links], a,
+                                            "q⁺_start", 1.0e-6))
+
+        wm.var[:nw][n][:q⁺] = q⁺
     else
-        wm.var[:nw][n][:q⁻] = JuMP.@variable(wm.model, [a in arcs],
-                                             lower_bound = 0.0,
-                                             start = 1.0e-6,
-                                             base_name = "q⁻[$(n)]")
+        q⁻ = JuMP.@variable(wm.model, [a in arcs], lower_bound=0.0,
+                            base_name="q⁻[$(n)]",
+                            start=get_start(wm.ref[:nw][n][:links], a,
+                                            "q⁻_start", 1.0e-6))
 
-        wm.var[:nw][n][:q⁺] = JuMP.@variable(wm.model, [a in arcs],
-                                             lower_bound = 0.0,
-                                             start = 1.0e-6,
-                                             base_name = "q⁺[$(n)]")
+        wm.var[:nw][n][:q⁻] = q⁻
+
+        q⁺ = JuMP.@variable(wm.model, [a in arcs], lower_bound=0.0,
+                            base_name="q⁺[$(n)]",
+                            start=get_start(wm.ref[:nw][n][:links], a,
+                                            "q⁺_start", 1.0e-6))
+
+        wm.var[:nw][n][:q⁺] = q⁺
     end
 end
 

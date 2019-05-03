@@ -58,11 +58,14 @@ function get_solution(wm::GenericWaterModel, sol::Dict{String,<:Any})
 end
 
 function add_pipe_flow_rate_setpoint(sol, wm::GenericWaterModel)
-    add_setpoint(sol, wm, "pipes", "flow_rate", :q)
+    add_setpoint(sol, wm, "pipes", "q", :q)
 end
 
 function add_junction_head_setpoint(sol, wm::GenericWaterModel)
-    add_setpoint(sol, wm, "junctions", "head", :h)
+    if :h in keys(wm.var[:nw][wm.cnw])
+        add_setpoint(sol, wm, "junctions", "h", :h)
+    else
+    end
 end
 
 "adds values based on JuMP variables"

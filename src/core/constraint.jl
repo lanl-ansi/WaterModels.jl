@@ -232,13 +232,13 @@ function constraint_directed_head_difference(wm::GenericWaterModel, a::Int, n::I
 
     Δh⁻ = wm.var[:nw][n][:Δh⁻][a]
     Δh̅⁻ = JuMP.upper_bound(Δh⁻)
-    con_2 = JuMP.@constraint(wm.model, Δh⁻ - Δh̅⁻ * (1.0 - xᵈᶦʳ) <= 0.0)
-    wm.con[:nw][n][:head_difference_2][a] = con_2
+    con_1 = JuMP.@constraint(wm.model, Δh⁻ - Δh̅⁻ * (1.0 - xᵈᶦʳ) <= 0.0)
+    wm.con[:nw][n][:head_difference_1][a] = con_1
 
     Δh⁺ = wm.var[:nw][n][:Δh⁺][a]
     Δh̅⁺ = JuMP.upper_bound(Δh⁺)
-    con_1 = JuMP.@constraint(wm.model, Δh⁺ - Δh̅⁺ * xᵈᶦʳ <= 0.0)
-    wm.con[:nw][n][:head_difference_1][a] = con_1
+    con_2 = JuMP.@constraint(wm.model, Δh⁺ - Δh̅⁺ * xᵈᶦʳ <= 0.0)
+    wm.con[:nw][n][:head_difference_2][a] = con_2
 
     con_3 = JuMP.@constraint(wm.model, (hᵢ - hⱼ) - (Δh⁺ - Δh⁻) == 0.0)
     wm.con[:nw][n][:head_difference_3][a] = con_3

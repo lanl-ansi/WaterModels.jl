@@ -20,6 +20,7 @@ using Test
 # Default MIP and NLP optimizers.
 const cbc = JuMP.with_optimizer(Cbc.Optimizer, logLevel=0)
 const ipopt = JuMP.with_optimizer(Ipopt.Optimizer, tol=1.0e-9, print_level=0)
+const ipopt_ws = JuMP.with_optimizer(Ipopt.Optimizer, tol=1.0e-9, mu_init=1.0e-9, print_level=0)
 
 @testset "WaterModels" begin
 
@@ -28,6 +29,8 @@ const ipopt = JuMP.with_optimizer(Ipopt.Optimizer, tol=1.0e-9, print_level=0)
     include("io.jl")
 
     include("ne.jl")
+
+    include("warm_start.jl")
 
     include("wf.jl")
 

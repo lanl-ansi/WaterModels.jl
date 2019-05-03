@@ -148,11 +148,11 @@ function parse_junctions(data::Dict{String, Array}, options::Dict{String, Any})
     data["elev"] = elev_scalar .* data["elev"]
 
     # Initialize head values to equal the elevation values.
-    data["head"] = deepcopy(data["elev"])
+    data["h"] = deepcopy(data["elev"])
 
     # Specify the data types for the junction data.
     columns = Dict("demand" => Float64, "elev" => Float64, "id" => String,
-                   "pattern" => String, "head" => Float64)
+                   "pattern" => String, "h" => Float64)
 
     # Ensure the arrays describing junction data are all of equal lengths.
     @assert(allequal([length(data[column]) for column in keys(columns)]))
@@ -224,11 +224,11 @@ function parse_pipes(data::Dict{String, Array}, options::Dict{String, Any})
     columns = Dict("diameter" => Float64, "id" => String, "length" => Float64,
                    "minorloss" => Float64, "node1" => Int, "node2" => Int,
                    "roughness" => Float64, "status" => String,
-                   "flow_rate" => Float64, "flow_direction" => FLOW_DIRECTION)
+                   "q" => Float64, "flow_direction" => FLOW_DIRECTION)
 
     # Populate the flow and flow direction data.
-    data["flow_rate"] = Array{Float64}(undef, length(data["id"]))
-    fill!(data["flow_rate"], 1.0e-6)
+    data["q"] = Array{Float64}(undef, length(data["id"]))
+    fill!(data["q"], 1.0e-6)
     data["flow_direction"] = Array{FLOW_DIRECTION}(undef, length(data["id"]))
     fill!(data["flow_direction"], UNKNOWN)
 

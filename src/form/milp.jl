@@ -1,7 +1,5 @@
 # Define MILP implementations of water distribution models.
 
-#using PiecewiseLinearOpt
-
 export MILPWaterModel, StandardMILPForm
 
 "AbstractMILPForm is derived from AbstractMINLPForm"

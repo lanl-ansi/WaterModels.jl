@@ -300,3 +300,22 @@ function is_in_node(i::Int)
         return link.second["node2"] == i
     end
 end
+
+function set_start_head!(data)
+    for (i, junction) in data["junctions"]
+        junction["h_start"] = junction["h"]
+    end
+end
+
+function set_start_undirected_flow_rate!(data::Dict{String, Any})
+    for (a, pipe) in data["pipes"]
+        pipe["q_start"] = pipe["q"]
+    end
+end
+
+function set_start_directed_flow_rate!(data::Dict{String, Any})
+    for (a, pipe) in data["pipes"]
+        pipe["q⁻_start"] = pipe["q"] < 0.0 ? pipe["q"] : 0.0
+        pipe["q⁺_start"] = pipe["q"] >= 0.0 ? pipe["q"] : 0.0
+    end
+end
