@@ -17,7 +17,6 @@ include("core/types.jl")
 
 include("core/base.jl")
 include("core/constraint.jl")
-include("core/constraint_template.jl")
 include("core/data.jl")
 include("core/function.jl")
 include("core/objective.jl")

@@ -109,43 +109,10 @@ function calc_directed_flow_upper_bounds(wm::GenericWaterModel, n::Int = wm.cnw,
     return ub_n, ub_p
 end
 
-function calc_resistance_per_length_hw(pipe)
-    diameter = pipe["diameter"]
-    roughness = pipe["roughness"]
-    return 10.67 / (roughness^1.852 * diameter^4.87)
-end
-
 function get_node_ids(connection::Dict{String, Any})
     i = parse(Int, connection["node1"])
     j = parse(Int, connection["node2"])
     return i, j
-end
-
-function calc_resistances_hw(wm::GenericWaterModel, n::Int = wm.cnw)
-    # Get placeholders for junctions and reservoirs.
-    connections = wm.ref[:nw][n][:connection]
-    resistances = Dict([(a, Array{Float64, 1}()) for a in keys(connections)])
-
-    # Initialize the dictionaries for minimum and maximum head differences.
-    for (a, connection) in connections
-        if haskey(connection, "diameters")
-            for entry in connection["diameters"]
-                diameter = entry["diameter"]
-                roughness = connection["roughness"]
-                r = 10.67 / (roughness^1.852 * diameter^4.87)
-                resistances[a] = vcat(resistances[a], r)
-            end
-
-            resistances = sort(resistances, rev = true)
-        else
-            diameter = connection["diameter"]
-            roughness = connection["roughness"]
-            r = 10.67 / (roughness^1.852 * diameter^4.87)
-            resistances[a] = vcat(resistances[a], r)
-        end
-    end
-
-    return resistances
 end
 
 function calc_resistances_hw(connections::Dict{Int, Any})
@@ -205,108 +172,6 @@ function calc_resistance_costs_hw(connections::Dict{Int, Any})
 
     return costs
 end
-
-function calc_friction_factor_hw(pipe)
-    if haskey(pipe, "friction_factor")
-        return pipe["friction_factor"]
-    else
-        diameter = pipe["diameter"]
-        roughness = pipe["roughness"]
-        length = pipe["length"]
-        return (10.67 * length) / (roughness^1.852 * diameter^4.87)
-    end
-end
-
-function calc_friction_factor_hw_ne(pipe, diameter)
-    if haskey(pipe, "friction_factor")
-        return pipe["friction_factor"]
-    else
-        roughness = pipe["roughness"]
-        length = pipe["length"]
-        return (10.67 * length) / (roughness^1.852 * diameter^4.87)
-    end
-end
-
-function calc_friction_factor_dw(pipe, viscosity)
-    diameter = pipe["diameter"]
-    length = pipe["length"]
-
-    if haskey(pipe, "friction_factor")
-        # Return the overall friction factor.
-        return 0.0826 * length / diameter^5 * pipe["friction_factor"]
-    else
-        # Get relevant values to compute the friction factor.
-        roughness = pipe["roughness"]
-
-        # Compute Reynold's number.
-        density = 1000.0 # Water density (kilograms per cubic meter).
-        velocity = 10.0 # Estimate of velocity in the pipe (meters per second).
-        reynolds_number = density * velocity * diameter / viscosity
-
-        # Use the same Colebrook formula as in EPANET.
-        w = 0.25 * pi * reynolds_number
-        y1 = 4.61841319859 / w^0.9
-        y2 = (roughness / diameter) / (3.7 * diameter) + y1
-        y3 = -8.685889638e-01 * log(y2)
-        f_s = 1.0 / y3^2
-
-        # Return the overall friction factor.
-        return 0.0826 * length / diameter^5 * f_s
-    end
-end
-
-function update_flow_directions(data, wm)
-    for (pipe_id, pipe) in data["pipes"]
-        q = getvalue(wm.var[:nw][wm.cnw][:q][pipe_id])
-        pipe["flow_direction"] = q >= 0.0 ? POSITIVE : NEGATIVE
-    end
-end
-
-function update_diameters(data, wm)
-    for (pipe_id, pipe) in data["pipes"]
-        a = parse(Int, pipe_id)
-        entries = wm.data["pipes"][pipe_id]["diameters"]
-        diameters = [entry["diameter"] for entry in entries]
-
-        for diameter in diameters
-            if getvalue(wm.var[:nw][wm.cnw][:psi][a][diameter]) > 1.0e-4
-                pipe["diameter"] = diameter
-                break
-            end
-        end
-    end
-end
-
-function reset_flow_directions(data)
-    for (pipe_id, pipe) in data["pipes"]
-        pipe["flow_direction"] = UNKNOWN
-    end
-end
-
-function set_maximum_diameter(pipe::Dict{String, Any})
-    if haskey(pipe, "diameters")
-        entries = pipe["diameters"]
-        diameters = [entry["diameter"] for entry in entries]
-        pipe["diameter"] = maximum(diameters)
-        delete!(pipe, "diameters")
-    end
-end
-
-function set_maximum_diameters(data::Dict{String, Any})
-    for (a, pipe) in data["pipes"]
-        set_maximum_diameter(pipe)
-    end
-end
-
-function get_maximum_diameter(connection::Pair{Int, Any})
-    if haskey(connection.second, "diameters")
-        entries = connection.second["diameters"]
-        return max([entry["diameter"] for entry in entries])
-    else
-        return connection.second["diameter"]
-    end
-end
-
 
 function has_known_flow_direction(connection::Pair{Int, Any})
     return connection.second["flow_direction"] != UNKNOWN
