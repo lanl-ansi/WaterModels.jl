@@ -27,9 +27,22 @@ This decoupling enables the definition of a wide variety of water network optimi
 * MICP (relaxation-based mixed-integer convex program)
 * MILP-R (relaxation-based mixed-integer linear program)
 
-## Highlights in v0.0.1 (2019-05-06)
-
 ## Usage at a Glance
+To solve a network design problem constrained by the Hazen-Williams head loss relationship to global optimality, execute the following (using the `shamir` network as an example):
+```
+using GLPK
+using GLPKMathProgInterface
+using Ipopt
+using WaterModels
+
+glpk = GLPKSolverMIP(presolve = false, msg_lev = GLPK.MSG_OFF)
+ipopt = IpoptSolver(print_level = 0, tol = 1.0e-9, max_iter=9999)
+
+network_path = "test/data/epanet/shamir.inp"
+modification_path = "test/data/json/shamir.json"
+status = solve_global(network_path, modification_path, ipopt, glpk)
+```
+Using [Gurobi](https://github.com/JuliaOpt/Gurobi.jl) in place of [GLPK](https://github.com/JuliaOpt/GLPK.jl) should result in substantially faster convergence.
 
 ## Development
 Community-driven development and enhancement of WaterModels is welcomed and encouraged.
