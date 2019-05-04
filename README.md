@@ -36,7 +36,7 @@ using Ipopt
 using WaterModels
 
 glpk = GLPKSolverMIP(presolve = false, msg_lev = GLPK.MSG_OFF)
-ipopt = IpoptSolver(print_level = 0, tol = 1.0e-9, max_iter=9999)
+ipopt = IpoptSolver(print_level = 0, tol = 1.0e-9, max_iter = 9999)
 
 network_path = "test/data/epanet/shamir.inp"
 modification_path = "test/data/json/shamir.json"

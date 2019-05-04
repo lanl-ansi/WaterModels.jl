@@ -19,9 +19,10 @@ where
 
 * `data` is the original data, usually from reading in a `.inp` file,
 * `setting` usually looks something like `Dict("output" => Dict("flows" => true))`, and
-* `ref` is a place to store commonly-used precomputed data from the data dictionary,
-  primarily for converting datatypes, filtering deactivated components, and storing
-  system-wide values that need to be computed globally. See `build_ref(data)` for further details.
+* `ref` is a place to store commonly-used precomputed data from the data
+  dictionary, primarily for converting datatypes, filtering deactivated
+  components, and storing system-wide values that need to be computed globally.
+  See `build_ref(data)` for further details.
 
 Methods on `GenericWaterModel` for defining variables and adding constraints should
 
@@ -165,25 +166,12 @@ function build_ref(data::Dict{String, Any})
             end
         end
 
-        ref[:nodes] = [ref[:junctions]; ref[:reservoirs]]
-        ref[:arcs] = [ref[:pipes]; ref[:valves]]
-
-        ref[:connection] = ref[:pipes]
         ref[:ne_pipe] = filter(is_ne_pipe, ref[:pipes])
+        ref[:connection] = ref[:pipes]
         ref[:connection_known_direction] = filter(has_known_flow_direction, ref[:connection])
         ref[:connection_unknown_direction] = filter(!has_known_flow_direction, ref[:connection])
         ref[:resistance] = calc_resistances_hw(ref[:connection])
         ref[:resistance_cost] = calc_resistance_costs_hw(ref[:connection])
-
-        junction_ids = [collect(keys(ref[:junctions])); collect(keys(ref[:reservoirs]))]
-        ref[:junction_connections] = Dict(i => [] for i in junction_ids)
-
-        for (idx, connection) in ref[:connection]
-            i = parse(Int, connection["node1"])
-            j = parse(Int, connection["node2"])
-            push!(ref[:junction_connections][i], idx)
-            push!(ref[:junction_connections][j], idx)
-        end
     end
 
     return refs
@@ -193,6 +181,3 @@ ids(wm::GenericWaterModel, key::Symbol) = ids(wm, wm.cnw, key)
 ids(wm::GenericWaterModel, n::Int, key::Symbol) = keys(wm.ref[:nw][n][key])
 ismultinetwork(wm::GenericWaterModel) = length(wm.ref[:nw]) > 1
 nws(wm::GenericWaterModel) = keys(wm.ref[:nw])
-
-# Aliases in preparation for migration to future versions of JuMP.
-set_start_value = setvalue
