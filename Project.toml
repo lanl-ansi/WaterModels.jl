@@ -1,5 +1,6 @@
 name = "WaterModels"
 uuid = "7c60b362-08f4-5b14-8680-cd67a3e18348"
+version = "0.0.1"
 
 [deps]
 InfrastructureModels = "2030c09a-7f63-5d83-885d-db604e0e9cc0"
