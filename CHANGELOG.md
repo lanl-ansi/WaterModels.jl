@@ -5,4 +5,4 @@ WaterModels.jl Change Log
 - Refactored nearly everything.
 
 ### v0.0.1
-- Implemented initial global optimization algorithm for network design problems constrained by Hazen-Williams head loss physics.
+- Implemented global optimization algorithm for network design problems constrained by Hazen-Williams head loss physics.

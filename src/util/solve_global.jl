@@ -26,13 +26,13 @@ function solve_global(network_path::String, problem_path::String,
     # Set the random seed.
     Random.seed!(1)
 
-    # Initialize the master MILP and relaxed NLP models.
+    # Initialize the master MILP-R and relaxed MICP models.
     (milp, nlp), initialize_models_time = @timed initialize_models(network_path, problem_path)
 
     # Eliminate unnecessary binary variables.
     nothing, eliminate_variables_time = @timed eliminate_variables(milp, nlp, nlp_solver)
 
-    # Find an initial solution for the master MILP.
+    # Find an initial solution for the master MILP-R.
     resistance_indices, find_initial_solution_time = @timed find_initial_solution(milp, 250, 100, 0.90, nlp_solver)
 
     # Set the initial solution.

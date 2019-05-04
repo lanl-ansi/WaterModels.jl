@@ -116,17 +116,17 @@ function variable_directed_flow(wm::GenericWaterModel{T}, n::Int = wm.cnw) where
 
         # Initialize variables associated with flow from i to j.
         wm.var[:nw][n][:qp][a] = @variable(wm.model, [r in 1:length(R_a)],
-                                             lowerbound = 0.0,
-                                             upperbound = ub_p[a][r],
-                                             start = 0.0, category = :Cont,
-                                             basename = "qp_$(n)_$(a)")
+                                           lowerbound = 0.0,
+                                           upperbound = ub_p[a][r],
+                                           start = 0.0, category = :Cont,
+                                           basename = "qp_$(n)_$(a)")
 
         # Initialize variables associated with flow from j to i.
         wm.var[:nw][n][:qn][a] = @variable(wm.model, [r in 1:length(R_a)],
-                                             lowerbound = 0.0,
-                                             upperbound = ub_n[a][r],
-                                             start = 0.0, category = :Cont,
-                                             basename = "qn_$(n)_$(a)")
+                                           lowerbound = 0.0,
+                                           upperbound = ub_n[a][r],
+                                           start = 0.0, category = :Cont,
+                                           basename = "qn_$(n)_$(a)")
 
         # Initialize flow for the variable with least resistance.
         setvalue(wm.var[:nw][n][:qp][a][1], ub_p[a][1])
@@ -135,7 +135,6 @@ end
 
 "Constraint to ensure at least one direction is set to take flow away from a source."
 function constraint_source_flow(wm::GenericWaterModel, i::Int, n::Int = wm.cnw)
-    # Collect the required variables.
     connections = wm.ref[:nw][n][:connection]
     out_arcs = filter(a -> i == parse(Int, a.second["node1"]), connections)
     in_arcs = filter(a -> i == parse(Int, a.second["node2"]), connections)
@@ -146,7 +145,6 @@ end
 
 "Constraint to ensure at least one direction is set to take flow to a junction with demand."
 function constraint_sink_flow(wm::GenericWaterModel, i::Int, n::Int = wm.cnw)
-    # Collect the required variables.
     connections = wm.ref[:nw][n][:connection]
     out_arcs = filter(a -> i == parse(Int, a.second["node1"]), connections)
     in_arcs = filter(a -> i == parse(Int, a.second["node2"]), connections)

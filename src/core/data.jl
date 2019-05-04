@@ -66,7 +66,6 @@ function calc_head_difference_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
 end
 
 function calc_directed_flow_upper_bounds(wm::GenericWaterModel, n::Int = wm.cnw, exponent::Float64 = 1.852)
-    # Get a dictionary of resistance values.
     dh_lb, dh_ub = calc_head_difference_bounds(wm, n)
 
     connections = wm.ref[:nw][n][:connection]
@@ -116,10 +115,8 @@ function get_node_ids(connection::Dict{String, Any})
 end
 
 function calc_resistances_hw(connections::Dict{Int, Any})
-    # Get placeholders for junctions and reservoirs.
     resistances = Dict([(a, Array{Float64, 1}()) for a in keys(connections)])
 
-    # Initialize the dictionaries for minimum and maximum head differences.
     for (a, connection) in connections
         if haskey(connection, "resistances")
             resistances[a] = sort(connection["resistances"], rev = true)
@@ -147,10 +144,8 @@ function calc_resistances_hw(connections::Dict{Int, Any})
 end
 
 function calc_resistance_costs_hw(connections::Dict{Int, Any})
-    # Create placeholder costs dictionary.
     costs = Dict([(a, Array{Float64, 1}()) for a in keys(connections)])
 
-    # Initialize the dictionaries for minimum and maximum head differences.
     for (a, connection) in connections
         if haskey(connection, "diameters")
             resistances = Array{Float64, 1}()

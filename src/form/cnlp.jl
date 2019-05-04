@@ -1,4 +1,4 @@
-# Define MILP-R implementations of water distribution models.
+# Define CNLP implementations of water distribution models.
 
 export CNLPWaterModel, StandardCNLPForm
 
@@ -10,7 +10,7 @@ abstract type AbstractCNLPForm <: AbstractWaterFormulation end
 "StandardCNLPForm is derived from AbstractCNLPForm"
 abstract type StandardCNLPForm <: AbstractCNLPForm end
 
-"The CNLP model relaxes constraints into the objective."
+"The CNLP model is a convex formulation used for obtaining flow rates for a fixed network design."
 const CNLPWaterModel = GenericWaterModel{StandardCNLPForm}
 
 "CNLP constructor."

@@ -61,9 +61,6 @@ function variable_resistance(wm::GenericWaterModel, n::Int=wm.cnw)
     # Get indices for all network arcs.
     arcs = collect(ids(wm, n, :connection))
 
-    # Initialize variables associated with flow direction. If this variable is
-    # equal to one, the flow direction is from i to j. If it is equal to zero,
-    # the flow direction is from j to i.
     wm.var[:nw][n][:xr] = Dict{Int, Array{Variable, 1}}()
 
     for (a, connection) in wm.ref[:nw][n][:connection]
