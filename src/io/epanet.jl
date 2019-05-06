@@ -294,31 +294,31 @@ function parse_emitters(data::Dict{String, Array}, options::Dict{String, Any})
 end
 
 function parse_tanks(data::Dict{String, Array})
-    # Specify the data types for the reservoir data.
+    # Specify the data types for the tank data.
     columns = Dict("diameter" => Float64, "elevation" => Float64,
                    "id" => String, "initlevel" => Float64,
                    "maxlevel" => Float64, "minlevel" => Float64,
                    "minvol" => Float64, "volcurve" => String)
 
-    # Ensure the arrays describing reservoir data are all of equal lengths.
+    # Ensure the arrays describing tank data are all of equal lengths.
     @assert(allequal([length(data[column]) for column in keys(columns)]))
 
-    # Return an array of reservoir dictionaries with the correct data types.
+    # Return an array of tank dictionaries with the correct data types.
     arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["id"])]
     return Dict{String, Any}(string(data["id"][i]) => arr[i] for i = 1:length(arr))
 end
 
 function parse_valves(data::Dict{String, Array})
-    # Specify the data types for the reservoir data.
+    # Specify the data types for the valve data.
     columns = Dict("diameter" => Float64, "id" => String,
                    "minorloss" => Float64, "node1" => String,
                    "node2" => String, "setting" => Float64,
                    "type" => String)
 
-    # Ensure the arrays describing reservoir data are all of equal lengths.
+    # Ensure the arrays describing valve data are all of equal lengths.
     @assert(allequal([length(data[column]) for column in keys(columns)]))
 
-    # Return an array of reservoir dictionaries with the correct data types.
+    # Return an array of valve dictionaries with the correct data types.
     arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["id"])]
     return Dict{String, Any}(string(data["id"][i]) => arr[i] for i = 1:length(arr))
 end

@@ -7,9 +7,9 @@
 | :---------------: | :---------------: | :-------------------: |
 | ![ci-badge]       | ![ci-badge]       | ![cov-badge]          |
 
-[ci-badge]: https://travis-ci.org/lanl-ansi/WaterModels.jl.svg?branch=moi "Travis build status"
+[ci-badge]: https://travis-ci.org/lanl-ansi/WaterModels.jl.svg?branch=master "Travis build status"
 [ci-link]: https://travis-ci.org/lanl-ansi/WaterModels.jl "Travis build status"
-[cov-badge]: https://codecov.io/gh/lanl-ansi/WaterModels.jl/branch/moi/graph/badge.svg
+[cov-badge]: https://codecov.io/gh/lanl-ansi/WaterModels.jl/branch/master/graph/badge.svg
 [cov-link]: https://codecov.io/gh/lanl-ansi/WaterModels.jl
 
 ## Introduction
@@ -23,12 +23,26 @@ This decoupling enables the definition of a wide variety of water network optimi
 * Network Expansion (ne)
 
 **Core Network Formulations**
-* MINLP-R (relaxation-based mixed-integer nonlinear program)
-* MILP-R (relaxation-based mixed-integer linear program)
-
-## Highlights in v0.0.1 (2019-05-06)
+* CNLP (convex nonlinear program used for determining network flow rates)
+* MICP (relaxation-based mixed-integer convex program)
+* NCNLP (non-convex nonlinear program)
 
 ## Usage at a Glance
+To solve a relaxed version of the network design problem, execute the following (using the `shamir` network as an example):
+```
+using Ipopt
+using JuMP
+using Juniper
+using WaterModels
+
+ipopt = IpoptSolver(print_level=0, tol=1.0e-9, max_iter=9999)
+juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt)
+
+network = WaterModels.parse_file("test/data/epanet/shamir.inp")
+modifications = WaterModels.parse_file("test/data/json/shamir.json")
+InfrastructureModels.update_data!(network, modifications)
+result = WaterModels.run_ne(network, MICPWaterModel, juniper)
+```
 
 ## Development
 Community-driven development and enhancement of WaterModels is welcomed and encouraged.
