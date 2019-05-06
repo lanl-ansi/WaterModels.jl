@@ -241,13 +241,13 @@ function parse_pipes(data::Dict{String, Array}, options::Dict{String, Any})
 end
 
 function parse_pumps(data::Dict{String, Array}, options::Dict{String, Any})
-    # Specify the data types for the pipe data.
+    # Specify the data types for the pump data.
     columns = Dict("id" => String, "node1" => Int, "node2" => Int)
 
-    # Ensure the arrays describing pipe data are all of equal lengths.
+    # Ensure the arrays describing pump data are all of equal lengths.
     @assert(allequal([length(data[column]) for column in keys(columns)]))
 
-    # Create a dictionary of pipe dictionaries with the correct data types.
+    # Create a dictionary of pump dictionaries with the correct data types.
     arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["id"])]
     return Dict{String, Any}(string(data["id"][i]) => arr[i] for i = 1:length(arr))
 end
@@ -285,10 +285,10 @@ function parse_emitters(data::Dict{String, Array}, options::Dict{String, Any})
     # Specify the data types for the emitter data.
     columns = Dict("junction" => String, "coefficient" => Float64)
 
-    # Ensure the arrays describing reservoir data are all of equal lengths.
+    # Ensure the arrays describing emitter data are all of equal lengths.
     @assert(allequal([length(data[column]) for column in keys(columns)]))
 
-    # Return an array of reservoir dictionaries with the correct data types.
+    # Return an array of emitter dictionaries with the correct data types.
     arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["junction"])]
     return Dict{String, Any}(string(data["junction"][i]) => arr[i] for i = 1:length(arr))
 end

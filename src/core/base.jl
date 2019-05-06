@@ -3,7 +3,7 @@ export
     optimize!,
     run_generic_model, build_generic_model, solve_generic_model,
     ismultinetwork, nw_ids, nws,
-    ids, ref, var, con, ext
+    ids, ref, var, con, ext, fun
 
 ""
 abstract type AbstractWaterFormulation end
@@ -15,11 +15,12 @@ type GenericWaterModel{T<:AbstractWaterFormulation}
     data::Dict{String,<:Any}
     setting::Dict{String,<:Any}
     solution::Dict{String,<:Any}
-    ref::Dict{Symbol,<:Any} # reference data
+    ref::Dict{Symbol,<:Any} # Reference data
     var::Dict{Symbol,<:Any} # JuMP variables
     con::Dict{Symbol,<:Any} # JuMP constraint references
-    cnw::Int                # current network index value
-    ext::Dict{Symbol,<:Any} # user extentions
+    ext::Dict{Symbol,<:Any} # User extentions
+    fun::Dict{Symbol,<:Any} # JuMP registered functions
+    cnw::Int                # Current network index value
 end
 ```
 where
@@ -46,6 +47,7 @@ mutable struct GenericWaterModel{T<:AbstractWaterFormulation}
     ref::Dict{Symbol,<:Any}
     var::Dict{Symbol,<:Any}
     con::Dict{Symbol,<:Any}
+    fun::Dict{Symbol,<:Any}
     cnw::Int
 
     # Extensions should define a type to hold information particular to
@@ -58,30 +60,32 @@ function GenericWaterModel(data::Dict{String,<:Any}, T::DataType; ext = Dict{Sym
     ref = build_ref(data)
     var = Dict{Symbol,Any}(:nw => Dict{Int,Any}())
     con = Dict{Symbol,Any}(:nw => Dict{Int,Any}())
+    fun = Dict{Symbol,Any}(:nw => Dict{Int,Any}())
 
     for nw_id in keys(ref[:nw])
         var[:nw][nw_id] = Dict{Symbol, Any}()
         con[:nw][nw_id] = Dict{Symbol, Any}()
+        fun[:nw][nw_id] = Dict{Symbol, Any}()
     end
 
     cnw = minimum([k for k in keys(var[:nw])])
 
     wm = GenericWaterModel{T}(
-        jump_model,
-        data,
-        setting,
-        Dict{String,Any}(), # solution
-        ref,
-        var,
-        con,
-        cnw,
-        ext
-       )
+             jump_model,
+             data,
+             setting,
+             Dict{String,Any}(), # solution
+             ref,
+             var,
+             con,
+             fun,
+             cnw,
+             ext)
 
     return wm
 end
 
-### Helper functions for working with multinetworks.
+# Helper functions for working with multinetworks.
 ""
 ismultinetwork(wm::GenericWaterModel) = (length(wm.ref[:nw]) > 1)
 
@@ -114,6 +118,10 @@ var(wm::GenericWaterModel, nw::Int, key::Symbol, idx) = wm.var[:nw][nw][key][idx
 con(wm::GenericWaterModel, nw::Int) = wm.con[:nw][nw]
 con(wm::GenericWaterModel, nw::Int, key::Symbol) = wm.con[:nw][nw][key]
 con(wm::GenericWaterModel, nw::Int, key::Symbol, idx) = wm.con[:nw][nw][key][idx]
+
+""
+fun(wm::GenericWaterModel, nw::Int) = wm.fun[:nw][nw]
+fun(wm::GenericWaterModel, nw::Int, key::Symbol) = wm.fun[:nw][nw][key]
 
 ""
 function optimize!(wm::GenericWaterModel, optimizer::JuMP.OptimizerFactory)
