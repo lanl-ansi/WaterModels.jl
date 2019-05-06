@@ -26,10 +26,19 @@ function d2f_alpha(alpha::Float64)
     end
 end
 
-function function_if_alpha(wm::GenericWaterModel, alpha::Float64)
-    JuMP.register(wm.model, :if_alpha, 1, if_alpha(alpha), f_alpha(alpha), df_alpha(alpha))
+function function_if_alpha(wm::GenericWaterModel, n::Int=wm.cnw)
+    alpha = wm.ref[:nw][n][:options]["headloss"] == "h-w" ? 0.852 : 1.0
+    f = JuMP.register(wm.model, :if_alpha, 1, if_alpha(alpha), f_alpha(alpha), df_alpha(alpha))
+    wm.fun[:nw][n][:if_alpha] = (:if_alpha, 1, if_alpha(alpha), f_alpha(alpha), df_alpha(alpha))
 end
 
-function function_f_alpha(wm::GenericWaterModel, alpha::Float64)
-    JuMP.register(wm.model, :f_alpha, 1, f_alpha(alpha), df_alpha(alpha), d2f_alpha(alpha))
+function function_f_alpha(wm::GenericWaterModel, n::Int=wm.cnw)
+    alpha = wm.ref[:nw][n][:options]["headloss"] == "h-w" ? 0.852 : 1.0
+    f = JuMP.register(wm.model, :f_alpha, 1, f_alpha(alpha), df_alpha(alpha), d2f_alpha(alpha))
+    wm.fun[:nw][n][:f_alpha] = (:f_alpha, 1, f_alpha(alpha), df_alpha(alpha), d2f_alpha(alpha))
+end
+
+function function_f_alpha_args(wm::GenericWaterModel, n::Int=wm.cnw)
+    alpha = wm.ref[:nw][n][:options]["headloss"] == "h-w" ? 0.852 : 1.0
+    return :f_alpha, 1, f_alpha(alpha), df_alpha(alpha), d2f_alpha(alpha)
 end
