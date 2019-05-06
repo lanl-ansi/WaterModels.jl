@@ -78,20 +78,26 @@ function parse_epanet(path::String)
     section = headings = nothing
     headings_exist = false
     epanet_dict = get_sections(lines)
+    dict = Dict{String, Any}()
 
     # Parse important options first.
-    options = parse_options(epanet_dict["options"])
+    dict["options"] = parse_options(epanet_dict["options"])
 
-    # Parse relevant data into a more structured format.
-    dict = Dict{String, Any}()
+    # Parse metadata.
     dict["title"] = parse_title(epanet_dict["title"])
-    dict["junctions"] = parse_junctions(epanet_dict["junctions"], options)
-    dict["pipes"] = parse_pipes(epanet_dict["pipes"], options)
-    dict["reservoirs"] = parse_reservoirs(epanet_dict["reservoirs"], options)
-    dict["tanks"] = parse_tanks(epanet_dict["tanks"])
-    dict["valves"] = parse_valves(epanet_dict["valves"])
     dict["per_unit"] = false
     dict["multinetwork"] = false
+
+    # Parse link objects.
+    dict["pipes"] = parse_pipes(epanet_dict["pipes"], dict["options"])
+    dict["pumps"] = parse_pumps(epanet_dict["pumps"], dict["options"])
+    dict["valves"] = parse_valves(epanet_dict["valves"])
+
+    # Parse node objects.
+    dict["emitters"] = parse_emitters(epanet_dict["emitters"], dict["options"])
+    dict["junctions"] = parse_junctions(epanet_dict["junctions"], dict["options"])
+    dict["reservoirs"] = parse_reservoirs(epanet_dict["reservoirs"], dict["options"])
+    dict["tanks"] = parse_tanks(epanet_dict["tanks"])
 
     return dict
 end
@@ -141,9 +147,12 @@ function parse_junctions(data::Dict{String, Array}, options::Dict{String, Any})
     data["elev"] = [parse(Float64, elev) for elev in data["elev"]]
     data["elev"] = elev_scalar .* data["elev"]
 
+    # Initialize head values to equal the elevation values.
+    data["h"] = deepcopy(data["elev"])
+
     # Specify the data types for the junction data.
-    columns = Dict("demand" => Float64, "elev" => Float64,
-                   "id" => String, "pattern" => String)
+    columns = Dict("demand" => Float64, "elev" => Float64, "id" => String,
+                   "pattern" => String, "h" => Float64)
 
     # Ensure the arrays describing junction data are all of equal lengths.
     @assert(allequal([length(data[column]) for column in keys(columns)]))
@@ -213,11 +222,13 @@ function parse_pipes(data::Dict{String, Array}, options::Dict{String, Any})
 
     # Specify the data types for the pipe data.
     columns = Dict("diameter" => Float64, "id" => String, "length" => Float64,
-                   "minorloss" => Float64, "node1" => String, "node2" => String,
+                   "minorloss" => Float64, "node1" => Int, "node2" => Int,
                    "roughness" => Float64, "status" => String,
-                   "flow_direction" => FLOW_DIRECTION)
+                   "q" => Float64, "flow_direction" => FLOW_DIRECTION)
 
-    # Populate the flow direction data.
+    # Populate the flow and flow direction data.
+    data["q"] = Array{Float64}(undef, length(data["id"]))
+    fill!(data["q"], 1.0e-6)
     data["flow_direction"] = Array{FLOW_DIRECTION}(undef, length(data["id"]))
     fill!(data["flow_direction"], UNKNOWN)
 
@@ -225,6 +236,18 @@ function parse_pipes(data::Dict{String, Array}, options::Dict{String, Any})
     @assert(allequal([length(data[column]) for column in keys(columns)]))
 
     # Create a dictionary of pipe dictionaries with the correct data types.
+    arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["id"])]
+    return Dict{String, Any}(string(data["id"][i]) => arr[i] for i = 1:length(arr))
+end
+
+function parse_pumps(data::Dict{String, Array}, options::Dict{String, Any})
+    # Specify the data types for the pump data.
+    columns = Dict("id" => String, "node1" => Int, "node2" => Int)
+
+    # Ensure the arrays describing pump data are all of equal lengths.
+    @assert(allequal([length(data[column]) for column in keys(columns)]))
+
+    # Create a dictionary of pump dictionaries with the correct data types.
     arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["id"])]
     return Dict{String, Any}(string(data["id"][i]) => arr[i] for i = 1:length(arr))
 end
@@ -256,6 +279,18 @@ function parse_reservoirs(data::Dict{String, Array}, options::Dict{String, Any})
     # Return an array of reservoir dictionaries with the correct data types.
     arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["id"])]
     return Dict{String, Any}(string(data["id"][i]) => arr[i] for i = 1:length(arr))
+end
+
+function parse_emitters(data::Dict{String, Array}, options::Dict{String, Any})
+    # Specify the data types for the emitter data.
+    columns = Dict("junction" => String, "coefficient" => Float64)
+
+    # Ensure the arrays describing emitter data are all of equal lengths.
+    @assert(allequal([length(data[column]) for column in keys(columns)]))
+
+    # Return an array of emitter dictionaries with the correct data types.
+    arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["junction"])]
+    return Dict{String, Any}(string(data["junction"][i]) => arr[i] for i = 1:length(arr))
 end
 
 function parse_tanks(data::Dict{String, Array})
@@ -290,7 +325,7 @@ end
 
 function parse_options(data::Dict{String, Any})
     units = data["units"][1]
-    headloss = data["headloss"][1]
+    headloss = string(data["headloss"][1])
     demand_multiplier = parse(Float64, data["demand multiplier"][1])
     viscosity = parse(Float64, data["viscosity"][1]) * 1.0e-3
     return Dict{String, Any}("units" => units, "headloss" => headloss,

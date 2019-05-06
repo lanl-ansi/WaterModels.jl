@@ -1,5 +1,3 @@
-import JSON
-
 """
     parse_file(path)
 

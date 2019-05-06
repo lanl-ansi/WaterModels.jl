@@ -1,8 +1,16 @@
 @testset "src/io/common.jl" begin
     @testset "parse_file (.inp)" begin
-        data = WaterModels.parse_file("../test/data/epanet/shamir.inp")
-        title = "shamir -- Bragalli, D'Ambrosio, Lee, Lodi, Toth (2008)"
-        @test data["title"] == lowercase(title)
+        shamir_data = WaterModels.parse_file("../test/data/epanet/shamir.inp")
+        shamir_title = "shamir -- Bragalli, D'Ambrosio, Lee, Lodi, Toth (2008)"
+        @test shamir_data["title"] == lowercase(shamir_title)
+
+        balerma_data = WaterModels.parse_file("../test/data/epanet/balerma.inp")
+        balerma_title = "Balerma Network"
+        @test balerma_data["title"] == lowercase(balerma_title)
+
+        klmod_data = WaterModels.parse_file("../test/data/epanet/klmod.inp")
+        klmod_title = "Global Water Full network - Peak Day (Avg * 1.9)"
+        @test klmod_data["title"] == lowercase(klmod_title)
     end
 
     @testset "parse_file (.json)" begin

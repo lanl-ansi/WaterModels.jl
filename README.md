@@ -25,24 +25,24 @@ This decoupling enables the definition of a wide variety of water network optimi
 **Core Network Formulations**
 * CNLP (convex nonlinear program used for determining network flow rates)
 * MICP (relaxation-based mixed-integer convex program)
-* MILP-R (relaxation-based mixed-integer linear program)
+* NCNLP (non-convex nonlinear program)
 
 ## Usage at a Glance
-To solve a network design problem constrained by the Hazen-Williams head loss relationship to global optimality, execute the following (using the `shamir` network as an example):
+To solve a relaxed version of the network design problem, execute the following (using the `shamir` network as an example):
 ```
-using GLPK
-using GLPKMathProgInterface
 using Ipopt
+using JuMP
+using Juniper
 using WaterModels
 
-glpk = GLPKSolverMIP(presolve = false, msg_lev = GLPK.MSG_OFF)
-ipopt = IpoptSolver(print_level = 0, tol = 1.0e-9, max_iter = 9999)
+ipopt = IpoptSolver(print_level=0, tol=1.0e-9, max_iter=9999)
+juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt)
 
-network_path = "test/data/epanet/shamir.inp"
-modification_path = "test/data/json/shamir.json"
-status = solve_global(network_path, modification_path, ipopt, glpk)
+network = WaterModels.parse_file("test/data/epanet/shamir.inp")
+modifications = WaterModels.parse_file("test/data/json/shamir.json")
+InfrastructureModels.update_data!(network, modifications)
+result = WaterModels.run_ne(network, MICPWaterModel, juniper)
 ```
-Using [Gurobi](https://github.com/JuliaOpt/Gurobi.jl) in place of [GLPK](https://github.com/JuliaOpt/GLPK.jl) should result in substantially faster convergence.
 
 ## Development
 Community-driven development and enhancement of WaterModels is welcomed and encouraged.
