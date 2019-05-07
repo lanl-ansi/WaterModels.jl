@@ -11,6 +11,7 @@
 
         # This should take fewer iterations to converge.
         WaterModels.set_start_directed_flow_rate!(hw_network)
+        WaterModels.set_start_undirected_flow_rate!(hw_network)
         result = WaterModels.run_wf(hw_network, CNLPWaterModel, ipopt_ws, alpha=1.852)
         @test result["termination_status"] == MOI.LOCALLY_SOLVED
     end

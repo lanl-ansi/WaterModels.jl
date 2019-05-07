@@ -38,10 +38,6 @@ end
 function constraint_sink_flow(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractCNLPForm
 end
 
-function set_start_values(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractCNLPForm
-    WaterModels.set_start_directed_flow_rate!(wm.data)
-end
-
 function objective_wf(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: StandardCNLPForm
     linear_expr = JuMP.@expression(wm.model, 0.0)
     linear_expr_start = 0.0
