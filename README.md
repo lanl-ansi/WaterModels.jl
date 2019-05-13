@@ -31,17 +31,16 @@ This decoupling enables the definition of a wide variety of water network optimi
 To solve a relaxed version of the network design problem, execute the following (using the `shamir` network as an example):
 ```
 using Ipopt
+using InfrastructureModels
 using JuMP
-using Juniper
 using WaterModels
 
-ipopt = IpoptSolver(print_level=0, tol=1.0e-9, max_iter=9999)
-juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt)
+ipopt = JuMP.with_optimizer(Ipopt.Optimizer, print_level=0, tol=1.0e-9, max_iter=9999)
 
 network = WaterModels.parse_file("test/data/epanet/shamir.inp")
 modifications = WaterModels.parse_file("test/data/json/shamir.json")
 InfrastructureModels.update_data!(network, modifications)
-result = WaterModels.run_ne(network, MICPWaterModel, juniper)
+result = WaterModels.run_ne(network, MICPWaterModel, ipopt, alpha=1.852, relaxed=true)
 ```
 
 ## Development
