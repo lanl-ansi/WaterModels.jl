@@ -36,7 +36,6 @@ using JuMP
 using WaterModels
 
 ipopt = JuMP.with_optimizer(Ipopt.Optimizer, print_level=0, tol=1.0e-9, max_iter=9999)
-
 network = WaterModels.parse_file("test/data/epanet/shamir.inp")
 modifications = WaterModels.parse_file("test/data/json/shamir.json")
 InfrastructureModels.update_data!(network, modifications)
