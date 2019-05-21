@@ -3,7 +3,6 @@ module WaterModels
 import InfrastructureModels
 import JSON
 import JuMP
-import Juniper
 import Memento
 
 import MathOptInterface
