@@ -1,10 +1,5 @@
 ""
-function build_solution(wm::GenericWaterModel, status, solve_time; objective = NaN, solution_builder = get_solution)
-    if status != :Error
-        objective = JuMP.objective_value(wm.model)
-        status = JuMP.primal_status(wm.model)
-    end
-
+function build_solution(wm::GenericWaterModel, solve_time; objective = NaN, solution_builder = get_solution)
     sol = init_solution(wm)
     data = Dict{String,Any}("title" => wm.data["title"])
 

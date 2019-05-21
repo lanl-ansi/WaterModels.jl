@@ -181,31 +181,14 @@ function build_generic_model(data::Dict{String,<:Any}, model_constructor, post_m
 end
 
 ""
-function parse_status(termination_status::MOI.TerminationStatusCode, primal_status::MOI.ResultStatusCode, dual_status::MOI.ResultStatusCode)
-    if termination_status == MOI.OPTIMAL
-        return :Optimal
-    elseif termination_status == MOI.LOCALLY_SOLVED
-        return :LocalOptimal
-    elseif termination_status == MOI.INFEASIBLE
-        return :Infeasible
-    elseif termination_status == MOI.LOCALLY_INFEASIBLE
-        return :LocalInfeasible
-    else
-        return :Error
-    end
-end
-
-""
 function solve_generic_model(wm::GenericWaterModel, optimizer::JuMP.OptimizerFactory; relaxed::Bool=false, solution_builder = get_solution)
     if relaxed
         relax_integrality!(wm)
     end
 
     termination_status, primal_status, dual_status, solve_time = optimize!(wm, optimizer)
-    status = parse_status(termination_status, primal_status, dual_status)
-
-    solution = build_solution(wm, status, solve_time; solution_builder = solution_builder)
-    #solution, time, bytes_alloc, sec_in_gc = @timed build_solution(wm, status, solve_time; solution_builder = solution_builder)
+    solution = build_solution(wm, solve_time; solution_builder = solution_builder)
+    #solution, time, bytes_alloc, sec_in_gc = @timed build_solution(wm, solve_time; solution_builder = solution_builder)
     #println("build_solution time: $(time)")
 
     return solution

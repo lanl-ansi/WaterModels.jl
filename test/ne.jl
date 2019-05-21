@@ -14,12 +14,14 @@
 
     @testset "Shamir network (unknown flow directions), MICP formulation." begin
         network = deepcopy(hw_network)
-        modifications = WaterModels.parse_file("../test/data/json/shamir.json")
+        modifications = WaterModels.parse_file("../test/data/json/shamir-reduced.json")
         InfrastructureModels.update_data!(network, modifications)
 
-        # TODO: Use Juniper once user-defined derivatives are allowed.
+        ## TODO: Use Juniper once user-defined derivatives are allowed.
+        #post_ne = WaterModels.get_post_ne(1.852)
+        #wm = build_generic_model(network, MICPWaterModel, post_ne)
         #f_1, f_2, f_3, f_4, f_5 = WaterModels.function_f_alpha_args(wm)
-        #f = Juniper.register(f_1, f_2, f_3, autodiff=true)
+        #f = Juniper.register(f_1, f_2, f_3, f_4, f_5, autodiff=false)
         #juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f])
         #result = WaterModels.solve_generic_model(wm, juniper)
 
