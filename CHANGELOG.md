@@ -1,6 +1,9 @@
 WaterModels.jl Change Log
 =========================
 
+### v0.1.1
+- Update to use JuMP/MOI status values.
+
 ### v0.1.0
 - Refactored nearly everything.
 - Implemented initial CNLP, MICP, and NCNLP models.
