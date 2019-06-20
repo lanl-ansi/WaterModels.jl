@@ -45,8 +45,8 @@
 
     @testset "var" begin
         @test var(wm, 0) == wm.var[:nw][0]
-        @test var(wm, 0, :q⁻) == wm.var[:nw][0][:q⁻]
-        @test var(wm, 0, :q⁻, 1) == wm.var[:nw][0][:q⁻][1]
+        @test var(wm, 0, :qn) == wm.var[:nw][0][:qn]
+        @test var(wm, 0, :qn, 1) == wm.var[:nw][0][:qn][1]
     end
 
     @testset "con" begin

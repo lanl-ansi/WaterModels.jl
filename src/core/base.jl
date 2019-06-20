@@ -138,7 +138,7 @@ function optimize!(wm::GenericWaterModel, optimizer::JuMP.OptimizerFactory)
         Memento.warn(LOGGER, "The given optimizer does not provide the SolveTime() attribute, falling back on @timed. This is not a rigorous timing value.");
     end
 
-    return JuMP.termination_status(wm.model), JuMP.primal_status(wm.model), JuMP.dual_status(wm.model), solve_time
+    return JuMP.termination_status(wm.model), JuMP.primal_status(wm.model), solve_time
 end
 
 ""
@@ -186,7 +186,7 @@ function solve_generic_model(wm::GenericWaterModel, optimizer::JuMP.OptimizerFac
         relax_integrality!(wm)
     end
 
-    termination_status, primal_status, dual_status, solve_time = optimize!(wm, optimizer)
+    termination_status, primal_status, solve_time = optimize!(wm, optimizer)
     solution = build_solution(wm, solve_time; solution_builder = solution_builder)
     #solution, time, bytes_alloc, sec_in_gc = @timed build_solution(wm, solve_time; solution_builder = solution_builder)
     #println("build_solution time: $(time)")

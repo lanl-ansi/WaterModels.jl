@@ -314,6 +314,11 @@ function has_known_flow_direction(link::Pair{Int, Any})
     return link.second["flow_direction"] != UNKNOWN
 end
 
+function is_ne_link(link::Pair{String, Any})
+    return haskey(link.second, "diameters") ||
+           haskey(link.second, "resistances")
+end
+
 function is_ne_link(link::Pair{Int, Any})
     return haskey(link.second, "diameters") ||
            haskey(link.second, "resistances")
@@ -345,8 +350,19 @@ end
 
 function set_start_directed_flow_rate!(data::Dict{String, Any})
     for (a, pipe) in data["pipes"]
-        pipe["q⁻_start"] = pipe["q"] < 0.0 ? pipe["q"] : 0.0
-        pipe["q⁺_start"] = pipe["q"] >= 0.0 ? pipe["q"] : 0.0
+        pipe["qn_start"] = pipe["q"] < 0.0 ? abs(pipe["q"]) : 0.0
+        pipe["qp_start"] = pipe["q"] >= 0.0 ? abs(pipe["q"]) : 0.0
+    end
+end
+
+function set_start_directed_head_difference!(data::Dict{String, Any})
+    head_loss_type = data["options"]["headloss"]
+    alpha = head_loss_type == "h-w" ? 1.852 : 2.0
+
+    for (a, pipe) in data["pipes"]
+        dh_abs = pipe["length"] * pipe["r"] * abs(pipe["q"])^(alpha)
+        pipe["dhn_start"] = pipe["q"] < 0.0 ? dh_abs : 0.0
+        pipe["dhp_start"] = pipe["q"] >= 0.0 ? dh_abs : 0.0
     end
 end
 
@@ -355,11 +371,11 @@ function set_start_resistance_ne!(data::Dict{String, Any})
     head_loss_type = data["options"]["headloss"]
     resistances = calc_resistances(data["pipes"], viscosity, head_loss_type)
 
-    for (a, pipe) in data["pipes"]
+    for (a, pipe) in filter(is_ne_link, data["pipes"])
         num_resistances = length(resistances[a])
-        pipe["xʳᵉˢ_start"] = zeros(Float64, num_resistances)
-        r_id = findfirst(r -> r == pipe["r"], resistances[a])
-        pipe["xʳᵉˢ_start"][r_id] = 1.0
+        pipe["x_res_start"] = zeros(Float64, num_resistances)
+        r_id = findfirst(r -> isapprox(r, pipe["r"], rtol=1.0e-4), resistances[a])
+        pipe["x_res_start"][r_id] = 1.0
     end
 end
 
@@ -368,10 +384,31 @@ function set_start_undirected_flow_rate_ne!(data::Dict{String, Any})
     head_loss_type = data["options"]["headloss"]
     resistances = calc_resistances(data["pipes"], viscosity, head_loss_type)
 
-    for (a, pipe) in data["pipes"]
+    for (a, pipe) in filter(is_ne_link, data["pipes"])
         num_resistances = length(resistances[a])
-        pipe["qⁿᵉ_start"] = zeros(Float64, num_resistances)
-        r_id = findfirst(r -> r == pipe["r"], resistances[a])
-        pipe["qⁿᵉ_start"][r_id] = pipe["q"]
+        pipe["q_ne_start"] = zeros(Float64, num_resistances)
+        r_id = findfirst(r -> isapprox(r, pipe["r"], rtol=1.0e-4), resistances[a])
+        pipe["q_ne_start"][r_id] = pipe["q"]
+    end
+end
+
+function set_start_directed_flow_rate_ne!(data::Dict{String, Any})
+    viscosity = data["options"]["viscosity"]
+    head_loss_type = data["options"]["headloss"]
+    resistances = calc_resistances(data["pipes"], viscosity, head_loss_type)
+
+    for (a, pipe) in filter(is_ne_link, data["pipes"])
+        num_resistances = length(resistances[a])
+        pipe["qn_ne_start"] = zeros(Float64, num_resistances)
+        pipe["qp_ne_start"] = zeros(Float64, num_resistances)
+        r_id = findfirst(r -> isapprox(r, pipe["r"], rtol=1.0e-4), resistances[a])
+        pipe["qn_ne_start"][r_id] = pipe["q"] < 0.0 ? abs(pipe["q"]) : 0.0
+        pipe["qp_ne_start"][r_id] = pipe["q"] >= 0.0 ? abs(pipe["q"]) : 0.0
+    end
+end
+
+function set_start_flow_direction!(data::Dict{String, Any})
+    for (a, pipe) in data["pipes"]
+        pipe["x_dir_start"] = pipe["q"] >= 0.0 ? 1.0 : 0.0
     end
 end

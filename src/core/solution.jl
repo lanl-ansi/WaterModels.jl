@@ -28,12 +28,12 @@ function build_solution(wm::GenericWaterModel, solve_time; objective = NaN, solu
     solution = Dict{String,Any}(
         "termination_status" => JuMP.termination_status(wm.model),
         "primal_status" => JuMP.primal_status(wm.model),
-        "dual_status" => JuMP.dual_status(wm.model),
         "objective_value" => JuMP.objective_value(wm.model),
         "solve_time" => solve_time,
         "solution" => sol,
         "machine" => Dict("cpu" => cpu, "memory" => memory),
         "data" => data)
+    #"dual_status" => JuMP.dual_status(wm.model),
 
     wm.solution = solution
 
@@ -78,16 +78,16 @@ function add_pipe_resistance_setpoint(sol, wm::GenericWaterModel)
         sol["pipes"] = sol_dict
     end
 
-    if :xʳᵉˢ in keys(wm.var[:nw][wm.cnw])
+    if :x_res in keys(wm.var[:nw][wm.cnw])
         for (i, link) in data_dict
             a = parse(Int, link["id"])
             sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
 
-            if a in keys(wm.var[:nw][wm.cnw][:xʳᵉˢ])
-                xʳᵉˢ, r_id = findmax(JuMP.value.(wm.var[:nw][wm.cnw][:xʳᵉˢ][a]))
+            if a in keys(wm.var[:nw][wm.cnw][:x_res])
+                x_res, r_id = findmax(JuMP.value.(wm.var[:nw][wm.cnw][:x_res][a]))
                 sol_item["r"] = wm.ref[:nw][wm.cnw][:resistance][a][r_id]
             else
-                xʳᵉˢ, r_id = findmin(wm.ref[:nw][wm.cnw][:resistance][a])
+                x_res, r_id = findmin(wm.ref[:nw][wm.cnw][:resistance][a])
                 sol_item["r"] = wm.ref[:nw][wm.cnw][:resistance][a][r_id]
             end
         end
@@ -95,7 +95,7 @@ function add_pipe_resistance_setpoint(sol, wm::GenericWaterModel)
         for (i, link) in data_dict
             a = parse(Int, link["id"])
             sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
-            xʳᵉˢ, r_id = findmin(wm.ref[:nw][wm.cnw][:resistance][a])
+            x_res, r_id = findmin(wm.ref[:nw][wm.cnw][:resistance][a])
             sol_item["r"] = wm.ref[:nw][wm.cnw][:resistance][a][r_id]
         end
     end

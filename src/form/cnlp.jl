@@ -44,17 +44,17 @@ function objective_wf(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: Stan
 
     for (i, reservoir) in wm.ref[:nw][n][:reservoirs]
         for (a, link) in filter(a -> i == a.second["node1"], wm.ref[:nw][n][:links])
-            q⁻ = wm.var[:nw][n][:q⁻][a]
-            q⁺ = wm.var[:nw][n][:q⁺][a]
-            linear_expr -= reservoir["head"] * (q⁺ - q⁻)
-            linear_expr_start -= reservoir["head"] * (JuMP.start_value(q⁺) - JuMP.start_value(q⁻))
+            qn = wm.var[:nw][n][:qn][a]
+            qp = wm.var[:nw][n][:qp][a]
+            linear_expr -= reservoir["head"] * (qp - qn)
+            linear_expr_start -= reservoir["head"] * (JuMP.start_value(qp) - JuMP.start_value(qn))
         end
 
         for (a, link) in filter(a -> i == a.second["node2"], wm.ref[:nw][n][:links])
-            q⁻ = wm.var[:nw][n][:q⁻][a]
-            q⁺ = wm.var[:nw][n][:q⁺][a]
-            linear_expr -= reservoir["head"] * (q⁻ - q⁺)
-            linear_expr_start -= reservoir["head"] * (JuMP.start_value(q⁻) - JuMP.start_value(q⁺))
+            qn = wm.var[:nw][n][:qn][a]
+            qp = wm.var[:nw][n][:qp][a]
+            linear_expr -= reservoir["head"] * (qn - qp)
+            linear_expr_start -= reservoir["head"] * (JuMP.start_value(qn) - JuMP.start_value(qp))
         end
     end
 
@@ -66,7 +66,7 @@ function objective_wf(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: Stan
     # Initialize the objective.
     objective_expr = JuMP.@NLexpression(wm.model, linear_term +
         sum(link["length"] * wm.ref[:nw][n][:resistance][a][1] *
-        (if_alpha(wm.var[:nw][n][:q⁻][a]) + if_alpha(wm.var[:nw][n][:q⁺][a]))
+        (if_alpha(wm.var[:nw][n][:qn][a]) + if_alpha(wm.var[:nw][n][:qp][a]))
         for (a, link) in wm.ref[:nw][n][:links]))
 
     return JuMP.@NLobjective(wm.model, MOI.MIN_SENSE, objective_expr)

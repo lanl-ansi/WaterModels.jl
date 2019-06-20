@@ -29,8 +29,8 @@ end
 
 function constraint_undirected_flow_conservation_ne(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractWaterFormulation
     # Create the constraint dictionary if necessary.
-    if !haskey(wm.con[:nw][n], :flow_conservationⁿᵉ)
-        wm.con[:nw][n][:flow_conservationⁿᵉ] = Dict{Int, JuMP.ConstraintRef}()
+    if !haskey(wm.con[:nw][n], :flow_conservation_ne)
+        wm.con[:nw][n][:flow_conservation_ne] = Dict{Int, JuMP.ConstraintRef}()
     end
 
     # Initialize the flow sum expression.
@@ -38,18 +38,18 @@ function constraint_undirected_flow_conservation_ne(wm::GenericWaterModel{T}, i:
 
     # Add all incoming flow to node i.
     for (a, conn) in filter(is_in_node(i), wm.ref[:nw][n][:links])
-        JuMP.add_to_expression!(flow_sum, sum(wm.var[:nw][n][:qⁿᵉ][a]))
+        JuMP.add_to_expression!(flow_sum, sum(wm.var[:nw][n][:q_ne][a]))
     end
 
     # Subtract all outgoing flow from node i.
     for (a, conn) in filter(is_out_node(i), wm.ref[:nw][n][:links])
-        JuMP.add_to_expression!(flow_sum, -sum(wm.var[:nw][n][:qⁿᵉ][a]))
+        JuMP.add_to_expression!(flow_sum, -sum(wm.var[:nw][n][:q_ne][a]))
     end
 
     # Add the flow conservation constraint.
     demand = wm.ref[:nw][n][:junctions][i]["demand"]
     con = JuMP.@constraint(wm.model, flow_sum == demand)
-    wm.con[:nw][n][:flow_conservationⁿᵉ][i] = con
+    wm.con[:nw][n][:flow_conservation_ne][i] = con
 end
 
 function constraint_directed_flow_conservation(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractWaterFormulation
@@ -63,14 +63,14 @@ function constraint_directed_flow_conservation(wm::GenericWaterModel{T}, i::Int,
 
     # Add all incoming flow to node i.
     for (a, conn) in filter(is_in_node(i), wm.ref[:nw][n][:links])
-        JuMP.add_to_expression!(flow_sum, -wm.var[:nw][n][:q⁻][a])
-        JuMP.add_to_expression!(flow_sum, wm.var[:nw][n][:q⁺][a])
+        JuMP.add_to_expression!(flow_sum, -wm.var[:nw][n][:qn][a])
+        JuMP.add_to_expression!(flow_sum, wm.var[:nw][n][:qp][a])
     end
 
     # Subtract all outgoing flow from node i.
     for (a, conn) in filter(is_out_node(i), wm.ref[:nw][n][:links])
-        JuMP.add_to_expression!(flow_sum, wm.var[:nw][n][:q⁻][a])
-        JuMP.add_to_expression!(flow_sum, -wm.var[:nw][n][:q⁺][a])
+        JuMP.add_to_expression!(flow_sum, wm.var[:nw][n][:qn][a])
+        JuMP.add_to_expression!(flow_sum, -wm.var[:nw][n][:qp][a])
     end
 
     # Add the flow conservation constraint.
@@ -81,8 +81,8 @@ end
 
 function constraint_directed_flow_conservation_ne(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractWaterFormulation
     # Create the constraint dictionary if necessary.
-    if !haskey(wm.con[:nw][n], :flow_conservationⁿᵉ)
-        wm.con[:nw][n][:flow_conservationⁿᵉ] = Dict{Int, JuMP.ConstraintRef}()
+    if !haskey(wm.con[:nw][n], :flow_conservation_ne)
+        wm.con[:nw][n][:flow_conservation_ne] = Dict{Int, JuMP.ConstraintRef}()
     end
 
     # Initialize the flow sum expression.
@@ -90,47 +90,47 @@ function constraint_directed_flow_conservation_ne(wm::GenericWaterModel{T}, i::I
 
     # Add all incoming flow to node i.
     for (a, conn) in filter(is_in_node(i), wm.ref[:nw][n][:links])
-        JuMP.add_to_expression!(flow_sum, -sum(wm.var[:nw][n][:qⁿᵉ⁻][a]))
-        JuMP.add_to_expression!(flow_sum, sum(wm.var[:nw][n][:qⁿᵉ⁺][a]))
+        JuMP.add_to_expression!(flow_sum, -sum(wm.var[:nw][n][:qn_ne][a]))
+        JuMP.add_to_expression!(flow_sum, sum(wm.var[:nw][n][:qp_ne][a]))
     end
 
     # Subtract all outgoing flow from node i.
     for (a, conn) in filter(is_out_node(i), wm.ref[:nw][n][:links])
-        JuMP.add_to_expression!(flow_sum, sum(wm.var[:nw][n][:qⁿᵉ⁻][a]))
-        JuMP.add_to_expression!(flow_sum, -sum(wm.var[:nw][n][:qⁿᵉ⁺][a]))
+        JuMP.add_to_expression!(flow_sum, sum(wm.var[:nw][n][:qn_ne][a]))
+        JuMP.add_to_expression!(flow_sum, -sum(wm.var[:nw][n][:qp_ne][a]))
     end
 
     # Add the flow conservation constraint.
     demand = wm.ref[:nw][n][:junctions][i]["demand"]
     con = JuMP.@constraint(wm.model, flow_sum == demand)
-    wm.con[:nw][n][:flow_conservationⁿᵉ][i] = con
+    wm.con[:nw][n][:flow_conservation_ne][i] = con
 end
 
 function constraint_directed_resistance_selection_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractWaterFormulation
     if !haskey(wm.con[:nw][n], :resistance_selection_sum)
         wm.con[:nw][n][:resistance_selection_sum] = Dict{Int, JuMP.ConstraintRef}()
-        wm.con[:nw][n][:resistance_selection⁻] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
-        wm.con[:nw][n][:resistance_selection⁺] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
+        wm.con[:nw][n][:resistance_selection_n] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
+        wm.con[:nw][n][:resistance_selection_p] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
     end
 
-    wm.con[:nw][n][:resistance_selection⁻][a] = Dict{Int, JuMP.ConstraintRef}()
-    wm.con[:nw][n][:resistance_selection⁺][a] = Dict{Int, JuMP.ConstraintRef}()
+    wm.con[:nw][n][:resistance_selection_n][a] = Dict{Int, JuMP.ConstraintRef}()
+    wm.con[:nw][n][:resistance_selection_p][a] = Dict{Int, JuMP.ConstraintRef}()
 
-    con_sum = JuMP.@constraint(wm.model, sum(wm.var[:nw][n][:xʳᵉˢ][a]) == 1.0)
+    con_sum = JuMP.@constraint(wm.model, sum(wm.var[:nw][n][:x_res][a]) == 1.0)
     wm.con[:nw][n][:resistance_selection_sum][a] = con_sum
 
     for r in 1:length(wm.ref[:nw][n][:resistance][a])
-        xʳᵉˢ = wm.var[:nw][n][:xʳᵉˢ][a][r]
+        x_res = wm.var[:nw][n][:x_res][a][r]
 
-        qⁿᵉ⁻ = wm.var[:nw][n][:qⁿᵉ⁻][a][r]
-        q̅ⁿᵉ⁻ = JuMP.upper_bound(qⁿᵉ⁻)
-        con⁻ = JuMP.@constraint(wm.model, qⁿᵉ⁻ - q̅ⁿᵉ⁻ * xʳᵉˢ <= 0.0)
-        wm.con[:nw][n][:resistance_selection⁻][a][r] = con⁻
+        qn_ne = wm.var[:nw][n][:qn_ne][a][r]
+        qn_ne_ub = JuMP.upper_bound(qn_ne)
+        con_n = JuMP.@constraint(wm.model, qn_ne - qn_ne_ub * x_res <= 0.0)
+        wm.con[:nw][n][:resistance_selection_n][a][r] = con_n
 
-        qⁿᵉ⁺ = wm.var[:nw][n][:qⁿᵉ⁺][a][r]
-        q̅ⁿᵉ⁺ = JuMP.upper_bound(qⁿᵉ⁺)
-        con⁺ = JuMP.@constraint(wm.model, qⁿᵉ⁺ - q̅ⁿᵉ⁺ * xʳᵉˢ <= 0.0)
-        wm.con[:nw][n][:resistance_selection⁺][a][r] = con⁺
+        qp_ne = wm.var[:nw][n][:qp_ne][a][r]
+        qp_ne_ub = JuMP.upper_bound(qp_ne)
+        con_p = JuMP.@constraint(wm.model, qp_ne - qp_ne_ub * x_res <= 0.0)
+        wm.con[:nw][n][:resistance_selection_p][a][r] = con_p
     end
 end
 
@@ -141,67 +141,67 @@ function constraint_undirected_resistance_selection_ne(wm::GenericWaterModel{T},
         wm.con[:nw][n][:resistance_selection_ub] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
     end
 
-    con_sum = JuMP.@constraint(wm.model, sum(wm.var[:nw][n][:xʳᵉˢ][a]) == 1.0)
+    con_sum = JuMP.@constraint(wm.model, sum(wm.var[:nw][n][:x_res][a]) == 1.0)
     wm.con[:nw][n][:resistance_selection_sum][a] = con_sum
 
     wm.con[:nw][n][:resistance_selection_lb][a] = Dict{Int, JuMP.ConstraintRef}()
     wm.con[:nw][n][:resistance_selection_ub][a] = Dict{Int, JuMP.ConstraintRef}()
 
     for r in 1:length(wm.ref[:nw][n][:resistance][a])
-        xʳᵉˢ = wm.var[:nw][n][:xʳᵉˢ][a][r]
+        x_res = wm.var[:nw][n][:x_res][a][r]
 
-        qⁿᵉ = wm.var[:nw][n][:qⁿᵉ][a][r]
-        q͟ⁿᵉ = JuMP.lower_bound(qⁿᵉ)
-        con_lb = JuMP.@constraint(wm.model, qⁿᵉ - q͟ⁿᵉ * xʳᵉˢ >= 0.0)
+        q_ne = wm.var[:nw][n][:q_ne][a][r]
+        q_ne_lb = JuMP.lower_bound(q_ne)
+        con_lb = JuMP.@constraint(wm.model, q_ne - q_ne_lb * x_res >= 0.0)
         wm.con[:nw][n][:resistance_selection_lb][a][r] = con_lb
 
-        qⁿᵉ = wm.var[:nw][n][:qⁿᵉ][a][r]
-        q̅ⁿᵉ = JuMP.upper_bound(qⁿᵉ)
-        con_ub = JuMP.@constraint(wm.model, qⁿᵉ - q̅ⁿᵉ * xʳᵉˢ <= 0.0)
+        q_ne = wm.var[:nw][n][:q_ne][a][r]
+        q_ne_ub = JuMP.upper_bound(q_ne)
+        con_ub = JuMP.@constraint(wm.model, q_ne - q_ne_ub * x_res <= 0.0)
         wm.con[:nw][n][:resistance_selection_ub][a][r] = con_ub
     end
 end
 
 function constraint_flow_direction_selection(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
-    if !haskey(wm.con[:nw][n], :flow_direction_selection⁻)
-        wm.con[:nw][n][:flow_direction_selection⁻] = Dict{Int, JuMP.ConstraintRef}()
-        wm.con[:nw][n][:flow_direction_selection⁺] = Dict{Int, JuMP.ConstraintRef}()
+    if !haskey(wm.con[:nw][n], :flow_direction_selection_n)
+        wm.con[:nw][n][:flow_direction_selection_n] = Dict{Int, JuMP.ConstraintRef}()
+        wm.con[:nw][n][:flow_direction_selection_p] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    xᵈᶦʳ = wm.var[:nw][n][:xᵈᶦʳ][a]
+    x_dir = wm.var[:nw][n][:x_dir][a]
 
-    q⁻ = wm.var[:nw][n][:q⁻][a]
-    q̅⁻ = JuMP.upper_bound(q⁻)
-    con⁻ = JuMP.@constraint(wm.model, q⁻ - q̅⁻ * (1.0 - xᵈᶦʳ) <= 0.0)
-    wm.con[:nw][n][:flow_direction_selection⁻][a] = con⁻
+    qn = wm.var[:nw][n][:qn][a]
+    qn_ub = JuMP.upper_bound(qn)
+    con_n = JuMP.@constraint(wm.model, qn - qn_ub * (1.0 - x_dir) <= 0.0)
+    wm.con[:nw][n][:flow_direction_selection_n][a] = con_n
 
-    q⁺ = wm.var[:nw][n][:q⁺][a]
-    q̅⁺ = JuMP.upper_bound(q⁺)
-    con⁺ = JuMP.@constraint(wm.model, q⁺ - q̅⁺ * xᵈᶦʳ <= 0.0)
-    wm.con[:nw][n][:flow_direction_selection⁺][a] = con⁺
+    qp = wm.var[:nw][n][:qp][a]
+    qp_ub = JuMP.upper_bound(qp)
+    con_p = JuMP.@constraint(wm.model, qp - qp_ub * x_dir <= 0.0)
+    wm.con[:nw][n][:flow_direction_selection_p][a] = con_p
 end
 
 function constraint_flow_direction_selection_ne(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
-    if !haskey(wm.con[:nw][n], :flow_direction_selection_ne⁻)
-        wm.con[:nw][n][:flow_direction_selection_ne⁻] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
-        wm.con[:nw][n][:flow_direction_selection_ne⁺] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
+    if !haskey(wm.con[:nw][n], :flow_direction_selection_ne_n)
+        wm.con[:nw][n][:flow_direction_selection_ne_n] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
+        wm.con[:nw][n][:flow_direction_selection_ne_p] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
     end
 
-    wm.con[:nw][n][:flow_direction_selection_ne⁻][a] = Dict{Int, JuMP.ConstraintRef}()
-    wm.con[:nw][n][:flow_direction_selection_ne⁺][a] = Dict{Int, JuMP.ConstraintRef}()
+    wm.con[:nw][n][:flow_direction_selection_ne_n][a] = Dict{Int, JuMP.ConstraintRef}()
+    wm.con[:nw][n][:flow_direction_selection_ne_p][a] = Dict{Int, JuMP.ConstraintRef}()
 
     for r in 1:length(wm.ref[:nw][n][:resistance][a])
-        xᵈᶦʳ = wm.var[:nw][n][:xᵈᶦʳ][a]
+        x_dir = wm.var[:nw][n][:x_dir][a]
 
-        qⁿᵉ⁻ = wm.var[:nw][n][:qⁿᵉ⁻][a][r]
-        q̅ⁿᵉ⁻ = JuMP.upper_bound(qⁿᵉ⁻)
-        con⁻ = JuMP.@constraint(wm.model, qⁿᵉ⁻ - q̅ⁿᵉ⁻ * (1.0 - xᵈᶦʳ) <= 0.0)
-        wm.con[:nw][n][:flow_direction_selection_ne⁻][a][r] = con⁻
+        qn_ne = wm.var[:nw][n][:qn_ne][a][r]
+        qn_ne_ub = JuMP.upper_bound(qn_ne)
+        con_n = JuMP.@constraint(wm.model, qn_ne - qn_ne_ub * (1.0 - x_dir) <= 0.0)
+        wm.con[:nw][n][:flow_direction_selection_ne_n][a][r] = con_n
 
-        qⁿᵉ⁺ = wm.var[:nw][n][:qⁿᵉ⁺][a][r]
-        q̅ⁿᵉ⁺ = JuMP.upper_bound(qⁿᵉ⁺)
-        con⁺ = JuMP.@constraint(wm.model, qⁿᵉ⁺ - q̅ⁿᵉ⁺ * xᵈᶦʳ <= 0.0)
-        wm.con[:nw][n][:flow_direction_selection_ne⁺][a][r] = con⁺
+        qp_ne = wm.var[:nw][n][:qp_ne][a][r]
+        qp_ne_ub = JuMP.upper_bound(qp_ne)
+        con_p = JuMP.@constraint(wm.model, qp_ne - qp_ne_ub * x_dir <= 0.0)
+        wm.con[:nw][n][:flow_direction_selection_ne_p][a][r] = con_p
     end
 end
 
@@ -228,94 +228,94 @@ function constraint_directed_head_difference(wm::GenericWaterModel, a::Int, n::I
         hⱼ = wm.var[:nw][n][:h][j]
     end
 
-    xᵈᶦʳ = wm.var[:nw][n][:xᵈᶦʳ][a]
+    x_dir = wm.var[:nw][n][:x_dir][a]
 
-    Δh⁻ = wm.var[:nw][n][:Δh⁻][a]
-    Δh̅⁻ = JuMP.upper_bound(Δh⁻)
-    con_1 = JuMP.@constraint(wm.model, Δh⁻ - Δh̅⁻ * (1.0 - xᵈᶦʳ) <= 0.0)
+    dhn = wm.var[:nw][n][:dhn][a]
+    dhn_ub = JuMP.upper_bound(dhn)
+    con_1 = JuMP.@constraint(wm.model, dhn - dhn_ub * (1.0 - x_dir) <= 0.0)
     wm.con[:nw][n][:head_difference_1][a] = con_1
 
-    Δh⁺ = wm.var[:nw][n][:Δh⁺][a]
-    Δh̅⁺ = JuMP.upper_bound(Δh⁺)
-    con_2 = JuMP.@constraint(wm.model, Δh⁺ - Δh̅⁺ * xᵈᶦʳ <= 0.0)
+    dhp = wm.var[:nw][n][:dhp][a]
+    dhp_ub = JuMP.upper_bound(dhp)
+    con_2 = JuMP.@constraint(wm.model, dhp - dhp_ub * x_dir <= 0.0)
     wm.con[:nw][n][:head_difference_2][a] = con_2
 
-    con_3 = JuMP.@constraint(wm.model, (hᵢ - hⱼ) - (Δh⁺ - Δh⁻) == 0.0)
+    con_3 = JuMP.@constraint(wm.model, (hᵢ - hⱼ) - (dhp - dhn) == 0.0)
     wm.con[:nw][n][:head_difference_3][a] = con_3
 end
 
 function constraint_directed_potential_loss_ub_ne(wm::GenericWaterModel, a::Int, n::Int=wm.cnw; alpha::Float64=1.852)
-    if !haskey(wm.con[:nw][n], :directed_potential_loss_ub_ne⁻)
-        wm.con[:nw][n][:directed_potential_loss_ub_ne⁻] = Dict{Int, JuMP.ConstraintRef}()
-        wm.con[:nw][n][:directed_potential_loss_ub_ne⁺] = Dict{Int, JuMP.ConstraintRef}()
+    if !haskey(wm.con[:nw][n], :directed_potential_loss_ub_ne_n)
+        wm.con[:nw][n][:directed_potential_loss_ub_ne_n] = Dict{Int, JuMP.ConstraintRef}()
+        wm.con[:nw][n][:directed_potential_loss_ub_ne_p] = Dict{Int, JuMP.ConstraintRef}()
     end
 
     L = wm.ref[:nw][n][:links][a]["length"]
     resistances = wm.ref[:nw][n][:resistance][a]
 
-    Δh⁻ = wm.var[:nw][n][:Δh⁻][a]
-    q̅ⁿᵉ⁻ = JuMP.upper_bound.(wm.var[:nw][n][:qⁿᵉ⁻][a])
-    slopes⁻ = resistances .* q̅ⁿᵉ⁻.^(alpha - 1.0)
-    rhs⁻ = sum(slopes⁻ .* wm.var[:nw][n][:qⁿᵉ⁻][a])
-    con⁻ = JuMP.@constraint(wm.model, inv(L) * Δh⁻ - rhs⁻ <= 0.0)
-    wm.con[:nw][n][:directed_potential_loss_ub_ne⁻] = con⁻
+    dhn = wm.var[:nw][n][:dhn][a]
+    qn_ne_ub = JuMP.upper_bound.(wm.var[:nw][n][:qn_ne][a])
+    slopes_n = resistances .* qn_ne_ub.^(alpha - 1.0)
+    rhs_n = sum(slopes_n .* wm.var[:nw][n][:qn_ne][a])
+    con_n = JuMP.@constraint(wm.model, inv(L) * dhn - rhs_n <= 0.0)
+    wm.con[:nw][n][:directed_potential_loss_ub_ne_n] = con_n
 
-    Δh⁺ = wm.var[:nw][n][:Δh⁺][a]
-    q̅ⁿᵉ⁺ = JuMP.upper_bound.(wm.var[:nw][n][:qⁿᵉ⁺][a])
-    slopes⁺ = resistances .* q̅ⁿᵉ⁺.^(alpha - 1.0)
-    rhs⁺ = sum(slopes⁺ .* wm.var[:nw][n][:qⁿᵉ⁺][a])
-    con⁺ = JuMP.@constraint(wm.model, inv(L) * Δh⁺ - rhs⁺ <= 0.0)
-    wm.con[:nw][n][:directed_potential_loss_ub_ne⁺] = con⁺
+    dhp = wm.var[:nw][n][:dhp][a]
+    qp_ne_ub = JuMP.upper_bound.(wm.var[:nw][n][:qp_ne][a])
+    slopes_p = resistances .* qp_ne_ub.^(alpha - 1.0)
+    rhs_p = sum(slopes_p .* wm.var[:nw][n][:qp_ne][a])
+    con_p = JuMP.@constraint(wm.model, inv(L) * dhp - rhs_p <= 0.0)
+    wm.con[:nw][n][:directed_potential_loss_ub_ne_p] = con_p
 end
 
 function constraint_directed_potential_loss_ub(wm::GenericWaterModel, a::Int, n::Int=wm.cnw; alpha::Float64=1.852)
-    if !haskey(wm.con[:nw][n], :directed_potential_loss_ub⁻)
-        wm.con[:nw][n][:directed_potential_loss_ub⁻] = Dict{Int, JuMP.ConstraintRef}()
-        wm.con[:nw][n][:directed_potential_loss_ub⁺] = Dict{Int, JuMP.ConstraintRef}()
+    if !haskey(wm.con[:nw][n], :directed_potential_loss_ub_n)
+        wm.con[:nw][n][:directed_potential_loss_ub_n] = Dict{Int, JuMP.ConstraintRef}()
+        wm.con[:nw][n][:directed_potential_loss_ub_p] = Dict{Int, JuMP.ConstraintRef}()
     end
 
     L = wm.ref[:nw][n][:links][a]["length"]
     r = maximum(wm.ref[:nw][n][:resistance][a])
 
-    Δh⁻ = wm.var[:nw][n][:Δh⁻][a]
-    q̅ⁿᵉ⁻ = JuMP.upper_bound(wm.var[:nw][n][:q⁻][a])
-    rhs⁻ = r * q̅ⁿᵉ⁻^(alpha - 1.0) * wm.var[:nw][n][:q⁻][a]
-    con⁻ = JuMP.@constraint(wm.model, inv(L) * Δh⁻ - rhs⁻ <= 0.0)
-    wm.con[:nw][n][:directed_potential_loss_ub⁻] = con⁻
+    dhn = wm.var[:nw][n][:dhn][a]
+    qn_ub = JuMP.upper_bound(wm.var[:nw][n][:qn][a])
+    rhs_n = r * qn_ub^(alpha - 1.0) * wm.var[:nw][n][:qn][a]
+    con_n = JuMP.@constraint(wm.model, inv(L) * dhn - rhs_n <= 0.0)
+    wm.con[:nw][n][:directed_potential_loss_ub_n] = con_n
 
-    Δh⁺ = wm.var[:nw][n][:Δh⁺][a]
-    q̅ⁿᵉ⁺ = JuMP.upper_bound(wm.var[:nw][n][:q⁺][a])
-    rhs⁺ = r * q̅ⁿᵉ⁺^(alpha - 1.0) * wm.var[:nw][n][:q⁺][a]
-    con⁺ = JuMP.@constraint(wm.model, inv(L) * Δh⁺ - rhs⁺ <= 0.0)
-    wm.con[:nw][n][:directed_potential_loss_ub⁺] = con⁺
+    dhp = wm.var[:nw][n][:dhp][a]
+    qp_ub = JuMP.upper_bound(wm.var[:nw][n][:qp][a])
+    rhs_p = r * qp_ub^(alpha - 1.0) * wm.var[:nw][n][:qp][a]
+    con_p = JuMP.@constraint(wm.model, inv(L) * dhp - rhs_p <= 0.0)
+    wm.con[:nw][n][:directed_potential_loss_ub_p] = con_p
 end
 
 function constraint_link_undirected_flow_ne(wm::GenericWaterModel, a::Int, n::Int=wm.cnw; alpha::Float64=1.852)
-    if !haskey(wm.con[:nw][n], :link_undirected_flowⁿᵉ)
-        wm.con[:nw][n][:link_undirected_flowⁿᵉ] = Dict{Int, JuMP.ConstraintRef}()
+    if !haskey(wm.con[:nw][n], :link_undirected_flow_ne)
+        wm.con[:nw][n][:link_undirected_flow_ne] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    qⁿᵉ = wm.var[:nw][n][:qⁿᵉ][a]
+    q_ne = wm.var[:nw][n][:q_ne][a]
     q = wm.var[:nw][n][:q][a]
-    con⁻ = JuMP.@constraint(wm.model, sum(qⁿᵉ) - q == 0.0)
-    wm.con[:nw][n][:link_undirected_flowⁿᵉ] = con
+    con = JuMP.@constraint(wm.model, sum(q_ne) - q == 0.0)
+    wm.con[:nw][n][:link_undirected_flow_ne] = con
 end
 
 function constraint_link_directed_flow_ne(wm::GenericWaterModel, a::Int, n::Int=wm.cnw; alpha::Float64=1.852)
-    if !haskey(wm.con[:nw][n], :link_directed_flowⁿᵉ⁻)
-        wm.con[:nw][n][:link_directed_flowⁿᵉ⁻] = Dict{Int, JuMP.ConstraintRef}()
-        wm.con[:nw][n][:link_directed_flowⁿᵉ⁺] = Dict{Int, JuMP.ConstraintRef}()
+    if !haskey(wm.con[:nw][n], :link_directed_flow_n_ne)
+        wm.con[:nw][n][:link_directed_flow_n_ne] = Dict{Int, JuMP.ConstraintRef}()
+        wm.con[:nw][n][:link_directed_flow_p_ne] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    qⁿᵉ⁻ = wm.var[:nw][n][:qⁿᵉ⁻][a]
-    q⁻ = wm.var[:nw][n][:q⁻][a]
-    con⁻ = JuMP.@constraint(wm.model, sum(qⁿᵉ⁻) - q⁻ == 0.0)
-    wm.con[:nw][n][:link_directed_flowⁿᵉ⁻] = con⁻
+    qn_ne = wm.var[:nw][n][:qn_ne][a]
+    qn = wm.var[:nw][n][:qn][a]
+    con_n = JuMP.@constraint(wm.model, sum(qn_ne) - qn == 0.0)
+    wm.con[:nw][n][:link_directed_flow_n_ne] = con_n
 
-    qⁿᵉ⁺ = wm.var[:nw][n][:qⁿᵉ⁺][a]
-    q⁺ = wm.var[:nw][n][:q⁺][a]
-    con⁺ = JuMP.@constraint(wm.model, sum(qⁿᵉ⁺) - q⁺ == 0.0)
-    wm.con[:nw][n][:link_directed_flowⁿᵉ⁺] = con⁺
+    qp_ne = wm.var[:nw][n][:qp_ne][a]
+    qp = wm.var[:nw][n][:qp][a]
+    con_p = JuMP.@constraint(wm.model, sum(qp_ne) - qp == 0.0)
+    wm.con[:nw][n][:link_directed_flow_p_ne] = con_p
 end
 
 function constraint_link_directed_flow(wm::GenericWaterModel, a::Int, n::Int=wm.cnw; alpha::Float64=1.852)
@@ -324,9 +324,9 @@ function constraint_link_directed_flow(wm::GenericWaterModel, a::Int, n::Int=wm.
     end
 
     q = wm.var[:nw][n][:q][a]
-    q⁻ = wm.var[:nw][n][:q⁻][a]
-    q⁺ = wm.var[:nw][n][:q⁺][a]
-    con = JuMP.@constraint(wm.model, (q⁺ - q⁻) - q == 0.0)
+    qn = wm.var[:nw][n][:qn][a]
+    qp = wm.var[:nw][n][:qp][a]
+    con = JuMP.@constraint(wm.model, (qp - qn) - q == 0.0)
     wm.con[:nw][n][:link_directed_flow] = con
 end
 
@@ -343,11 +343,11 @@ function constraint_directed_source_flow(wm::GenericWaterModel, i::Int, n::Int=w
     end
 
     # Collect the required variables.
-    xᵈᶦʳ = wm.var[:nw][n][:xᵈᶦʳ]
+    x_dir = wm.var[:nw][n][:x_dir]
     out_arcs = filter(a -> i == a.second["node1"], wm.ref[:nw][n][:links])
-    out = Array{JuMP.VariableRef}([xᵈᶦʳ[a] for a in keys(out_arcs)])
+    out = Array{JuMP.VariableRef}([x_dir[a] for a in keys(out_arcs)])
     in_arcs = filter(a -> i == a.second["node2"], wm.ref[:nw][n][:links])
-    in = Array{JuMP.VariableRef}([xᵈᶦʳ[a] for a in keys(in_arcs)])
+    in = Array{JuMP.VariableRef}([x_dir[a] for a in keys(in_arcs)])
 
     # Add the source flow direction constraint.
     con = JuMP.@constraint(wm.model, sum(out) - sum(in) >= 1.0 - length(in))
@@ -361,11 +361,11 @@ function constraint_directed_sink_flow(wm::GenericWaterModel, i::Int, n::Int=wm.
     end
 
     # Collect the required variables.
-    xᵈᶦʳ = wm.var[:nw][n][:xᵈᶦʳ]
+    x_dir = wm.var[:nw][n][:x_dir]
     out_arcs = filter(a -> i == a.second["node1"], wm.ref[:nw][n][:links])
-    out = Array{JuMP.VariableRef}([xᵈᶦʳ[a] for a in keys(out_arcs)])
+    out = Array{JuMP.VariableRef}([x_dir[a] for a in keys(out_arcs)])
     in_arcs = filter(a -> i == a.second["node2"], wm.ref[:nw][n][:links])
-    in = Array{JuMP.VariableRef}([xᵈᶦʳ[a] for a in keys(in_arcs)])
+    in = Array{JuMP.VariableRef}([x_dir[a] for a in keys(in_arcs)])
 
     # Add the sink flow direction constraint.
     con = JuMP.@constraint(wm.model, sum(in) - sum(out) >= 1.0 - length(out))

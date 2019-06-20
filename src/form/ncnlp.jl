@@ -57,8 +57,8 @@ function constraint_sink_flow(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) w
 end
 
 function constraint_undirected_potential_loss_ne(wm::GenericWaterModel{T}, a::Int, n::Int) where T <: AbstractNCNLPForm
-    if !haskey(wm.con[:nw][n], :potential_lossⁿᵉ)
-        wm.con[:nw][n][:potential_lossⁿᵉ] = Dict{Int, JuMP.ConstraintRef}()
+    if !haskey(wm.con[:nw][n], :potential_loss_ne)
+        wm.con[:nw][n][:potential_loss_ne] = Dict{Int, JuMP.ConstraintRef}()
     end
 
     i = wm.ref[:nw][n][:links][a]["node1"]
@@ -78,13 +78,13 @@ function constraint_undirected_potential_loss_ne(wm::GenericWaterModel{T}, a::In
     end
 
     L = wm.ref[:nw][n][:links][a]["length"]
-    qⁿᵉ = wm.var[:nw][n][:qⁿᵉ][a]
+    q_ne = wm.var[:nw][n][:q_ne][a]
     resistances = wm.ref[:nw][n][:resistance][a]
 
-    con = JuMP.@NLconstraint(wm.model, sum(r * f_alpha(qⁿᵉ[r_id]) for (r_id, r)
+    con = JuMP.@NLconstraint(wm.model, sum(r * f_alpha(q_ne[r_id]) for (r_id, r)
                              in enumerate(resistances)) - inv(L) * (hᵢ - hⱼ) == 0.0)
 
-    wm.con[:nw][n][:potential_lossⁿᵉ][a] = con
+    wm.con[:nw][n][:potential_loss_ne][a] = con
 end
 
 function constraint_undirected_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int) where T <: AbstractNCNLPForm

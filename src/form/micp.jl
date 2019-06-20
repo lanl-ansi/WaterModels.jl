@@ -67,47 +67,50 @@ function constraint_sink_flow(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) w
 end
 
 function constraint_directed_potential_loss_ne(wm::GenericWaterModel{T}, a::Int, n::Int) where T <: AbstractMICPForm
-    if !haskey(wm.con[:nw][n], :potential_lossⁿᵉ⁻)
-        wm.con[:nw][n][:potential_lossⁿᵉ⁻] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
-        wm.con[:nw][n][:potential_lossⁿᵉ⁺] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
+    if !haskey(wm.con[:nw][n], :potential_loss_n_ne)
+        wm.con[:nw][n][:potential_loss_n_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
+        wm.con[:nw][n][:potential_loss_p_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
     end
 
-    wm.con[:nw][n][:potential_lossⁿᵉ⁻][a] = Dict{Int, JuMP.ConstraintRef}()
-    wm.con[:nw][n][:potential_lossⁿᵉ⁺][a] = Dict{Int, JuMP.ConstraintRef}()
+    wm.con[:nw][n][:potential_loss_n_ne][a] = Dict{Int, JuMP.ConstraintRef}()
+    wm.con[:nw][n][:potential_loss_p_ne][a] = Dict{Int, JuMP.ConstraintRef}()
 
     L = wm.ref[:nw][n][:links][a]["length"]
+    alpha = wm.ref[:nw][n][:alpha]
 
     for (r_id, r) in enumerate(wm.ref[:nw][n][:resistance][a])
-        qⁿᵉ⁻ = wm.var[:nw][n][:qⁿᵉ⁻][a][r_id]
-        Δh⁻ = wm.var[:nw][n][:Δh⁻][a]
-        con⁻ = JuMP.@NLconstraint(wm.model, r * f_alpha(qⁿᵉ⁻) - inv(L) * Δh⁻ <= 0.0)
-        wm.con[:nw][n][:potential_lossⁿᵉ⁻][a][r_id] = con⁻
+        qn_ne = wm.var[:nw][n][:qn_ne][a][r_id]
+        dhn = wm.var[:nw][n][:dhn][a]
+        #con_n = JuMP.@NLconstraint(wm.model, r * f_alpha(qn_ne) - inv(L) * dhn <= 0.0)
+        con_n = JuMP.@NLconstraint(wm.model, r * abs(qn_ne)^(1.852) - inv(L) * dhn <= 0.0)
+        wm.con[:nw][n][:potential_loss_n_ne][a][r_id] = con_n
 
-        qⁿᵉ⁺ = wm.var[:nw][n][:qⁿᵉ⁺][a][r_id]
-        Δh⁺ = wm.var[:nw][n][:Δh⁺][a]
-        con⁺ = JuMP.@NLconstraint(wm.model, r * f_alpha(qⁿᵉ⁺) - inv(L) * Δh⁺ <= 0.0)
-        wm.con[:nw][n][:potential_lossⁿᵉ⁺][a][r_id] = con⁺
+        qp_ne = wm.var[:nw][n][:qp_ne][a][r_id]
+        dhp = wm.var[:nw][n][:dhp][a]
+        #con_p = JuMP.@NLconstraint(wm.model, r * f_alpha(qp_ne) - inv(L) * dhp <= 0.0)
+        con_p = JuMP.@NLconstraint(wm.model, r * abs(qp_ne)^(1.852) - inv(L) * dhp <= 0.0)
+        wm.con[:nw][n][:potential_loss_p_ne][a][r_id] = con_p
     end
 end
 
 function constraint_directed_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int) where T <: AbstractMICPForm
-    if !haskey(wm.con[:nw][n], :potential_loss⁻)
-        wm.con[:nw][n][:potential_loss⁻] = Dict{Int, JuMP.ConstraintRef}()
-        wm.con[:nw][n][:potential_loss⁺] = Dict{Int, JuMP.ConstraintRef}()
-    end
+    #if !haskey(wm.con[:nw][n], :potential_loss_n)
+    #    wm.con[:nw][n][:potential_loss_n] = Dict{Int, JuMP.ConstraintRef}()
+    #    wm.con[:nw][n][:potential_loss_p] = Dict{Int, JuMP.ConstraintRef}()
+    #end
 
-    L = wm.ref[:nw][n][:links][a]["length"]
-    r = minimum(wm.ref[:nw][n][:resistance][a])
+    #L = wm.ref[:nw][n][:links][a]["length"]
+    #r = minimum(wm.ref[:nw][n][:resistance][a])
 
-    q⁻ = wm.var[:nw][n][:q⁻][a]
-    Δh⁻ = wm.var[:nw][n][:Δh⁻][a]
-    con⁻ = JuMP.@NLconstraint(wm.model, r * f_alpha(q⁻) - inv(L) * Δh⁻ <= 0.0)
-    wm.con[:nw][n][:potential_loss⁻][a] = con⁻
+    #qn = wm.var[:nw][n][:qn][a]
+    #dhn = wm.var[:nw][n][:dhn][a]
+    #con_n = JuMP.@NLconstraint(wm.model, r * f_alpha(qn) - inv(L) * dhn <= 0.0)
+    #wm.con[:nw][n][:potential_loss_n][a] = con_n
 
-    q⁺ = wm.var[:nw][n][:q⁺][a]
-    Δh⁺ = wm.var[:nw][n][:Δh⁺][a]
-    con⁺ = JuMP.@NLconstraint(wm.model, r * f_alpha(q⁺) - inv(L) * Δh⁺ <= 0.0)
-    wm.con[:nw][n][:potential_loss⁺][a] = con⁺
+    #qp = wm.var[:nw][n][:qp][a]
+    #dhp = wm.var[:nw][n][:dhp][a]
+    #con_p = JuMP.@NLconstraint(wm.model, r * f_alpha(qp) - inv(L) * dhp <= 0.0)
+    #wm.con[:nw][n][:potential_loss_p][a] = con_p
 end
 
 function objective_wf(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: StandardMICPForm

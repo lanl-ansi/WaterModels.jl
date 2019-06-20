@@ -30,6 +30,15 @@
               result["termination_status"] == MOI.LOCALLY_SOLVED
     end
 
+    @testset "Shamir network (unknown flow directions), MILPR formulation." begin
+        network = deepcopy(hw_network)
+        modifications = WaterModels.parse_file("../test/data/json/shamir-reduced.json")
+        InfrastructureModels.update_data!(network, modifications)
+        result = run_ne(network, MILPRWaterModel, cbc, alpha=1.852)
+        @test result["objective_value"] == 1.36e6
+        @test result["termination_status"] == MOI.OPTIMAL
+    end
+
     @testset "Shamir network (unknown flow directions), NCNLP formulation." begin
         network = deepcopy(hw_network)
         modifications = WaterModels.parse_file("../test/data/json/shamir.json")
