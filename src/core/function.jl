@@ -23,7 +23,7 @@ end
 function df_alpha(alpha::Float64; convex::Bool=false)
     if convex
         return function(x::Float64)
-            return !isapprox(x, 0.0, atol=1.0e-7) ? (1.0 + alpha) * sign(x) * (x*x)^(0.5*alpha) : 0.0
+            return x != 0.0 ? (1.0 + alpha) * sign(x) * (x*x)^(0.5*alpha) : 0.0
         end
     else
         return function(x::Float64)
@@ -35,7 +35,7 @@ end
 function d2f_alpha(alpha::Float64; convex::Bool=false)
     if convex
         return function(x::Float64)
-            return !isapprox(x, 0.0, atol=1.0e-7) ? alpha * (1.0 + alpha) * (x*x)^(0.5*alpha - 0.5) : 0.0
+            return x != 0.0 ? alpha * (1.0 + alpha) * (x*x)^(0.5*alpha - 0.5) : 0.0
         end
     else
         return function(x::Float64)

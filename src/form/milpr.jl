@@ -89,7 +89,7 @@ function constraint_directed_potential_loss_ne(wm::GenericWaterModel{T}, a::Int,
         dhn = wm.var[:nw][n][:dhn][a]
 
         if qn_ne_ub > 0.0
-            for q_hat in range(0.0, stop=qn_ne_ub, length=25)
+            for q_hat in range(0.0, stop=qn_ne_ub, length=5)
                 cut_lhs = r * get_linear_outer_approximation(qn_ne, q_hat, alpha)
                 con_n = JuMP.@constraint(wm.model, cut_lhs - inv(L) * dhn <= 0.0)
             end
@@ -100,7 +100,7 @@ function constraint_directed_potential_loss_ne(wm::GenericWaterModel{T}, a::Int,
         dhp = wm.var[:nw][n][:dhp][a]
 
         if qp_ne_ub > 0.0
-            for q_hat in range(0.0, stop=qp_ne_ub, length=25)
+            for q_hat in range(0.0, stop=qp_ne_ub, length=5)
                 cut_lhs = r * get_linear_outer_approximation(qp_ne, q_hat, alpha)
                 con_p = JuMP.@constraint(wm.model, cut_lhs - inv(L) * dhp <= 0.0)
             end
@@ -123,7 +123,7 @@ function constraint_directed_potential_loss(wm::GenericWaterModel{T}, a::Int, n:
     dhn = wm.var[:nw][n][:dhn][a]
 
     if qn_ub > 0.0
-        for q_hat in range(0.0, stop=qn_ub, length=25)
+        for q_hat in range(0.0, stop=qn_ub, length=5)
             cut_lhs = r * get_linear_outer_approximation(qn, q_hat, alpha)
             con_n = JuMP.@constraint(wm.model, cut_lhs - inv(L) * dhn <= 0.0)
         end
@@ -134,7 +134,7 @@ function constraint_directed_potential_loss(wm::GenericWaterModel{T}, a::Int, n:
     dhp = wm.var[:nw][n][:dhp][a]
 
     if qp_ub > 0.0
-        for q_hat in range(0.0, stop=qp_ub, length=25)
+        for q_hat in range(0.0, stop=qp_ub, length=5)
             cut_lhs = r * get_linear_outer_approximation(qp, q_hat, alpha)
             con_p = JuMP.@constraint(wm.model, cut_lhs - inv(L) * dhp <= 0.0)
         end
