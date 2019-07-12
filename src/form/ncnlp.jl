@@ -61,20 +61,20 @@ function constraint_undirected_potential_loss_ne(wm::GenericWaterModel{T}, a::In
         wm.con[:nw][n][:potential_loss_ne] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    i = wm.ref[:nw][n][:links][a]["node1"]
+    i = wm.ref[:nw][n][:links][a]["f_id"]
 
     if i in collect(ids(wm, n, :reservoirs))
-        hᵢ = wm.ref[:nw][n][:reservoirs][i]["head"]
+        h_i = wm.ref[:nw][n][:reservoirs][i]["head"]
     else
-        hᵢ = wm.var[:nw][n][:h][i]
+        h_i = wm.var[:nw][n][:h][i]
     end
 
-    j = wm.ref[:nw][n][:links][a]["node2"]
+    j = wm.ref[:nw][n][:links][a]["t_id"]
 
     if j in collect(ids(wm, n, :reservoirs))
-        hⱼ = wm.ref[:nw][n][:reservoirs][j]["head"]
+        h_j = wm.ref[:nw][n][:reservoirs][j]["head"]
     else
-        hⱼ = wm.var[:nw][n][:h][j]
+        h_j = wm.var[:nw][n][:h][j]
     end
 
     L = wm.ref[:nw][n][:links][a]["length"]
@@ -82,7 +82,7 @@ function constraint_undirected_potential_loss_ne(wm::GenericWaterModel{T}, a::In
     resistances = wm.ref[:nw][n][:resistance][a]
 
     con = JuMP.@NLconstraint(wm.model, sum(r * f_alpha(q_ne[r_id]) for (r_id, r)
-                             in enumerate(resistances)) - inv(L) * (hᵢ - hⱼ) == 0.0)
+                             in enumerate(resistances)) - inv(L) * (h_i - h_j) == 0.0)
 
     wm.con[:nw][n][:potential_loss_ne][a] = con
 end
@@ -92,27 +92,27 @@ function constraint_undirected_potential_loss(wm::GenericWaterModel{T}, a::Int, 
         wm.con[:nw][n][:potential_loss] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    i = wm.ref[:nw][n][:links][a]["node1"]
+    i = wm.ref[:nw][n][:links][a]["f_id"]
 
     if i in collect(ids(wm, n, :reservoirs))
-        hᵢ = wm.ref[:nw][n][:reservoirs][i]["head"]
+        h_i = wm.ref[:nw][n][:reservoirs][i]["head"]
     else
-        hᵢ = wm.var[:nw][n][:h][i]
+        h_i = wm.var[:nw][n][:h][i]
     end
 
-    j = wm.ref[:nw][n][:links][a]["node2"]
+    j = wm.ref[:nw][n][:links][a]["t_id"]
 
     if j in collect(ids(wm, n, :reservoirs))
-        hⱼ = wm.ref[:nw][n][:reservoirs][j]["head"]
+        h_j = wm.ref[:nw][n][:reservoirs][j]["head"]
     else
-        hⱼ = wm.var[:nw][n][:h][j]
+        h_j = wm.var[:nw][n][:h][j]
     end
 
     L = wm.ref[:nw][n][:links][a]["length"]
     r = minimum(wm.ref[:nw][n][:resistance][a])
     q = wm.var[:nw][n][:q][a]
 
-    con = JuMP.@NLconstraint(wm.model, r * f_alpha(q) - inv(L) * (hᵢ - hⱼ) == 0.0)
+    con = JuMP.@NLconstraint(wm.model, r * f_alpha(q) - inv(L) * (h_i - h_j) == 0.0)
 
     wm.con[:nw][n][:potential_loss][a] = con
 end

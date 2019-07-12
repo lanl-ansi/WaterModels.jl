@@ -8,9 +8,9 @@ end
 function get_post_wf(alpha::Float64; kwargs...)
     function (wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <: AbstractWaterFormulation
         if T <: Union{AbstractMICPForm, AbstractNCNLPForm}
-            function_f_alpha(wm, n)
+            function_f_alpha(wm, n, convex=false)
         elseif T <: AbstractCNLPForm
-            function_if_alpha(wm, n)
+            function_if_alpha(wm, n, convex=true)
         end
 
         variable_head(wm, n)

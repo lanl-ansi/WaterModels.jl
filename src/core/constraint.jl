@@ -212,20 +212,20 @@ function constraint_directed_head_difference(wm::GenericWaterModel, a::Int, n::I
         wm.con[:nw][n][:head_difference_3] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    i = wm.ref[:nw][n][:links][a]["node1"]
+    i = wm.ref[:nw][n][:links][a]["f_id"]
 
     if i in collect(ids(wm, n, :reservoirs))
-        hᵢ = wm.ref[:nw][n][:reservoirs][i]["head"]
+        h_i = wm.ref[:nw][n][:reservoirs][i]["head"]
     else
-        hᵢ = wm.var[:nw][n][:h][i]
+        h_i = wm.var[:nw][n][:h][i]
     end
 
-    j = wm.ref[:nw][n][:links][a]["node2"]
+    j = wm.ref[:nw][n][:links][a]["t_id"]
 
     if j in collect(ids(wm, n, :reservoirs))
-        hⱼ = wm.ref[:nw][n][:reservoirs][j]["head"]
+        h_j = wm.ref[:nw][n][:reservoirs][j]["head"]
     else
-        hⱼ = wm.var[:nw][n][:h][j]
+        h_j = wm.var[:nw][n][:h][j]
     end
 
     x_dir = wm.var[:nw][n][:x_dir][a]
@@ -240,7 +240,7 @@ function constraint_directed_head_difference(wm::GenericWaterModel, a::Int, n::I
     con_2 = JuMP.@constraint(wm.model, dhp - dhp_ub * x_dir <= 0.0)
     wm.con[:nw][n][:head_difference_2][a] = con_2
 
-    con_3 = JuMP.@constraint(wm.model, (hᵢ - hⱼ) - (dhp - dhn) == 0.0)
+    con_3 = JuMP.@constraint(wm.model, (h_i - h_j) - (dhp - dhn) == 0.0)
     wm.con[:nw][n][:head_difference_3][a] = con_3
 end
 
@@ -344,9 +344,9 @@ function constraint_directed_source_flow(wm::GenericWaterModel, i::Int, n::Int=w
 
     # Collect the required variables.
     x_dir = wm.var[:nw][n][:x_dir]
-    out_arcs = filter(a -> i == a.second["node1"], wm.ref[:nw][n][:links])
+    out_arcs = filter(a -> i == a.second["f_id"], wm.ref[:nw][n][:links])
     out = Array{JuMP.VariableRef}([x_dir[a] for a in keys(out_arcs)])
-    in_arcs = filter(a -> i == a.second["node2"], wm.ref[:nw][n][:links])
+    in_arcs = filter(a -> i == a.second["t_id"], wm.ref[:nw][n][:links])
     in = Array{JuMP.VariableRef}([x_dir[a] for a in keys(in_arcs)])
 
     # Add the source flow direction constraint.
@@ -362,9 +362,9 @@ function constraint_directed_sink_flow(wm::GenericWaterModel, i::Int, n::Int=wm.
 
     # Collect the required variables.
     x_dir = wm.var[:nw][n][:x_dir]
-    out_arcs = filter(a -> i == a.second["node1"], wm.ref[:nw][n][:links])
+    out_arcs = filter(a -> i == a.second["f_id"], wm.ref[:nw][n][:links])
     out = Array{JuMP.VariableRef}([x_dir[a] for a in keys(out_arcs)])
-    in_arcs = filter(a -> i == a.second["node2"], wm.ref[:nw][n][:links])
+    in_arcs = filter(a -> i == a.second["t_id"], wm.ref[:nw][n][:links])
     in = Array{JuMP.VariableRef}([x_dir[a] for a in keys(in_arcs)])
 
     # Add the sink flow direction constraint.

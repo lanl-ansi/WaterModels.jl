@@ -27,6 +27,7 @@ end
 
 include("io/common.jl")
 include("io/epanet.jl")
+include("io/geojson.jl")
 
 include("core/base.jl")
 include("core/data.jl")

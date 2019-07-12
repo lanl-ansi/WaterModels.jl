@@ -80,7 +80,7 @@ function add_pipe_resistance_setpoint(sol, wm::GenericWaterModel)
 
     if :x_res in keys(wm.var[:nw][wm.cnw])
         for (i, link) in data_dict
-            a = parse(Int, link["id"])
+            a = link["id"]
             sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
 
             if a in keys(wm.var[:nw][wm.cnw][:x_res])
@@ -93,7 +93,7 @@ function add_pipe_resistance_setpoint(sol, wm::GenericWaterModel)
         end
     else
         for (i, link) in data_dict
-            a = parse(Int, link["id"])
+            a = link["id"]
             sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
             x_res, r_id = findmin(wm.ref[:nw][wm.cnw][:resistance][a])
             sol_item["r"] = wm.ref[:nw][wm.cnw][:resistance][a][r_id]
@@ -119,7 +119,7 @@ function add_setpoint(sol::Dict{String, Any}, wm::GenericWaterModel,
     end
 
     for (i, item) in data_dict
-        idx = parse(Int, item[index_name])
+        idx = item[index_name]
         sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
         sol_item[param_name] = default_value(item)
 

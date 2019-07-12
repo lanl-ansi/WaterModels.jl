@@ -55,8 +55,8 @@ function calc_head_difference_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
 
     # Compute the head difference bounds.
     for (a, link) in links
-        head_diff_min[a] = head_lbs[link["node1"]] - head_ubs[link["node2"]]
-        head_diff_max[a] = head_ubs[link["node1"]] - head_lbs[link["node2"]]
+        head_diff_min[a] = head_lbs[link["f_id"]] - head_ubs[link["t_id"]]
+        head_diff_max[a] = head_ubs[link["f_id"]] - head_lbs[link["t_id"]]
     end
 
     # Return the head difference bound dictionaries.
@@ -326,13 +326,13 @@ end
 
 function is_out_node(i::Int)
     return function (link::Pair{Int, Any})
-        return link.second["node1"] == i
+        return link.second["f_id"] == i
     end
 end
 
 function is_in_node(i::Int)
     return function (link::Pair{Int, Any})
-        return link.second["node2"] == i
+        return link.second["t_id"] == i
     end
 end
 
@@ -401,6 +401,7 @@ function set_start_directed_flow_rate_ne!(data::Dict{String, Any})
         num_resistances = length(resistances[a])
         pipe["qn_ne_start"] = zeros(Float64, num_resistances)
         pipe["qp_ne_start"] = zeros(Float64, num_resistances)
+
         r_id = findfirst(r -> isapprox(r, pipe["r"], rtol=1.0e-4), resistances[a])
         pipe["qn_ne_start"][r_id] = pipe["q"] < 0.0 ? abs(pipe["q"]) : 0.0
         pipe["qp_ne_start"][r_id] = pipe["q"] >= 0.0 ? abs(pipe["q"]) : 0.0

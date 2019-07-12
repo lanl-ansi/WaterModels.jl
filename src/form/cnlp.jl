@@ -43,16 +43,16 @@ function objective_wf(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: Stan
     linear_expr_start = 0.0
 
     for (i, reservoir) in wm.ref[:nw][n][:reservoirs]
-        for (a, link) in filter(a -> i == a.second["node1"], wm.ref[:nw][n][:links])
-            qn = wm.var[:nw][n][:qn][a]
+        for (a, link) in filter(a -> i == a.second["f_id"], wm.ref[:nw][n][:links])
             qp = wm.var[:nw][n][:qp][a]
+            qn = wm.var[:nw][n][:qn][a]
             linear_expr -= reservoir["head"] * (qp - qn)
             linear_expr_start -= reservoir["head"] * (JuMP.start_value(qp) - JuMP.start_value(qn))
         end
 
-        for (a, link) in filter(a -> i == a.second["node2"], wm.ref[:nw][n][:links])
-            qn = wm.var[:nw][n][:qn][a]
+        for (a, link) in filter(a -> i == a.second["t_id"], wm.ref[:nw][n][:links])
             qp = wm.var[:nw][n][:qp][a]
+            qn = wm.var[:nw][n][:qn][a]
             linear_expr -= reservoir["head"] * (qn - qp)
             linear_expr_start -= reservoir["head"] * (JuMP.start_value(qn) - JuMP.start_value(qp))
         end
