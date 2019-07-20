@@ -1,7 +1,6 @@
 @testset "Common Functions" begin
     network_path = "../test/data/epanet/shamir.inp"
-    post_wf = WaterModels.get_post_wf(1.852)
-    wm = build_generic_model(network_path, CNLPWaterModel, post_wf)
+    wm = build_generic_model(network_path, CNLPWaterModel, WaterModels.post_wf)
 
     @testset "silence" begin
         # This should silence everything except error messages.

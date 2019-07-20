@@ -69,21 +69,14 @@ function variable_undirected_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; bo
     end
 end
 
-function variable_directed_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw; alpha::Float64=1.852, bounded::Bool=true) where T <: AbstractWaterFormulation
+function variable_directed_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw; bounded::Bool=true) where T <: AbstractWaterFormulation
     # Get indices for all network arcs.
     arcs = sort(collect(ids(wm, n, :links)))
 
     # Initialize directed flow variables. The variables qp correspond to flow
     # from i to j, and the variables qn correspond to flow from j to i.
     if bounded
-        ub_n, ub_p = calc_directed_flow_upper_bounds(wm, alpha, n)
-
-        qn = JuMP.@variable(wm.model, [a in arcs], lower_bound=0.0,
-                            upper_bound=maximum(ub_n[a]), base_name="qn[$(n)]",
-                            start=get_start(wm.ref[:nw][n][:links], a,
-                                            "qn_start", 1.0e-6))
-
-        wm.var[:nw][n][:qn] = qn
+        ub_n, ub_p = calc_directed_flow_upper_bounds(wm, wm.ref[:nw][n][:alpha], n)
 
         qp = JuMP.@variable(wm.model, [a in arcs], lower_bound=0.0,
                             upper_bound=maximum(ub_p[a]), base_name="qp[$(n)]",
@@ -91,24 +84,31 @@ function variable_directed_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw; alpha::
                                             "qp_start", 1.0e-6))
 
         wm.var[:nw][n][:qp] = qp
-    else
+
         qn = JuMP.@variable(wm.model, [a in arcs], lower_bound=0.0,
-                            base_name="qn[$(n)]",
+                            upper_bound=maximum(ub_n[a]), base_name="qn[$(n)]",
                             start=get_start(wm.ref[:nw][n][:links], a,
                                             "qn_start", 1.0e-6))
 
         wm.var[:nw][n][:qn] = qn
-
+    else
         qp = JuMP.@variable(wm.model, [a in arcs], lower_bound=0.0,
                             base_name="qp[$(n)]",
                             start=get_start(wm.ref[:nw][n][:links], a,
                                             "qp_start", 1.0e-6))
 
         wm.var[:nw][n][:qp] = qp
+
+        qn = JuMP.@variable(wm.model, [a in arcs], lower_bound=0.0,
+                            base_name="qn[$(n)]",
+                            start=get_start(wm.ref[:nw][n][:links], a,
+                                            "qn_start", 1.0e-6))
+
+        wm.var[:nw][n][:qn] = qn
     end
 end
 
-function variable_directed_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; alpha::Float64=1.852, bounded::Bool=true) where T <: AbstractWaterFormulation
+function variable_directed_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; bounded::Bool=true) where T <: AbstractWaterFormulation
     # Get indices for all network arcs.
     arcs = sort(collect(ids(wm, n, :links_ne)))
     resistances = wm.ref[:nw][n][:resistance]
@@ -119,19 +119,10 @@ function variable_directed_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; alph
     # Initialize directed flow variables. The variables qp correspond to flow
     # from i to j, and the variables qn correspond to flow from j to i.
     if bounded
-        ub_n, ub_p = calc_directed_flow_upper_bounds(wm, alpha, n)
+        ub_n, ub_p = calc_directed_flow_upper_bounds(wm, wm.ref[:nw][n][:alpha], n)
 
         for a in arcs
             num_resistances = length(wm.ref[:nw][n][:resistance][a])
-
-            qn_ne = JuMP.@variable(wm.model, [r in 1:num_resistances],
-                                  lower_bound = 0.0,
-                                  upper_bound = max(0.0, ub_n[a][r]),
-                                  start=get_start(wm.ref[:nw][n][:links_ne], a, r,
-                                                  "qn_ne_start", 1.0e-6),
-                                  base_name = "qn_ne[$(n)][$(a)]")
-
-            wm.var[:nw][n][:qn_ne][a] = qn_ne
 
             qp_ne = JuMP.@variable(wm.model, [r in 1:num_resistances],
                                   lower_bound = 0.0,
@@ -141,18 +132,19 @@ function variable_directed_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; alph
                                   base_name = "qp_ne[$(n)][$(a)]")
 
             wm.var[:nw][n][:qp_ne][a] = qp_ne
-        end
-    else
-        for a in arcs
-            num_resistances = length(wm.ref[:nw][n][:resistance][a])
 
             qn_ne = JuMP.@variable(wm.model, [r in 1:num_resistances],
                                   lower_bound = 0.0,
+                                  upper_bound = max(0.0, ub_n[a][r]),
                                   start=get_start(wm.ref[:nw][n][:links_ne], a, r,
                                                   "qn_ne_start", 1.0e-6),
                                   base_name = "qn_ne[$(n)][$(a)]")
 
             wm.var[:nw][n][:qn_ne][a] = qn_ne
+        end
+    else
+        for a in arcs
+            num_resistances = length(wm.ref[:nw][n][:resistance][a])
 
             qp_ne = JuMP.@variable(wm.model, [r in 1:num_resistances],
                                   lower_bound = 0.0,
@@ -161,6 +153,14 @@ function variable_directed_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; alph
                                   base_name = "qp_ne[$(n)][$(a)]")
 
             wm.var[:nw][n][:qp_ne][a] = qp_ne
+
+            qn_ne = JuMP.@variable(wm.model, [r in 1:num_resistances],
+                                  lower_bound = 0.0,
+                                  start=get_start(wm.ref[:nw][n][:links_ne], a, r,
+                                                  "qn_ne_start", 1.0e-6),
+                                  base_name = "qn_ne[$(n)][$(a)]")
+
+            wm.var[:nw][n][:qn_ne][a] = qn_ne
         end
     end
 end
@@ -188,15 +188,6 @@ function variable_directed_head_difference(wm::GenericWaterModel{T}, n::Int=wm.c
     # Get the bounds for the head difference variables.
     lbs, ubs = calc_head_difference_bounds(wm, n)
 
-    # Initialize variables associated with negative head differences.
-    dhn = JuMP.@variable(wm.model, [a in arcs], lower_bound=0.0,
-                         upper_bound=abs(lbs[a]),
-                         start=get_start(wm.ref[:nw][n][:links], a,
-                                         "dhn_start", 0.0),
-                         base_name="dhn[$(n)]")
-
-    wm.var[:nw][n][:dhn] = dhn
-
     # Initialize variables associated with positive head differences.
     dhp = JuMP.@variable(wm.model, [a in arcs], lower_bound=0.0,
                          upper_bound=abs(ubs[a]),
@@ -205,6 +196,15 @@ function variable_directed_head_difference(wm::GenericWaterModel{T}, n::Int=wm.c
                          base_name="dhp[$(n)]")
 
     wm.var[:nw][n][:dhp] = dhp
+
+    # Initialize variables associated with negative head differences.
+    dhn = JuMP.@variable(wm.model, [a in arcs], lower_bound=0.0,
+                         upper_bound=abs(lbs[a]),
+                         start=get_start(wm.ref[:nw][n][:links], a,
+                                         "dhn_start", 0.0),
+                         base_name="dhn[$(n)]")
+
+    wm.var[:nw][n][:dhn] = dhn
 end
 
 function variable_flow_direction(wm::GenericWaterModel, n::Int=wm.cnw)

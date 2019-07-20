@@ -21,6 +21,7 @@ This decoupling enables the definition of a wide variety of water network optimi
 **Core Problem Specifications**
 * Water Flow (wf)
 * Network Expansion (ne)
+* Optimal Water Flow (owf)
 
 **Core Network Formulations**
 * CNLP (convex nonlinear program used for determining network flow rates)
@@ -39,7 +40,7 @@ ipopt = JuMP.with_optimizer(Ipopt.Optimizer, print_level=0, tol=1.0e-9, max_iter
 network = WaterModels.parse_file("test/data/epanet/shamir.inp")
 modifications = WaterModels.parse_file("test/data/json/shamir.json")
 InfrastructureModels.update_data!(network, modifications)
-result = WaterModels.run_ne(network, MICPWaterModel, ipopt, alpha=1.852, relaxed=true)
+result = WaterModels.run_ne(network, MICPWaterModel, ipopt, relaxed=true)
 ```
 
 ## Development

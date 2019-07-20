@@ -3,6 +3,8 @@ WaterModels.jl Change Log
 
 ### v0.1.1
 - Update to use JuMP/MOI status values.
+- Add Optimal Water Flow problem.
+- Add MILP-R formulations.
 
 ### v0.1.0
 - Refactored nearly everything.

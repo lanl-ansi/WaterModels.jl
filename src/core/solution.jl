@@ -33,7 +33,6 @@ function build_solution(wm::GenericWaterModel, solve_time; objective = NaN, solu
         "solution" => sol,
         "machine" => Dict("cpu" => cpu, "memory" => memory),
         "data" => data)
-    #"dual_status" => JuMP.dual_status(wm.model),
 
     wm.solution = solution
 

@@ -205,6 +205,7 @@ Some of the common keys include:
 * `:pumps` -- the set of pumps in the network,
 * `:valves` -- the set of valves in the network,
 * `:links` -- the set of all links in the network,
+* `:links_ne` -- the set of all network expansion links in the network,
 * `:junctions` -- the set of junctions in the network,
 * `:reservoirs` -- the set of reservoirs in the network,
 * `:tanks` -- the set of tanks in the network,

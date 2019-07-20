@@ -13,23 +13,23 @@ const CNLPWaterModel = GenericWaterModel{StandardCNLPForm}
 "CNLP constructor."
 CNLPWaterModel(data::Dict{String, Any}; kwargs...) = GenericWaterModel(data, StandardCNLPForm; kwargs...)
 
-function variable_head(wm::GenericWaterModel{T}, n::Int=wm.cnw; alpha::Float64=1.852) where T <: AbstractCNLPForm
+function variable_head(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractCNLPForm
 end
 
-function variable_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw; alpha::Float64=1.852) where T <: AbstractCNLPForm
-    variable_directed_flow(wm, n, alpha=alpha, bounded=false)
+function variable_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractCNLPForm
+    variable_directed_flow(wm, n, bounded=false)
     variable_undirected_flow(wm, n, bounded=false)
 end
 
-function constraint_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw; alpha::Float64=1.852) where T <: AbstractCNLPForm
+function constraint_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractCNLPForm
 end
 
 function constraint_flow_conservation(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractCNLPForm
     constraint_directed_flow_conservation(wm, i, n)
 end
 
-function constraint_link_flow(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw; alpha::Float64=1.852) where T <: AbstractCNLPForm
-    constraint_link_directed_flow(wm, a, n, alpha=alpha)
+function constraint_link_flow(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractCNLPForm
+    constraint_link_directed_flow(wm, a, n)
 end
 
 function constraint_source_flow(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractCNLPForm
@@ -38,7 +38,7 @@ end
 function constraint_sink_flow(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractCNLPForm
 end
 
-function objective_wf(wm::GenericWaterModel{T}, n::Int = wm.cnw) where T <: StandardCNLPForm
+function objective_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: StandardCNLPForm
     linear_expr = JuMP.@expression(wm.model, 0.0)
     linear_expr_start = 0.0
 

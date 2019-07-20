@@ -46,6 +46,7 @@ include("form/milpr.jl")
 include("form/ncnlp.jl")
 
 include("prob/ne.jl")
+include("prob/owf.jl")
 include("prob/wf.jl")
 
 include("util/relax.jl")

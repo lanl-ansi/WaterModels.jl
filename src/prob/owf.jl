@@ -1,10 +1,10 @@
-export run_wf
+export run_owf
 
-function run_wf(network, model_constructor, optimizer; relaxed::Bool=false, kwargs...)
-    return run_generic_model(network, model_constructor, optimizer, post_wf, relaxed=relaxed; kwargs...)
+function run_owf(network, model_constructor, optimizer; relaxed::Bool=false, kwargs...)
+    return run_generic_model(network, model_constructor, optimizer, post_owf, relaxed=relaxed; kwargs...)
 end
 
-function post_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <: AbstractWaterFormulation
+function post_owf(wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <: AbstractWaterFormulation
     if T <: Union{AbstractMICPForm, AbstractNCNLPForm}
         function_f_alpha(wm, n, convex=false)
     elseif T <: AbstractCNLPForm
@@ -33,3 +33,4 @@ function post_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <: 
 
     objective_wf(wm, n)
 end
+
