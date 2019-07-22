@@ -29,18 +29,18 @@ include("common.jl")
 
 @testset "WaterModels" begin
 
-    include("common.jl")
+    #include("base.jl")
 
-    include("multinetwork.jl")
+    #include("multinetwork.jl")
 
     include("io.jl")
 
-    include("wf.jl")
+    #include("wf.jl")
 
-    include("ne.jl")
+    #include("ne.jl")
 
-    include("owf.jl")
+    #include("owf.jl")
 
-    include("warm_start.jl")
+    #include("warm_start.jl")
 
 end

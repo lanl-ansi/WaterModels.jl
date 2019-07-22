@@ -64,7 +64,7 @@ function constraint_undirected_potential_loss_ne(wm::GenericWaterModel{T}, a::In
     i = wm.ref[:nw][n][:links][a]["f_id"]
 
     if i in collect(ids(wm, n, :reservoirs))
-        h_i = wm.ref[:nw][n][:reservoirs][i]["base_head"]
+        h_i = wm.ref[:nw][n][:reservoirs][i]["head"]
     else
         h_i = wm.var[:nw][n][:h][i]
     end
@@ -72,7 +72,7 @@ function constraint_undirected_potential_loss_ne(wm::GenericWaterModel{T}, a::In
     j = wm.ref[:nw][n][:links][a]["t_id"]
 
     if j in collect(ids(wm, n, :reservoirs))
-        h_j = wm.ref[:nw][n][:reservoirs][j]["base_head"]
+        h_j = wm.ref[:nw][n][:reservoirs][j]["head"]
     else
         h_j = wm.var[:nw][n][:h][j]
     end
@@ -95,7 +95,7 @@ function constraint_undirected_potential_loss(wm::GenericWaterModel{T}, a::Int, 
     i = wm.ref[:nw][n][:links][a]["f_id"]
 
     if i in collect(ids(wm, n, :reservoirs))
-        h_i = wm.ref[:nw][n][:reservoirs][i]["base_head"]
+        h_i = wm.ref[:nw][n][:reservoirs][i]["head"]
     else
         h_i = wm.var[:nw][n][:h][i]
     end
@@ -103,7 +103,7 @@ function constraint_undirected_potential_loss(wm::GenericWaterModel{T}, a::Int, 
     j = wm.ref[:nw][n][:links][a]["t_id"]
 
     if j in collect(ids(wm, n, :reservoirs))
-        h_j = wm.ref[:nw][n][:reservoirs][j]["base_head"]
+        h_j = wm.ref[:nw][n][:reservoirs][j]["head"]
     else
         h_j = wm.var[:nw][n][:h][j]
     end

@@ -12,7 +12,7 @@ function calc_head_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
 
     # Get maximum elevation/head values at nodes.
     max_elev = maximum([node["elevation"] for node in values(junctions)])
-    max_head = maximum([node["base_head"] for node in values(reservoirs)])
+    max_head = maximum([node["head"] for node in values(reservoirs)])
 
     # Initialize the dictionaries for minimum and maximum heads.
     head_min = Dict([(i, -Inf) for i in nodes])
@@ -36,8 +36,8 @@ function calc_head_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
 
     for (i, reservoir) in reservoirs
         # Head values at reservoirs are fixed.
-        head_min[i] = reservoir["base_head"]
-        head_max[i] = reservoir["base_head"]
+        head_min[i] = reservoir["head"]
+        head_max[i] = reservoir["head"]
     end
 
     # Return the dictionaries of lower and upper bounds.
@@ -69,7 +69,7 @@ function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
 
     alpha = wm.ref[:nw][n][:alpha]
     junctions = values(wm.ref[:nw][n][:junctions])
-    sum_demand = sum(junction["base_demand"] for junction in junctions)
+    sum_demand = sum(junction["demand"] for junction in junctions)
 
     lb = Dict([(a, Float64[]) for a in keys(links)])
     ub = Dict([(a, Float64[]) for a in keys(links)])
@@ -117,7 +117,7 @@ function calc_directed_flow_upper_bounds(wm::GenericWaterModel, alpha::Float64, 
     ub_p = Dict([(a, Float64[]) for a in keys(links)])
 
     junctions = values(wm.ref[:nw][n][:junctions])
-    sum_demand = sum(junction["base_demand"] for junction in junctions)
+    sum_demand = sum(junction["demand"] for junction in junctions)
 
     for (a, link) in links
         L = link["length"]
