@@ -10,6 +10,8 @@ function get_start(set, item_key, first_value_key, second_value_key, default)
     return get(get(get(set, item_key, Dict()), second_value_key, Dict()), first_value_key, default)
 end
 
+# TODO: Create volume variables for tanks and create constraints that map these to heads.
+
 function variable_undirected_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw; bounded::Bool=true) where T <: AbstractWaterFormulation
     # Get indices for all network arcs.
     arcs = sort(collect(ids(wm, n, :links)))

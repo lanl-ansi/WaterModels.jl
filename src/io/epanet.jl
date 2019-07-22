@@ -36,6 +36,7 @@ function _add_link_ids!(data::Dict{String, Any})
 
             new_ids = start_id:(start_id+length(keys(data[link_type]))-1)
             new_keys = [string(x) for x in new_ids]
+            data[link_type] = DataStructures.OrderedDict(new_keys .=> values(data[link_type]))
         end
     end
 
@@ -51,8 +52,6 @@ function _add_link_ids!(data::Dict{String, Any})
         new_keys = [string(x) for x in ts_link_ids]
         data["time_series"][link_type] = Dict(new_keys .=> values(data["time_series"][link_type]))
     end
-
-    println(data["time_series"])
 
     # Convert to Dict to ensure compatibility with InfrastructureModels.
     for link_type in link_types
@@ -657,7 +656,7 @@ function _read_junctions!(data::Dict{String, Any})
             junction = Dict{String, Any}()
 
             junction["name"] = current[1]
-            junction["source_id"] = current[1]
+            junction["source_id"] = ["junctions", current[1]]
 
             if length(current) > 3
                 junction["demand_pattern_name"] = current[4]
@@ -850,7 +849,7 @@ function _read_pipes!(data::Dict{String, Any})
         else
             pipe = Dict{String, Any}()
             pipe["name"] = current[1]
-            pipe["source_id"] = current[1]
+            pipe["source_id"] = ["pipes", current[1]]
             pipe["start_node_name"] = current[2]
             pipe["end_node_name"] = current[3]
             pipe["controls"] = Dict{String, Any}()
@@ -910,7 +909,7 @@ function _read_pumps!(data::Dict{String, Any})
         else
             pump = Dict{String, Any}()
             pump["name"] = current[1]
-            pump["source_id"] = current[1]
+            pump["source_id"] = ["pumps", current[1]]
             pump["start_node_name"] = current[2]
             pump["end_node_name"] = current[3]
             pump["controls"] = Dict{String, Any}()
@@ -984,7 +983,7 @@ function _read_reservoirs!(data::Dict{String, Any})
             reservoir = Dict{String, Any}()
 
             reservoir["name"] = current[1]
-            reservoir["source_id"] = current[1]
+            reservoir["source_id"] = ["reservoirs", current[1]]
 
             if length(current) >= 2
                 if demand_units == "LPS" # If liters per second...
@@ -1060,7 +1059,7 @@ function _read_tanks!(data::Dict{String, Any})
             tank = Dict{String, Any}()
 
             tank["name"] = current[1]
-            tank["source_id"] = current[1]
+            tank["source_id"] = ["tanks", current[1]]
 
             if data["options"]["hydraulic"]["units"] == "LPS" # If liters per second...
                 # Retain the original values (in meters).
@@ -1151,7 +1150,6 @@ function _read_title!(data::Dict{String, Any})
         end
     end
 
-    data["title"] = join(lines, " ")
     data["name"] = join(lines, " ")
 end
 
@@ -1167,7 +1165,7 @@ function _read_valves!(data::Dict{String, Any})
         else
             valve = Dict{String, Any}()
             valve["name"] = current[1]
-            valve["source_id"] = current[1]
+            valve["source_id"] = ["valves", current[1]]
             valve["controls"] = Dict{String, Any}()
 
             # TODO: Finish the rest of valve parsing before appending.
