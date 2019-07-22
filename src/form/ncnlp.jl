@@ -66,7 +66,7 @@ function constraint_undirected_potential_loss_ne(wm::GenericWaterModel{T}, a::In
     if i in collect(ids(wm, n, :reservoirs))
         h_i = ref(wm, n, :reservoirs, i)["base_head"]
     else
-        h_i = wm.var[:nw][n][:h][i]
+        h_i = var(wm, n, :h, i)
     end
 
     j = ref(wm, n, :links, a)["t_id"]
@@ -74,11 +74,11 @@ function constraint_undirected_potential_loss_ne(wm::GenericWaterModel{T}, a::In
     if j in collect(ids(wm, n, :reservoirs))
         h_j = ref(wm, n, :reservoirs, j)["base_head"]
     else
-        h_j = wm.var[:nw][n][:h][j]
+        h_j = var(wm, n, :h, j)
     end
 
     L = ref(wm, n, :links, a)["length"]
-    q_ne = wm.var[:nw][n][:q_ne][a]
+    q_ne = var(wm, n, :q_ne, a)
     resistances = ref(wm, n, :resistance, a)
 
     con = JuMP.@NLconstraint(wm.model, sum(r * f_alpha(q_ne[r_id]) for (r_id, r)
@@ -97,7 +97,7 @@ function constraint_undirected_potential_loss(wm::GenericWaterModel{T}, a::Int, 
     if i in collect(ids(wm, n, :reservoirs))
         h_i = ref(wm, n, :reservoirs, i)["base_head"]
     else
-        h_i = wm.var[:nw][n][:h][i]
+        h_i = var(wm, n, :h, i)
     end
 
     j = ref(wm, n, :links, a)["t_id"]
@@ -105,12 +105,12 @@ function constraint_undirected_potential_loss(wm::GenericWaterModel{T}, a::Int, 
     if j in collect(ids(wm, n, :reservoirs))
         h_j = ref(wm, n, :reservoirs, j)["base_head"]
     else
-        h_j = wm.var[:nw][n][:h][j]
+        h_j = var(wm, n, :h, j)
     end
 
     L = ref(wm, n, :links, a)["length"]
     r = minimum(ref(wm, n, :resistance, a))
-    q = wm.var[:nw][n][:q][a]
+    q = var(wm, n, :q, a)
 
     con = JuMP.@NLconstraint(wm.model, r * f_alpha(q) - inv(L) * (h_i - h_j) == 0.0)
 

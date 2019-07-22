@@ -84,9 +84,9 @@ function constraint_directed_potential_loss_ne(wm::GenericWaterModel{T}, a::Int,
     L = ref(wm, n, :links, a)["length"]
 
     for (r_id, r) in enumerate(ref(wm, n, :resistance, a))
-        qn_ne = wm.var[:nw][n][:qn_ne][a][r_id]
+        qn_ne = var(wm, n, :qn_ne, a)[r_id]
         qn_ne_ub = JuMP.upper_bound(qn_ne)
-        dhn = wm.var[:nw][n][:dhn][a]
+        dhn = var(wm, n, :dhn, a)
 
         if qn_ne_ub > 0.0
             for q_hat in range(0.0, stop=qn_ne_ub, length=5)
@@ -95,9 +95,9 @@ function constraint_directed_potential_loss_ne(wm::GenericWaterModel{T}, a::Int,
             end
         end
 
-        qp_ne = wm.var[:nw][n][:qp_ne][a][r_id]
+        qp_ne = var(wm, n, :qp_ne, a)[r_id]
         qp_ne_ub = JuMP.upper_bound(qp_ne)
-        dhp = wm.var[:nw][n][:dhp][a]
+        dhp = var(wm, n, :dhp, a)
 
         if qp_ne_ub > 0.0
             for q_hat in range(0.0, stop=qp_ne_ub, length=5)
@@ -118,9 +118,9 @@ function constraint_directed_potential_loss(wm::GenericWaterModel{T}, a::Int, n:
     L = ref(wm, n, :links, a)["length"]
     r = minimum(ref(wm, n, :resistance, a))
 
-    qn = wm.var[:nw][n][:qn][a]
+    qn = var(wm, n, :qn, a)
     qn_ub = JuMP.upper_bound(qn)
-    dhn = wm.var[:nw][n][:dhn][a]
+    dhn = var(wm, n, :dhn, a)
 
     if qn_ub > 0.0
         for q_hat in range(0.0, stop=qn_ub, length=5)
@@ -129,9 +129,9 @@ function constraint_directed_potential_loss(wm::GenericWaterModel{T}, a::Int, n:
         end
     end
 
-    qp = wm.var[:nw][n][:qp][a]
+    qp = var(wm, n, :qp, a)
     qp_ub = JuMP.upper_bound(qp)
-    dhp = wm.var[:nw][n][:dhp][a]
+    dhp = var(wm, n, :dhp, a)
 
     if qp_ub > 0.0
         for q_hat in range(0.0, stop=qp_ub, length=5)
