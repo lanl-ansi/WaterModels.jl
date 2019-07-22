@@ -334,6 +334,18 @@ function is_in_node(i::Int)
     end
 end
 
+"""
+Turns in given single network data in multinetwork data with a `count`
+replicate of the given network. Note that this function performs a deepcopy of
+the network data. Significant multinetwork space savings can often be achieved
+by building application specific methods of building multinetwork with minimal
+data replication.
+"""
+function replicate(sn_data::Dict{String,<:Any}, count::Int; global_keys::Set{String}=Set{String}())
+    wm_global_keys = Set(["per_unit"])
+    return InfrastructureModels.replicate(sn_data, count, global_keys=union(global_keys, wm_global_keys))
+end
+
 function set_start_head!(data)
     for (i, junction) in data["junctions"]
         junction["h_start"] = junction["h"]

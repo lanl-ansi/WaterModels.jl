@@ -14,6 +14,14 @@
     #end
 
     @testset "Shamir network (unknown flow directions), CNLP formulation." begin
+        shamir_mn_data = build_mn_data("../test/data/epanet/shamir.inp")
+        solution = run_wf(shamir_path, CNLPWaterModel, ipopt)
+        @test solution["termination_status"] == MOI.LOCALLY_SOLVED
+        @test isapprox(solution["solution"]["pipes"]["2"]["q"], 0.093565, rtol=1.0e-4)
+        @test isapprox(solution["solution"]["pipes"]["6"]["q"], 0.055710, rtol=1.0e-4)
+    end
+
+    @testset "Shamir network, multinetwork CNLP formulation." begin
         solution = run_wf(shamir_path, CNLPWaterModel, ipopt)
         @test solution["termination_status"] == MOI.LOCALLY_SOLVED
         @test isapprox(solution["solution"]["pipes"]["2"]["q"], 0.093565, rtol=1.0e-4)

@@ -1,7 +1,7 @@
 ""
 function build_solution(wm::GenericWaterModel, solve_time; objective = NaN, solution_builder = get_solution)
     sol = init_solution(wm)
-    data = Dict{String,Any}("title" => wm.data["title"])
+    data = Dict{String,Any}("name" => wm.data["name"])
 
     if InfrastructureModels.ismultinetwork(wm.data)
         sol["multinetwork"] = true
@@ -13,8 +13,8 @@ function build_solution(wm::GenericWaterModel, solve_time; objective = NaN, solu
             wm.cnw = parse(Int, n)
             solution_builder(wm, sol_nw)
             data_nws[n] = Dict("name" => get(nw_data, "name", "anonymous"),
-                               "link_count" => length(wm[:ref][n][:links]),
-                               "node_count" => length(wm[:ref][n][:nodes]))
+                               "link_count" => length(wm.ref[:nw][wm.cnw][:links]),
+                               "node_count" => length(wm.ref[:nw][wm.cnw][:nodes]))
         end
     else
         solution_builder(wm, sol)

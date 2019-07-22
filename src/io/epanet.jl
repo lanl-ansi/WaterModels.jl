@@ -1031,6 +1031,7 @@ function _read_title!(data::Dict{String, Any})
     end
 
     data["title"] = join(lines, " ")
+    data["name"] = join(lines, " ")
 end
 
 function _read_valves!(data::Dict{String, Any})

@@ -25,9 +25,13 @@ const ipopt = JuMP.with_optimizer(Ipopt.Optimizer, tol=1.0e-9, acceptable_tol=1.
 const ipopt_ws = JuMP.with_optimizer(Ipopt.Optimizer, tol=1.0e-9, acceptable_tol=1.0e-9, max_iter=9999,
                                      mu_init=1.0e-9, start_with_resto="yes", print_level=0)
 
+include("common.jl")
+
 @testset "WaterModels" begin
 
     include("common.jl")
+
+    include("multinetwork.jl")
 
     include("io.jl")
 

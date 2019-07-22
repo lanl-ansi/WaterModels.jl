@@ -1,3 +1,8 @@
+function build_mn_data(base_data; replicates::Int=2)
+    mn_data = WaterModels.parse_file(base_data)
+    return WaterModels.replicate(mn_data, replicates)
+end
+
 @testset "Common Functions" begin
     network_path = "../test/data/epanet/shamir.inp"
     wm = build_generic_model(network_path, CNLPWaterModel, WaterModels.post_wf)
