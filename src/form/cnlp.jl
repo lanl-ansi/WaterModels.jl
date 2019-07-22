@@ -42,15 +42,15 @@ function objective_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: Standa
     linear_expr = JuMP.@expression(wm.model, 0.0)
     linear_expr_start = 0.0
 
-    for (i, reservoir) in wm.ref[:nw][n][:reservoirs]
-        for (a, link) in filter(a -> i == a.second["f_id"], wm.ref[:nw][n][:links])
+    for (i, reservoir) in ref(wm, n, :reservoirs)
+        for (a, link) in filter(a -> i == a.second["f_id"], ref(wm, n, :links))
             qp = wm.var[:nw][n][:qp][a]
             qn = wm.var[:nw][n][:qn][a]
             linear_expr -= reservoir["base_head"] * (qp - qn)
             linear_expr_start -= reservoir["base_head"] * (JuMP.start_value(qp) - JuMP.start_value(qn))
         end
 
-        for (a, link) in filter(a -> i == a.second["t_id"], wm.ref[:nw][n][:links])
+        for (a, link) in filter(a -> i == a.second["t_id"], ref(wm, n, :links))
             qp = wm.var[:nw][n][:qp][a]
             qn = wm.var[:nw][n][:qn][a]
             linear_expr -= reservoir["base_head"] * (qn - qp)
@@ -65,9 +65,9 @@ function objective_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: Standa
 
     # Initialize the objective.
     objective_expr = JuMP.@NLexpression(wm.model, linear_term +
-        sum(link["length"] * wm.ref[:nw][n][:resistance][a][1] *
+        sum(link["length"] * ref(wm, n, :resistance, a)[1] *
         (if_alpha(wm.var[:nw][n][:qn][a]) + if_alpha(wm.var[:nw][n][:qp][a]))
-        for (a, link) in wm.ref[:nw][n][:links]))
+        for (a, link) in ref(wm, n, :links)))
 
     return JuMP.@NLobjective(wm.model, MOI.MIN_SENSE, objective_expr)
 end

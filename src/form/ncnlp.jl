@@ -61,25 +61,25 @@ function constraint_undirected_potential_loss_ne(wm::GenericWaterModel{T}, a::In
         wm.con[:nw][n][:potential_loss_ne] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    i = wm.ref[:nw][n][:links][a]["f_id"]
+    i = ref(wm, n, :links, a)["f_id"]
 
     if i in collect(ids(wm, n, :reservoirs))
-        h_i = wm.ref[:nw][n][:reservoirs][i]["base_head"]
+        h_i = ref(wm, n, :reservoirs, i)["base_head"]
     else
         h_i = wm.var[:nw][n][:h][i]
     end
 
-    j = wm.ref[:nw][n][:links][a]["t_id"]
+    j = ref(wm, n, :links, a)["t_id"]
 
     if j in collect(ids(wm, n, :reservoirs))
-        h_j = wm.ref[:nw][n][:reservoirs][j]["base_head"]
+        h_j = ref(wm, n, :reservoirs, j)["base_head"]
     else
         h_j = wm.var[:nw][n][:h][j]
     end
 
-    L = wm.ref[:nw][n][:links][a]["length"]
+    L = ref(wm, n, :links, a)["length"]
     q_ne = wm.var[:nw][n][:q_ne][a]
-    resistances = wm.ref[:nw][n][:resistance][a]
+    resistances = ref(wm, n, :resistance, a)
 
     con = JuMP.@NLconstraint(wm.model, sum(r * f_alpha(q_ne[r_id]) for (r_id, r)
                              in enumerate(resistances)) - inv(L) * (h_i - h_j) == 0.0)
@@ -92,24 +92,24 @@ function constraint_undirected_potential_loss(wm::GenericWaterModel{T}, a::Int, 
         wm.con[:nw][n][:potential_loss] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    i = wm.ref[:nw][n][:links][a]["f_id"]
+    i = ref(wm, n, :links, a)["f_id"]
 
     if i in collect(ids(wm, n, :reservoirs))
-        h_i = wm.ref[:nw][n][:reservoirs][i]["base_head"]
+        h_i = ref(wm, n, :reservoirs, i)["base_head"]
     else
         h_i = wm.var[:nw][n][:h][i]
     end
 
-    j = wm.ref[:nw][n][:links][a]["t_id"]
+    j = ref(wm, n, :links, a)["t_id"]
 
     if j in collect(ids(wm, n, :reservoirs))
-        h_j = wm.ref[:nw][n][:reservoirs][j]["base_head"]
+        h_j = ref(wm, n, :reservoirs, j)["base_head"]
     else
         h_j = wm.var[:nw][n][:h][j]
     end
 
-    L = wm.ref[:nw][n][:links][a]["length"]
-    r = minimum(wm.ref[:nw][n][:resistance][a])
+    L = ref(wm, n, :links, a)["length"]
+    r = minimum(ref(wm, n, :resistance, a))
     q = wm.var[:nw][n][:q][a]
 
     con = JuMP.@NLconstraint(wm.model, r * f_alpha(q) - inv(L) * (h_i - h_j) == 0.0)
