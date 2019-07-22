@@ -1,93 +1,306 @@
 using JSON
 
-function get_lines(path::String)
-    file_contents = read(open(path), String)
-    file_contents = replace(file_contents, "\t" => "    ")
-    return split(file_contents, "\n")
-end
+_INP_SECTIONS = ["[OPTIONS]", "[TITLE]", "[JUNCTIONS]", "[RESERVOIRS]",
+                 "[TANKS]", "[PIPES]", "[PUMPS]", "[VALVES]", "[EMITTERS]",
+                 "[CURVES]", "[PATTERNS]", "[ENERGY]", "[STATUS]",
+                 "[CONTROLS]", "[RULES]", "[DEMANDS]", "[QUALITY]",
+                 "[REACTIONS]", "[SOURCES]", "[MIXING]",
+                 "[TIMES]", "[REPORT]", "[COORDINATES]", "[VERTICES]",
+                 "[LABELS]", "[BACKDROP]", "[TAGS]"]
 
-function add_section(line::SubString{String}, next_line::SubString{String}, data::Dict{String, Any})
-    # Determine the title of the section and convert to lowercase.
-    section_title = lowercase(strip(line, ['[', ']']))
+function _add_link_ids!(data::Dict{String, Any})
+    link_types = ["pipes", "pumps", "valves"]
+    link_names = vcat([collect(keys(data[t])) for t in link_types]...)
+    all_int = all([tryparse(Int64, x) != nothing for x in link_names])
 
-    # Check if column headings exist for the section.
-    headings_exist = occursin(r"^;", next_line)
-
-    if !headings_exist
-        # Initialize the section dictionary.
-        data["$(section_title)"] = Dict{String, Any}()
-    end
-
-    return section_title, headings_exist
-end
-
-function get_sections(lines::Array{SubString{String}, 1})
-    sections = Dict{String, Any}()
-    section = headings = nothing
-    headings_exist = false
-
-    for (i, line) in enumerate(lines)
-        # Section headings always look like [SECTION_TITLE].
-        if occursin(r"^\s*\[(.*)\]", line) # If a section title...
-            section, headings_exist = add_section(line, lines[i+1], sections)
-        elseif occursin(r"^;", line) # If a section heading....
-            # Determine the column headings.
-            headings = split(lowercase(strip(line, [';'])))
-
-            # Initialize the section dictionary.
-            sections["$section"] = Dict{String, Array}(s => [] for s in headings)
-        elseif length(line) == 0 # If the line has no characters...
-            continue
-        else # Otherwise, this line is data within the section.
-            if headings_exist
-                data = split(lowercase(strip(line, [';'])))
-
-                for (j, heading) in enumerate(headings)
-                    data = split(lowercase(strip(line, [';'])))
-
-                    if j <= length(data)
-                        push!(sections["$section"]["$heading"], data[j])
-                    else
-                        push!(sections["$section"]["$heading"], "")
-                    end
-                end
-            else
-                heading = strip(split(line, "  ")[1])
-                data = split(lowercase(strip(replace(line, heading => ""), [';'])))
-                sections["$section"][lowercase(heading)] = data
+    if all_int
+        for link_type in link_types
+            for (link_name, link) in data[link_type]
+                link["id"] = parse(Int64, link_name)
+                link["f_id"] = _get_node_id_by_name(data, link["start_node_name"])
+                link["t_id"] = _get_node_id_by_name(data, link["end_node_name"])
             end
+        end
+    else
+        link_id::Int64 = 1
+
+        for link_type in link_types
+            start_id = link_id
+
+            for (link_name, link) in data[link_type]
+                link["id"] = link_id
+                link["f_id"] = _get_node_id_by_name(data, link["start_node_name"])
+                link["t_id"] = _get_node_id_by_name(data, link["end_node_name"])
+                link_id += 1
+            end
+
+            new_ids = start_id:(start_id+length(keys(data[link_type]))-1)
+            new_keys = [string(x) for x in new_ids]
         end
     end
 
-    return sections
-end
-
-function make_component_dict(data::Dict{String, Array}, columns::Dict{String, DataType})
-    # Ensure that the number of rows matches the number of components.
-    @assert(allequal([length(data[column]) for column in keys(columns)]))
-
-    # Add string component identifiers.
-    columns["source_id"] = String
-    data["source_id"] = Array{String}(data["id"])
-
-    # Add integer component identifiers.
-    valid_ids = all([nothing != tryparse(Int, x) for x in data["id"]])
-    ids = valid_ids ? [parse(Int, x) for x in data["id"]] : 1:length(data["id"])
-    data["id"] = Array{Int}(ids)
-
-    # Create the component dictionary.
-    arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i in 1:length(ids)]
-    return Dict{String, Any}(data["source_id"][i] => arr[i] for i = 1:length(arr))
-end
-
-# Add from and to node data to link-type objects.
-function add_nodal_data!(data::Dict{String, Any}, node_mapping::Dict{String, Int})
-    for (key, item) in data
-        item["f_id"] = node_mapping[item["node1"]]
-        item["t_id"] = node_mapping[item["node2"]]
+    # Convert to Dict to ensure compatibility with InfrastructureModels.
+    for link_type in link_types
+        data[link_type] = Dict{String, Any}(data[link_type])
     end
 end
 
+function _add_node_ids!(data::Dict{String, Any})
+    node_types = ["junctions", "reservoirs", "tanks"]
+    node_names = vcat([collect(keys(data[t])) for t in node_types]...)
+    all_int = all([tryparse(Int64, x) != nothing for x in node_names])
+
+    if all_int
+        for node_type in node_types
+            for (node_name, node) in data[node_type]
+                node["id"] = parse(Int64, node_name)
+            end
+        end
+    else
+        node_id::Int64 = 1
+
+        for node_type in node_types
+            start_id = node_id
+
+            for (node_name, node) in data[node_type]
+                node["id"] = node_id
+                node_id += 1
+            end
+
+            new_ids = start_id:(start_id+length(keys(data[node_type]))-1)
+            new_keys = [string(x) for x in new_ids]
+            data[node_type] = DataStructures.OrderedDict(new_keys .=> values(data[node_type]))
+        end
+    end
+
+    # Convert to Dict to ensure compatibility with InfrastructureModels.
+    for node_type in node_types
+        data[node_type] = Dict{String, Any}(data[node_type])
+    end
+end
+
+function _split_line(line::AbstractString)
+    _vc = split(line, ",", limit=1)
+    _values = nothing
+    _comment = nothing
+
+    if length(_vc) != 0
+        if length(_vc) == 1
+            _values = split(_vc[1])
+        elseif _vc[1] == ""
+            _comment = _vc[2]
+        else
+            _values = split(_vc[1])
+            _comment = _vc[2]
+        end
+    end
+
+    return _values, _comment
+end
+
+function _initialize_data()
+    data = Dict{String, Any}()
+
+    data["curves"] = DataStructures.OrderedDict{String, Array}()
+    data["top_comments"] = []
+    data["sections"] = DataStructures.OrderedDict{String, Array}()
+
+    for section in _INP_SECTIONS
+        data["sections"][section] = []
+    end
+
+    data["options"] = Dict{String, Any}()
+    data["mass_units"] = nothing
+    data["flow_units"] = nothing
+
+    return data
+end
+
+function _get_link_type_by_name(data::Dict{String, Any}, name::AbstractString)
+    link_types = ["pumps", "pipes", "valves"]
+
+    for link_type in link_types
+        for (link_id, link) in data[link_type]
+            if link["name"] == name
+                return link_type
+            end
+        end
+    end
+end
+
+function _get_link_by_name(data::Dict{String, Any}, name::AbstractString)
+    link_types = ["pumps", "pipes", "valves"]
+
+    for link_type in link_types
+        for (link_id, link) in data[link_type]
+            if link["name"] == name
+                return link
+            end
+        end
+    end
+end
+
+function _get_node_by_name(data::Dict{String, Any}, name::AbstractString)
+    node_types = ["junctions", "reservoirs", "tanks"]
+
+    for node_type in node_types
+        for (node_id, node) in data[node_type]
+            if node["name"] == name
+                return node
+            end
+        end
+    end
+end
+
+function _get_node_id_by_name(data::Dict{String, Any}, name::AbstractString)
+    node_types = ["junctions", "reservoirs", "tanks"]
+
+    for node_type in node_types
+        for (node_id, node) in data[node_type]
+            if node["name"] == name
+                return node["id"]
+            end
+        end
+    end
+end
+
+function _get_node_type_by_name(data::Dict{String, Any}, name::AbstractString)
+    node_types = ["junctions", "reservoirs", "tanks"]
+
+    for node_type in node_types
+        for (node_id, node) in data[node_type]
+            if node["name"] == name
+                return node_type
+            end
+        end
+    end
+end
+
+"""
+Converts EPANET clocktime format to seconds.
+Parameters
+----------
+s : string
+    EPANET time string. Options are 'HH:MM:SS', 'HH:MM', HH'
+am : string
+    options are AM or PM
+Returns
+-------
+Integer value of time in seconds
+"""
+function _clock_time_to_seconds(s::AbstractString, am_pm::AbstractString)
+    if uppercase(am_pm) == "AM"
+        am = true
+    elseif uppercase(am_pm) == "PM"
+        am = false
+    else
+        Memento.error(_LOG, "AM/PM option not recognized (options are AM or PM")
+    end
+
+    time_tuple = match(r"^(\d+):(\d+):(\d+)$", s)
+
+    if time_tuple != nothing
+        seconds_1 = parse(Int64, time_tuple[1]) * 3600
+        seconds_2 = parse(Int64, time_tuple[2]) * 60
+        seconds_3 = convert(Int64, round(parse(Float64, time_tuple[3])))
+        time_seconds = seconds_1 + seconds_2 + seconds_3
+
+        if startswith(s, "12")
+            time_seconds -= 3600 * 12
+        end
+
+        if !am
+            if time_seconds >= 3600*12
+                Memento.error(_LOG, "Cannot specify AM/PM for times greater than 12:00:00")
+            end
+
+            time_seconds += 3600*12
+        end
+
+        return time_seconds
+    else
+        time_tuple = match(r"^(\d+):(\d+)$", s)
+
+        if time_tuple != nothing
+            seconds_1 = parse(Int64, time_tuple[1]) * 3600
+            seconds_2 = parse(Int64, time_tuple[2]) * 60
+
+            if startswith(s, "12")
+                time_seconds -= 3600 * 12
+            end
+
+            if !am
+                if time_seconds >= 3600*12
+                    Memento.error(_LOG, "Cannot specify AM/PM for times greater than 12:00:00")
+                end
+
+                time_seconds += 3600*12
+            end
+
+            return time_seconds
+        else
+            time_tuple = match(r"^(\d+)$", s)
+
+            if time_tuple != nothing
+                time_seconds = parse(Int64, time_tuple[1]) * 3600
+                
+                if startswith(s, "12")
+                    time_seconds -= 3600 * 12
+                end
+
+                if !am
+                    if time_seconds >= 3600*12
+                        Memento.error(_LOG, "Cannot specify AM/PM for times greater than 12:00:00")
+                    end
+
+                    time_seconds += 3600*12
+                end
+
+                return time_seconds
+            else
+                Memento.error(_LOGGER, "Time format in INP file not recognized")
+            end
+        end
+    end
+end
+
+"""
+Converts EPANET time format to seconds.
+Parameters
+----------
+s : string
+    EPANET time string. Options are 'HH:MM:SS', 'HH:MM', 'HH'
+Returns
+-------
+ Integer value of time in seconds.
+"""
+function _string_time_to_seconds(s::AbstractString)
+    time_tuple = match(r"^(\d+):(\d+):(\d+)$", s)
+
+    if time_tuple != nothing
+        seconds_1 = parse(Int64, time_tuple[1]) * 3600
+        seconds_2 = parse(Int64, time_tuple[2]) * 60
+        seconds_3 = convert(Int64, round(parse(Float64, time_tuple[3])))
+        return seconds_1 + seconds_2 + seconds_3
+    else
+        time_tuple = match(r"^(\d+):(\d+)$", s)
+
+        if time_tuple != nothing
+            seconds_1 = parse(Int64, time_tuple[1]) * 3600
+            seconds_2 = parse(Int64, time_tuple[2]) * 60
+            return seconds_1 + seconds_2
+        else
+            time_tuple = match(r"^(\d+)$", s)
+
+            if time_tuple != nothing
+                return parse(Int64, time_tuple[1]) * 3600
+            else
+                Memento.error(_LOGGER, "Time format in INP file not recognized")
+            end
+        end
+    end
+end
+    
 """
     parse_epanet(path)
 
@@ -97,275 +310,746 @@ data). See the [OpenWaterAnalytics
 Wiki](https://github.com/OpenWaterAnalytics/EPANET/wiki/Input-File-Format) for
 a thorough description of the EPANET format and its components.
 """
-function parse_epanet(path::String)
-    lines = get_lines(path)
-    get_sections(lines)
+function parse_epanet(filename::String)
+    data = _initialize_data()
 
-    section = headings = nothing
-    headings_exist = false
-    epanet_dict = get_sections(lines)
-    dict = Dict{String, Any}()
+    section = nothing
+    line_number = 0
+    file_contents = read(open(filename), String)
 
-    # Parse important options first.
-    dict["options"] = parse_options(epanet_dict["options"])
+    for line in split(file_contents, "\n")
+        line_number += 1
+        line = strip(line)
+        num_words = length(split(line))
 
-    # Parse metadata.
-    dict["title"] = parse_title(epanet_dict["title"])
-    dict["per_unit"] = false
-    dict["multinetwork"] = false
+        if length(line) == 0 || num_words == 0
+            continue
+        elseif startswith(line, "[")
+            values = split(line, limit=1)
+            section_tmp = uppercase(values[1])
 
-    # Parse node objects.
-    dict["emitters"] = parse_emitters(epanet_dict["emitters"], dict["options"])
-    dict["junctions"] = parse_junctions(epanet_dict["junctions"], dict["options"])
-    dict["reservoirs"] = parse_reservoirs(epanet_dict["reservoirs"], dict["options"])
-    dict["tanks"] = parse_tanks(epanet_dict["tanks"])
-
-    # Parse link objects.
-    dict["pipes"] = parse_pipes(epanet_dict["pipes"], dict["options"])
-    dict["pumps"] = parse_pumps(epanet_dict["pumps"], dict["options"])
-    dict["valves"] = parse_valves(epanet_dict["valves"])
-
-    # Get a string to integer mapping of nodal components in the network.
-    junction_mapping = Dict{String, Int}(x["source_id"] => x["id"] for (i, x) in dict["junctions"])
-    reservoir_mapping = Dict{String, Int}(x["source_id"] => x["id"] for (i, x) in dict["reservoirs"])
-    tank_mapping = Dict{String, Int}(x["source_id"] => x["id"] for (i, x) in dict["tanks"])
-    node_mapping = merge(junction_mapping, reservoir_mapping, tank_mapping)
-
-    # Parse nodal coordinate data and add it to node objects.
-    coordinates = parse_coordinates(epanet_dict["coordinates"], node_mapping)
-    add_coordinate_data!(dict["junctions"], coordinates)
-    add_coordinate_data!(dict["reservoirs"], coordinates)
-    add_coordinate_data!(dict["tanks"], coordinates)
-
-    # Add nodal data (f_id and t_id) to link objects.
-    add_nodal_data!(dict["pipes"], node_mapping)
-    add_nodal_data!(dict["pumps"], node_mapping)
-    add_nodal_data!(dict["valves"], node_mapping)
-
-    # Return dictionary.
-    return dict
-end
-
-function allequal(x) 
-    return all(y->y == x[1], x)
-end
-
-function parse_general(dtype::Type, data::Any)
-    do_not_parse = dtype == String || dtype == FLOW_DIRECTION || dtype == typeof(data)
-    return do_not_parse ? data : parse(dtype, data)
-end
-
-function parse_title(data::Dict{String, Any})
-    return length(keys(data)) > 0 ? first(keys(data)) : ""
-end
-
-function parse_coordinates(data::Dict{String, Array}, node_mapping::Dict{String, Int})
-    # Specify the data types for the coordinate data.
-    columns = Dict("node" => String, "x-coord" => Float64, "y-coord" => Float64)
-
-    # Ensure the arrays describing coo.rdinate data are all of equal lengths.
-    @assert(allequal([length(data[column]) for column in keys(columns)]))
-
-    # Return an array of coordinate dictionaries with the correct data types.
-    arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["node"])]
-    return Dict{String, Any}(arr[i]["node"] => arr[i] for i = 1:length(arr))
-end
-
-function add_coordinate_data!(data::Dict{String, Any}, coordinates::Dict{String, Any})
-    for (key, item) in data
-        item["x"] = coordinates[key]["x-coord"]
-        item["y"] = coordinates[key]["y-coord"]
-    end
-end
-
-function parse_junctions(data::Dict{String, Array}, options::Dict{String, Any})
-    # Get the demand units (e.g., LPS, GPM).
-    demand_units = options["units"]
-
-    # Initialize scalars to convert data to SI units.
-    demand_scalar = nothing
-    elev_scalar = nothing
-
-    if demand_units == "lps" # If liters per second...
-        # Convert from liters per second to cubic meters per second.
-        demand_scalar = 1.0e-3 * options["demand_multiplier"]
-
-        # Retain the original value (in meters).
-        elev_scalar = 1.0
-    elseif demand_units == "gpm" # If gallons per minute...
-        # Convert from gallons per minute to cubic meters per second.
-        demand_scalar = 6.30902e-5 * options["demand_multiplier"]
-
-        # Convert elevation from feet to meters.
-        elev_scalar = 0.3048
-    else
-        error("Could not find a valid \"units\" option type.")
-    end
-
-    # Convert demand data to SI units.
-    data["demand"] = [parse(Float64, demand) for demand in data["demand"]]
-    data["demand"] = demand_scalar .* data["demand"]
-
-    # Convert elev data to SI units.
-    data["elev"] = [parse(Float64, elev) for elev in data["elev"]]
-    data["elev"] = elev_scalar .* data["elev"]
-
-    # Initialize head values to equal the elevation values.
-    data["h"] = deepcopy(data["elev"])
-
-    # Specify the data types for the junction data.
-    columns = Dict("demand" => Float64, "elev" => Float64, "h" => Float64,
-                   "id" => String, "pattern" => String)
-
-    # Return the dictionary for junctions.
-    return make_component_dict(data, columns)
-end
-
-function parse_pipes(data::Dict{String, Array}, options::Dict{String, Any})
-    # Get the demand units (e.g., LPS, GPM).
-    demand_units = options["units"]
-
-    # Get the headloss type (i.e., Darcy-Weisbach or Hazen-Williams)
-    headloss_type = options["headloss"]
-
-    # Initialize scalars to convert data to SI units.
-    diameter_scalar = nothing
-    length_scalar = nothing
-    roughness_scalar = nothing
-
-    if demand_units == "lps" # If liters per second...
-        # Convert diameter from millimeters to meters.
-        diameter_scalar = 0.001
-
-        # Retain the original value (in meters).
-        length_scalar = 1.0
-
-        if headloss_type == "d-w"
-            # Convert roughness from millimeters to meters.
-            roughness_scalar = 0.001
-        elseif headloss_type == "h-w"
-            # Retain the original value (unitless).
-            roughness_scalar = 1.0
+            if section_tmp in _INP_SECTIONS
+                section = section_tmp
+                continue
+            elseif section_tmp == "[END]"
+                section = nothing
+                break
+            else
+                Memento.error(_LOGGER, "$(filename): $(line_number): Invalid section \"$(section)\"")
+            end
+        elseif section == nothing && startswith(line, ";")
+            data["top_comments"] = vcat(data["top_comments"], line[2:end])
+            continue
+        elseif section == nothing
+            Memento.warn(_LOGGER, "$(filename): Found confusing line: $(line_number)")
+            Memento.error(_LOGGER, "$(filename): $(line_number): Non-comment outside of valid section")
         end
-    elseif demand_units == "gpm" # If gallons per minute...
-        # Convert diameter from inches to meters.
-        diameter_scalar = 0.0254
 
-        # Convert length from feet to meters.
-        length_scalar = 0.3048
+        data["sections"][section] = vcat(data["sections"][section], (line_number, line))
+    end
 
-        if headloss_type == "d-w"
-            # Convert roughness from millifeet to meters.
-            roughness_scalar = 3.048e-4
-        elseif headloss_type == "h-w"
-            # Retain the original value (unitless).
-            roughness_scalar = 1.0
+    # OPTIONS
+    _read_options!(data)
+
+    # TIMES
+    _read_times!(data)
+
+    # CURVES
+    _read_curves!(data)
+
+    # PATTERNS
+    _read_patterns!(data)
+
+    # JUNCTIONS
+    _read_junctions!(data)
+
+    # RESERVOIRS
+    _read_reservoirs!(data)
+
+    # TANKS
+    _read_tanks!(data)
+
+    # Create consistent node "id" fields.
+    _add_node_ids!(data)
+
+    # PIPES
+    _read_pipes!(data)
+
+    # PUMPS
+    _read_pumps!(data)
+
+    # VALVES
+    _read_valves!(data)
+
+    # Create consistent link "id" fields.
+    _add_link_ids!(data)
+
+    # COORDINATES
+    #_read_coordinates!(data)
+
+    # SOURCES
+    #_read_sources!(data)
+    
+    # STATUS
+    _read_status!(data)
+    
+    # CONTROLS
+    _read_controls!(data)
+
+    # TITLE
+    _read_title!(data)
+
+    # ENERGY
+    _read_energy!(data)
+
+    # DEMANDS
+    #_read_demands!(data)
+
+    # EMITTERS
+    #_read_emitters!(data)
+
+    # Delete the data that has now been properly parsed.
+    delete!(data, "sections")
+
+    # Add other data required by InfrastructureModels.
+    data["per_unit"] = false
+    data["multinetwork"] = false
+
+    # Return the dictionary.
+    return data
+end
+
+function _read_controls!(data::Dict{String, Any})
+    # TODO: There are a lot of possible conditions that remain to be implemented.
+    control_count = 0
+
+    for (line_number, line) in data["sections"]["[CONTROLS]"]
+        line = split(line, ";")[1]
+        current = split(line)
+
+        if length(current) == 0
+            continue
+        else
+            link_name = current[2]
+            link = _get_link_by_name(data, link_name)
+
+            if uppercase(current[6]) != "TIME" && uppercase(current[6]) != "CLOCKTIME"
+                node_name = current[6]
+            end
+
+            current = [uppercase(word) for word in current]
+            current[2] = link_name # Don't capitalize the link name.
+
+            # Create the control action object
+            action = Dict{String, Any}()
+
+            # Get the status attribute.
+            status = uppercase(current[3])
+
+            if status in ["OPEN", "OPENED", "CLOSED", "ACTIVE"]
+                setting = status
+            else
+                link_type = _get_link_type_by_name(data, link_name)
+
+                if link_type == "pumps"
+                    action["attribute"] = "base_speed"
+                    action["value"] = parse(Float64, current[3])
+                elseif link_type == "valves"
+                    # TODO: Fill this in when necessary.
+                else
+                    Memento.error(_LOGGER, "Links of type $(link_type) can only have controls that change the link status. Control: $(line)")
+                end
+            end
+
+            control_count += 1
+            control_name = "control-" * string(control_count)
+
+            # Create the control condition object.
+            condition = Dict{String, Any}()
+
+            if !("TIME" in current) && !("CLOCKTIME" in current)
+                threshold = nothing
+
+                if "IF" in current
+                    node = _get_node_by_name(data, node_name)
+
+                    if current[7] == "ABOVE"
+                        condition["operator"] = ">="
+                    elseif current[7] == "BELOW"
+                        condition["operator"] = "<="
+                    else
+                        Memento.error(_LOGGER, "The following control is not recognized: $(line)")
+                    end
+
+                    node_type = _get_node_type_by_name(data, node_name)
+
+                    if node_type == "junctions"
+                        # TODO: Fill this out when necessary.
+                    elseif node_type == "tanks"
+                        condition["node_name"] = node_name
+                        condition["node_type"] = node_type
+                        condition["attribute"] = "level"
+
+                        if data["options"]["hydraulic"]["units"] == "LPS" # If liters per second...
+                            condition["threshold"] = parse(Float64, current[8])
+                        elseif data["options"]["hydraulic"]["units"] == "GPM" # If gallons per minute...
+                            condition["threshold"] = 0.3048 * parse(Float64, current[8])
+                        end
+                    end
+                end
+
+                control = Dict{String, Any}("action" => action, "condition" => condition)
+                link["controls"][control_name] = control
+            end
         end
-    else
-        error("Could not find a valid \"units\" option type.")
+    end
+end
+
+function _read_curves!(data::Dict{String, Any})
+    data["curves"] = DataStructures.OrderedDict{String, Array{Tuple{Float64, Float64}}}()
+
+    for (line_number, line) in data["sections"]["[CURVES]"]
+        line = split(line, ";")[1]
+        current = split(line)
+
+        if length(current) == 0
+            continue
+        else
+            curve_name = current[1]
+
+            if !(curve_name in keys(data["curves"]))
+                data["curves"][curve_name] = Array{Tuple{Float64, Float64}, 1}()
+            end
+
+            x = parse(Float64, current[2])
+            y = parse(Float64, current[3])
+
+            data["curves"][curve_name] = vcat(data["curves"][curve_name], (x, y))
+        end
+    end
+end
+
+function _read_energy!(data::Dict{String, Any})
+    for (line_number, line) in data["sections"]["[ENERGY]"]
+        line = split(line, ";")[1]
+        current = split(line)
+
+        if length(current) == 0
+            continue
+        else
+            if uppercase(current[1]) == "GLOBAL"
+                if uppercase(current[2]) == "PRICE"
+                    data["options"]["energy"]["global_price"] = parse(Float64, current[3])
+                elseif uppercase(current[2]) == "PATTERN"
+                    data["options"]["energy"]["global_pattern"] = current[3]
+                elseif uppercase(current[2]) in ["EFFIC", "EFFICIENCY"]
+                    data["options"]["energy"]["global_efficiency"] = parse(Float64, current[3])
+                else
+                    Memento.warning(_LOGGER, "Unknown entry in ENERGY section: $(line)")
+                end
+            elseif uppercase(current[1]) == "DEMAND"
+                data["options"]["energy"]["demand_charge"] = parse(Float64, current[3])
+            elseif uppercase(current[1]) == "PUMP"
+                pump =  _get_link_by_name(data, current[2])
+
+                if uppercase(current[3]) == "PRICE"
+                    pump["energy_price"] = parse(Float64, current[4])
+                elseif uppercase(current[3]) == "PATTERN"
+                    pump["energy_pattern"] = current[4]
+                elseif uppercase(current[3]) in ["EFFIC", "EFFICIENCY"]
+                    pump["efficiency"] = current[4]
+                else
+                    Memento.warning(_LOGGER, "Unknown entry in ENERGY section: $(line)")
+                end
+            else
+                Memento.warning(_LOGGER, "Unknown entry in ENERGY section: $(line)")
+            end
+        end
+    end
+end
+
+function _read_junctions!(data::Dict{String, Any})
+    data["junctions"] = DataStructures.OrderedDict{String, Dict{String, Any}}()
+
+    # Get the demand units (e.g., LPS, GPM).
+    demand_units = data["options"]["hydraulic"]["units"]
+
+    for (line_number, line) in data["sections"]["[JUNCTIONS]"]
+        line = split(line, ";")[1]
+        current = split(line)
+
+        if length(current) == 0
+            continue
+        else
+            junction = Dict{String, Any}()
+
+            junction["name"] = current[1]
+            junction["source_id"] = current[1]
+
+            if length(current) > 3
+                junction["pattern"] = current[4]
+            elseif data["options"]["hydraulic"]["pattern"] != ""
+                junction["pattern"] = data["options"]["hydraulic"]["pattern"]
+            else
+                junction["pattern"] = data["patterns"]["default_pattern"]
+            end
+
+            junction["base_demand"] = 0.0
+
+            if demand_units == "LPS" # If liters per second...
+                # Retain the original value (in meters).
+                junction["elevation"] = parse(Float64, current[2])
+            elseif demand_units == "GPM" # If gallons per minute...
+                # Convert elevation from feet to meters.
+                junction["elevation"] = 0.3048 * parse(Float64, current[2])
+            else
+                Memento.error(_LOGGER, "Could not find a valid \"units\" option type.")
+            end
+
+            if length(current) > 2
+                if demand_units == "LPS" # If liters per second...
+                    # Convert from liters per second to cubic meters per second.
+                    junction["base_demand"] = 1.0e-3 * parse(Float64, current[3])
+                elseif demand_units == "GPM" # If gallons per minute...
+                    # Convert from gallons per minute to cubic meters per second.
+                    junction["base_demand"] = 6.30902e-5 * parse(Float64, current[3])
+                end
+            end
+
+            data["junctions"][current[1]] = junction
+        end
+    end
+end
+
+function _read_options!(data::Dict{String, Any})
+    data["options"] = Dict{String, Any}("energy" => Dict{String, Any}(),
+                                        "hydraulic" => Dict{String, Any}(),
+                                        "quality" => Dict{String, Any}(),
+                                        "solver" => Dict{String, Any}(),
+                                        "graphics" => Dict{String, Any}(),
+                                        "time" => Dict{String, Any}(),
+                                        "results" => Dict{String, Any}())
+
+    for (line_number, line) in data["sections"]["[OPTIONS]"]
+        words, comments = _split_line(line)
+
+        if words != nothing && length(words) > 0
+            if length(words) < 2
+                Memento.error(_LOGGER, "No value provided for $(words[1])")
+            end
+
+            key = uppercase(words[1])
+
+            if key == "UNITS"
+                data["options"]["hydraulic"]["units"] = uppercase(words[2])
+            elseif key == "HEADLOSS"
+                data["options"]["hydraulic"]["headloss"] = uppercase(words[2])
+            elseif key == "HYDRAULICS"
+                data["options"]["hydraulic"]["hydraulics"] = uppercase(words[2])
+                data["options"]["hydraulic"]["hydraulics_filename"] = words[3]
+            elseif key == "QUALITY" # TODO: Implement this if/when needed.
+            elseif key == "VISCOSITY"
+                data["options"]["hydraulic"]["viscosity"] = 1.0e-3 * parse(Float64, words[2])
+            elseif key == "DIFFUSIVITY"
+                data["options"]["hydraulic"]["diffusivity"] = parse(Float64, words[2])
+            elseif key == "SPECIFIC"
+                data["options"]["hydraulic"]["specific_gravity"] = parse(Float64, words[3])
+            elseif key == "TRIALS"
+                data["options"]["solver"]["trials"] = parse(Int64, words[2])
+            elseif key == "ACCURACY"
+                data["options"]["solver"]["accuracy"] = parse(Float64, words[2])
+            elseif key == "UNBALANCED"
+                data["options"]["solver"]["unbalanced"] = uppercase(words[2])
+
+                if length(words) > 2
+                    data["options"]["solver"]["unbalanced_value"] = parse(Float64, words[3])
+                end
+            elseif key == "PATTERN"
+                data["options"]["hydraulic"]["pattern"] = words[2]
+            elseif key == "DEMAND"
+                if length(words) > 2
+                    data["options"]["hydraulic"]["demand_multiplier"] = parse(Float64, words[3])
+                else
+                    Memento.error(_LOGGER, "No value provided for Demand Multiplier")
+                end
+            elseif key == "EMITTER"
+                if length(words) > 2
+                    data["options"]["hydraulic"]["emitter_exponent"] = parse(Float64, words[3])
+                else
+                    Memento.error(_LOGGER, "No value provided for Emitter Exponent")
+                end
+            elseif key == "TOLERANCE"
+                data["options"]["solver"]["tolerance"] = parse(Float64, words[2])
+            elseif key == "CHECKFREQ"
+                data["options"]["solver"]["checkfreq"] = parse(Float64, words[2])
+            elseif key == "MAXCHECK"
+                data["options"]["solver"]["maxcheck"] = parse(Float64, words[2])
+            elseif key == "DAMPLIMIT"
+                data["options"]["solver"]["damplimit"] = parse(Float64, words[2])
+            elseif key == "MAP"
+                data["options"]["graphics"]["map_filename"] = words[2]
+            else
+                if length(words) == 2
+                    data["options"][lowercase(words[1])] = parse(Float64, words[2])
+                    Memento.warn(_LOGGER, "Option \"$(key)\" is undocumented; adding, but please verify syntax")
+                elseif length(words) == 3
+                    fieldname = lowercase(words[1]) * "_" * lowercase(words[2])
+                    data["options"][fieldname] = parse(Float64, words[3])
+                    Memento.warn(_LOGGER, "Option \"$(key)\" is undocumented; adding, but please verify syntax")
+                end
+            end
+        end
+    end
+end
+
+function _read_patterns!(data::Dict{String, Any})
+    data["patterns"] = DataStructures.OrderedDict{String, Array}()
+
+    for (line_number, line) in data["sections"]["[PATTERNS]"]
+        # Read the lines for each pattern. Patterns can be multiple lines of arbitrary length.
+        line = split(line, ";")[1]
+        current = split(line)
+
+        if length(current) == 0
+            continue
+        else
+            pattern_name = current[1]
+
+            if !(pattern_name in keys(data["patterns"]))
+                data["patterns"][pattern_name] = Array{Float64, 1}()
+
+                for i in current[2:end]
+                    value = parse(Float64, i)
+                    data["patterns"][pattern_name] = vcat(data["patterns"][pattern_name], value)
+                end
+            else
+                for i in current[2:end]
+                    value = parse(Float64, i)
+                    data["patterns"][pattern_name] = vcat(data["patterns"][pattern_name], value)
+                end
+            end
+        end
     end
 
-    # Convert diameter data to SI units.
-    data["diameter"] = [parse(Float64, diameter) for diameter in data["diameter"]]
-    data["diameter"] = diameter_scalar .* data["diameter"]
+    if !(data["options"]["hydraulic"]["pattern"] == "") && "1" in keys(data["patterns"])
+        # If there is a pattern called "1", then it is the default pattern if no other is supplied.
+        data["options"]["hydraulic"]["pattern"] = "1"
+    elseif !(data["options"]["hydraulic"]["pattern"] in keys(data["patterns"]))
+        # Sanity check: if the default pattern does not exist and it is not "1", then balk.
+        # If default is "1" but it does not exist, then it is constant.
+        # Any other default that does not exist is an error.
+        if data["options"]["hydraulic"]["pattern"] != nothing && data["options"]["hydraulic"]["pattern"] != "1"
+            Memento.error("Default pattern \"$(data["options"]["hydraulic"]["pattern"])\" is undefined.")
+        end
 
-    # Convert length data to SI units.
-    data["length"] = [parse(Float64, length) for length in data["length"]]
-    data["length"] = length_scalar .* data["length"]
-
-    # Convert roughness data to SI units.
-    data["roughness"] = [parse(Float64, roughness) for roughness in data["roughness"]]
-    data["roughness"] = roughness_scalar .* data["roughness"]
-
-    # Specify the data types for the pipe data.
-    columns = Dict("diameter" => Float64, "id" => String, "length" => Float64,
-                   "minorloss" => Float64, "node1" => String, "node2" => String,
-                   "roughness" => Float64, "status" => String,
-                   "q" => Float64, "flow_direction" => FLOW_DIRECTION)
-
-    # Populate the flow and flow direction data.
-    data["q"] = Array{Float64}(undef, length(data["id"]))
-    fill!(data["q"], 1.0e-6)
-    data["flow_direction"] = Array{FLOW_DIRECTION}(undef, length(data["id"]))
-    fill!(data["flow_direction"], UNKNOWN)
-
-    # Return the dictionary for pipes.
-    return make_component_dict(data, columns)
+        data["options"]["hydraulic"]["pattern"] = nothing
+    end
 end
 
-function parse_pumps(data::Dict{String, Array}, options::Dict{String, Any})
-    # Specify the data types for the pump data.
-    columns = Dict("id" => String, "node1" => Int, "node2" => Int)
+function _read_pipes!(data::Dict{String, Any})
+    data["pipes"] = DataStructures.OrderedDict{String, Dict{String, Any}}()
 
-    # Return the dictionary for pumps.
-    return make_component_dict(data, columns)
+    # Get the demand units (e.g., LPS, GPM).
+    demand_units = data["options"]["hydraulic"]["units"]
+
+    # Get the headloss type (D-W or H-W).
+    headloss = data["options"]["hydraulic"]["headloss"]
+
+    for (line_number, line) in data["sections"]["[PIPES]"]
+        line = split(line, ";")[1]
+        current = split(line)
+
+        if length(current) == 0
+            continue
+        else
+            pipe = Dict{String, Any}()
+            pipe["name"] = current[1]
+            pipe["source_id"] = current[1]
+            pipe["start_node_name"] = current[2]
+            pipe["end_node_name"] = current[3]
+            pipe["controls"] = Dict{String, Any}()
+
+            if demand_units == "LPS" # If liters per second...
+                # Retain the original value (in meters).
+                pipe["length"] = parse(Float64, current[4])
+
+                # Convert diameter from millimeters to meters.
+                pipe["diameter"] = 0.001 * parse(Float64, current[5])
+
+                if headloss == "D-W"
+                    # Convert roughness from millimeters to meters.
+                    pipe["roughness"] = 0.001 * parse(Float64, current[6])
+                elseif headloss == "H-W"
+                    # Retain the original value (unitless).
+                    pipe["roughness"] = parse(Float64, current[6])
+                end
+            elseif demand_units == "GPM" # If gallons per minute...
+                # Convert length from feet to meters.
+                pipe["length"] = 0.3048 * parse(Float64, current[4])
+
+                # Convert diameter from inches to meters.
+                pipe["diameter"] = 0.0254 * parse(Float64, current[5])
+
+                if headloss == "D-W"
+                    # Convert roughness from millifeet to meters.
+                    pipe["roughness"] = 3.048e-4 * parse(Float64, current[6])
+                elseif headloss == "H-W"
+                    # Retain the original value (unitless).
+                    pipe["roughness"] = parse(Float64, current[6])
+                end
+            else
+                error("Could not find a valid \"units\" option type.")
+            end
+
+            pipe["minor_loss"] = parse(Float64, current[7])
+            pipe["status"] = current[8]
+            pipe["initial_status"] = current[8]
+            pipe["flow_direction"] = UNKNOWN
+
+            data["pipes"][current[1]] = pipe
+        end
+    end
 end
 
-function parse_reservoirs(data::Dict{String, Array}, options::Dict{String, Any})
-    demand_units = options["units"]
-    head_scalar = nothing
+function _read_pumps!(data::Dict{String, Any})
+    data["pumps"] = DataStructures.OrderedDict{String, Dict{String, Any}}()
 
-    if demand_units == "lps" # If liters per second...
-        # Retain the original value (in meters).
-        head_scalar = 1.0
-    elseif demand_units == "gpm" # If gallons per minute...
-        # Convert from feet to meters.
-        head_scalar = 0.3048
-    else
-        error("Could not find a valid \"units\" option type.")
+    for (line_number, line) in data["sections"]["[PUMPS]"]
+        line = split(line, ";")[1]
+        current = split(line)
+
+        if length(current) == 0
+            continue
+        else
+            pump = Dict{String, Any}()
+            pump["name"] = current[1]
+            pump["source_id"] = current[1]
+            pump["start_node_name"] = current[2]
+            pump["end_node_name"] = current[3]
+            pump["controls"] = Dict{String, Any}()
+           
+            pump["pump_type"] = nothing
+            pump["power"] = nothing
+            pump["pump_curve_name"] = nothing
+            pump["base_speed"] = nothing
+            pump["speed_pattern_name"] = nothing
+
+            for i in range(4, length(current), step=2)
+                if uppercase(current[i]) == "HEAD"
+                    pump["pump_type"] = "HEAD"
+                    pump["pump_curve_name"] = current[i+1]
+                # TODO: Fill in the remaining cases below.
+                elseif uppercase(current[i]) == "POWER"
+                elseif uppercase(current[i]) == "SPEED"
+                elseif uppercase(current[i]) == "PATTERN"
+                else
+                    Memento.error(_LOGGER, "Pump keyword in INP file not recognized.")
+                end
+            end
+
+            if pump["base_speed"] == nothing
+                pump["base_speed"] = 1.0
+            end
+
+            if pump["pump_type"] == nothing
+                Memento.error(_LOGGER, "Either head curve ID or pump power must be specified for all pumps.")
+            end
+
+            data["pumps"][current[1]] = pump
+        end
+    end
+end
+
+function _read_reservoirs!(data::Dict{String, Any})
+    data["reservoirs"] = DataStructures.OrderedDict{String, Dict{String, Any}}()
+
+    # Get the demand units (e.g., LPS, GPM).
+    demand_units = data["options"]["hydraulic"]["units"]
+
+    for (line_number, line) in data["sections"]["[RESERVOIRS]"]
+        line = split(line, ";")[1]
+        current = split(line)
+
+        if length(current) == 0
+            continue
+        else
+            reservoir = Dict{String, Any}()
+
+            reservoir["name"] = current[1]
+            reservoir["source_id"] = current[1]
+
+            if length(current) >= 2
+                if demand_units == "LPS" # If liters per second...
+                    # Retain the original value (in meters).
+                    reservoir["base_head"] = parse(Float64, current[2])
+                elseif demand_units == "GPM" # If gallons per minute...
+                    # Convert elevation from feet to meters.
+                    reservoir["base_head"] = 0.3048 * parse(Float64, current[2])
+                else
+                    Memento.error(_LOGGER, "Could not find a valid \"units\" option type.")
+                end
+
+                if length(current) >= 3
+                    reservoir["head_pattern_name"] = current[3]
+                end
+            end
+
+            data["reservoirs"][current[1]] = reservoir
+        end
+    end
+end
+
+function _read_status!(data::Dict{String, Any})
+    for (line_number, line) in data["sections"]["[STATUS]"]
+        line = split(line, ";")[1]
+        current = split(line)
+
+        if length(current) == 0
+            continue
+        else
+            status_value = current[2]
+            link =  _get_link_by_name(data, current[1])
+
+            if uppercase(current[2]) in ["OPEN", "CLOSED", "ACTIVE"]
+                link["status"] = current[2]
+                link["initial_status"] = current[2]
+            else
+                if _get_link_type_by_name(data, current[1]) == "valves"
+                    # TODO: Do something to fill valve statuses here.
+                else
+                    link["initial_setting"] = parse(Float64, current[2])
+                    link["status"] = "Open"
+                    link["initial_status"] = "Open"
+                end
+            end
+        end
+    end
+end
+
+function _read_tanks!(data::Dict{String, Any})
+    data["tanks"] = DataStructures.OrderedDict{String, Dict{String, Any}}()
+
+    for (line_number, line) in data["sections"]["[TANKS]"]
+        line = split(line, ";")[1]
+        current = split(line)
+
+        if length(current) == 0
+            continue
+        else
+            tank = Dict{String, Any}()
+
+            tank["name"] = current[1]
+            tank["source_id"] = current[1]
+
+            if data["options"]["hydraulic"]["units"] == "LPS" # If liters per second...
+                # Retain the original values (in meters).
+                tank["elevation"] = parse(Float64, current[2])
+                tank["init_level"] = parse(Float64, current[3])
+                tank["min_level"] = parse(Float64, current[4])
+                tank["max_level"] = parse(Float64, current[5])
+                tank["diameter"] = parse(Float64, current[6])
+
+                # Retain the original values (in cubic meters).
+                tank["min_vol"] = parse(Float64, current[7])
+            elseif data["options"]["hydraulic"]["units"] == "GPM" # If gallons per minute...
+                # Convert values from feet to meters.
+                tank["elevation"] = 0.3048 * parse(Float64, current[2])
+                tank["init_level"] = 0.3048 * parse(Float64, current[3])
+                tank["min_level"] = 0.3048 * parse(Float64, current[4])
+                tank["max_level"] = 0.3048 * parse(Float64, current[5])
+                tank["diameter"] = 0.3048 * parse(Float64, current[6])
+
+                # Convert values from cubic feet to cubic meters.
+                tank["min_vol"] = 0.3048^3 * parse(Float64, current[7])
+            else
+                Memento.error(_LOGGER, "Could not find a valid \"Units\" option type.")
+            end
+
+            if length(current) == 8 # Volume curve provided.
+                # TODO: Include the curve in the tank object.
+                tank["curve_name"] = current[8]
+            elseif length(current) == 7
+                tank["curve_name"] = nothing
+            else
+                Memento.error(_LOGGER, "Tank entry format not recognized")
+            end
+
+            data["tanks"][current[1]] = tank
+        end
+    end
+end
+
+function _read_times!(data::Dict{String, Any})
+    time_format = ["am", "AM", "pm", "PM"]
+    data["options"]["time"] = Dict{String, Any}()
+
+    for (line_number, line) in data["sections"]["[TIMES]"]
+        line = split(line, ";")[1]
+        current = split(line)
+
+        if length(current) == 0
+            continue
+        end
+
+        if uppercase(current[1]) == "DURATION"
+            data["options"]["time"]["duration"] = _string_time_to_seconds(current[2])
+        elseif uppercase(current[1]) == "HYDRAULIC"
+            data["options"]["time"]["hydraulic_timestep"] = _string_time_to_seconds(current[3])
+        elseif uppercase(current[1]) == "QUALITY"
+            data["options"]["time"]["quality_timestep"] = _string_time_to_seconds(current[3])
+        elseif uppercase(current[1]) == "CLOCKTIME"
+            if length(current) > 3
+                time_format = uppercase(current[4])
+            else
+                # Kludge for 24 hour time that needs AM/PM.
+                time_format = "AM"
+            end
+
+            data["options"]["time"]["start_clocktime"] = _clock_time_to_seconds(current[3], time_format)
+        elseif uppercase(current[1]) == "STATISTIC"
+            data["options"]["results"]["statistic"] = uppercase(current[2])
+        else
+            # Other time options: RULE TIMESTEP, PATTERN TIMESTEP, REPORT TIMESTEP, REPORT START
+            key_string = lowercase(current[1] * '_' * current[2])
+            data["options"]["time"][key_string] = _string_time_to_seconds(current[3])
+        end
+    end
+end
+
+function _read_title!(data::Dict{String, Any})
+    lines = Array{String}[]
+
+    for (line_number, line) in data["sections"]["[TITLE]"]
+        line = split(line, ";")[1]
+        current = split(line)
+
+        if length(current) == 0
+            continue
+        else
+            lines = vcat(lines, line)
+        end
     end
 
-    # Convert diameter data to SI units.
-    data["head"] = [parse(Float64, head) for head in data["head"]]
-    data["head"] = head_scalar .* data["head"]
-
-    # Specify the data types for the reservoir data.
-    columns = Dict("head" => Float64, "id" => String, "pattern" => String)
-
-    # Return the dictionary for reservoirs.
-    return make_component_dict(data, columns)
+    data["title"] = join(lines, " ")
 end
 
-function parse_emitters(data::Dict{String, Array}, options::Dict{String, Any})
-    # Specify the data types for the emitter data.
-    columns = Dict("junction" => String, "coefficient" => Float64)
+function _read_valves!(data::Dict{String, Any})
+    data["valves"] = DataStructures.OrderedDict{String, Dict{String, Any}}()
 
-    # Ensure the arrays describing emitter data are all of equal lengths.
-    @assert(allequal([length(data[column]) for column in keys(columns)]))
+    for (line_number, line) in data["sections"]["[VALVES]"]
+        line = split(line, ";")[1]
+        current = split(line)
 
-    # Return an array of emitter dictionaries with the correct data types.
-    arr = [Dict(c => parse_general(v, data[c][i]) for (c, v) in columns) for i = 1:length(data["junction"])]
-    return Dict{String, Any}(string(data["junction"][i]) => arr[i] for i = 1:length(arr))
-end
+        if length(current) == 0
+            continue
+        else
+            valve = Dict{String, Any}()
+            valve["name"] = current[1]
+            valve["source_id"] = current[1]
+            valve["controls"] = Dict{String, Any}()
 
-function parse_tanks(data::Dict{String, Array})
-    # Specify the data types for the tank data.
-    columns = Dict("diameter" => Float64, "elevation" => Float64,
-                   "id" => String, "initlevel" => Float64,
-                   "maxlevel" => Float64, "minlevel" => Float64,
-                   "minvol" => Float64, "volcurve" => String)
-
-    # Return the dictionary for tanks.
-    return make_component_dict(data, columns)
-end
-
-function parse_valves(data::Dict{String, Array})
-    # Specify the data types for the valve data.
-    columns = Dict("diameter" => Float64, "id" => String,
-                   "minorloss" => Float64, "node1" => String,
-                   "node2" => String, "setting" => Float64,
-                   "type" => String)
-
-    # Return the dictionary for valves.
-    return make_component_dict(data, columns)
-end
-
-function parse_options(data::Dict{String, Any})
-    units = data["units"][1]
-    headloss = string(data["headloss"][1])
-    demand_multiplier = parse(Float64, data["demand multiplier"][1])
-    viscosity = parse(Float64, data["viscosity"][1]) * 1.0e-3
-    return Dict{String, Any}("units" => units, "headloss" => headloss,
-                             "demand_multiplier" => demand_multiplier,
-                             "viscosity" => viscosity)
+            # TODO: Finish the rest of valve parsing before appending.
+            data["valves"][current[1]] = valve
+        end
+    end
 end

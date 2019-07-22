@@ -10,7 +10,7 @@ function post_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <: 
     elseif T <: AbstractMICPForm
         function_f_alpha(wm, n, convex=true)
     elseif T <: AbstractCNLPForm
-        Memento.error(LOGGER, "CNLP formulation does not support network expansion.")
+        Memento.error(_LOGGER, "CNLP formulation does not support network expansion.")
     end
 
     variable_head(wm, n)
@@ -35,7 +35,7 @@ function post_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <: 
     for (i, junction) in wm.ref[:nw][n][:junctions]
         constraint_flow_conservation(wm, i, n)
 
-        if junction["demand"] > 0.0
+        if junction["base_demand"] > 0.0
             constraint_sink_flow(wm, i, n)
         end
     end

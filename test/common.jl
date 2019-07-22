@@ -6,9 +6,9 @@
         # This should silence everything except error messages.
         WaterModels.silence()
 
-        im_logger = Memento.getlogger(InfrastructureModels)
-        @test Memento.getlevel(im_logger) == "error"
-        Memento.warn(im_logger, "Silenced message should not be displayed.")
+        wm_logger = Memento.getlogger(InfrastructureModels)
+        @test Memento.getlevel(wm_logger) == "error"
+        Memento.warn(wm_logger, "Silenced message should not be displayed.")
 
         wm_logger = Memento.getlogger(WaterModels)
         @test Memento.getlevel(wm_logger) == "error"
@@ -39,7 +39,7 @@
         @test ref(wm, 0, :reservoirs) == wm.ref[:nw][0][:reservoirs]
         @test ref(wm, :reservoirs, 1) == wm.ref[:nw][0][:reservoirs][1]
         @test ref(wm, 0, :reservoirs, 1) == wm.ref[:nw][0][:reservoirs][1]
-        @test ref(wm, 0, :reservoirs, 1, "head") == 210.0
+        @test ref(wm, 0, :reservoirs, 1, "base_head") == 210.0
     end
 
     @testset "var" begin

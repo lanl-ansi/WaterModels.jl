@@ -20,8 +20,8 @@ This decoupling enables the definition of a wide variety of water network optimi
 
 **Core Problem Specifications**
 * Water Flow (wf)
-* Network Expansion (ne)
 * Optimal Water Flow (owf)
+* Network Expansion (ne)
 
 **Core Network Formulations**
 * CNLP (convex nonlinear program used for determining network flow rates)

@@ -128,14 +128,14 @@ function optimize!(wm::GenericWaterModel, optimizer::JuMP.OptimizerFactory)
     if wm.model.moi_backend.state == MOIU.NO_OPTIMIZER
         _, solve_time, solve_bytes_alloc, sec_in_gc = @timed JuMP.optimize!(wm.model, optimizer)
     else
-        Memento.warn(LOGGER, "Model already contains optimizer factory, cannot use optimizer specified in `solve_generic_model`")
+        Memento.warn(_LOGGER, "Model already contains optimizer factory, cannot use optimizer specified in `solve_generic_model`")
         _, solve_time, solve_bytes_alloc, sec_in_gc = @timed JuMP.optimize!(wm.model)
     end
 
     try
         solve_time = MOI.get(wm.model, MOI.SolveTime())
     catch
-        Memento.warn(LOGGER, "The given optimizer does not provide the SolveTime() attribute, falling back on @timed. This is not a rigorous timing value.");
+        Memento.warn(_LOGGER, "The given optimizer does not provide the SolveTime() attribute, falling back on @timed. This is not a rigorous timing value.");
     end
 
     return JuMP.termination_status(wm.model), JuMP.primal_status(wm.model), solve_time
@@ -172,7 +172,7 @@ function build_generic_model(data::Dict{String,<:Any}, model_constructor, post_m
     wm = model_constructor(data; kwargs...)
 
     if !multinetwork && ismultinetwork(wm)
-        Memento.error(LOGGER, "Attempted to build a single-network model with multi-network data.")
+        Memento.error(_LOGGER, "Attempted to build a single-network model with multi-network data.")
     end
 
     post_method(wm)
@@ -230,7 +230,7 @@ function build_ref(data::Dict{String,<:Any})
         for (key, item) in nw_data
             if isa(item, Dict{String,Any})
                 try
-                    item_lookup = Dict{Int,Any}([(parse(Int, k), v) for (k,v) in item])
+                    item_lookup = Dict{Int,Any}([(parse(Int, k), v) for (k, v) in item])
                     ref[Symbol(key)] = item_lookup
                 catch
                     ref[Symbol(key)] = item
@@ -242,15 +242,19 @@ function build_ref(data::Dict{String,<:Any})
 
         ref[:links] = merge(ref[:pipes], ref[:valves], ref[:pumps])
         ref[:links_ne] = filter(is_ne_link, ref[:links])
-        ref[:links_known_direction] = filter(has_known_flow_direction, ref[:links])
-        ref[:links_unknown_direction] = filter(!has_known_flow_direction, ref[:links])
-        ref[:nodes] = merge(ref[:junctions], ref[:reservoirs], ref[:emitters])
+        ref[:nodes] = merge(ref[:junctions], ref[:tanks], ref[:reservoirs])
+
+        # TODO: Fix these when feeling ambitious about more carefully handling directions.
+        #ref[:links_known_direction] = filter(has_known_flow_direction, ref[:links])
+        #ref[:links_unknown_direction] = filter(!has_known_flow_direction, ref[:links])
 
         # Set the resistances based on the head loss type.
-        viscosity = ref[:options]["viscosity"]
-        ref[:alpha] = ref[:options]["headloss"] == "h-w" ? 1.852 : 2.0
-        ref[:resistance] = calc_resistances(ref[:links], viscosity, ref[:options]["headloss"])
-        ref[:resistance_cost] = calc_resistance_costs(ref[:links], viscosity, ref[:options]["headloss"])
+        headloss = ref[:options]["hydraulic"]["headloss"]
+        viscosity = ref[:options]["hydraulic"]["viscosity"]
+        ref[:alpha] = headloss == "H-W" ? 1.852 : 2.0
+
+        ref[:resistance] = calc_resistances(ref[:links], viscosity, headloss)
+        ref[:resistance_cost] = calc_resistance_costs(ref[:links], viscosity, headloss)
     end
 
     return refs

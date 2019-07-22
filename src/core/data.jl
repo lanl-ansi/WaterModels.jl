@@ -11,8 +11,8 @@ function calc_head_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
     reservoirs = wm.ref[:nw][n][:reservoirs]
 
     # Get maximum elevation/head values at nodes.
-    max_elev = maximum([node["elev"] for node in values(junctions)])
-    max_head = maximum([node["head"] for node in values(reservoirs)])
+    max_elev = maximum([node["elevation"] for node in values(junctions)])
+    max_head = maximum([node["base_head"] for node in values(reservoirs)])
 
     # Initialize the dictionaries for minimum and maximum heads.
     head_min = Dict([(i, -Inf) for i in nodes])
@@ -21,9 +21,9 @@ function calc_head_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
     for (i, junction) in junctions
         # The minimum head at junctions must be above the initial elevation.
         if haskey(junction, "minimumHead")
-            head_min[i] = max(junction["elev"], junction["minimumHead"])
+            head_min[i] = max(junction["elevation"], junction["minimumHead"])
         else
-            head_min[i] = junction["elev"]
+            head_min[i] = junction["elevation"]
         end
 
         # The maximum head at junctions must be below the max reservoir height.
@@ -36,8 +36,8 @@ function calc_head_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
 
     for (i, reservoir) in reservoirs
         # Head values at reservoirs are fixed.
-        head_min[i] = reservoir["head"]
-        head_max[i] = reservoir["head"]
+        head_min[i] = reservoir["base_head"]
+        head_max[i] = reservoir["base_head"]
     end
 
     # Return the dictionaries of lower and upper bounds.
@@ -69,7 +69,7 @@ function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
 
     alpha = wm.ref[:nw][n][:alpha]
     junctions = values(wm.ref[:nw][n][:junctions])
-    sum_demand = sum(junction["demand"] for junction in junctions)
+    sum_demand = sum(junction["base_demand"] for junction in junctions)
 
     lb = Dict([(a, Float64[]) for a in keys(links)])
     ub = Dict([(a, Float64[]) for a in keys(links)])
@@ -117,7 +117,7 @@ function calc_directed_flow_upper_bounds(wm::GenericWaterModel, alpha::Float64, 
     ub_p = Dict([(a, Float64[]) for a in keys(links)])
 
     junctions = values(wm.ref[:nw][n][:junctions])
-    sum_demand = sum(junction["demand"] for junction in junctions)
+    sum_demand = sum(junction["base_demand"] for junction in junctions)
 
     for (a, link) in links
         L = link["length"]
@@ -291,22 +291,22 @@ function calc_resistance_costs_dw(links::Dict{Int, Any}, viscosity::Float64)
 end
 
 function calc_resistances(links::Dict{<:Any, Any}, viscosity::Float64, head_loss_type::String)
-    if head_loss_type == "h-w"
+    if head_loss_type == "H-W"
         return calc_resistances_hw(links)
-    elseif head_loss_type == "d-w"
+    elseif head_loss_type == "D-W"
         return calc_resistances_dw(links, viscosity)
     else
-        Memento.error(LOGGER, "Head loss formulation type \"$(head_loss_type)\" is not recognized.")
+        Memento.error(_LOGGER, "Head loss formulation type \"$(head_loss_type)\" is not recognized.")
     end
 end
 
 function calc_resistance_costs(links::Dict{Int, Any}, viscosity::Float64, head_loss_type::String)
-    if head_loss_type == "h-w"
+    if head_loss_type == "H-W"
         return calc_resistance_costs_hw(links)
-    elseif head_loss_type == "d-w"
+    elseif head_loss_type == "D-W"
         return calc_resistance_costs_dw(links, viscosity)
     else
-        Memento.error(LOGGER, "Head loss formulation type \"$(head_loss_type)\" is not recognized.")
+        Memento.error(_LOGGER, "Head loss formulation type \"$(head_loss_type)\" is not recognized.")
     end
 end
 
@@ -314,14 +314,12 @@ function has_known_flow_direction(link::Pair{Int, Any})
     return link.second["flow_direction"] != UNKNOWN
 end
 
-function is_ne_link(link::Pair{String, Any})
-    return haskey(link.second, "diameters") ||
-           haskey(link.second, "resistances")
+function is_ne_link(link::Pair{Int64, Any})
+    return any([x in ["diameters", "resistances"] for x in keys(link.second)])
 end
 
-function is_ne_link(link::Pair{Int, Any})
-    return haskey(link.second, "diameters") ||
-           haskey(link.second, "resistances")
+function is_ne_link(link::Pair{String, Any})
+    return any([x in ["diameters", "resistances"] for x in keys(link.second)])
 end
 
 function is_out_node(i::Int)
@@ -357,7 +355,7 @@ end
 
 function set_start_directed_head_difference!(data::Dict{String, Any})
     head_loss_type = data["options"]["headloss"]
-    alpha = head_loss_type == "h-w" ? 1.852 : 2.0
+    alpha = head_loss_type == "H-W" ? 1.852 : 2.0
 
     for (a, pipe) in data["pipes"]
         dh_abs = pipe["length"] * pipe["r"] * abs(pipe["q"])^(alpha)
@@ -367,8 +365,8 @@ function set_start_directed_head_difference!(data::Dict{String, Any})
 end
 
 function set_start_resistance_ne!(data::Dict{String, Any})
-    viscosity = data["options"]["viscosity"]
-    head_loss_type = data["options"]["headloss"]
+    viscosity = data["options"]["hydraulic"]["viscosity"]
+    head_loss_type = data["options"]["hydraulic"]["headloss"]
     resistances = calc_resistances(data["pipes"], viscosity, head_loss_type)
 
     for (a, pipe) in filter(is_ne_link, data["pipes"])
@@ -380,8 +378,8 @@ function set_start_resistance_ne!(data::Dict{String, Any})
 end
 
 function set_start_undirected_flow_rate_ne!(data::Dict{String, Any})
-    viscosity = data["options"]["viscosity"]
-    head_loss_type = data["options"]["headloss"]
+    viscosity = data["options"]["hydraulic"]["viscosity"]
+    head_loss_type = data["options"]["hydraulic"]["headloss"]
     resistances = calc_resistances(data["pipes"], viscosity, head_loss_type)
 
     for (a, pipe) in filter(is_ne_link, data["pipes"])
@@ -393,8 +391,8 @@ function set_start_undirected_flow_rate_ne!(data::Dict{String, Any})
 end
 
 function set_start_directed_flow_rate_ne!(data::Dict{String, Any})
-    viscosity = data["options"]["viscosity"]
-    head_loss_type = data["options"]["headloss"]
+    viscosity = data["options"]["hydraulic"]["viscosity"]
+    head_loss_type = data["options"]["hydraulic"]["headloss"]
     resistances = calc_resistances(data["pipes"], viscosity, head_loss_type)
 
     for (a, pipe) in filter(is_ne_link, data["pipes"])

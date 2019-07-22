@@ -22,7 +22,7 @@ function constraint_undirected_flow_conservation(wm::GenericWaterModel{T}, i::In
     end
 
     # Add the flow conservation constraint.
-    demand = wm.ref[:nw][n][:junctions][i]["demand"]
+    demand = wm.ref[:nw][n][:junctions][i]["base_demand"]
     con = JuMP.@constraint(wm.model, flow_sum == demand)
     wm.con[:nw][n][:flow_conservation][i] = con
 end
@@ -47,7 +47,7 @@ function constraint_undirected_flow_conservation_ne(wm::GenericWaterModel{T}, i:
     end
 
     # Add the flow conservation constraint.
-    demand = wm.ref[:nw][n][:junctions][i]["demand"]
+    demand = wm.ref[:nw][n][:junctions][i]["base_demand"]
     con = JuMP.@constraint(wm.model, flow_sum == demand)
     wm.con[:nw][n][:flow_conservation_ne][i] = con
 end
@@ -74,7 +74,7 @@ function constraint_directed_flow_conservation(wm::GenericWaterModel{T}, i::Int,
     end
 
     # Add the flow conservation constraint.
-    demand = wm.ref[:nw][n][:junctions][i]["demand"]
+    demand = wm.ref[:nw][n][:junctions][i]["base_demand"]
     con = JuMP.@constraint(wm.model, flow_sum == demand)
     wm.con[:nw][n][:flow_conservation][i] = con
 end
@@ -101,7 +101,7 @@ function constraint_directed_flow_conservation_ne(wm::GenericWaterModel{T}, i::I
     end
 
     # Add the flow conservation constraint.
-    demand = wm.ref[:nw][n][:junctions][i]["demand"]
+    demand = wm.ref[:nw][n][:junctions][i]["base_demand"]
     con = JuMP.@constraint(wm.model, flow_sum == demand)
     wm.con[:nw][n][:flow_conservation_ne][i] = con
 end
@@ -215,7 +215,7 @@ function constraint_directed_head_difference(wm::GenericWaterModel, a::Int, n::I
     i = wm.ref[:nw][n][:links][a]["f_id"]
 
     if i in collect(ids(wm, n, :reservoirs))
-        h_i = wm.ref[:nw][n][:reservoirs][i]["head"]
+        h_i = wm.ref[:nw][n][:reservoirs][i]["base_head"]
     else
         h_i = wm.var[:nw][n][:h][i]
     end
@@ -223,7 +223,7 @@ function constraint_directed_head_difference(wm::GenericWaterModel, a::Int, n::I
     j = wm.ref[:nw][n][:links][a]["t_id"]
 
     if j in collect(ids(wm, n, :reservoirs))
-        h_j = wm.ref[:nw][n][:reservoirs][j]["head"]
+        h_j = wm.ref[:nw][n][:reservoirs][j]["base_head"]
     else
         h_j = wm.var[:nw][n][:h][j]
     end
