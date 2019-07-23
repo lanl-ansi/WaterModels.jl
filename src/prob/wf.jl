@@ -22,14 +22,14 @@ function post_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <: 
     for (i, junction) in ref(wm, n, :junctions)
         constraint_flow_conservation(wm, i, n)
 
-        if junction["demand"] > 0.0
-            constraint_sink_flow(wm, i, n)
-        end
+        #if junction["demand"] > 0.0
+        #    constraint_sink_flow(wm, i, n)
+        #end
     end
 
-    for i in collect(ids(wm, n, :reservoirs))
-        constraint_source_flow(wm, i, n)
-    end
+    #for i in collect(ids(wm, n, :reservoirs))
+    #    constraint_source_flow(wm, i, n)
+    #end
 
     objective_wf(wm, n)
 end
@@ -53,14 +53,14 @@ function post_mn_wf(wm::GenericWaterModel{T}; kwargs...) where T <: AbstractWate
         for (i, junction) in ref(wm, n, :junctions)
             constraint_flow_conservation(wm, i, n)
 
-            if junction["demand"] > 0.0
-                constraint_sink_flow(wm, i, n)
-            end
+            #if junction["demand"] > 0.0
+            #    constraint_sink_flow(wm, i, n)
+            #end
         end
 
-        for i in collect(ids(wm, n, :reservoirs))
-            constraint_source_flow(wm, i, n)
-        end
+        #for i in collect(ids(wm, n, :reservoirs))
+        #    constraint_source_flow(wm, i, n)
+        #end
     end
 
     objective_wf(wm)
