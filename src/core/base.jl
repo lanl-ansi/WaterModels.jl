@@ -114,14 +114,23 @@ var(wm::GenericWaterModel, nw::Int) = wm.var[:nw][nw]
 var(wm::GenericWaterModel, nw::Int, key::Symbol) = wm.var[:nw][nw][key]
 var(wm::GenericWaterModel, nw::Int, key::Symbol, idx) = wm.var[:nw][nw][key][idx]
 
+var(wm::GenericWaterModel; nw::Int=wm.cnw) = wm.var[:nw][nw]
+var(wm::GenericWaterModel, key::Symbol; nw::Int=wm.cnw) = wm.var[:nw][nw][key]
+var(wm::GenericWaterModel, key::Symbol, idx; nw::Int=wm.cnw) = wm.var[:nw][nw][key][idx]
+
 ""
 con(wm::GenericWaterModel, nw::Int) = wm.con[:nw][nw]
 con(wm::GenericWaterModel, nw::Int, key::Symbol) = wm.con[:nw][nw][key]
 con(wm::GenericWaterModel, nw::Int, key::Symbol, idx) = wm.con[:nw][nw][key][idx]
 
+con(wm::GenericWaterModel; nw::Int=wm.cnw) = wm.con[:nw][nw]
+con(wm::GenericWaterModel, key::Symbol; nw::Int=wm.cnw) = wm.con[:nw][nw][key]
+con(wm::GenericWaterModel, key::Symbol, idx; nw::Int=wm.cnw) = wm.con[:nw][nw][key][idx]
+
 ""
 fun(wm::GenericWaterModel, nw::Int) = wm.fun[:nw][nw]
 fun(wm::GenericWaterModel, nw::Int, key::Symbol) = wm.fun[:nw][nw][key]
+
 
 ""
 function optimize!(wm::GenericWaterModel, optimizer::JuMP.OptimizerFactory)
