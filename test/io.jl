@@ -9,12 +9,16 @@
         @test klmod_data["name"] == klmod_name
 
         richmond_skeleton_data = WaterModels.parse_file("../test/data/epanet/richmond-skeleton.inp")
-        richmond_skeleton_name = "Richmond Skeleton Water Supply System"
+        richmond_skeleton_name = "24 replicates of Richmond Skeleton Water Supply System"
         @test richmond_skeleton_data["name"] == richmond_skeleton_name
 
         shamir_data = WaterModels.parse_file("../test/data/epanet/shamir.inp")
         shamir_name = "shamir -- Bragalli, D'Ambrosio, Lee, Lodi, Toth (2008)"
         @test shamir_data["name"] == shamir_name
+
+        shamir_ts_data = WaterModels.parse_file("../test/data/epanet/shamir-ts.inp")
+        shamir_ts_name = "3 replicates of shamir (time series) -- Bragalli, D'Ambrosio, Lee, Lodi, Toth (2008)"
+        @test shamir_ts_data["name"] == shamir_ts_name
     end
 
     @testset "parse_file (.json)" begin

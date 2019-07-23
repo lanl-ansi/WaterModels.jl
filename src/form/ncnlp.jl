@@ -23,6 +23,11 @@ function variable_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: Ab
     variable_undirected_flow_ne(wm, n, bounded=true)
 end
 
+function variable_pump(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractNCNLPForm
+    variable_head_gain(wm, n)
+    variable_fixed_pump_operation(wm, n)
+end
+
 function constraint_resistance_selection_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
     constraint_undirected_resistance_selection_ne(wm, a, n)
 end
