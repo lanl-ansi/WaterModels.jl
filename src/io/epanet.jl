@@ -36,7 +36,21 @@ function _add_link_ids!(data::Dict{String, Any})
 
             new_ids = start_id:(start_id+length(keys(data[link_type]))-1)
             new_keys = [string(x) for x in new_ids]
+            data[link_type] = DataStructures.OrderedDict(new_keys .=> values(data[link_type]))
         end
+    end
+
+    # Update the link IDs in time series.
+    ts_link_ids = Array{Int64, 1}()
+
+    for link_type in ["pumps"]
+        for (link_name, link) in data["time_series"][link_type]
+            id = _get_link_id_by_name(data, link_name)
+            ts_link_ids = vcat(ts_link_ids, id)
+        end
+
+        new_keys = [string(x) for x in ts_link_ids]
+        data["time_series"][link_type] = Dict(new_keys .=> values(data["time_series"][link_type]))
     end
 
     # Convert to Dict to ensure compatibility with InfrastructureModels.
@@ -72,6 +86,20 @@ function _add_node_ids!(data::Dict{String, Any})
             data[node_type] = DataStructures.OrderedDict(new_keys .=> values(data[node_type]))
         end
     end
+
+    # Update the node IDs in time series.
+    ts_node_ids = Array{Int64, 1}()
+
+    for node_type in ["junctions", "reservoirs"]
+        for (node_name, node) in data["time_series"][node_type]
+            id = _get_node_id_by_name(data, node_name)
+            ts_node_ids = vcat(ts_node_ids, id)
+        end
+
+        new_keys = [string(x) for x in ts_node_ids]
+        data["time_series"][node_type] = Dict(new_keys .=> values(data["time_series"][node_type]))
+    end
+
 
     # Convert to Dict to ensure compatibility with InfrastructureModels.
     for node_type in node_types
@@ -112,6 +140,7 @@ function _initialize_data()
     data["options"] = Dict{String, Any}()
     data["mass_units"] = nothing
     data["flow_units"] = nothing
+    data["time_series"] = Dict{String, Any}()
 
     return data
 end
@@ -135,6 +164,18 @@ function _get_link_by_name(data::Dict{String, Any}, name::AbstractString)
         for (link_id, link) in data[link_type]
             if link["name"] == name
                 return link
+            end
+        end
+    end
+end
+
+function _get_link_id_by_name(data::Dict{String, Any}, name::AbstractString)
+    link_types = ["pumps", "pipes", "valves"]
+
+    for link_type in link_types
+        for (link_id, link) in data[link_type]
+            if link["name"] == name
+                return link["id"]
             end
         end
     end
@@ -381,6 +422,9 @@ function parse_epanet(filename::String)
     # VALVES
     _read_valves!(data)
 
+    # ENERGY
+    _read_energy!(data)
+
     # Create consistent link "id" fields.
     _add_link_ids!(data)
 
@@ -398,9 +442,6 @@ function parse_epanet(filename::String)
 
     # TITLE
     _read_title!(data)
-
-    # ENERGY
-    _read_energy!(data)
 
     # DEMANDS
     #_read_demands!(data)
@@ -553,11 +594,29 @@ function _read_energy!(data::Dict{String, Any})
                 pump =  _get_link_by_name(data, current[2])
 
                 if uppercase(current[3]) == "PRICE"
-                    pump["energy_price"] = parse(Float64, current[4])
+                    price = parse(Float64, current[4]) # Price per kilowatt hour.
+                    pump["energy_price"] = price * 2.778e-7 # Price per Joule.
                 elseif uppercase(current[3]) == "PATTERN"
-                    pump["energy_pattern"] = current[4]
+                    pump["energy_pattern_name"] = current[4]
                 elseif uppercase(current[3]) in ["EFFIC", "EFFICIENCY"]
-                    pump["efficiency"] = current[4]
+                    pump["efficiency_curve_name"] = current[4]
+
+                    # Obtain and scale head-versus-flow pump curve.
+                    x = first.(data["curves"][current[4]]) # Flow rate.
+                    y = 0.01 .* last.(data["curves"][current[4]]) # Efficiency.
+
+                    if data["options"]["hydraulic"]["units"] == "LPS" # If liters per second...
+                        # Convert from liters per second to cubic meters per second.
+                        x *= 1.0e-3
+                    elseif data["options"]["hydraulic"]["units"] == "GPM" # If gallons per minute...
+                        # Convert from gallons per minute to cubic meters per second.
+                        x *= 6.30902e-5
+                    else
+                        Memento.error(_LOGGER, "Could not find a valid \"Units\" option type.")
+                    end
+
+                    # Curve of efficiency (unitless) versus the flow rate through a pump.
+                    pump["efficiency_curve"] = Array{Tuple{Float64, Float64}}([(x[j], y[j]) for j in 1:length(x)])
                 else
                     Memento.warning(_LOGGER, "Unknown entry in ENERGY section: $(line)")
                 end
@@ -566,10 +625,23 @@ function _read_energy!(data::Dict{String, Any})
             end
         end
     end
+
+    for (pump_id, pump) in data["pumps"]
+        if "energy_pattern_name" in keys(pump) && "energy_price" in keys(pump)
+            base_price = pump["energy_price"]
+            pattern_name = pump["energy_pattern_name"]
+            pattern = data["patterns"][pattern_name]
+            price_pattern = base_price .* pattern
+
+            entry = Dict{String, Array{Float64}}("energy_price" => price_pattern)
+            data["time_series"]["pumps"][pump_id] = entry
+        end
+    end
 end
 
 function _read_junctions!(data::Dict{String, Any})
     data["junctions"] = DataStructures.OrderedDict{String, Dict{String, Any}}()
+    data["time_series"]["junctions"] = DataStructures.OrderedDict{String, Any}()
 
     # Get the demand units (e.g., LPS, GPM).
     demand_units = data["options"]["hydraulic"]["units"]
@@ -584,17 +656,19 @@ function _read_junctions!(data::Dict{String, Any})
             junction = Dict{String, Any}()
 
             junction["name"] = current[1]
-            junction["source_id"] = current[1]
+            junction["source_id"] = ["junctions", current[1]]
 
             if length(current) > 3
-                junction["pattern"] = current[4]
-            elseif data["options"]["hydraulic"]["pattern"] != ""
-                junction["pattern"] = data["options"]["hydraulic"]["pattern"]
+                junction["demand_pattern_name"] = current[4]
+            elseif data["options"]["hydraulic"]["pattern"] != nothing
+                junction["demand_pattern_name"] = data["options"]["hydraulic"]["pattern"]
             else
-                junction["pattern"] = data["patterns"]["default_pattern"]
+                junction["demand_pattern_name"] = data["options"]["hydraulic"]["pattern"]
+                # TODO: What should the below be?
+                #junction["pattern"] = data["patterns"]["default_pattern"]
             end
 
-            junction["base_demand"] = 0.0
+            junction["demand"] = 0.0
 
             if demand_units == "LPS" # If liters per second...
                 # Retain the original value (in meters).
@@ -609,14 +683,25 @@ function _read_junctions!(data::Dict{String, Any})
             if length(current) > 2
                 if demand_units == "LPS" # If liters per second...
                     # Convert from liters per second to cubic meters per second.
-                    junction["base_demand"] = 1.0e-3 * parse(Float64, current[3])
+                    junction["demand"] = 1.0e-3 * parse(Float64, current[3])
                 elseif demand_units == "GPM" # If gallons per minute...
                     # Convert from gallons per minute to cubic meters per second.
-                    junction["base_demand"] = 6.30902e-5 * parse(Float64, current[3])
+                    junction["demand"] = 6.30902e-5 * parse(Float64, current[3])
                 end
             end
 
             data["junctions"][current[1]] = junction
+
+            # Add time series of demand if necessary.
+            pattern = junction["demand_pattern_name"]
+
+            if pattern != nothing && length(data["patterns"][pattern]) > 1
+                demand = junction["demand"] .* data["patterns"][pattern]
+                entry = Dict{String, Array{Float64}}("demand" => demand)
+                data["time_series"]["junctions"][current[1]] = entry
+            elseif pattern != nothing && pattern != "1"
+                junction["demand"] *= data["patterns"][pattern][1]
+            end
         end
     end
 end
@@ -731,7 +816,7 @@ function _read_patterns!(data::Dict{String, Any})
         end
     end
 
-    if !(data["options"]["hydraulic"]["pattern"] == "") && "1" in keys(data["patterns"])
+    if data["options"]["hydraulic"]["pattern"] == "" && "1" in keys(data["patterns"])
         # If there is a pattern called "1", then it is the default pattern if no other is supplied.
         data["options"]["hydraulic"]["pattern"] = "1"
     elseif !(data["options"]["hydraulic"]["pattern"] in keys(data["patterns"]))
@@ -764,7 +849,7 @@ function _read_pipes!(data::Dict{String, Any})
         else
             pipe = Dict{String, Any}()
             pipe["name"] = current[1]
-            pipe["source_id"] = current[1]
+            pipe["source_id"] = ["pipes", current[1]]
             pipe["start_node_name"] = current[2]
             pipe["end_node_name"] = current[3]
             pipe["controls"] = Dict{String, Any}()
@@ -813,6 +898,7 @@ end
 
 function _read_pumps!(data::Dict{String, Any})
     data["pumps"] = DataStructures.OrderedDict{String, Dict{String, Any}}()
+    data["time_series"]["pumps"] = DataStructures.OrderedDict{String, Any}()
 
     for (line_number, line) in data["sections"]["[PUMPS]"]
         line = split(line, ";")[1]
@@ -823,7 +909,7 @@ function _read_pumps!(data::Dict{String, Any})
         else
             pump = Dict{String, Any}()
             pump["name"] = current[1]
-            pump["source_id"] = current[1]
+            pump["source_id"] = ["pumps", current[1]]
             pump["start_node_name"] = current[2]
             pump["end_node_name"] = current[3]
             pump["controls"] = Dict{String, Any}()
@@ -838,6 +924,26 @@ function _read_pumps!(data::Dict{String, Any})
                 if uppercase(current[i]) == "HEAD"
                     pump["pump_type"] = "HEAD"
                     pump["pump_curve_name"] = current[i+1]
+
+                    # Obtain and scale head-versus-flow pump curve.
+                    x = first.(data["curves"][current[i+1]]) # Flow.
+                    y = last.(data["curves"][current[i+1]]) # Head.
+
+                    if data["options"]["hydraulic"]["units"] == "LPS" # If liters per second...
+                        # Convert from liters per second to cubic meters per second.
+                        x *= 1.0e-3
+                    elseif data["options"]["hydraulic"]["units"] == "GPM" # If gallons per minute...
+                        # Convert from gallons per minute to cubic meters per second.
+                        x *= 6.30902e-5
+
+                        # Convert elevation from feet to meters.
+                        y *= 0.3048
+                    else
+                        Memento.error(_LOGGER, "Could not find a valid \"units\" option type.")
+                    end
+
+                    # Curve of head (meters) versus flow (cubic meters per second).
+                    pump["pump_curve"] = Array{Tuple{Float64, Float64}}([(x[j], y[j]) for j in 1:length(x)])
                 # TODO: Fill in the remaining cases below.
                 elseif uppercase(current[i]) == "POWER"
                 elseif uppercase(current[i]) == "SPEED"
@@ -862,6 +968,7 @@ end
 
 function _read_reservoirs!(data::Dict{String, Any})
     data["reservoirs"] = DataStructures.OrderedDict{String, Dict{String, Any}}()
+    data["time_series"]["reservoirs"] = DataStructures.OrderedDict{String, Any}()
 
     # Get the demand units (e.g., LPS, GPM).
     demand_units = data["options"]["hydraulic"]["units"]
@@ -876,25 +983,38 @@ function _read_reservoirs!(data::Dict{String, Any})
             reservoir = Dict{String, Any}()
 
             reservoir["name"] = current[1]
-            reservoir["source_id"] = current[1]
+            reservoir["source_id"] = ["reservoirs", current[1]]
 
             if length(current) >= 2
                 if demand_units == "LPS" # If liters per second...
                     # Retain the original value (in meters).
-                    reservoir["base_head"] = parse(Float64, current[2])
+                    reservoir["head"] = parse(Float64, current[2])
                 elseif demand_units == "GPM" # If gallons per minute...
                     # Convert elevation from feet to meters.
-                    reservoir["base_head"] = 0.3048 * parse(Float64, current[2])
+                    reservoir["head"] = 0.3048 * parse(Float64, current[2])
                 else
                     Memento.error(_LOGGER, "Could not find a valid \"units\" option type.")
                 end
 
                 if length(current) >= 3
                     reservoir["head_pattern_name"] = current[3]
+                else
+                    reservoir["head_pattern_name"] = nothing
                 end
             end
 
             data["reservoirs"][current[1]] = reservoir
+
+            # Add time series of demand if necessary.
+            pattern = reservoir["head_pattern_name"]
+
+            if pattern != nothing && length(data["patterns"][pattern]) > 1
+                head = reservoir["head"] .* data["patterns"][pattern]
+                entry = Dict{String, Array{Float64}}("head" => head)
+                data["time_series"]["reservoirs"][current[1]] = entry
+            elseif pattern != nothing && pattern != "1"
+                reservoir["head"] *= data["patterns"][pattern][1]
+            end
         end
     end
 end
@@ -939,7 +1059,7 @@ function _read_tanks!(data::Dict{String, Any})
             tank = Dict{String, Any}()
 
             tank["name"] = current[1]
-            tank["source_id"] = current[1]
+            tank["source_id"] = ["tanks", current[1]]
 
             if data["options"]["hydraulic"]["units"] == "LPS" # If liters per second...
                 # Retain the original values (in meters).
@@ -1030,7 +1150,6 @@ function _read_title!(data::Dict{String, Any})
         end
     end
 
-    data["title"] = join(lines, " ")
     data["name"] = join(lines, " ")
 end
 
@@ -1046,7 +1165,7 @@ function _read_valves!(data::Dict{String, Any})
         else
             valve = Dict{String, Any}()
             valve["name"] = current[1]
-            valve["source_id"] = current[1]
+            valve["source_id"] = ["valves", current[1]]
             valve["controls"] = Dict{String, Any}()
 
             # TODO: Finish the rest of valve parsing before appending.

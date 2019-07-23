@@ -29,7 +29,7 @@ include("common.jl")
 
 @testset "WaterModels" begin
 
-    include("common.jl")
+    include("base.jl")
 
     include("multinetwork.jl")
 

@@ -35,7 +35,7 @@ function post_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <: 
     for (i, junction) in ref(wm, n, :junctions)
         constraint_flow_conservation(wm, i, n)
 
-        if junction["base_demand"] > 0.0
+        if junction["demand"] > 0.0
             constraint_sink_flow(wm, i, n)
         end
     end

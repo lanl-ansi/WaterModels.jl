@@ -12,7 +12,7 @@ function calc_head_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
 
     # Get maximum elevation/head values at nodes.
     max_elev = maximum([node["elevation"] for node in values(junctions)])
-    max_head = maximum([node["base_head"] for node in values(reservoirs)])
+    max_head = maximum([node["head"] for node in values(reservoirs)])
 
     # Initialize the dictionaries for minimum and maximum heads.
     head_min = Dict([(i, -Inf) for i in nodes])
@@ -36,8 +36,8 @@ function calc_head_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
 
     for (i, reservoir) in reservoirs
         # Head values at reservoirs are fixed.
-        head_min[i] = reservoir["base_head"]
-        head_max[i] = reservoir["base_head"]
+        head_min[i] = reservoir["head"]
+        head_max[i] = reservoir["head"]
     end
 
     # Return the dictionaries of lower and upper bounds.
