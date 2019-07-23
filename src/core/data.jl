@@ -349,8 +349,6 @@ function is_in_node(i::Int)
 end
 
 
-_wm_global_keys = Set(["time_series","mass_units","per_unit","options","flow_units"])
-
 """
 Turns in given single network data in multinetwork data with a `count`
 replicate of the given network. Note that this function performs a deepcopy of
@@ -375,7 +373,7 @@ function make_multinetwork(data::Dict{String,<:Any})
     end
 
     # hard coded for the moment
-    steps = 24
+    steps = data["time_series"]["num_steps"]
 
     mn_data = InfrastructureModels.replicate(data, steps, global_keys=_wm_global_keys)
     time_series = pop!(mn_data, "time_series")
@@ -394,7 +392,7 @@ end
 
 
 "loads a single time point from a time_series data block into the current network"
-function load_timepoint!(data::Dict{String,<:Any}, step::Int)
+function load_timepoint!(data::Dict{String,<:Any}, step_index::Int)
     if InfrastructureModels.ismultinetwork(data)
         Memento.error(_LOGGER, "load_timepoint! does not support multinetwork data")
     end
@@ -403,13 +401,19 @@ function load_timepoint!(data::Dict{String,<:Any}, step::Int)
         Memento.error(_LOGGER, "load_timepoint! requires time_series data")
     end
 
+    if step_index < 1 || step_index > data["time_series"]["num_steps"]
+        Memento.error(_LOGGER, "a step index of $(step_index) is outside the valid range of 1:$(data["time_series"]["num_steps"])")
+    end
+
     for (k,v) in data["time_series"]
         if isa(v, Dict) && haskey(data, k)
-            _update_data_timepoint!(data[k], v, step)
+            _update_data_timepoint!(data[k], v, step_index)
         end
     end
 
-    data["step_index"] = step
+    data["step_index"] = step_index
+
+    return
 end
 
 

@@ -227,6 +227,11 @@ function build_ref(data::Dict{String,<:Any})
     nws = refs[:nw] = Dict{Int,Any}()
 
     if InfrastructureModels.ismultinetwork(data)
+        for (key, item) in data
+            if !isa(item, Dict{String,Any}) || key in _wm_global_keys
+                refs[Symbol(key)] = item
+            end
+        end
         nws_data = data["nw"]
     else
         nws_data = Dict("0" => data)

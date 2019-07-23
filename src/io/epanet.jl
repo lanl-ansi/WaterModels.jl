@@ -479,15 +479,6 @@ function parse_epanet(filename::String)
     # Add other data required by InfrastructureModels.
     data["per_unit"] = false
 
-    # TODO: This can be removed when Carleton's changes are merged.
-    if "time_series" in keys(data)
-        num_steps = data["time_series"]["num_steps"]
-        wm_global_keys = Set(["per_unit"])
-        global_keys = union(Set{String}(), wm_global_keys)
-        data = replicate(data, num_steps, global_keys=global_keys)
-        data["multinetwork"] = true
-    end
-
     # Return the dictionary.
     return data
 end
