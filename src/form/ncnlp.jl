@@ -1,16 +1,5 @@
 # Define NCNLP (non-convex nonlinear programming) implementations of water distribution models.
 
-export NCNLPWaterModel, StandardNCNLPForm
-
-abstract type AbstractNCNLPForm <: AbstractWaterFormulation end
-abstract type StandardNCNLPForm <: AbstractNCNLPForm end
-
-"The default NCNLP (non-convex nonlinear programming) model retains the exact head loss physics."
-const NCNLPWaterModel = GenericWaterModel{StandardNCNLPForm}
-
-"Default NCNLP constructor."
-NCNLPWaterModel(data::Dict{String,Any}; kwargs...) = GenericWaterModel(data, StandardNCNLPForm; kwargs...)
-
 function variable_head(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractNCNLPForm
     variable_pressure_head(wm, n)
     variable_head_gain(wm, n)

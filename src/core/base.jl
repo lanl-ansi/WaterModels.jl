@@ -5,7 +5,7 @@ export
     ismultinetwork, nw_ids, nws,
     ids, ref, var, con, ext, fun
 
-""
+"root of the water formulation type hierarchy"
 abstract type AbstractWaterFormulation end
 
 """
