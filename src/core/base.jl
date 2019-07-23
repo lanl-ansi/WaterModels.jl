@@ -1,11 +1,4 @@
-export
-    GenericWaterModel,
-    optimize!,
-    run_generic_model, build_generic_model, solve_generic_model,
-    ismultinetwork, nw_ids, nws,
-    ids, ref, var, con, ext, fun
-
-""
+"root of the water formulation type hierarchy"
 abstract type AbstractWaterFormulation end
 
 """
