@@ -13,6 +13,7 @@ NCNLPWaterModel(data::Dict{String,Any}; kwargs...) = GenericWaterModel(data, Sta
 
 function variable_head(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractNCNLPForm
     variable_pressure_head(wm, n)
+    variable_head_gain(wm, n)
 end
 
 function variable_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractNCNLPForm
@@ -24,20 +25,22 @@ function variable_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: Ab
 end
 
 function variable_pump(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractNCNLPForm
-    variable_head_gain(wm, n)
-    variable_fixed_pump_operation(wm, n)
+    variable_fixed_speed_pump_operation(wm, n)
 end
 
 function constraint_resistance_selection_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
     constraint_undirected_resistance_selection_ne(wm, a, n)
 end
 
-function constraint_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
-    constraint_undirected_potential_loss(wm, a, n)
+function constraint_potential_loss_pipe(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
+    constraint_undirected_potential_loss_pipe(wm, a, n)
 end
 
-function constraint_potential_loss_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
-    constraint_undirected_potential_loss_ne(wm, a, n)
+function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
+    constraint_undirected_potential_loss_pipe_ne(wm, a, n)
+end
+
+function constraint_potential_loss_pump(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
 end
 
 function constraint_flow_conservation(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
@@ -57,12 +60,12 @@ end
 function constraint_sink_flow(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
 end
 
-function constraint_undirected_potential_loss_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
+function constraint_undirected_potential_loss_pipe_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
     if !haskey(con(wm, n), :potential_loss_ne)
         con(wm, n)[:potential_loss_ne] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    i = ref(wm, n, :links, a)["f_id"]
+    i = ref(wm, n, :pipes, a)["f_id"]
 
     if i in collect(ids(wm, n, :reservoirs))
         h_i = ref(wm, n, :reservoirs, i)["head"]
@@ -70,7 +73,7 @@ function constraint_undirected_potential_loss_ne(wm::GenericWaterModel{T}, a::In
         h_i = var(wm, n, :h, i)
     end
 
-    j = ref(wm, n, :links, a)["t_id"]
+    j = ref(wm, n, :pipes, a)["t_id"]
 
     if j in collect(ids(wm, n, :reservoirs))
         h_j = ref(wm, n, :reservoirs, j)["head"]
@@ -78,7 +81,7 @@ function constraint_undirected_potential_loss_ne(wm::GenericWaterModel{T}, a::In
         h_j = var(wm, n, :h, j)
     end
 
-    L = ref(wm, n, :links, a)["length"]
+    L = ref(wm, n, :pipes, a)["length"]
     q_ne = var(wm, n, :q_ne, a)
     resistances = ref(wm, n, :resistance, a)
 
@@ -88,12 +91,12 @@ function constraint_undirected_potential_loss_ne(wm::GenericWaterModel{T}, a::In
     con(wm, n, :potential_loss_ne)[a] = c
 end
 
-function constraint_undirected_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
+function constraint_undirected_potential_loss_pipe(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
     if !haskey(con(wm, n), :potential_loss)
         con(wm, n)[:potential_loss] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    i = ref(wm, n, :links, a)["f_id"]
+    i = ref(wm, n, :pipes, a)["f_id"]
 
     if i in collect(ids(wm, n, :reservoirs))
         h_i = ref(wm, n, :reservoirs, i)["head"]
@@ -101,7 +104,7 @@ function constraint_undirected_potential_loss(wm::GenericWaterModel{T}, a::Int, 
         h_i = var(wm, n, :h, i)
     end
 
-    j = ref(wm, n, :links, a)["t_id"]
+    j = ref(wm, n, :pipes, a)["t_id"]
 
     if j in collect(ids(wm, n, :reservoirs))
         h_j = ref(wm, n, :reservoirs, j)["head"]
@@ -109,7 +112,7 @@ function constraint_undirected_potential_loss(wm::GenericWaterModel{T}, a::Int, 
         h_j = var(wm, n, :h, j)
     end
 
-    L = ref(wm, n, :links, a)["length"]
+    L = ref(wm, n, :pipes, a)["length"]
     r = minimum(ref(wm, n, :resistance, a))
     q = var(wm, n, :q, a)
 
@@ -120,4 +123,38 @@ end
 
 function objective_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: StandardNCNLPForm
     JuMP.set_objective_sense(wm.model, MOI.FEASIBILITY_SENSE)
+end
+
+function objective_owf(wm::GenericWaterModel{T}) where T <: StandardNCNLPForm
+    expr = JuMP.AffExpr(0.0)
+
+    for (n, nw_ref) in nws(wm)
+        pump_ids = ids(wm, n, :pumps)
+        costs = JuMP.@variable(wm.model, [a in pump_ids], base_name="costs[$(n)]",
+                               start=get_start(ref(wm, n, :pumps), a, "costs", 0.0))
+
+        efficiency = 0.85 # TODO: Change this after discussion. 0.85 follows Fooladivanda.
+        rho = 1000.0 # Water density.
+        g = 9.80665 # Gravitational acceleration.
+
+        time_step = nw_ref[:options]["time"]["hydraulic_timestep"]
+        constant = rho * g * time_step * inv(efficiency)
+
+        for (a, pump) in nw_ref[:pumps]
+            if haskey(pump, "energy_price")
+                g = var(wm, n)[:g][a]
+                q = var(wm, n)[:q][a]
+
+                energy_price = pump["energy_price"]
+                pump_cost = JuMP.@NLexpression(wm.model, constant * energy_price * g * abs(q))
+                con = JuMP.@NLconstraint(wm.model, pump_cost == costs[a])
+            else
+                Memento.error(_LOGGER, "No cost given for pump \"$(pump["name"])\"")
+            end
+        end
+
+        expr += sum(costs)
+    end
+
+    return JuMP.@objective(wm.model, MOI.MIN_SENSE, expr)
 end

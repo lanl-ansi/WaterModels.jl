@@ -26,6 +26,9 @@ function silence()
     Memento.setlevel!(Memento.getlogger(WaterModels), "error")
 end
 
+const _wm_global_keys = Set(["time_series", "per_unit"])
+
+
 include("io/common.jl")
 include("io/epanet.jl")
 include("io/geojson.jl")

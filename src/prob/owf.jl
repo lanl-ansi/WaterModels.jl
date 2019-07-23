@@ -18,8 +18,12 @@ function post_owf(wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <:
 
     # TODO: Need something separate for pumps or handle in constraint templates.
     for a in collect(ids(wm, n, :pipes))
-        constraint_potential_loss(wm, a, n)
+        constraint_potential_loss_pipe(wm, a, n)
         constraint_link_flow(wm, a, n)
+    end
+
+    for a in collect(ids(wm, n, :pumps))
+        constraint_potential_loss_pump(wm, a, n)
     end
 
     for (i, node) in ref(wm, n, :nodes)
@@ -34,7 +38,7 @@ function post_owf(wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <:
     #    constraint_source_flow(wm, i, n)
     #end
 
-    objective_wf(wm, n)
+    objective_owf(wm)
 end
 
 function run_mn_owf(file, model_constructor, optimizer; kwargs...)
@@ -54,10 +58,13 @@ function post_mn_owf(wm::GenericWaterModel{T}; kwargs...) where T <: AbstractWat
         variable_flow(wm, n)
         variable_pump(wm, n)
 
-        # TODO: Need something separate for pumps or handle in constraint templates.
         for a in ids(wm, n, :pipes)
-            constraint_potential_loss(wm, a, n)
+            constraint_potential_loss_pipe(wm, a, n)
             constraint_link_flow(wm, a, n)
+        end
+
+        for a in collect(ids(wm, n, :pumps))
+            constraint_potential_loss_pump(wm, a, n)
         end
 
         for (i, node) in wm.ref[:nw][n][:nodes]

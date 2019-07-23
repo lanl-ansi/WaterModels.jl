@@ -224,12 +224,23 @@ function variable_flow_direction(wm::GenericWaterModel, n::Int=wm.cnw)
     var(wm, n)[:x_dir] = x_dir
 end
 
-function variable_fixed_pump_operation(wm::GenericWaterModel, n::Int=wm.cnw)
+function variable_fixed_speed_pump_operation(wm::GenericWaterModel, n::Int=wm.cnw)
     pump_ids = ids(wm, n, :pumps)
+
+    x_pump = JuMP.@variable(wm.model, [a in pump_ids], base_name="x_pump[$(n)]",
+                            binary=true, start=get_start(ref(wm, n, :links), a,
+                                                         "x_pump_start", 1.0))
+
+    var(wm, n)[:x_pump] = x_pump
 end
 
 function variable_head_gain(wm::GenericWaterModel, n::Int=wm.cnw)
     pump_ids = ids(wm, n, :pumps)
+
+    g = JuMP.@variable(wm.model, [a in pump_ids], base_name="g[$(n)]",
+                       start=get_start(ref(wm, n, :links), a, "g", 0.0))
+
+    var(wm, n)[:g] = g
 end
 
 function variable_resistance_ne(wm::GenericWaterModel, n::Int=wm.cnw)
