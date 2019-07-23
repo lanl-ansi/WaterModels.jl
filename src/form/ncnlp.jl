@@ -42,7 +42,7 @@ end
 
 function constraint_potential_loss_pump(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
     constraint_undirected_potential_loss_pump(wm, a, n)
-    constraint_undirected_head_gain_pump(wm, a, n)
+    constraint_undirected_head_gain_pump_quadratic_fit(wm, a, n)
 end
 
 function constraint_flow_conservation(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
@@ -164,17 +164,26 @@ function constraint_undirected_potential_loss_pump(wm::GenericWaterModel{T}, a::
     con(wm, n, :potential_loss_2)[a] = c_2
 end
 
-function constraint_undirected_head_gain_pump(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
+function get_function_from_pump_curve(pump_curve::Array{Tuple{Float64,Float64}})
+    println("hello", pump_curve)
+end
+
+function constraint_undirected_head_gain_pump_quadratic_fit(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
     if !haskey(con(wm, n), :head_gain)
         con(wm, n)[:head_gain] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    q = var(wm, n, :q, a)
-    g = var(wm, n, :g, a)
+    pump_curve = ref(wm, n, :pumps, a)["pump_curve"]
+    get_function_from_pump_curve(pump_curve)
+    #println(pump_curve)
 
-    #c = JuMP.@NLconstraint(wm.model, g == a * q^2 + b * q * omega + c * omega^2)
+    ##rhs = get_head_gain_rhs(a, n)
+    #q = var(wm, n, :q, a)
+    #g = var(wm, n, :g, a)
 
-    #con(wm, n, :head_gain)[a] = c
+    ##c = JuMP.@NLconstraint(wm.model, g == a * q^2 + b * q * omega + c * omega^2)
+
+    ##con(wm, n, :head_gain)[a] = c
 end
 
 function objective_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: StandardNCNLPForm
