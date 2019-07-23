@@ -15,9 +15,13 @@ function post_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <: 
     variable_flow(wm, n)
     variable_pump(wm, n)
 
-    for a in collect(ids(wm, n, :links))
-        constraint_potential_loss(wm, a, n)
+    for a in collect(ids(wm, n, :pipes))
+        constraint_potential_loss_pipe(wm, a, n)
         constraint_link_flow(wm, a, n)
+    end
+
+    for a in collect(ids(wm, n, :pumps))
+        constraint_potential_loss_pump(wm, a, n)
     end
 
     for (i, junction) in ref(wm, n, :junctions)
@@ -51,9 +55,13 @@ function post_mn_wf(wm::GenericWaterModel{T}; kwargs...) where T <: AbstractWate
         variable_flow(wm, n)
         variable_pump(wm, n)
 
-        for a in collect(ids(wm, n, :links))
-            constraint_potential_loss(wm, a, n)
+        for a in collect(ids(wm, n, :pipes))
+            constraint_potential_loss_pipe(wm, a, n)
             constraint_link_flow(wm, a, n)
+        end
+
+        for a in collect(ids(wm, n, :pumps))
+            constraint_potential_loss_pump(wm, a, n)
         end
 
         for (i, junction) in ref(wm, n, :junctions)

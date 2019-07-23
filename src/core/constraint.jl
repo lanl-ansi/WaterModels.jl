@@ -244,14 +244,14 @@ function constraint_directed_head_difference(wm::GenericWaterModel, a::Int, n::I
     con(wm, n, :head_difference_3)[a] = con_3
 end
 
-function constraint_directed_potential_loss_ub_ne(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
-    if !haskey(con(wm, n), :directed_potential_loss_ub_ne_n)
-        con(wm, n)[:directed_potential_loss_ub_ne_n] = Dict{Int, JuMP.ConstraintRef}()
-        con(wm, n)[:directed_potential_loss_ub_ne_p] = Dict{Int, JuMP.ConstraintRef}()
+function constraint_directed_potential_loss_ub_pipe_ne(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
+    if !haskey(con(wm, n), :directed_potential_loss_ub_pipe_ne_n)
+        con(wm, n)[:directed_potential_loss_ub_pipe_ne_n] = Dict{Int, JuMP.ConstraintRef}()
+        con(wm, n)[:directed_potential_loss_ub_pipe_ne_p] = Dict{Int, JuMP.ConstraintRef}()
     end
 
     alpha = ref(wm, n, :alpha)
-    L = ref(wm, n, :links, a)["length"]
+    L = ref(wm, n, :pipes, a)["length"]
     resistances = ref(wm, n, :resistance, a)
 
     dhp = var(wm, n, :dhp, a)
@@ -259,37 +259,37 @@ function constraint_directed_potential_loss_ub_ne(wm::GenericWaterModel, a::Int,
     slopes_p = resistances .* qp_ne_ub.^(alpha - 1.0)
     rhs_p = sum(slopes_p .* var(wm, n, :qp_ne, a))
     con_p = JuMP.@constraint(wm.model, inv(L) * dhp - rhs_p <= 0.0)
-    con(wm, n, :directed_potential_loss_ub_ne_p)[a] = con_p
+    con(wm, n, :directed_potential_loss_ub_pipe_ne_p)[a] = con_p
 
     dhn = var(wm, n, :dhn, a)
     qn_ne_ub = JuMP.upper_bound.(var(wm, n, :qn_ne, a))
     slopes_n = resistances .* qn_ne_ub.^(alpha - 1.0)
     rhs_n = sum(slopes_n .* var(wm, n, :qn_ne, a))
     con_n = JuMP.@constraint(wm.model, inv(L) * dhn - rhs_n <= 0.0)
-    con(wm, n, :directed_potential_loss_ub_ne_n)[a] = con_n
+    con(wm, n, :directed_potential_loss_ub_pipe_ne_n)[a] = con_n
 end
 
-function constraint_directed_potential_loss_ub(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
-    if !haskey(con(wm, n), :directed_potential_loss_ub_n)
-        con(wm, n)[:directed_potential_loss_ub_p] = Dict{Int, JuMP.ConstraintRef}()
-        con(wm, n)[:directed_potential_loss_ub_n] = Dict{Int, JuMP.ConstraintRef}()
+function constraint_directed_potential_loss_ub_pipe(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
+    if !haskey(con(wm, n), :directed_potential_loss_ub_pipe_n)
+        con(wm, n)[:directed_potential_loss_ub_pipe_p] = Dict{Int, JuMP.ConstraintRef}()
+        con(wm, n)[:directed_potential_loss_ub_pipe_n] = Dict{Int, JuMP.ConstraintRef}()
     end
 
     alpha = ref(wm, n, :alpha)
-    L = ref(wm, n, :links, a)["length"]
+    L = ref(wm, n, :pipes, a)["length"]
     r = maximum(ref(wm, n, :resistance, a))
 
     dhp = var(wm, n, :dhp, a)
     qp_ub = JuMP.upper_bound(var(wm, n, :qp, a))
     rhs_p = r * qp_ub^(alpha - 1.0) * var(wm, n, :qp, a)
     con_p = JuMP.@constraint(wm.model, inv(L) * dhp - rhs_p <= 0.0)
-    con(wm, n, :directed_potential_loss_ub_p)[a] = con_p
+    con(wm, n, :directed_potential_loss_ub_pipe_p)[a] = con_p
 
     dhn = var(wm, n, :dhn, a)
     qn_ub = JuMP.upper_bound(var(wm, n, :qn, a))
     rhs_n = r * qn_ub^(alpha - 1.0) * var(wm, n, :qn, a)
     con_n = JuMP.@constraint(wm.model, inv(L) * dhn - rhs_n <= 0.0)
-    con(wm, n, :directed_potential_loss_ub_n)[a] = con_n
+    con(wm, n, :directed_potential_loss_ub_pipe_n)[a] = con_n
 end
 
 function constraint_link_undirected_flow_ne(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)

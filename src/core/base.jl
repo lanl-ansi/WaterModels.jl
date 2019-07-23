@@ -250,6 +250,7 @@ function build_ref(data::Dict{String,<:Any})
         end
 
         ref[:links] = merge(ref[:pipes], ref[:valves], ref[:pumps])
+        ref[:pipes_ne] = filter(is_ne_link, ref[:pipes])
         ref[:links_ne] = filter(is_ne_link, ref[:links])
         ref[:nodes] = merge(ref[:junctions], ref[:tanks], ref[:reservoirs])
 

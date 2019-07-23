@@ -12,6 +12,10 @@
         richmond_skeleton_name = "24 replicates of Richmond Skeleton Water Supply System"
         @test richmond_skeleton_data["name"] == richmond_skeleton_name
 
+        richmond_skeleton_sp_data = WaterModels.parse_file("../test/data/epanet/richmond-skeleton-sp.inp")
+        richmond_skeleton_sp_name = "Richmond Skeleton Water Supply System (First Time Point)"
+        @test richmond_skeleton_sp_data["name"] == richmond_skeleton_sp_name
+
         shamir_data = WaterModels.parse_file("../test/data/epanet/shamir.inp")
         shamir_name = "shamir -- Bragalli, D'Ambrosio, Lee, Lodi, Toth (2008)"
         @test shamir_data["name"] == shamir_name

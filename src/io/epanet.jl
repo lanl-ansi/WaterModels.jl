@@ -40,7 +40,6 @@ function _add_link_ids!(data::Dict{String, Any})
         end
     end
 
-
     for link_type in ["pumps"]
         # Update the link IDs in time series.
         ts_link_ids = Array{Int64, 1}()

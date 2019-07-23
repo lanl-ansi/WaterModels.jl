@@ -17,7 +17,3 @@ function objective_ne(wm::GenericWaterModel, n::Int=wm.cnw)
     objective = get_resistance_cost_expression(wm, n)
     return JuMP.@objective(wm.model, MOI.MIN_SENSE, objective)
 end
-
-function objective_owf(wm::GenericWaterModel, n::Int=wm.cnw)
-    JuMP.set_objective_sense(wm.model, MOI.FEASIBILITY_SENSE)
-end

@@ -15,6 +15,7 @@ function post_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <: 
 
     variable_head(wm, n)
     variable_flow(wm, n)
+    variable_pump(wm, n)
     variable_flow_ne(wm, n)
     variable_resistance_ne(wm, n)
 
@@ -22,14 +23,18 @@ function post_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <: 
         constraint_link_flow(wm, a, n)
     end
 
-    for a in setdiff(ids(wm, n, :links), ids(wm, n, :links_ne))
-        constraint_potential_loss(wm, a, n)
+    for a in setdiff(ids(wm, n, :pipes), ids(wm, n, :pipes_ne))
+        constraint_potential_loss_pipe(wm, a, n)
     end
 
-    for a in collect(ids(wm, n, :links_ne))
-        constraint_potential_loss_ne(wm, a, n)
+    for a in collect(ids(wm, n, :pipes_ne))
+        constraint_potential_loss_pipe_ne(wm, a, n)
         constraint_resistance_selection_ne(wm, a, n)
         constraint_link_flow_ne(wm, a, n)
+    end
+
+    for a in ids(wm, n, :pumps)
+        constraint_potential_loss_pump(wm, a, n)
     end
 
     for (i, junction) in ref(wm, n, :junctions)

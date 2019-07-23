@@ -2,6 +2,7 @@
     # Set test network paths.
     balerma_path = "../test/data/epanet/balerma.inp"
     richmond_skeleton_path = "../test/data/epanet/richmond-skeleton.inp"
+    richmond_skeleton_sp_path = "../test/data/epanet/richmond-skeleton-sp.inp"
     shamir_path = "../test/data/epanet/shamir.inp"
 
     @testset "Balerma network (unknown flow directions), CNLP formulation." begin
@@ -11,6 +12,10 @@
 
     #@testset "Richmond network (unknown flow directions), NCNLP formulation." begin
     #    solution = run_wf(richmond_skeleton_path, NCNLPWaterModel, ipopt)
+    #end
+
+    #@testset "Single-time Richmond network, NCNLP formulation." begin
+    #    solution = run_wf(richmond_skeleton_sp_path, NCNLPWaterModel, ipopt)
     #end
 
     @testset "Shamir network (unknown flow directions), CNLP formulation." begin
