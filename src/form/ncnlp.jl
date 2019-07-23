@@ -58,7 +58,7 @@ end
 
 function constraint_undirected_potential_loss_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
     if !haskey(wm.con[:nw][n], :potential_loss_ne)
-        wm.con[:nw][n][:potential_loss_ne] = Dict{Int, JuMP.ConstraintRef}()
+        con(wm, n)[:potential_loss_ne] = Dict{Int, JuMP.ConstraintRef}()
     end
 
     i = ref(wm, n, :links, a)["f_id"]
@@ -81,15 +81,15 @@ function constraint_undirected_potential_loss_ne(wm::GenericWaterModel{T}, a::In
     q_ne = var(wm, n, :q_ne, a)
     resistances = ref(wm, n, :resistance, a)
 
-    con = JuMP.@NLconstraint(wm.model, sum(r * f_alpha(q_ne[r_id]) for (r_id, r)
+    c = JuMP.@NLconstraint(wm.model, sum(r * f_alpha(q_ne[r_id]) for (r_id, r)
                              in enumerate(resistances)) - inv(L) * (h_i - h_j) == 0.0)
 
-    wm.con[:nw][n][:potential_loss_ne][a] = con
+    con(wm, n, :potential_loss_ne)[a] = c
 end
 
 function constraint_undirected_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
     if !haskey(wm.con[:nw][n], :potential_loss)
-        wm.con[:nw][n][:potential_loss] = Dict{Int, JuMP.ConstraintRef}()
+        con(wm, n)[:potential_loss] = Dict{Int, JuMP.ConstraintRef}()
     end
 
     i = ref(wm, n, :links, a)["f_id"]
@@ -112,9 +112,9 @@ function constraint_undirected_potential_loss(wm::GenericWaterModel{T}, a::Int, 
     r = minimum(ref(wm, n, :resistance, a))
     q = var(wm, n, :q, a)
 
-    con = JuMP.@NLconstraint(wm.model, r * f_alpha(q) - inv(L) * (h_i - h_j) == 0.0)
+    c = JuMP.@NLconstraint(wm.model, r * f_alpha(q) - inv(L) * (h_i - h_j) == 0.0)
 
-    wm.con[:nw][n][:potential_loss][a] = con
+    con(wm, n, :potential_loss)[a] = c
 end
 
 function objective_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: StandardNCNLPForm

@@ -73,12 +73,12 @@ end
 
 function constraint_directed_potential_loss_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMILPRForm
     if !haskey(wm.con[:nw][n], :potential_loss_n_ne)
-        wm.con[:nw][n][:potential_loss_n_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
-        wm.con[:nw][n][:potential_loss_p_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
+        con(wm, n)[:potential_loss_n_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
+        con(wm, n)[:potential_loss_p_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
     end
 
-    wm.con[:nw][n][:potential_loss_n_ne][a] = Dict{Int, JuMP.ConstraintRef}()
-    wm.con[:nw][n][:potential_loss_p_ne][a] = Dict{Int, JuMP.ConstraintRef}()
+    con(wm, n, :potential_loss_n_ne)[a] = Dict{Int, JuMP.ConstraintRef}()
+    con(wm, n, :potential_loss_p_ne)[a] = Dict{Int, JuMP.ConstraintRef}()
 
     alpha = ref(wm, n, :alpha)
     L = ref(wm, n, :links, a)["length"]
@@ -110,8 +110,8 @@ end
 
 function constraint_directed_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMILPRForm
     if !haskey(wm.con[:nw][n], :potential_loss_n)
-        wm.con[:nw][n][:potential_loss_n] = Dict{Int, JuMP.ConstraintRef}()
-        wm.con[:nw][n][:potential_loss_p] = Dict{Int, JuMP.ConstraintRef}()
+        con(wm, n)[:potential_loss_n] = Dict{Int, JuMP.ConstraintRef}()
+        con(wm, n)[:potential_loss_p] = Dict{Int, JuMP.ConstraintRef}()
     end
 
     alpha = ref(wm, n, :alpha)
