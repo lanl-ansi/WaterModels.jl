@@ -31,6 +31,8 @@ include("common.jl")
 
     include("base.jl")
 
+    include("data.jl")
+
     include("multinetwork.jl")
 
     include("io.jl")
