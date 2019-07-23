@@ -42,30 +42,6 @@ function constraint_undirected_flow_conservation(wm::GenericWaterModel{T}, i::In
     con(wm, n, :flow_conservation)[i] = c
 end
 
-function constraint_undirected_flow_conservation_ne(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractWaterFormulation
-    # Create the constraint dictionary if necessary.
-    if !haskey(con(wm, n), :flow_conservation_ne)
-        con(wm, n)[:flow_conservation_ne] = Dict{Int, JuMP.ConstraintRef}()
-    end
-
-    # Initialize the flow sum expression.
-    flow_sum = JuMP.AffExpr(0.0)
-
-    # Add all incoming flow to node i.
-    for (a, conn) in filter(is_in_node(i), ref(wm, n, :links))
-        JuMP.add_to_expression!(flow_sum, sum(var(wm, n, :q_ne, a)))
-    end
-
-    # Subtract all outgoing flow from node i.
-    for (a, conn) in filter(is_out_node(i), ref(wm, n, :links))
-        JuMP.add_to_expression!(flow_sum, -sum(var(wm, n, :q_ne, a)))
-    end
-
-    # Add the flow conservation constraint.
-    demand = ref(wm, n, :junctions, i)["demand"]
-    c = JuMP.@constraint(wm.model, flow_sum == demand)
-    con(wm, n, :flow_conservation_ne)[i] = c
-end
 
 function constraint_directed_flow_conservation(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractWaterFormulation
     # Create the constraint dictionary if necessary.
@@ -109,32 +85,6 @@ function constraint_directed_flow_conservation(wm::GenericWaterModel{T}, i::Int,
     con(wm, n, :flow_conservation)[i] = c
 end
 
-function constraint_directed_flow_conservation_ne(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractWaterFormulation
-    # Create the constraint dictionary if necessary.
-    if !haskey(con(wm, n), :flow_conservation_ne)
-        con(wm, n)[:flow_conservation_ne] = Dict{Int, JuMP.ConstraintRef}()
-    end
-
-    # Initialize the flow sum expression.
-    flow_sum = JuMP.AffExpr(0.0)
-
-    # Add all incoming flow to node i.
-    for (a, conn) in filter(is_in_node(i), ref(wm, n, :links))
-        JuMP.add_to_expression!(flow_sum, sum(var(wm, n, :qp_ne, a)))
-        JuMP.add_to_expression!(flow_sum, -sum(var(wm, n, :qn_ne, a)))
-    end
-
-    # Subtract all outgoing flow from node i.
-    for (a, conn) in filter(is_out_node(i), ref(wm, n, :links))
-        JuMP.add_to_expression!(flow_sum, -sum(var(wm, n, :qp_ne, a)))
-        JuMP.add_to_expression!(flow_sum, sum(var(wm, n, :qn_ne, a)))
-    end
-
-    # Add the flow conservation constraint.
-    demand = ref(wm, n, :junctions, i)["demand"]
-    c = JuMP.@constraint(wm.model, flow_sum == demand)
-    con(wm, n, :flow_conservation_ne)[i] = c
-end
 
 function constraint_directed_resistance_selection_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractWaterFormulation
     if !haskey(con(wm, n), :resistance_selection_sum)
