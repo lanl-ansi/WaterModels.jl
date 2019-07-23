@@ -382,6 +382,7 @@ function make_multinetwork(data::Dict{String,<:Any})
         nw_data = mn_data["nw"]["$(i)"]
         for (k,v) in data["time_series"]
             if isa(v, Dict) && haskey(nw_data, k)
+                #println(k); println(v)
                 _update_data_timepoint!(nw_data[k], v, i)
             end
         end

@@ -35,8 +35,8 @@ function _add_link_ids!(data::Dict{String, Any})
             end
 
             new_ids = start_id:(start_id+length(keys(data[link_type]))-1)
-            new_keys = [string(x) for x in new_ids]
-            data[link_type] = DataStructures.OrderedDict(new_keys .=> values(data[link_type]))
+            new_keys = String[string(x) for x in new_ids]
+            data[link_type] = DataStructures.OrderedDict{String,Any}(new_keys .=> values(data[link_type]))
         end
     end
 
@@ -50,8 +50,8 @@ function _add_link_ids!(data::Dict{String, Any})
             ts_link_ids = vcat(ts_link_ids, id)
         end
 
-        new_keys = [string(x) for x in ts_link_ids]
-        data["time_series"][link_type] = Dict(new_keys .=> values(data["time_series"][link_type]))
+        new_keys = String[string(x) for x in ts_link_ids]
+        data["time_series"][link_type] = Dict{String,Any}(new_keys .=> values(data["time_series"][link_type]))
     end
 
     # Convert to Dict to ensure compatibility with InfrastructureModels.
@@ -104,8 +104,8 @@ function _add_node_ids!(data::Dict{String, Any})
             end
 
             new_ids = start_id:(start_id+length(keys(data[node_type]))-1)
-            new_keys = [string(x) for x in new_ids]
-            data[node_type] = DataStructures.OrderedDict(new_keys .=> values(data[node_type]))
+            new_keys = String[string(x) for x in new_ids]
+            data[node_type] = DataStructures.OrderedDict{String,Any}(new_keys .=> values(data[node_type]))
         end
     end
 
@@ -118,8 +118,8 @@ function _add_node_ids!(data::Dict{String, Any})
             ts_node_ids = vcat(ts_node_ids, id)
         end
 
-        new_keys = [string(x) for x in ts_node_ids]
-        data["time_series"][node_type] = Dict(new_keys .=> values(data["time_series"][node_type]))
+        new_keys = String[string(x) for x in ts_node_ids]
+        data["time_series"][node_type] = Dict{String,Any}(new_keys .=> values(data["time_series"][node_type]))
     end
 
     # Convert to Dict to ensure compatibility with InfrastructureModels.
