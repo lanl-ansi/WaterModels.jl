@@ -25,6 +25,9 @@ function variable_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: Ab
     variable_directed_flow_ne(wm, n, bounded=true)
 end
 
+function variable_pump(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractMILPRForm
+end
+
 function constraint_resistance_selection_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMILPRForm
     constraint_directed_resistance_selection_ne(wm, a, n)
 end

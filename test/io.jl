@@ -9,7 +9,7 @@
         @test klmod_data["name"] == klmod_name
 
         richmond_skeleton_data = WaterModels.parse_file("../test/data/epanet/richmond-skeleton.inp")
-        richmond_skeleton_name = "Richmond Skeleton Water Supply System"
+        richmond_skeleton_name = "24 replicates of Richmond Skeleton Water Supply System"
         @test richmond_skeleton_data["name"] == richmond_skeleton_name
 
         shamir_data = WaterModels.parse_file("../test/data/epanet/shamir.inp")

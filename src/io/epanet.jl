@@ -454,7 +454,17 @@ function parse_epanet(filename::String)
 
     # Add other data required by InfrastructureModels.
     data["per_unit"] = false
-    data["multinetwork"] = false
+
+    duration = data["options"]["time"]["duration"]
+    time_step = data["options"]["time"]["hydraulic_timestep"]
+    num_steps = convert(Int64, floor(duration / time_step))
+
+    if num_steps > 1
+        wm_global_keys = Set(["per_unit"])
+        global_keys = union(Set{String}(), wm_global_keys)
+        data = replicate(data, num_steps, global_keys=global_keys)
+        data["multinetwork"] = true
+    end
 
     # Return the dictionary.
     return data
