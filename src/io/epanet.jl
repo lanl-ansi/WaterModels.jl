@@ -40,10 +40,11 @@ function _add_link_ids!(data::Dict{String, Any})
         end
     end
 
-    # Update the link IDs in time series.
-    ts_link_ids = Array{Int64, 1}()
 
     for link_type in ["pumps"]
+        # Update the link IDs in time series.
+        ts_link_ids = Array{Int64, 1}()
+
         for (link_name, link) in data["time_series"][link_type]
             id = _get_link_id_by_name(data, link_name)
             ts_link_ids = vcat(ts_link_ids, id)
@@ -56,6 +57,27 @@ function _add_link_ids!(data::Dict{String, Any})
     # Convert to Dict to ensure compatibility with InfrastructureModels.
     for link_type in link_types
         data[link_type] = Dict{String, Any}(data[link_type])
+    end
+end
+
+function _correct_time_series!(data::Dict{String, Any})
+    duration = data["options"]["time"]["duration"]
+    time_step = data["options"]["time"]["hydraulic_timestep"]
+    num_steps = convert(Int64, floor(duration / time_step))
+    patterns = keys(data["patterns"])
+
+    if num_steps >= 1 && patterns != ["1"]
+        data["time_series"]["duration"] = data["options"]["time"]["duration"]
+        data["time_series"]["time_step"] = data["options"]["time"]["hydraulic_timestep"]
+        data["time_series"]["num_steps"] = convert(Int64, floor(duration / time_step))
+
+        for pattern in patterns
+            if !(length(data["patterns"][pattern]) in [1, num_steps])
+                Memento.error(_LOGGER, "Pattern \"$(pattern)\" does not have the correct number of entries")
+            end
+        end
+    else
+        delete!(data, "time_series")
     end
 end
 
@@ -87,10 +109,10 @@ function _add_node_ids!(data::Dict{String, Any})
         end
     end
 
-    # Update the node IDs in time series.
-    ts_node_ids = Array{Int64, 1}()
-
     for node_type in ["junctions", "reservoirs"]
+        # Update the node IDs in time series.
+        ts_node_ids = Array{Int64, 1}()
+
         for (node_name, node) in data["time_series"][node_type]
             id = _get_node_id_by_name(data, node_name)
             ts_node_ids = vcat(ts_node_ids, id)
@@ -99,7 +121,6 @@ function _add_node_ids!(data::Dict{String, Any})
         new_keys = [string(x) for x in ts_node_ids]
         data["time_series"][node_type] = Dict(new_keys .=> values(data["time_series"][node_type]))
     end
-
 
     # Convert to Dict to ensure compatibility with InfrastructureModels.
     for node_type in node_types
@@ -448,6 +469,9 @@ function parse_epanet(filename::String)
 
     # EMITTERS
     #_read_emitters!(data)
+    
+    # Add or remove time series information.
+    _correct_time_series!(data)
 
     # Delete the data that has now been properly parsed.
     delete!(data, "sections")
@@ -455,11 +479,9 @@ function parse_epanet(filename::String)
     # Add other data required by InfrastructureModels.
     data["per_unit"] = false
 
-    duration = data["options"]["time"]["duration"]
-    time_step = data["options"]["time"]["hydraulic_timestep"]
-    num_steps = convert(Int64, floor(duration / time_step))
-
-    if num_steps > 1
+    # TODO: This can be removed when Carleton's changes are merged.
+    if "time_series" in keys(data)
+        num_steps = data["time_series"]["num_steps"]
         wm_global_keys = Set(["per_unit"])
         global_keys = union(Set{String}(), wm_global_keys)
         data = replicate(data, num_steps, global_keys=global_keys)

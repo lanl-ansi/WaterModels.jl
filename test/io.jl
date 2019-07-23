@@ -15,6 +15,10 @@
         shamir_data = WaterModels.parse_file("../test/data/epanet/shamir.inp")
         shamir_name = "shamir -- Bragalli, D'Ambrosio, Lee, Lodi, Toth (2008)"
         @test shamir_data["name"] == shamir_name
+
+        shamir_ts_data = WaterModels.parse_file("../test/data/epanet/shamir-ts.inp")
+        shamir_ts_name = "3 replicates of shamir (time series) -- Bragalli, D'Ambrosio, Lee, Lodi, Toth (2008)"
+        @test shamir_ts_data["name"] == shamir_ts_name
     end
 
     @testset "parse_file (.json)" begin
