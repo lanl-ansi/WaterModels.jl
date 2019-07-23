@@ -1,8 +1,7 @@
 # Functions for working with the WaterModels internal data format.
 
-function calc_head_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
+function calc_head_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
     nodes = ref(wm, n, :nodes)
-
     # Get maximum elevation/head values at nodes.
     max_elev = maximum(node["elevation"] for (i,node) in nodes)
 
@@ -32,6 +31,12 @@ function calc_head_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
         head_max[i] = reservoir["head"]
     end
 
+    for (i, tank) in ref(wm, n, :tanks)
+        node = ref(wm, n, :nodes)[tank["tank_node"]]
+        head_min[i] = node["elevation"] + tank["min_level"]
+        head_max[i] = node["elevation"] + tank["max_level"]
+    end
+
     # Return the dictionaries of lower and upper bounds.
     return head_min, head_max
 end
@@ -57,6 +62,7 @@ end
 
 function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
     links = ref(wm, n, :links)
+    pipes = ref(wm, n, :pipes)
     dh_lb, dh_ub = calc_head_difference_bounds(wm, n)
 
     alpha = ref(wm, n, :alpha)
@@ -66,7 +72,7 @@ function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
     lb = Dict([(a, Float64[]) for a in keys(links)])
     ub = Dict([(a, Float64[]) for a in keys(links)])
 
-    for (a, link) in links
+    for (a, link) in pipes
         L = link["length"]
         resistances = ref(wm, n, :resistance, a)
         num_resistances = length(resistances)
@@ -95,6 +101,12 @@ function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
                 ub[a][r_id] = min(ub[a][r_id], rate_bound)
             end
         end
+    end
+
+    for (a, link) in ref(wm, n, :pumps)
+        # TODO: Need better bounds here.
+        lb[a] = [0.0]
+        ub[a] = [Inf]
     end
 
     return lb, ub
@@ -153,7 +165,7 @@ function calc_resistances_hw(links::Dict{<:Any, Any})
 
     for (a, link) in links
         if haskey(link, "resistances")
-            resistances[a] = sort(link["resistances"], rev = true)
+            resistances[a] = sort(link["resistances"], rev=true)
         elseif haskey(link, "resistance")
             resistances[a] = vcat(resistances[a], link["resistance"])
         elseif haskey(link, "diameters")
@@ -162,7 +174,7 @@ function calc_resistances_hw(links::Dict{<:Any, Any})
                 resistances[a] = vcat(resistances[a], r)
             end
 
-            resistances[a] = sort(resistances[a], rev = true)
+            resistances[a] = sort(resistances[a], rev=true)
         else
             r = calc_resistance_hw(link["diameter"], link["roughness"])
             resistances[a] = vcat(resistances[a], r)
@@ -326,6 +338,7 @@ function is_in_node(i::Int)
     end
 end
 
+
 """
 Turns in given single network data in multinetwork data with a `count`
 replicate of the given network. Note that this function performs a deepcopy of
@@ -335,8 +348,86 @@ data replication.
 """
 function replicate(sn_data::Dict{String,<:Any}, count::Int; global_keys::Set{String}=Set{String}())
     wm_global_keys = Set(["per_unit"])
-    return InfrastructureModels.replicate(sn_data, count, global_keys=union(global_keys, wm_global_keys))
+    return InfrastructureModels.replicate(sn_data, count, global_keys=union(global_keys, _wm_global_keys))
 end
+
+
+"turns a single network and a time_series data block into a multi-network"
+function make_multinetwork(data::Dict{String,<:Any})
+    if InfrastructureModels.ismultinetwork(data)
+        Memento.error(_LOGGER, "make_multinetwork does not support multinetwork data")
+    end
+
+    if !haskey(data, "time_series")
+        Memento.error(_LOGGER, "make_multinetwork requires time_series data")
+    end
+
+    # hard coded for the moment
+    steps = data["time_series"]["num_steps"]
+
+    mn_data = InfrastructureModels.replicate(data, steps, global_keys=_wm_global_keys)
+    time_series = pop!(mn_data, "time_series")
+
+    for i in 1:steps
+        nw_data = mn_data["nw"]["$(i)"]
+        for (k,v) in data["time_series"]
+            if isa(v, Dict) && haskey(nw_data, k)
+                #println(k); println(v)
+                _update_data_timepoint!(nw_data[k], v, i)
+            end
+        end
+    end
+
+    return mn_data
+end
+
+
+"loads a single time point from a time_series data block into the current network"
+function load_timepoint!(data::Dict{String,<:Any}, step_index::Int)
+    if InfrastructureModels.ismultinetwork(data)
+        Memento.error(_LOGGER, "load_timepoint! does not support multinetwork data")
+    end
+
+    if !haskey(data, "time_series")
+        Memento.error(_LOGGER, "load_timepoint! requires time_series data")
+    end
+
+    if step_index < 1 || step_index > data["time_series"]["num_steps"]
+        Memento.error(_LOGGER, "a step index of $(step_index) is outside the valid range of 1:$(data["time_series"]["num_steps"])")
+    end
+
+    for (k,v) in data["time_series"]
+        if isa(v, Dict) && haskey(data, k)
+            _update_data_timepoint!(data[k], v, step_index)
+        end
+    end
+
+    data["step_index"] = step_index
+
+    return
+end
+
+
+"recursive call of _update_data"
+function _update_data_timepoint!(data::Dict{String,<:Any}, new_data::Dict{String,<:Any}, step::Int)
+    for (key, new_v) in new_data
+        if haskey(data, key)
+            v = data[key]
+            if isa(v, Dict) && isa(new_v, Dict)
+                _update_data_timepoint!(v, new_v, step)
+            elseif (!isa(v, Dict) || !isa(v, Array)) && isa(new_v, Array)
+                data[key] = new_v[step]
+            else
+                Memento.warn(_LOGGER, "skipping key $(key) because object types do not match, target $(typeof(v)) source $(typeof(new_v))")
+            end
+        else
+            Memento.warn(_LOGGER, "skipping time_series key $(key) because it does not occur in the target data")
+        end
+    end
+end
+
+
+
 
 function set_start_head!(data)
     for (i, node) in data["nodes"]

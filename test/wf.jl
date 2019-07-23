@@ -2,6 +2,7 @@
     # Set test network paths.
     balerma_path = "../test/data/epanet/balerma.inp"
     richmond_skeleton_path = "../test/data/epanet/richmond-skeleton.inp"
+    richmond_skeleton_sp_path = "../test/data/epanet/richmond-skeleton-sp.inp"
     shamir_path = "../test/data/epanet/shamir.inp"
 
     @testset "Balerma network (unknown flow directions), CNLP formulation." begin
@@ -13,8 +14,11 @@
     #    solution = run_wf(richmond_skeleton_path, NCNLPWaterModel, ipopt)
     #end
 
+    #@testset "Single-time Richmond network, NCNLP formulation." begin
+    #    solution = run_wf(richmond_skeleton_sp_path, NCNLPWaterModel, ipopt)
+    #end
+
     @testset "Shamir network (unknown flow directions), CNLP formulation." begin
-        shamir_mn_data = build_mn_data("../test/data/epanet/shamir.inp")
         solution = run_wf(shamir_path, CNLPWaterModel, ipopt)
         @test solution["termination_status"] == MOI.LOCALLY_SOLVED
         @test isapprox(solution["solution"]["pipes"]["2"]["q"], 0.093565, rtol=1.0e-4)

@@ -227,6 +227,11 @@ function build_ref(data::Dict{String,<:Any})
     nws = refs[:nw] = Dict{Int,Any}()
 
     if InfrastructureModels.ismultinetwork(data)
+        for (key, item) in data
+            if !isa(item, Dict{String,Any}) || key in _wm_global_keys
+                refs[Symbol(key)] = item
+            end
+        end
         nws_data = data["nw"]
     else
         nws_data = Dict("0" => data)
@@ -250,6 +255,7 @@ function build_ref(data::Dict{String,<:Any})
         end
 
         ref[:links] = merge(ref[:pipes], ref[:valves], ref[:pumps])
+        ref[:pipes_ne] = filter(is_ne_link, ref[:pipes])
         ref[:links_ne] = filter(is_ne_link, ref[:links])
 
         #ref[:nodes] = merge(ref[:junctions], ref[:tanks], ref[:reservoirs])
@@ -280,8 +286,8 @@ function build_ref(data::Dict{String,<:Any})
         viscosity = ref[:options]["hydraulic"]["viscosity"]
         ref[:alpha] = headloss == "H-W" ? 1.852 : 2.0
 
-        ref[:resistance] = calc_resistances(ref[:links], viscosity, headloss)
-        ref[:resistance_cost] = calc_resistance_costs(ref[:links], viscosity, headloss)
+        ref[:resistance] = calc_resistances(ref[:pipes], viscosity, headloss)
+        ref[:resistance_cost] = calc_resistance_costs(ref[:pipes], viscosity, headloss)
     end
 
     return refs

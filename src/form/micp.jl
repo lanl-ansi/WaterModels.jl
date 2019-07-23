@@ -25,29 +25,31 @@ function variable_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: Ab
     variable_directed_flow_ne(wm, n, bounded=true)
 end
 
+function variable_pump(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractMICPForm
+end
+
 function constraint_resistance_selection_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMICPForm
     constraint_directed_resistance_selection_ne(wm, a, n)
 end
 
-function constraint_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMICPForm
-    constraint_directed_head_difference(wm, a, n)
-    constraint_flow_direction_selection(wm, a, n)
-    constraint_directed_potential_loss_ub(wm, a, n)
-    constraint_directed_potential_loss(wm, a, n)
+function constraint_potential_loss_pump(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMICPForm
 end
 
-function constraint_potential_loss_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMICPForm
+function constraint_potential_loss_pipe(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMICPForm
+    constraint_directed_head_difference(wm, a, n)
+    constraint_flow_direction_selection(wm, a, n)
+    constraint_directed_potential_loss_ub_pipe(wm, a, n)
+    constraint_directed_potential_loss_pipe(wm, a, n)
+end
+
+function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMICPForm
     constraint_flow_direction_selection_ne(wm, a, n)
-    constraint_directed_potential_loss_ub_ne(wm, a, n)
-    constraint_directed_potential_loss_ne(wm, a, n)
+    constraint_directed_potential_loss_ub_pipe_ne(wm, a, n)
+    constraint_directed_potential_loss_pipe_ne(wm, a, n)
 end
 
 function constraint_flow_conservation(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractMICPForm
     constraint_directed_flow_conservation(wm, i, n)
-end
-
-function constraint_flow_conservation_ne(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractMICPForm
-    constraint_directed_flow_conservation_ne(wm, i, n)
 end
 
 function constraint_link_flow_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMICPForm
@@ -66,7 +68,7 @@ function constraint_sink_flow(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) w
     constraint_directed_sink_flow(wm, i, n)
 end
 
-function constraint_directed_potential_loss_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMICPForm
+function constraint_directed_potential_loss_pipe_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMICPForm
     if !haskey(con(wm, n), :potential_loss_n_ne)
         con(wm, n)[:potential_loss_n_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
         con(wm, n)[:potential_loss_p_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
@@ -90,7 +92,7 @@ function constraint_directed_potential_loss_ne(wm::GenericWaterModel{T}, a::Int,
     end
 end
 
-function constraint_directed_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMICPForm
+function constraint_directed_potential_loss_pipe(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMICPForm
     if !haskey(con(wm, n), :potential_loss_n)
         con(wm, n)[:potential_loss_n] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:potential_loss_p] = Dict{Int, JuMP.ConstraintRef}()
@@ -111,5 +113,9 @@ function constraint_directed_potential_loss(wm::GenericWaterModel{T}, a::Int, n:
 end
 
 function objective_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: StandardMICPForm
+    JuMP.set_objective_sense(wm.model, MOI.FEASIBILITY_SENSE)
+end
+
+function objective_owf(wm::GenericWaterModel{T}) where T <: StandardMICPForm
     JuMP.set_objective_sense(wm.model, MOI.FEASIBILITY_SENSE)
 end
