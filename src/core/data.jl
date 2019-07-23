@@ -7,8 +7,8 @@ function calc_head_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
     nodes = [junction_ids; reservoir_ids]
 
     # Get placeholders for junctions and reservoirs.
-    junctions = wm.ref[:nw][n][:junctions]
-    reservoirs = wm.ref[:nw][n][:reservoirs]
+    junctions = ref(wm, n, :junctions)
+    reservoirs = ref(wm, n, :reservoirs)
 
     # Get maximum elevation/head values at nodes.
     max_elev = maximum([node["elevation"] for node in values(junctions)])
@@ -46,7 +46,7 @@ end
 
 function calc_head_difference_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
     # Get placeholders for junctions and reservoirs.
-    links = wm.ref[:nw][n][:links]
+    links = ref(wm, n, :links)
 
     # Initialize the dictionaries for minimum and maximum head differences.
     head_lbs, head_ubs = calc_head_bounds(wm, n)
@@ -64,11 +64,11 @@ function calc_head_difference_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
 end
 
 function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
-    links = wm.ref[:nw][n][:links]
+    links = ref(wm, n, :links)
     dh_lb, dh_ub = calc_head_difference_bounds(wm, n)
 
-    alpha = wm.ref[:nw][n][:alpha]
-    junctions = values(wm.ref[:nw][n][:junctions])
+    alpha = ref(wm, n, :alpha)
+    junctions = values(ref(wm, n, :junctions))
     sum_demand = sum(junction["base_demand"] for junction in junctions)
 
     lb = Dict([(a, Float64[]) for a in keys(links)])
@@ -76,7 +76,7 @@ function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
 
     for (a, link) in links
         L = link["length"]
-        resistances = wm.ref[:nw][n][:resistance][a]
+        resistances = ref(wm, n, :resistance, a)
         num_resistances = length(resistances)
 
         lb[a] = zeros(Float64, (num_resistances,))
@@ -112,16 +112,16 @@ function calc_directed_flow_upper_bounds(wm::GenericWaterModel, alpha::Float64, 
     # Get a dictionary of resistance values.
     dh_lb, dh_ub = calc_head_difference_bounds(wm, n)
 
-    links = wm.ref[:nw][n][:links]
+    links = ref(wm, n, :links)
     ub_n = Dict([(a, Float64[]) for a in keys(links)])
     ub_p = Dict([(a, Float64[]) for a in keys(links)])
 
-    junctions = values(wm.ref[:nw][n][:junctions])
+    junctions = values(ref(wm, n, :junctions))
     sum_demand = sum(junction["base_demand"] for junction in junctions)
 
     for (a, link) in links
         L = link["length"]
-        R_a = wm.ref[:nw][n][:resistance][a]
+        R_a = ref(wm, n, :resistance, a)
 
         ub_n[a] = zeros(Float64, (length(R_a),))
         ub_p[a] = zeros(Float64, (length(R_a),))

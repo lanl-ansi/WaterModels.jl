@@ -84,18 +84,18 @@ function add_pipe_resistance_setpoint(sol, wm::GenericWaterModel)
 
             if a in keys(wm.var[:nw][wm.cnw][:x_res])
                 x_res, r_id = findmax(JuMP.value.(wm.var[:nw][wm.cnw][:x_res][a]))
-                sol_item["r"] = wm.ref[:nw][wm.cnw][:resistance][a][r_id]
+                sol_item["r"] = ref(wm, wm.cnw, :resistance, a)[r_id]
             else
-                x_res, r_id = findmin(wm.ref[:nw][wm.cnw][:resistance][a])
-                sol_item["r"] = wm.ref[:nw][wm.cnw][:resistance][a][r_id]
+                x_res, r_id = findmin(ref(wm, wm.cnw, :resistance, a))
+                sol_item["r"] = ref(wm, wm.cnw, :resistance, a)[r_id]
             end
         end
     else
         for (i, link) in data_dict
             a = link["id"]
             sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
-            x_res, r_id = findmin(wm.ref[:nw][wm.cnw][:resistance][a])
-            sol_item["r"] = wm.ref[:nw][wm.cnw][:resistance][a][r_id]
+            x_res, r_id = findmin(ref(wm, wm.cnw, :resistance, a))
+            sol_item["r"] = ref(wm, wm.cnw, :resistance, a)[r_id]
         end
     end
 end
