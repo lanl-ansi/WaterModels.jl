@@ -280,8 +280,8 @@ function build_ref(data::Dict{String,<:Any})
         viscosity = ref[:options]["hydraulic"]["viscosity"]
         ref[:alpha] = headloss == "H-W" ? 1.852 : 2.0
 
-        ref[:resistance] = calc_resistances(ref[:links], viscosity, headloss)
-        ref[:resistance_cost] = calc_resistance_costs(ref[:links], viscosity, headloss)
+        ref[:resistance] = calc_resistances(ref[:pipes], viscosity, headloss)
+        ref[:resistance_cost] = calc_resistance_costs(ref[:pipes], viscosity, headloss)
     end
 
     return refs

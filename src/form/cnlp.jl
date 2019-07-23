@@ -21,6 +21,9 @@ function variable_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: Abstr
     variable_undirected_flow(wm, n, bounded=false)
 end
 
+function variable_pump(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractCNLPForm
+end
+
 function constraint_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractCNLPForm
 end
 

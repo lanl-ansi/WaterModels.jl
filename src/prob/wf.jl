@@ -1,4 +1,4 @@
-export run_wf
+export run_wf, run_mn_wf
 
 function run_wf(network, model_constructor, optimizer; relaxed::Bool=false, kwargs...)
     return run_generic_model(network, model_constructor, optimizer, post_wf, relaxed=relaxed; kwargs...)
@@ -14,6 +14,7 @@ function post_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <: 
     variable_reservoir(wm, n)
     variable_head(wm, n)
     variable_flow(wm, n)
+    variable_pump(wm, n)
 
     for a in collect(ids(wm, n, :links))
         constraint_potential_loss(wm, a, n)
@@ -35,6 +36,10 @@ function post_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <: 
     objective_wf(wm, n)
 end
 
+function run_mn_wf(file, model_constructor, optimizer; kwargs...)
+    return run_generic_model(file, model_constructor, optimizer, post_mn_wf; multinetwork=true, kwargs...)
+end
+
 function post_mn_wf(wm::GenericWaterModel{T}; kwargs...) where T <: AbstractWaterFormulation
     for (n, network) in nws(wm)
         if T <: Union{AbstractMICPForm, AbstractNCNLPForm}
@@ -46,6 +51,7 @@ function post_mn_wf(wm::GenericWaterModel{T}; kwargs...) where T <: AbstractWate
         variable_reservoir(wm, n)
         variable_head(wm, n)
         variable_flow(wm, n)
+        variable_pump(wm, n)
 
         for a in collect(ids(wm, n, :links))
             constraint_potential_loss(wm, a, n)

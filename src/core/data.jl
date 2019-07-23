@@ -1,8 +1,7 @@
 # Functions for working with the WaterModels internal data format.
 
-function calc_head_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
+function calc_head_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
     nodes = ref(wm, n, :nodes)
-
     # Get maximum elevation/head values at nodes.
     max_elev = maximum(node["elevation"] for (i,node) in nodes)
 
@@ -32,6 +31,12 @@ function calc_head_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
         head_max[i] = reservoir["head"]
     end
 
+    for (i, tank) in ref(wm, n, :tanks)
+        node = ref(wm, n, :nodes)[tank["tank_node"]]
+        head_min[i] = node["elevation"] + tank["min_level"]
+        head_max[i] = node["elevation"] + tank["max_level"]
+    end
+
     # Return the dictionaries of lower and upper bounds.
     return head_min, head_max
 end
@@ -57,6 +62,7 @@ end
 
 function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
     links = ref(wm, n, :links)
+    pipes = ref(wm, n, :pipes)
     dh_lb, dh_ub = calc_head_difference_bounds(wm, n)
 
     alpha = ref(wm, n, :alpha)
@@ -66,7 +72,7 @@ function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
     lb = Dict([(a, Float64[]) for a in keys(links)])
     ub = Dict([(a, Float64[]) for a in keys(links)])
 
-    for (a, link) in links
+    for (a, link) in pipes
         L = link["length"]
         resistances = ref(wm, n, :resistance, a)
         num_resistances = length(resistances)
@@ -95,6 +101,12 @@ function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
                 ub[a][r_id] = min(ub[a][r_id], rate_bound)
             end
         end
+    end
+
+    for (a, link) in ref(wm, n, :pumps)
+        # TODO: Need better bounds here.
+        lb[a] = [0.0]
+        ub[a] = [Inf]
     end
 
     return lb, ub
@@ -153,7 +165,7 @@ function calc_resistances_hw(links::Dict{<:Any, Any})
 
     for (a, link) in links
         if haskey(link, "resistances")
-            resistances[a] = sort(link["resistances"], rev = true)
+            resistances[a] = sort(link["resistances"], rev=true)
         elseif haskey(link, "resistance")
             resistances[a] = vcat(resistances[a], link["resistance"])
         elseif haskey(link, "diameters")
@@ -162,7 +174,7 @@ function calc_resistances_hw(links::Dict{<:Any, Any})
                 resistances[a] = vcat(resistances[a], r)
             end
 
-            resistances[a] = sort(resistances[a], rev = true)
+            resistances[a] = sort(resistances[a], rev=true)
         else
             r = calc_resistance_hw(link["diameter"], link["roughness"])
             resistances[a] = vcat(resistances[a], r)
