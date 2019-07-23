@@ -4,7 +4,7 @@ function run_ne(network, model_constructor, optimizer; relaxed::Bool=false, kwar
     return run_generic_model(network, model_constructor, optimizer, post_ne, relaxed=relaxed; kwargs...)
 end
 
-function post_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <: AbstractWaterFormulation
+function post_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T
     if T <: AbstractNCNLPForm
         function_f_alpha(wm, n, convex=false)
     elseif T <: AbstractMICPForm

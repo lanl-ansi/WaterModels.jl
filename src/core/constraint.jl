@@ -2,7 +2,7 @@
 # This file defines commonly-used constraints for water systems models.
 ########################################################################
 
-function constraint_undirected_flow_conservation(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractWaterFormulation
+function constraint_undirected_flow_conservation(wm::GenericWaterModel, i::Int, n::Int=wm.cnw)
     # Create the constraint dictionary if necessary.
     if !haskey(con(wm, n), :flow_conservation)
         con(wm, n)[:flow_conservation] = Dict{Int, JuMP.ConstraintRef}()
@@ -27,7 +27,7 @@ function constraint_undirected_flow_conservation(wm::GenericWaterModel{T}, i::In
     con(wm, n, :flow_conservation)[i] = c
 end
 
-function constraint_undirected_flow_conservation_ne(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractWaterFormulation
+function constraint_undirected_flow_conservation_ne(wm::GenericWaterModel, i::Int, n::Int=wm.cnw)
     # Create the constraint dictionary if necessary.
     if !haskey(con(wm, n), :flow_conservation_ne)
         con(wm, n)[:flow_conservation_ne] = Dict{Int, JuMP.ConstraintRef}()
@@ -52,7 +52,7 @@ function constraint_undirected_flow_conservation_ne(wm::GenericWaterModel{T}, i:
     con(wm, n, :flow_conservation_ne)[i] = c
 end
 
-function constraint_directed_flow_conservation(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractWaterFormulation
+function constraint_directed_flow_conservation(wm::GenericWaterModel, i::Int, n::Int=wm.cnw)
     # Create the constraint dictionary if necessary.
     if !haskey(con(wm, n), :flow_conservation)
         con(wm, n)[:flow_conservation] = Dict{Int, JuMP.ConstraintRef}()
@@ -79,7 +79,7 @@ function constraint_directed_flow_conservation(wm::GenericWaterModel{T}, i::Int,
     con(wm, n, :flow_conservation)[i] = c
 end
 
-function constraint_directed_flow_conservation_ne(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractWaterFormulation
+function constraint_directed_flow_conservation_ne(wm::GenericWaterModel, i::Int, n::Int=wm.cnw)
     # Create the constraint dictionary if necessary.
     if !haskey(con(wm, n), :flow_conservation_ne)
         con(wm, n)[:flow_conservation_ne] = Dict{Int, JuMP.ConstraintRef}()
@@ -106,7 +106,7 @@ function constraint_directed_flow_conservation_ne(wm::GenericWaterModel{T}, i::I
     con(wm, n, :flow_conservation_ne)[i] = c
 end
 
-function constraint_directed_resistance_selection_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractWaterFormulation
+function constraint_directed_resistance_selection_ne(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
     if !haskey(con(wm, n), :resistance_selection_sum)
         con(wm, n)[:resistance_selection_sum] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:resistance_selection_p] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
@@ -134,7 +134,7 @@ function constraint_directed_resistance_selection_ne(wm::GenericWaterModel{T}, a
     end
 end
 
-function constraint_undirected_resistance_selection_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractWaterFormulation
+function constraint_undirected_resistance_selection_ne(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
     if !haskey(con(wm, n), :resistance_selection_sum)
         con(wm, n)[:resistance_selection_sum] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:resistance_selection_lb] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()

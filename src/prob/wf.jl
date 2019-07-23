@@ -4,7 +4,7 @@ function run_wf(network, model_constructor, optimizer; relaxed::Bool=false, kwar
     return run_generic_model(network, model_constructor, optimizer, post_wf, relaxed=relaxed; kwargs...)
 end
 
-function post_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <: AbstractWaterFormulation
+function post_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T
     if T <: Union{AbstractMICPForm, AbstractNCNLPForm}
         function_f_alpha(wm, n, convex=false)
     elseif T <: AbstractCNLPForm
@@ -43,7 +43,7 @@ function run_mn_wf(file, model_constructor, optimizer; kwargs...)
     return run_generic_model(file, model_constructor, optimizer, post_mn_wf; multinetwork=true, kwargs...)
 end
 
-function post_mn_wf(wm::GenericWaterModel{T}; kwargs...) where T <: AbstractWaterFormulation
+function post_mn_wf(wm::GenericWaterModel{T}; kwargs...) where T
     for (n, network) in nws(wm)
         if T <: Union{AbstractMICPForm, AbstractNCNLPForm}
             function_f_alpha(wm, n, convex=false)
