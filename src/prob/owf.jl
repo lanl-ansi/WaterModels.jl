@@ -1,5 +1,3 @@
-export run_owf, run_mn_owf
-
 function run_owf(network, model_constructor, optimizer; relaxed::Bool=false, kwargs...)
     return run_generic_model(network, model_constructor, optimizer, post_owf, relaxed=relaxed; kwargs...)
 end

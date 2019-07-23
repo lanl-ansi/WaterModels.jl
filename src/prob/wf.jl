@@ -1,5 +1,3 @@
-export run_wf, run_mn_wf
-
 function run_wf(network, model_constructor, optimizer; relaxed::Bool=false, kwargs...)
     return run_generic_model(network, model_constructor, optimizer, post_wf, relaxed=relaxed; kwargs...)
 end

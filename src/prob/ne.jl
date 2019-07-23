@@ -1,5 +1,3 @@
-export run_ne
-
 function run_ne(network, model_constructor, optimizer; relaxed::Bool=false, kwargs...)
     return run_generic_model(network, model_constructor, optimizer, post_ne, relaxed=relaxed; kwargs...)
 end

@@ -1,10 +1,5 @@
 @enum FLOW_DIRECTION POSITIVE=1 NEGATIVE=-1 UNKNOWN=0
 
-export CNLPWaterModel, StandardCNLPForm,
-    NCNLPWaterModel, StandardNCNLPForm,
-    MILPRWaterModel, StandardMILPRForm,
-    MICPWaterModel, StandardMICPForm
-
 
 "AbstractCNLPForm is derived from AbstractWaterFormulation"
 abstract type AbstractCNLPForm <: AbstractWaterFormulation end
