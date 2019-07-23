@@ -169,15 +169,15 @@ end
 
 function variable_pressure_head(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractWaterFormulation
     # Get indices for all network nodes.
-    junction_ids = sort(collect(ids(wm, n, :junctions)))
+    node_ids = sort(collect(ids(wm, n, :nodes)))
 
-    # Get the bounds associated with heads at junctions.
+    # Get the bounds associated with heads at nodes.
     lbs, ubs = calc_head_bounds(wm, n)
 
     # Initialize variables associated with head.
-    h = JuMP.@variable(wm.model, [i in junction_ids], lower_bound=lbs[i],
+    h = JuMP.@variable(wm.model, [i in node_ids], lower_bound=lbs[i],
                        upper_bound=ubs[i], base_name="h[$(n)]",
-                       start=get_start(ref(wm, n, :junctions), i,
+                       start=get_start(ref(wm, n, :nodes), i,
                                        "h_start", ubs[i]))
 
     var(wm, n)[:h] = h

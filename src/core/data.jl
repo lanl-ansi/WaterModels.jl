@@ -11,14 +11,14 @@ function calc_head_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
     head_max = Dict((i,  Inf) for (i,node) in nodes)
 
     for (i, node) in nodes
-        # The minimum head at junctions must be above the initial elevation.
+        # The minimum head at nodes must be above the initial elevation.
         if haskey(node, "minimumHead")
             head_min[i] = max(node["elevation"], node["minimumHead"])
         else
             head_min[i] = node["elevation"]
         end
 
-        # The maximum head at junctions must be below the max reservoir height.
+        # The maximum head at nodes must be below the max reservoir height.
         if haskey(node, "maximumHead")
             head_max[i] = max(max_elev, node["maximumHead"])
         else
@@ -37,7 +37,7 @@ function calc_head_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
 end
 
 function calc_head_difference_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
-    # Get placeholders for junctions and reservoirs.
+    # Get placeholders for pipes and pumps.
     links = ref(wm, n, :links)
 
     # Initialize the dictionaries for minimum and maximum head differences.
@@ -339,8 +339,8 @@ function replicate(sn_data::Dict{String,<:Any}, count::Int; global_keys::Set{Str
 end
 
 function set_start_head!(data)
-    for (i, junction) in data["junctions"]
-        junction["h_start"] = junction["h"]
+    for (i, node) in data["nodes"]
+        node["h_start"] = node["h"]
     end
 end
 
