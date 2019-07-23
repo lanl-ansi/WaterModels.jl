@@ -69,7 +69,7 @@ function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
 
     alpha = ref(wm, n, :alpha)
     junctions = values(ref(wm, n, :junctions))
-    sum_demand = sum(junction["base_demand"] for junction in junctions)
+    sum_demand = sum(junction["demand"] for junction in junctions)
 
     lb = Dict([(a, Float64[]) for a in keys(links)])
     ub = Dict([(a, Float64[]) for a in keys(links)])
@@ -117,7 +117,7 @@ function calc_directed_flow_upper_bounds(wm::GenericWaterModel, alpha::Float64, 
     ub_p = Dict([(a, Float64[]) for a in keys(links)])
 
     junctions = values(ref(wm, n, :junctions))
-    sum_demand = sum(junction["base_demand"] for junction in junctions)
+    sum_demand = sum(junction["demand"] for junction in junctions)
 
     for (a, link) in links
         L = link["length"]

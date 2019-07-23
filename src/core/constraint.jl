@@ -22,7 +22,7 @@ function constraint_undirected_flow_conservation(wm::GenericWaterModel{T}, i::In
     end
 
     # Add the flow conservation constraint.
-    demand = ref(wm, n, :junctions, i)["base_demand"]
+    demand = ref(wm, n, :junctions, i)["demand"]
     c = JuMP.@constraint(wm.model, flow_sum == demand)
     con(wm, n, :flow_conservation)[i] = c
 end
@@ -47,7 +47,7 @@ function constraint_undirected_flow_conservation_ne(wm::GenericWaterModel{T}, i:
     end
 
     # Add the flow conservation constraint.
-    demand = ref(wm, n, :junctions, i)["base_demand"]
+    demand = ref(wm, n, :junctions, i)["demand"]
     c = JuMP.@constraint(wm.model, flow_sum == demand)
     con(wm, n, :flow_conservation_ne)[i] = c
 end
@@ -74,7 +74,7 @@ function constraint_directed_flow_conservation(wm::GenericWaterModel{T}, i::Int,
     end
 
     # Add the flow conservation constraint.
-    demand = ref(wm, n, :junctions, i)["base_demand"]
+    demand = ref(wm, n, :junctions, i)["demand"]
     c = JuMP.@constraint(wm.model, flow_sum == demand)
     con(wm, n, :flow_conservation)[i] = c
 end
@@ -101,7 +101,7 @@ function constraint_directed_flow_conservation_ne(wm::GenericWaterModel{T}, i::I
     end
 
     # Add the flow conservation constraint.
-    demand = ref(wm, n, :junctions, i)["base_demand"]
+    demand = ref(wm, n, :junctions, i)["demand"]
     c = JuMP.@constraint(wm.model, flow_sum == demand)
     con(wm, n, :flow_conservation_ne)[i] = c
 end
@@ -215,7 +215,7 @@ function constraint_directed_head_difference(wm::GenericWaterModel, a::Int, n::I
     i = ref(wm, n, :links, a)["f_id"]
 
     if i in collect(ids(wm, n, :reservoirs))
-        h_i = ref(wm, n, :reservoirs, i)["base_head"]
+        h_i = ref(wm, n, :reservoirs, i)["head"]
     else
         h_i = var(wm, n, :h, i)
     end
@@ -223,7 +223,7 @@ function constraint_directed_head_difference(wm::GenericWaterModel, a::Int, n::I
     j = ref(wm, n, :links, a)["t_id"]
 
     if j in collect(ids(wm, n, :reservoirs))
-        h_j = ref(wm, n, :reservoirs, j)["base_head"]
+        h_j = ref(wm, n, :reservoirs, j)["head"]
     else
         h_j = var(wm, n, :h, j)
     end

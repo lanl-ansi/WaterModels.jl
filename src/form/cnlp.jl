@@ -46,15 +46,15 @@ function objective_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: Standa
         for (a, link) in filter(a -> i == a.second["f_id"], ref(wm, n, :links))
             qp = var(wm, n, :qp, a)
             qn = var(wm, n, :qn, a)
-            linear_expr -= reservoir["base_head"] * (qp - qn)
-            linear_expr_start -= reservoir["base_head"] * (JuMP.start_value(qp) - JuMP.start_value(qn))
+            linear_expr -= reservoir["head"] * (qp - qn)
+            linear_expr_start -= reservoir["head"] * (JuMP.start_value(qp) - JuMP.start_value(qn))
         end
 
         for (a, link) in filter(a -> i == a.second["t_id"], ref(wm, n, :links))
             qp = var(wm, n, :qp, a)
             qn = var(wm, n, :qn, a)
-            linear_expr -= reservoir["base_head"] * (qn - qp)
-            linear_expr_start -= reservoir["base_head"] * (JuMP.start_value(qn) - JuMP.start_value(qp))
+            linear_expr -= reservoir["head"] * (qn - qp)
+            linear_expr_start -= reservoir["head"] * (JuMP.start_value(qn) - JuMP.start_value(qp))
         end
     end
 
