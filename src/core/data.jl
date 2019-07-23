@@ -1,40 +1,32 @@
 # Functions for working with the WaterModels internal data format.
 
 function calc_head_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
-    # Get indices of nodes used in the network.
-    junction_ids = collect(ids(wm, :junctions))
-    reservoir_ids = collect(ids(wm, :reservoirs))
-    nodes = [junction_ids; reservoir_ids]
-
-    # Get placeholders for junctions and reservoirs.
-    junctions = ref(wm, n, :junctions)
-    reservoirs = ref(wm, n, :reservoirs)
+    nodes = ref(wm, n, :nodes)
 
     # Get maximum elevation/head values at nodes.
-    max_elev = maximum([node["elevation"] for node in values(junctions)])
-    max_head = maximum([node["head"] for node in values(reservoirs)])
+    max_elev = maximum(node["elevation"] for (i,node) in nodes)
 
     # Initialize the dictionaries for minimum and maximum heads.
-    head_min = Dict([(i, -Inf) for i in nodes])
-    head_max = Dict([(i, Inf) for i in nodes])
+    head_min = Dict((i, -Inf) for (i,node) in nodes)
+    head_max = Dict((i,  Inf) for (i,node) in nodes)
 
-    for (i, junction) in junctions
+    for (i, node) in nodes
         # The minimum head at junctions must be above the initial elevation.
-        if haskey(junction, "minimumHead")
-            head_min[i] = max(junction["elevation"], junction["minimumHead"])
+        if haskey(node, "minimumHead")
+            head_min[i] = max(node["elevation"], node["minimumHead"])
         else
-            head_min[i] = junction["elevation"]
+            head_min[i] = node["elevation"]
         end
 
         # The maximum head at junctions must be below the max reservoir height.
-        if haskey(junction, "maximumHead")
-            head_max[i] = max(max(max_elev, max_head), junction["maximumHead"])
+        if haskey(node, "maximumHead")
+            head_max[i] = max(max_elev, node["maximumHead"])
         else
-            head_max[i] = max(max_elev, max_head)
+            head_max[i] = max_elev
         end
     end
 
-    for (i, reservoir) in reservoirs
+    for (i, reservoir) in ref(wm, n, :reservoirs)
         # Head values at reservoirs are fixed.
         head_min[i] = reservoir["head"]
         head_max[i] = reservoir["head"]

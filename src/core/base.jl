@@ -251,7 +251,25 @@ function build_ref(data::Dict{String,<:Any})
 
         ref[:links] = merge(ref[:pipes], ref[:valves], ref[:pumps])
         ref[:links_ne] = filter(is_ne_link, ref[:links])
-        ref[:nodes] = merge(ref[:junctions], ref[:tanks], ref[:reservoirs])
+
+        #ref[:nodes] = merge(ref[:junctions], ref[:tanks], ref[:reservoirs])
+        node_junctions = Dict((i, Int[]) for (i,node) in ref[:nodes])
+        for (i, junction) in ref[:junctions]
+            push!(node_junctions[junction["junction_node"]], i)
+        end
+        ref[:node_junctions] = node_junctions
+
+        node_tanks = Dict((i, Int[]) for (i,node) in ref[:nodes])
+        for (i,tank) in ref[:tanks]
+            push!(node_tanks[tank["tank_node"]], i)
+        end
+        ref[:node_tanks] = node_tanks
+
+        node_reservoirs = Dict((i, Int[]) for (i,node) in ref[:nodes])
+        for (i,reservoir) in ref[:reservoirs]
+            push!(node_reservoirs[reservoir["reservoir_node"]], i)
+        end
+        ref[:node_reservoirs] = node_reservoirs
 
         # TODO: Fix these when feeling ambitious about more carefully handling directions.
         #ref[:links_known_direction] = filter(has_known_flow_direction, ref[:links])

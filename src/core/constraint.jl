@@ -21,9 +21,24 @@ function constraint_undirected_flow_conservation(wm::GenericWaterModel{T}, i::In
         JuMP.add_to_expression!(flow_sum, -var(wm, n, :q, a))
     end
 
+     #println(wm.var[:nw][n][:rq])
+    #println(wm.ref[:nw][n][:node_reservoirs])
+    for rid in wm.ref[:nw][n][:node_reservoirs][i]
+        JuMP.add_to_expression!(flow_sum, wm.var[:nw][n][:q_r][rid])
+    end
+
+    for jid in wm.ref[:nw][n][:node_junctions][i]
+        junction = wm.ref[:nw][n][:junctions][jid]
+        JuMP.add_to_expression!(flow_sum, -junction["demand"])
+    end
+
+    for tid in wm.ref[:nw][n][:node_tanks][i]
+        tank = wm.ref[:nw][n][:tanks][tid]
+        # TODO add tank vars as loads
+    end
+
     # Add the flow conservation constraint.
-    demand = ref(wm, n, :junctions, i)["demand"]
-    c = JuMP.@constraint(wm.model, flow_sum == demand)
+    c = JuMP.@constraint(wm.model, flow_sum == 0.0)
     con(wm, n, :flow_conservation)[i] = c
 end
 
@@ -73,9 +88,24 @@ function constraint_directed_flow_conservation(wm::GenericWaterModel{T}, i::Int,
         JuMP.add_to_expression!(flow_sum, var(wm, n, :qn, a))
     end
 
+    #println(wm.var[:nw][n][:rq])
+    #println(wm.ref[:nw][n][:node_reservoirs])
+    for rid in wm.ref[:nw][n][:node_reservoirs][i]
+        JuMP.add_to_expression!(flow_sum, wm.var[:nw][n][:q_r][rid])
+    end
+
+    for jid in wm.ref[:nw][n][:node_junctions][i]
+        junction = wm.ref[:nw][n][:junctions][jid]
+        JuMP.add_to_expression!(flow_sum, -junction["demand"])
+    end
+
+    for tid in wm.ref[:nw][n][:node_tanks][i]
+        tank = wm.ref[:nw][n][:tanks][tid]
+        # TODO add tank vars as loads
+    end
+
     # Add the flow conservation constraint.
-    demand = ref(wm, n, :junctions, i)["demand"]
-    c = JuMP.@constraint(wm.model, flow_sum == demand)
+    c = JuMP.@constraint(wm.model, flow_sum == 0.0)
     con(wm, n, :flow_conservation)[i] = c
 end
 

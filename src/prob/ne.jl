@@ -13,6 +13,7 @@ function post_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <: 
         Memento.error(_LOGGER, "CNLP formulation does not support network expansion.")
     end
 
+    variable_reservoir(wm, n)
     variable_head(wm, n)
     variable_flow(wm, n)
     variable_flow_ne(wm, n)

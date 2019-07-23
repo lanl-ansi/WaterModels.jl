@@ -11,6 +11,7 @@ function post_owf(wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <:
         function_if_alpha(wm, n, convex=true)
     end
 
+    variable_reservoir(wm, n)
     variable_head(wm, n)
     variable_flow(wm, n)
 
@@ -46,6 +47,7 @@ function post_mn_owf(wm::GenericWaterModel{T}; kwargs...) where T <: AbstractWat
             function_if_alpha(wm, n, convex=true)
         end
 
+        variable_reservoir(wm, n)
         variable_head(wm, n)
         variable_flow(wm, n)
 
