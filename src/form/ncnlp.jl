@@ -41,6 +41,8 @@ function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, a::Int, n::
 end
 
 function constraint_potential_loss_pump(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
+    constraint_undirected_potential_loss_pump(wm, a, n)
+    constraint_undirected_head_gain_pump(wm, a, n)
 end
 
 function constraint_flow_conservation(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
@@ -123,6 +125,56 @@ function constraint_undirected_potential_loss_pipe(wm::GenericWaterModel{T}, a::
     c = JuMP.@NLconstraint(wm.model, r * f_alpha(q) - inv(L) * (h_i - h_j) == 0.0)
 
     con(wm, n, :potential_loss)[a] = c
+end
+
+function constraint_undirected_potential_loss_pump(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
+    if !haskey(con(wm, n), :potential_loss_1)
+        con(wm, n)[:potential_loss_1] = Dict{Int, JuMP.ConstraintRef}()
+        con(wm, n)[:potential_loss_2] = Dict{Int, JuMP.ConstraintRef}()
+    end
+
+    i = ref(wm, n, :pumps, a)["f_id"]
+
+    if i in collect(ids(wm, n, :reservoirs))
+        h_i = ref(wm, n, :reservoirs, i)["head"]
+    else
+        h_i = var(wm, n, :h, i)
+    end
+
+    j = ref(wm, n, :pumps, a)["t_id"]
+
+    if j in collect(ids(wm, n, :reservoirs))
+        h_j = ref(wm, n, :reservoirs, j)["head"]
+    else
+        h_j = var(wm, n, :h, j)
+    end
+
+    q = var(wm, n, :q, a)
+    g = var(wm, n, :g, a)
+    x_pump = var(wm, n, :x_pump, a)
+
+    # TODO: Big- and little-M values below need to be improved.
+    M = 1.0e6
+    m = 1.0e-6
+
+    c_1 = JuMP.@NLconstraint(wm.model, -(h_i - h_j) - g <= M * x_pump)
+    c_2 = JuMP.@NLconstraint(wm.model, -(h_i - h_j) - g >= -M * x_pump)
+
+    con(wm, n, :potential_loss_1)[a] = c_1
+    con(wm, n, :potential_loss_2)[a] = c_2
+end
+
+function constraint_undirected_head_gain_pump(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
+    if !haskey(con(wm, n), :head_gain)
+        con(wm, n)[:head_gain] = Dict{Int, JuMP.ConstraintRef}()
+    end
+
+    q = var(wm, n, :q, a)
+    g = var(wm, n, :g, a)
+
+    #c = JuMP.@NLconstraint(wm.model, g == a * q^2 + b * q * omega + c * omega^2)
+
+    #con(wm, n, :head_gain)[a] = c
 end
 
 function objective_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: StandardNCNLPForm
