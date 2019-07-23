@@ -4,7 +4,7 @@
 
 function constraint_undirected_flow_conservation(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractWaterFormulation
     # Create the constraint dictionary if necessary.
-    if !haskey(wm.con[:nw][n], :flow_conservation)
+    if !haskey(con(wm, n), :flow_conservation)
         con(wm, n)[:flow_conservation] = Dict{Int, JuMP.ConstraintRef}()
     end
 
@@ -29,7 +29,7 @@ end
 
 function constraint_undirected_flow_conservation_ne(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractWaterFormulation
     # Create the constraint dictionary if necessary.
-    if !haskey(wm.con[:nw][n], :flow_conservation_ne)
+    if !haskey(con(wm, n), :flow_conservation_ne)
         con(wm, n)[:flow_conservation_ne] = Dict{Int, JuMP.ConstraintRef}()
     end
 
@@ -54,7 +54,7 @@ end
 
 function constraint_directed_flow_conservation(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractWaterFormulation
     # Create the constraint dictionary if necessary.
-    if !haskey(wm.con[:nw][n], :flow_conservation)
+    if !haskey(con(wm, n), :flow_conservation)
         con(wm, n)[:flow_conservation] = Dict{Int, JuMP.ConstraintRef}()
     end
 
@@ -81,7 +81,7 @@ end
 
 function constraint_directed_flow_conservation_ne(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractWaterFormulation
     # Create the constraint dictionary if necessary.
-    if !haskey(wm.con[:nw][n], :flow_conservation_ne)
+    if !haskey(con(wm, n), :flow_conservation_ne)
         con(wm, n)[:flow_conservation_ne] = Dict{Int, JuMP.ConstraintRef}()
     end
 
@@ -107,7 +107,7 @@ function constraint_directed_flow_conservation_ne(wm::GenericWaterModel{T}, i::I
 end
 
 function constraint_directed_resistance_selection_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractWaterFormulation
-    if !haskey(wm.con[:nw][n], :resistance_selection_sum)
+    if !haskey(con(wm, n), :resistance_selection_sum)
         con(wm, n)[:resistance_selection_sum] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:resistance_selection_p] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
         con(wm, n)[:resistance_selection_n] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
@@ -135,7 +135,7 @@ function constraint_directed_resistance_selection_ne(wm::GenericWaterModel{T}, a
 end
 
 function constraint_undirected_resistance_selection_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractWaterFormulation
-    if !haskey(wm.con[:nw][n], :resistance_selection_sum)
+    if !haskey(con(wm, n), :resistance_selection_sum)
         con(wm, n)[:resistance_selection_sum] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:resistance_selection_lb] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
         con(wm, n)[:resistance_selection_ub] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
@@ -163,7 +163,7 @@ function constraint_undirected_resistance_selection_ne(wm::GenericWaterModel{T},
 end
 
 function constraint_flow_direction_selection(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
-    if !haskey(wm.con[:nw][n], :flow_direction_selection_n)
+    if !haskey(con(wm, n), :flow_direction_selection_n)
         con(wm, n)[:flow_direction_selection_n] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:flow_direction_selection_p] = Dict{Int, JuMP.ConstraintRef}()
     end
@@ -182,7 +182,7 @@ function constraint_flow_direction_selection(wm::GenericWaterModel, a::Int, n::I
 end
 
 function constraint_flow_direction_selection_ne(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
-    if !haskey(wm.con[:nw][n], :flow_direction_selection_ne_n)
+    if !haskey(con(wm, n), :flow_direction_selection_ne_n)
         con(wm, n)[:flow_direction_selection_ne_p] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
         con(wm, n)[:flow_direction_selection_ne_n] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
     end
@@ -206,7 +206,7 @@ function constraint_flow_direction_selection_ne(wm::GenericWaterModel, a::Int, n
 end
 
 function constraint_directed_head_difference(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
-    if !haskey(wm.con[:nw][n], :head_difference_1)
+    if !haskey(con(wm, n), :head_difference_1)
         con(wm, n)[:head_difference_1] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:head_difference_2] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:head_difference_3] = Dict{Int, JuMP.ConstraintRef}()
@@ -245,7 +245,7 @@ function constraint_directed_head_difference(wm::GenericWaterModel, a::Int, n::I
 end
 
 function constraint_directed_potential_loss_ub_ne(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
-    if !haskey(wm.con[:nw][n], :directed_potential_loss_ub_ne_n)
+    if !haskey(con(wm, n), :directed_potential_loss_ub_ne_n)
         con(wm, n)[:directed_potential_loss_ub_ne_n] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:directed_potential_loss_ub_ne_p] = Dict{Int, JuMP.ConstraintRef}()
     end
@@ -270,7 +270,7 @@ function constraint_directed_potential_loss_ub_ne(wm::GenericWaterModel, a::Int,
 end
 
 function constraint_directed_potential_loss_ub(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
-    if !haskey(wm.con[:nw][n], :directed_potential_loss_ub_n)
+    if !haskey(con(wm, n), :directed_potential_loss_ub_n)
         con(wm, n)[:directed_potential_loss_ub_p] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:directed_potential_loss_ub_n] = Dict{Int, JuMP.ConstraintRef}()
     end
@@ -293,7 +293,7 @@ function constraint_directed_potential_loss_ub(wm::GenericWaterModel, a::Int, n:
 end
 
 function constraint_link_undirected_flow_ne(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
-    if !haskey(wm.con[:nw][n], :link_undirected_flow_ne)
+    if !haskey(con(wm, n), :link_undirected_flow_ne)
         con(wm, n)[:link_undirected_flow_ne] = Dict{Int, JuMP.ConstraintRef}()
     end
 
@@ -304,7 +304,7 @@ function constraint_link_undirected_flow_ne(wm::GenericWaterModel, a::Int, n::In
 end
 
 function constraint_link_directed_flow_ne(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
-    if !haskey(wm.con[:nw][n], :link_directed_flow_n_ne)
+    if !haskey(con(wm, n), :link_directed_flow_n_ne)
         con(wm, n)[:link_directed_flow_p_ne] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:link_directed_flow_n_ne] = Dict{Int, JuMP.ConstraintRef}()
     end
@@ -321,7 +321,7 @@ function constraint_link_directed_flow_ne(wm::GenericWaterModel, a::Int, n::Int=
 end
 
 function constraint_link_directed_flow(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
-    if !haskey(wm.con[:nw][n], :link_directed_flow)
+    if !haskey(con(wm, n), :link_directed_flow)
         con(wm, n)[:link_directed_flow] = Dict{Int, JuMP.ConstraintRef}()
     end
 
@@ -340,7 +340,7 @@ end
 
 "Constraint to ensure at least one direction is set to take flow away from a source."
 function constraint_directed_source_flow(wm::GenericWaterModel, i::Int, n::Int=wm.cnw)
-    if !haskey(wm.con[:nw][n], :directed_source_flow)
+    if !haskey(con(wm, n), :directed_source_flow)
         con(wm, n)[:directed_source_flow] = Dict{Int, JuMP.ConstraintRef}()
     end
 
@@ -358,7 +358,7 @@ end
 
 "Constraint to ensure at least one direction is set to take flow to a junction with demand."
 function constraint_directed_sink_flow(wm::GenericWaterModel, i::Int, n::Int=wm.cnw)
-    if !haskey(wm.con[:nw][n], :directed_sink_flow)
+    if !haskey(con(wm, n), :directed_sink_flow)
         con(wm, n)[:directed_sink_flow] = Dict{Int, JuMP.ConstraintRef}()
     end
 

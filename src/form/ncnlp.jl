@@ -57,7 +57,7 @@ function constraint_sink_flow(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) w
 end
 
 function constraint_undirected_potential_loss_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
-    if !haskey(wm.con[:nw][n], :potential_loss_ne)
+    if !haskey(con(wm, n), :potential_loss_ne)
         con(wm, n)[:potential_loss_ne] = Dict{Int, JuMP.ConstraintRef}()
     end
 
@@ -88,7 +88,7 @@ function constraint_undirected_potential_loss_ne(wm::GenericWaterModel{T}, a::In
 end
 
 function constraint_undirected_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
-    if !haskey(wm.con[:nw][n], :potential_loss)
+    if !haskey(con(wm, n), :potential_loss)
         con(wm, n)[:potential_loss] = Dict{Int, JuMP.ConstraintRef}()
     end
 
