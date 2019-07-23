@@ -45,18 +45,18 @@ function d2f_alpha(alpha::Float64; convex::Bool=false)
 end
 
 function function_if_alpha(wm::GenericWaterModel, n::Int=wm.cnw; convex::Bool=false)
-    alpha = wm.ref[:nw][n][:options]["hydraulic"]["headloss"] == "H-W" ? 0.852 : 1.0
+    alpha = ref(wm, n, :options)["hydraulic"]["headloss"] == "H-W" ? 0.852 : 1.0
     f = JuMP.register(wm.model, :if_alpha, 1, if_alpha(alpha, convex=convex), f_alpha(alpha, convex=convex), df_alpha(alpha, convex=convex))
     wm.fun[:nw][n][:if_alpha] = (:if_alpha, 1, if_alpha(alpha, convex=convex), f_alpha(alpha, convex=convex), df_alpha(alpha, convex=convex))
 end
 
 function function_f_alpha(wm::GenericWaterModel, n::Int=wm.cnw; convex::Bool=false)
-    alpha = wm.ref[:nw][n][:options]["hydraulic"]["headloss"] == "H-W" ? 0.852 : 1.0
+    alpha = ref(wm, n, :options)["hydraulic"]["headloss"] == "H-W" ? 0.852 : 1.0
     f = JuMP.register(wm.model, :f_alpha, 1, f_alpha(alpha, convex=convex), df_alpha(alpha, convex=convex), d2f_alpha(alpha, convex=convex))
     wm.fun[:nw][n][:f_alpha] = (:f_alpha, 1, f_alpha(alpha, convex=convex), df_alpha(alpha, convex=convex), d2f_alpha(alpha, convex=convex))
 end
 
 function function_f_alpha_args(wm::GenericWaterModel, n::Int=wm.cnw; convex::Bool=false)
-    alpha = wm.ref[:nw][n][:options]["hydraulic"]["headloss"] == "H-W" ? 0.852 : 1.0
+    alpha = ref(wm, n, :options)["hydraulic"]["headloss"] == "H-W" ? 0.852 : 1.0
     return :f_alpha, 1, f_alpha(alpha, convex=convex), df_alpha(alpha, convex=convex), d2f_alpha(alpha, convex=convex)
 end

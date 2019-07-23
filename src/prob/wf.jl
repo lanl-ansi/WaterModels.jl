@@ -19,7 +19,7 @@ function post_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <: 
         constraint_link_flow(wm, a, n)
     end
 
-    for (i, junction) in wm.ref[:nw][n][:junctions]
+    for (i, junction) in ref(wm, n, :junctions)
         constraint_flow_conservation(wm, i, n)
 
         if junction["demand"] > 0.0
@@ -50,7 +50,7 @@ function post_mn_wf(wm::GenericWaterModel{T}; kwargs...) where T <: AbstractWate
             constraint_link_flow(wm, a, n)
         end
 
-        for (i, junction) in wm.ref[:nw][n][:junctions]
+        for (i, junction) in ref(wm, n, :junctions)
             constraint_flow_conservation(wm, i, n)
 
             if junction["demand"] > 0.0

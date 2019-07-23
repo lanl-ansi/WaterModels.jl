@@ -5,9 +5,9 @@
 function get_resistance_cost_expression(wm::GenericWaterModel, n::Int=wm.cnw)
     expr = JuMP.AffExpr(0.0)
 
-    for (a, link) in wm.ref[:nw][n][:links_ne]
-        costs = link["length"] .* wm.ref[:nw][n][:resistance_cost][a]
-        JuMP.add_to_expression!(expr, sum(costs .* wm.var[:nw][n][:x_res][a]))
+    for (a, link) in ref(wm, n, :links_ne)
+        costs = link["length"] .* ref(wm, n, :resistance_cost, a)
+        JuMP.add_to_expression!(expr, sum(costs .* var(wm, n, :x_res, a)))
     end
 
     return expr

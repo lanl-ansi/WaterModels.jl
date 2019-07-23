@@ -72,21 +72,21 @@ function get_linear_outer_approximation(q::JuMP.VariableRef, q_hat::Float64, alp
 end
 
 function constraint_directed_potential_loss_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMILPRForm
-    if !haskey(wm.con[:nw][n], :potential_loss_n_ne)
-        wm.con[:nw][n][:potential_loss_n_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
-        wm.con[:nw][n][:potential_loss_p_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
+    if !haskey(con(wm, n), :potential_loss_n_ne)
+        con(wm, n)[:potential_loss_n_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
+        con(wm, n)[:potential_loss_p_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
     end
 
-    wm.con[:nw][n][:potential_loss_n_ne][a] = Dict{Int, JuMP.ConstraintRef}()
-    wm.con[:nw][n][:potential_loss_p_ne][a] = Dict{Int, JuMP.ConstraintRef}()
+    con(wm, n, :potential_loss_n_ne)[a] = Dict{Int, JuMP.ConstraintRef}()
+    con(wm, n, :potential_loss_p_ne)[a] = Dict{Int, JuMP.ConstraintRef}()
 
-    alpha = wm.ref[:nw][n][:alpha]
-    L = wm.ref[:nw][n][:links][a]["length"]
+    alpha = ref(wm, n, :alpha)
+    L = ref(wm, n, :links, a)["length"]
 
-    for (r_id, r) in enumerate(wm.ref[:nw][n][:resistance][a])
-        qn_ne = wm.var[:nw][n][:qn_ne][a][r_id]
+    for (r_id, r) in enumerate(ref(wm, n, :resistance, a))
+        qn_ne = var(wm, n, :qn_ne, a)[r_id]
         qn_ne_ub = JuMP.upper_bound(qn_ne)
-        dhn = wm.var[:nw][n][:dhn][a]
+        dhn = var(wm, n, :dhn, a)
 
         if qn_ne_ub > 0.0
             for q_hat in range(0.0, stop=qn_ne_ub, length=5)
@@ -95,9 +95,9 @@ function constraint_directed_potential_loss_ne(wm::GenericWaterModel{T}, a::Int,
             end
         end
 
-        qp_ne = wm.var[:nw][n][:qp_ne][a][r_id]
+        qp_ne = var(wm, n, :qp_ne, a)[r_id]
         qp_ne_ub = JuMP.upper_bound(qp_ne)
-        dhp = wm.var[:nw][n][:dhp][a]
+        dhp = var(wm, n, :dhp, a)
 
         if qp_ne_ub > 0.0
             for q_hat in range(0.0, stop=qp_ne_ub, length=5)
@@ -109,18 +109,18 @@ function constraint_directed_potential_loss_ne(wm::GenericWaterModel{T}, a::Int,
 end
 
 function constraint_directed_potential_loss(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMILPRForm
-    if !haskey(wm.con[:nw][n], :potential_loss_n)
-        wm.con[:nw][n][:potential_loss_n] = Dict{Int, JuMP.ConstraintRef}()
-        wm.con[:nw][n][:potential_loss_p] = Dict{Int, JuMP.ConstraintRef}()
+    if !haskey(con(wm, n), :potential_loss_n)
+        con(wm, n)[:potential_loss_n] = Dict{Int, JuMP.ConstraintRef}()
+        con(wm, n)[:potential_loss_p] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    alpha = wm.ref[:nw][n][:alpha]
-    L = wm.ref[:nw][n][:links][a]["length"]
-    r = minimum(wm.ref[:nw][n][:resistance][a])
+    alpha = ref(wm, n, :alpha)
+    L = ref(wm, n, :links, a)["length"]
+    r = minimum(ref(wm, n, :resistance, a))
 
-    qn = wm.var[:nw][n][:qn][a]
+    qn = var(wm, n, :qn, a)
     qn_ub = JuMP.upper_bound(qn)
-    dhn = wm.var[:nw][n][:dhn][a]
+    dhn = var(wm, n, :dhn, a)
 
     if qn_ub > 0.0
         for q_hat in range(0.0, stop=qn_ub, length=5)
@@ -129,9 +129,9 @@ function constraint_directed_potential_loss(wm::GenericWaterModel{T}, a::Int, n:
         end
     end
 
-    qp = wm.var[:nw][n][:qp][a]
+    qp = var(wm, n, :qp, a)
     qp_ub = JuMP.upper_bound(qp)
-    dhp = wm.var[:nw][n][:dhp][a]
+    dhp = var(wm, n, :dhp, a)
 
     if qp_ub > 0.0
         for q_hat in range(0.0, stop=qp_ub, length=5)
