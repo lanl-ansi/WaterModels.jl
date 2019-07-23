@@ -1,14 +1,4 @@
 # Define MICP (mixed-integer convex program) implementations of water distribution models.
-export MICPWaterModel, StandardMICPForm
-
-abstract type AbstractMICPForm <: AbstractWaterFormulation end
-abstract type StandardMICPForm <: AbstractMICPForm end
-
-"The default MICP (mixed-integer convex program) model is a relaxation of the non-convex MINLP model."
-const MICPWaterModel = GenericWaterModel{StandardMICPForm}
-
-"Default MICP constructor."
-MICPWaterModel(data::Dict{String,Any}; kwargs...) = GenericWaterModel(data, StandardMICPForm; kwargs...)
 
 function variable_head(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractMICPForm
     variable_pressure_head(wm, n)
