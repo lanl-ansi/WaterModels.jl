@@ -8,36 +8,25 @@ function constraint_undirected_flow_conservation(wm::GenericWaterModel, i::Int, 
         con(wm, n)[:flow_conservation] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    # Initialize the flow sum expression.
-    flow_sum = JuMP.AffExpr(0.0)
+    demands = Dict(jid => ref(wm, n, :junctions, jid)["demand"] for jid in ref(wm, n, :node_junctions, i))
 
-    # Add all incoming flow to node i.
-    for (l,f,t) in ref(wm, n, :node_arcs_fr, i)
-        JuMP.add_to_expression!(flow_sum, -var(wm, n, :q, l))
-    end
+    q = var(wm, n, :q)
+    q_r = var(wm, n, :q_r)
 
-    # Subtract all outgoing flow from node i.
-    for (l,f,t) in ref(wm, n, :node_arcs_to, i)
-        JuMP.add_to_expression!(flow_sum, var(wm, n, :q, l))
-    end
-
-    for rid in ref(wm, n, :node_reservoirs, i)
-        JuMP.add_to_expression!(flow_sum, var(wm, n, :q_r, rid))
-    end
-
-    for jid in ref(wm, n, :node_junctions, i)
-        junction = ref(wm, n, :junctions, jid)
-        JuMP.add_to_expression!(flow_sum, -junction["demand"])
-    end
-
-    for tid in ref(wm, n, :node_tanks, i)
-        tank = ref(wm, n, :tanks, tid)
-        # TODO add tank vars as loads
-    end
+    # TBD
+    # for tid in ref(wm, n, :node_tanks, i)
+    #     tank = ref(wm, n, :tanks, tid)
+    #     # TODO add tank vars as loads
+    # end
 
     # Add the flow conservation constraint.
-    c = JuMP.@constraint(wm.model, flow_sum == 0.0)
-    con(wm, n, :flow_conservation)[i] = c
+    con(wm, n, :flow_conservation)[i] = JuMP.@constraint(wm.model,
+        sum(q[l] for (l,f,t) in ref(wm, n, :node_arcs_to, i)) +
+        sum(-q[l] for (l,f,t) in ref(wm, n, :node_arcs_fr, i))
+        ==
+        sum(-q_r[rid] for rid in ref(wm, n, :node_reservoirs, i)) +
+        sum(demands[jid] for jid in ref(wm, n, :node_junctions, i))
+    )
 end
 
 
@@ -50,37 +39,49 @@ function constraint_directed_flow_conservation(wm::GenericWaterModel, i::Int, n:
     # Initialize the flow sum expression.
     flow_sum = JuMP.AffExpr(0.0)
 
+    demands = Dict(jid => ref(wm, n, :junctions, jid)["demand"] for jid in ref(wm, n, :node_junctions, i))
+
     # Add all incoming flow to node i.
     #println(ref(wm, n, :node_arcs_fr, i))
-    for (l,f,t) in ref(wm, n, :node_arcs_fr, i)
-        JuMP.add_to_expression!(flow_sum, -var(wm, n, :qp, l))
-        JuMP.add_to_expression!(flow_sum, var(wm, n, :qn, l))
-    end
+    # for (l,f,t) in ref(wm, n, :node_arcs_fr, i)
+    #     JuMP.add_to_expression!(flow_sum, -var(wm, n, :qp, l))
+    #     JuMP.add_to_expression!(flow_sum, var(wm, n, :qn, l))
+    # end
 
-    # Subtract all outgoing flow from node i.
-    #println(ref(wm, n, :node_arcs_to, i))
-    for (l,f,t) in ref(wm, n, :node_arcs_to, i)
-        JuMP.add_to_expression!(flow_sum, var(wm, n, :qp, l))
-        JuMP.add_to_expression!(flow_sum, -var(wm, n, :qn, l))
-    end
+    # # Subtract all outgoing flow from node i.
+    # #println(ref(wm, n, :node_arcs_to, i))
+    # for (l,f,t) in ref(wm, n, :node_arcs_to, i)
+    #     JuMP.add_to_expression!(flow_sum, var(wm, n, :qp, l))
+    #     JuMP.add_to_expression!(flow_sum, -var(wm, n, :qn, l))
+    # end
 
-    for rid in ref(wm, n, :node_reservoirs, i)
-        JuMP.add_to_expression!(flow_sum, var(wm, n, :q_r, rid))
-    end
+    # for rid in ref(wm, n, :node_reservoirs, i)
+    #     JuMP.add_to_expression!(flow_sum, var(wm, n, :q_r, rid))
+    # end
 
-    for jid in ref(wm, n, :node_junctions, i)
-        junction = ref(wm, n, :junctions, jid)
-        JuMP.add_to_expression!(flow_sum, -junction["demand"])
-    end
+    # for jid in ref(wm, n, :node_junctions, i)
+    #     junction = ref(wm, n, :junctions, jid)
+    #     JuMP.add_to_expression!(flow_sum, -junction["demand"])
+    # end
 
-    for tid in ref(wm, n, :node_tanks, i)
-        tank = ref(wm, n, :tanks, tid)
-        # TODO add tank vars as loads
-    end
+    # TBD
+    # for tid in ref(wm, n, :node_tanks, i)
+    #     tank = ref(wm, n, :tanks, tid)
+    #     # TODO add tank vars as loads
+    # end
+
+    qn = var(wm, n, :qn)
+    qp = var(wm, n, :qp)
+    q_r = var(wm, n, :q_r)
 
     # Add the flow conservation constraint.
-    c = JuMP.@constraint(wm.model, flow_sum == 0.0)
-    con(wm, n, :flow_conservation)[i] = c
+    con(wm, n, :flow_conservation)[i] = JuMP.@constraint(wm.model,
+        sum(  qp[l] - qn[l] for (l,f,t) in ref(wm, n, :node_arcs_to, i)) +
+        sum( -qp[l] + qn[l] for (l,f,t) in ref(wm, n, :node_arcs_fr, i))
+        ==
+        sum(-q_r[rid] for rid in ref(wm, n, :node_reservoirs, i)) +
+        sum(demands[jid] for jid in ref(wm, n, :node_junctions, i))
+    )
 end
 
 
