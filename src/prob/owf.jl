@@ -39,8 +39,8 @@ function post_owf(wm::GenericWaterModel{T}) where T
     objective_owf(wm)
 end
 
-function run_mn_owf(file, model_constructor, optimizer; kwargs...)
-    return run_generic_model(file, model_constructor, optimizer, post_mn_owf; multinetwork=true, kwargs...)
+function run_mn_owf(file, model_constructor, optimizer; relaxed::Bool=false, kwargs...)
+    return run_generic_model(file, model_constructor, optimizer, post_mn_owf, relaxed=relaxed; multinetwork=true, kwargs...)
 end
 
 function post_mn_owf(wm::GenericWaterModel{T}) where T
