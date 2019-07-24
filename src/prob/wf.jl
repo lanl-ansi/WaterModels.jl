@@ -51,6 +51,7 @@ function post_wf(wm::GenericWaterModel{T}) where T
 
     for i in ids(wm, :tanks)
         constraint_link_volume(wm, i)
+        constraint_tank_state(wm, i)
     end
 
     objective_wf(wm)
@@ -109,6 +110,22 @@ function post_mn_wf(wm::GenericWaterModel{T}) where T
         for i in ids(wm, n, :tanks)
             constraint_link_volume(wm, i, n)
         end
+    end
+
+    network_ids = sort(collect(nw_ids(wm)))
+
+    n_1 = network_ids[1]
+
+    for i in ids(wm, :tanks, nw=n_1)
+        constraint_tank_state(wm, i, nw=n_1)
+    end
+
+    for n_2 in network_ids[2:end]
+       for i in ids(wm, :tanks, nw=n_2)
+           constraint_tank_state(wm, i, n_1, n_2)
+       end
+
+       n_1 = n_2
     end
 
     objective_wf(wm)
