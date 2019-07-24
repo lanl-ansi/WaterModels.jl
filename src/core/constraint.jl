@@ -278,19 +278,31 @@ function constraint_link_flow(wm::GenericWaterModel{T}, n::Int, a::Int) where T 
 end
 
 
-
-function constraint_undirected_sink_flow(wm::GenericWaterModel, i::Int, n::Int=wm.cnw)
+# do nothing by default
+function constraint_sink_flow(wm::GenericWaterModel, n::Int, i::Int)
 end
 
-function constraint_undirected_source_flow(wm::GenericWaterModel, i::Int, n::Int=wm.cnw)
+"Constraint to ensure at least one direction is set to take flow to a junction with demand."
+function constraint_sink_flow(wm::GenericWaterModel{T}, n::Int, i::Int) where T <: AbstractDirectedFlowFormulation
+    # Collect the required variables.
+    x_dir = var(wm, n, :x_dir)
+    out_arcs = filter(a -> i == a.second["f_id"], ref(wm, n, :links))
+    out = Array{JuMP.VariableRef}([x_dir[a] for a in keys(out_arcs)])
+    in_arcs = filter(a -> i == a.second["t_id"], ref(wm, n, :links))
+    in = Array{JuMP.VariableRef}([x_dir[a] for a in keys(in_arcs)])
+
+    # Add the sink flow direction constraint.
+    c = JuMP.@constraint(wm.model, sum(in) - sum(out) >= 1.0 - length(out))
+    con(wm, n, :directed_sink_flow)[i] = c
+end
+
+
+# do nothing by default
+function constraint_source_flow(wm::GenericWaterModel, n::Int, i::Int)
 end
 
 "Constraint to ensure at least one direction is set to take flow away from a source."
-function constraint_directed_source_flow(wm::GenericWaterModel, i::Int, n::Int=wm.cnw)
-    if !haskey(con(wm, n), :directed_source_flow)
-        con(wm, n)[:directed_source_flow] = Dict{Int, JuMP.ConstraintRef}()
-    end
-
+function constraint_source_flow(wm::GenericWaterModel{T}, n::Int, i::Int) where T <: AbstractDirectedFlowFormulation
     # Collect the required variables.
     x_dir = var(wm, n, :x_dir)
     out_arcs = filter(a -> i == a.second["f_id"], ref(wm, n, :links))
@@ -303,20 +315,3 @@ function constraint_directed_source_flow(wm::GenericWaterModel, i::Int, n::Int=w
     con(wm, n, :directed_source_flow)[i] = c
 end
 
-"Constraint to ensure at least one direction is set to take flow to a junction with demand."
-function constraint_directed_sink_flow(wm::GenericWaterModel, i::Int, n::Int=wm.cnw)
-    if !haskey(con(wm, n), :directed_sink_flow)
-        con(wm, n)[:directed_sink_flow] = Dict{Int, JuMP.ConstraintRef}()
-    end
-
-    # Collect the required variables.
-    x_dir = var(wm, n, :x_dir)
-    out_arcs = filter(a -> i == a.second["f_id"], ref(wm, n, :links))
-    out = Array{JuMP.VariableRef}([x_dir[a] for a in keys(out_arcs)])
-    in_arcs = filter(a -> i == a.second["t_id"], ref(wm, n, :links))
-    in = Array{JuMP.VariableRef}([x_dir[a] for a in keys(in_arcs)])
-
-    # Add the sink flow direction constraint.
-    c = JuMP.@constraint(wm.model, sum(in) - sum(out) >= 1.0 - length(out))
-    con(wm, n, :directed_sink_flow)[i] = c
-end

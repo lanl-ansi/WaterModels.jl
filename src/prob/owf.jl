@@ -69,12 +69,12 @@ function post_mn_owf(wm::GenericWaterModel{T}) where T
             constraint_flow_conservation(wm, i, nw=n)
 
             #if junction["demand"] > 0.0
-            #    constraint_sink_flow(wm, i, n)
+            #    constraint_sink_flow(wm, i, nw=n)
             #end
         end
 
         #for i in collect(ids(wm, n, :reservoirs))
-        #    constraint_source_flow(wm, i, n)
+        #    constraint_source_flow(wm, i, nw=n)
         #end
     end
 

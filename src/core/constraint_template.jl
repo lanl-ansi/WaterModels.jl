@@ -31,10 +31,23 @@ function constraint_flow_conservation(wm::GenericWaterModel, i::Int; nw::Int=wm.
     constraint_flow_conservation(wm, nw, i, node_arcs_fr, node_arcs_to, node_reservoirs, node_demands)
 end
 
-#=
-constraint_sink_flow(wm, i)
-constraint_source_flow(wm, i)
-=#
+
+function constraint_sink_flow(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
+    if !haskey(con(wm, n), :directed_sink_flow)
+        con(wm, n)[:directed_sink_flow] = Dict{Int, JuMP.ConstraintRef}()
+    end
+
+    constraint_sink_flow(wm, nw, i)
+end
+
+function constraint_source_flow(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
+    if !haskey(con(wm, n), :directed_source_flow)
+        con(wm, n)[:directed_source_flow] = Dict{Int, JuMP.ConstraintRef}()
+    end
+
+    constraint_sink_flow(wm, nw, i)
+end
+
 
 ### Junction Constraints ###
 
