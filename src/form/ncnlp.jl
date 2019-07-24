@@ -57,20 +57,10 @@ function constraint_undirected_potential_loss_pipe_ne(wm::GenericWaterModel{T}, 
     end
 
     i = ref(wm, n, :pipes, a)["f_id"]
-
-    if i in collect(ids(wm, n, :reservoirs))
-        h_i = ref(wm, n, :reservoirs, i)["head"]
-    else
-        h_i = var(wm, n, :h, i)
-    end
+    h_i = var(wm, n, :h, i)
 
     j = ref(wm, n, :pipes, a)["t_id"]
-
-    if j in collect(ids(wm, n, :reservoirs))
-        h_j = ref(wm, n, :reservoirs, j)["head"]
-    else
-        h_j = var(wm, n, :h, j)
-    end
+    h_j = var(wm, n, :h, j)
 
     L = ref(wm, n, :pipes, a)["length"]
     q_ne = var(wm, n, :q_ne, a)
@@ -88,20 +78,10 @@ function constraint_undirected_potential_loss_pipe(wm::GenericWaterModel{T}, a::
     end
 
     i = ref(wm, n, :pipes, a)["f_id"]
-
-    if i in collect(ids(wm, n, :reservoirs))
-        h_i = ref(wm, n, :reservoirs, i)["head"]
-    else
-        h_i = var(wm, n, :h, i)
-    end
+    h_i = var(wm, n, :h, i)
 
     j = ref(wm, n, :pipes, a)["t_id"]
-
-    if j in collect(ids(wm, n, :reservoirs))
-        h_j = ref(wm, n, :reservoirs, j)["head"]
-    else
-        h_j = var(wm, n, :h, j)
-    end
+    h_j = var(wm, n, :h, j)
 
     L = ref(wm, n, :pipes, a)["length"]
     r = minimum(ref(wm, n, :resistance, a))
@@ -116,23 +96,15 @@ function constraint_undirected_potential_loss_pump(wm::GenericWaterModel{T}, a::
     if !haskey(con(wm, n), :potential_loss_1)
         con(wm, n)[:potential_loss_1] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:potential_loss_2] = Dict{Int, JuMP.ConstraintRef}()
+        con(wm, n)[:potential_loss_3] = Dict{Int, JuMP.ConstraintRef}()
+        con(wm, n)[:potential_loss_4] = Dict{Int, JuMP.ConstraintRef}()
     end
 
     i = ref(wm, n, :pumps, a)["f_id"]
-
-    if i in collect(ids(wm, n, :reservoirs))
-        h_i = ref(wm, n, :reservoirs, i)["head"]
-    else
-        h_i = var(wm, n, :h, i)
-    end
+    h_i = var(wm, n, :h, i)
 
     j = ref(wm, n, :pumps, a)["t_id"]
-
-    if j in collect(ids(wm, n, :reservoirs))
-        h_j = ref(wm, n, :reservoirs, j)["head"]
-    else
-        h_j = var(wm, n, :h, j)
-    end
+    h_j = var(wm, n, :h, j)
 
     q = var(wm, n, :q, a)
     g = var(wm, n, :g, a)
@@ -145,12 +117,20 @@ function constraint_undirected_potential_loss_pump(wm::GenericWaterModel{T}, a::
     c_1 = JuMP.@NLconstraint(wm.model, -(h_i - h_j) - g <= M * x_pump)
     c_2 = JuMP.@NLconstraint(wm.model, -(h_i - h_j) - g >= -M * x_pump)
 
+    # TODO: These can probably be stronger.
+    c_3 = JuMP.@NLconstraint(wm.model, abs(q) <= M * x_pump)
+    c_4 = JuMP.@NLconstraint(wm.model, abs(q) >= m * x_pump)
+
     con(wm, n, :potential_loss_1)[a] = c_1
     con(wm, n, :potential_loss_2)[a] = c_2
+    con(wm, n, :potential_loss_3)[a] = c_3
+    con(wm, n, :potential_loss_4)[a] = c_4
 end
 
 function get_function_from_pump_curve(pump_curve::Array{Tuple{Float64,Float64}})
-    println("hello", pump_curve)
+    LsqFit.@. func(x, p) = p[1]*x*x + p[2]*x + p[3]
+    fit = LsqFit.curve_fit(func, first.(pump_curve), last.(pump_curve), [0.0, 0.0, 0.0])
+    return LsqFit.coef(fit)
 end
 
 function constraint_undirected_head_gain_pump_quadratic_fit(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
@@ -159,16 +139,13 @@ function constraint_undirected_head_gain_pump_quadratic_fit(wm::GenericWaterMode
     end
 
     pump_curve = ref(wm, n, :pumps, a)["pump_curve"]
-    get_function_from_pump_curve(pump_curve)
-    #println(pump_curve)
+    A, B, C = get_function_from_pump_curve(pump_curve)
 
-    ##rhs = get_head_gain_rhs(a, n)
-    #q = var(wm, n, :q, a)
-    #g = var(wm, n, :g, a)
+    q = var(wm, n, :q, a)
+    g = var(wm, n, :g, a)
 
-    ##c = JuMP.@NLconstraint(wm.model, g == a * q^2 + b * q * omega + c * omega^2)
-
-    ##con(wm, n, :head_gain)[a] = c
+    c = JuMP.@constraint(wm.model, A * q^2 + B * q - g == -C)
+    con(wm, n, :head_gain)[a] = c
 end
 
 function objective_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: StandardNCNLPForm
