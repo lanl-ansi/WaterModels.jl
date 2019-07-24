@@ -65,7 +65,7 @@ function post_mn_owf(wm::GenericWaterModel{T}) where T
             constraint_potential_loss_pump(wm, a, n)
         end
 
-        for (i, node) in wm.ref[:nw][n][:nodes]
+        for (i, node) in  ref(wm, n, :nodes)
             constraint_flow_conservation(wm, i, n)
 
             #if junction["demand"] > 0.0

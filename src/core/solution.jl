@@ -49,7 +49,7 @@ end
 function get_solution(wm::GenericWaterModel, sol::Dict{String,<:Any})
     add_pipe_flow_rate_setpoint(sol, wm)
     add_pipe_resistance_setpoint(sol, wm)
-    add_junction_head_setpoint(sol, wm)
+    add_node_head_setpoint(sol, wm)
     add_reservoir_setpoint(sol, wm)
 end
 
@@ -57,9 +57,9 @@ function add_pipe_flow_rate_setpoint(sol, wm::GenericWaterModel)
     add_setpoint(sol, wm, "pipes", "q", :q)
 end
 
-function add_junction_head_setpoint(sol, wm::GenericWaterModel)
+function add_node_head_setpoint(sol, wm::GenericWaterModel)
     if :h in keys(var(wm))
-        add_setpoint(sol, wm, "junctions", "h", :h)
+        add_setpoint(sol, wm, "nodes", "h", :h)
     else
         # TODO: Add something here to compute heads from a flow rate solution.
     end
