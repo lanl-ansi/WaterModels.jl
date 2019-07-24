@@ -21,10 +21,6 @@ function constraint_resistance_selection_ne(wm::GenericWaterModel{T}, a::Int, n:
     constraint_undirected_resistance_selection_ne(wm, a, n)
 end
 
-function constraint_potential_loss_pipe(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
-    constraint_undirected_potential_loss_pipe(wm, a, n)
-end
-
 function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
     constraint_undirected_potential_loss_pipe_ne(wm, a, n)
 end
@@ -61,7 +57,15 @@ function constraint_undirected_potential_loss_pipe_ne(wm::GenericWaterModel{T}, 
     con(wm, n, :potential_loss_ne)[a] = c
 end
 
-function constraint_undirected_potential_loss_pipe(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
+
+
+function constraint_head_difference(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractNCNLPForm
+end
+
+function constraint_potential_loss_ub_pipe(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractNCNLPForm
+end
+
+function constraint_potential_loss_pipe(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractNCNLPForm
     if !haskey(con(wm, n), :potential_loss)
         con(wm, n)[:potential_loss] = Dict{Int, JuMP.ConstraintRef}()
     end

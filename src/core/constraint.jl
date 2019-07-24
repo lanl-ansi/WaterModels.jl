@@ -101,7 +101,12 @@ function constraint_undirected_resistance_selection_ne(wm::GenericWaterModel, a:
     end
 end
 
-function constraint_flow_direction_selection(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
+
+# do nothing by default
+function constraint_flow_direction_selection(wm::GenericWaterModel, n::Int, a::Int)
+end
+
+function constraint_flow_direction_selection(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractDirectedFlowFormulation
     if !haskey(con(wm, n), :flow_direction_selection_n)
         con(wm, n)[:flow_direction_selection_n] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:flow_direction_selection_p] = Dict{Int, JuMP.ConstraintRef}()
@@ -119,6 +124,7 @@ function constraint_flow_direction_selection(wm::GenericWaterModel, a::Int, n::I
     con_n = JuMP.@constraint(wm.model, qn - qn_ub * (1.0 - x_dir) <= 0.0)
     con(wm, n, :flow_direction_selection_n)[a] = con_n
 end
+
 
 function constraint_flow_direction_selection_ne(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
     if !haskey(con(wm, n), :flow_direction_selection_ne_n)
@@ -144,7 +150,8 @@ function constraint_flow_direction_selection_ne(wm::GenericWaterModel, a::Int, n
     end
 end
 
-function constraint_directed_head_difference(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
+
+function constraint_head_difference(wm::GenericWaterModel, n::Int, a::Int)
     if !haskey(con(wm, n), :head_difference_1)
         con(wm, n)[:head_difference_1] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:head_difference_2] = Dict{Int, JuMP.ConstraintRef}()
@@ -208,7 +215,7 @@ function constraint_directed_potential_loss_ub_pipe_ne(wm::GenericWaterModel, a:
     con(wm, n, :directed_potential_loss_ub_pipe_ne_n)[a] = con_n
 end
 
-function constraint_directed_potential_loss_ub_pipe(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
+function constraint_potential_loss_ub_pipe(wm::GenericWaterModel, n::Int, a::Int)
     if !haskey(con(wm, n), :directed_potential_loss_ub_pipe_n)
         con(wm, n)[:directed_potential_loss_ub_pipe_p] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:directed_potential_loss_ub_pipe_n] = Dict{Int, JuMP.ConstraintRef}()
