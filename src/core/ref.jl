@@ -1,11 +1,20 @@
 function calc_head_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
     nodes = ref(wm, n, :nodes)
+    tanks = ref(wm, n, :tanks)
+
     # Get maximum elevation/head values at nodes.
-    max_elev = maximum(node["elevation"] for (i,node) in nodes)
+    max_reservoir_elev = maximum(node["elevation"] for (i, node) in nodes)
+
+    if length(tanks) > 0
+        max_tank_elev = maximum(nodes[i]["elevation"] + tank["max_level"] for (i, tank) in tanks)
+        max_elev = max(max_reservoir_elev, max_tank_elev)
+    else
+        max_elev = max_reservoir_elev
+    end
 
     # Initialize the dictionaries for minimum and maximum heads.
-    head_min = Dict((i, -Inf) for (i,node) in nodes)
-    head_max = Dict((i,  Inf) for (i,node) in nodes)
+    head_min = Dict((i, -Inf) for (i, node) in nodes)
+    head_max = Dict((i,  Inf) for (i, node) in nodes)
 
     for (i, node) in nodes
         # The minimum head at junctions must be above the initial elevation.
@@ -82,10 +91,12 @@ function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
 
         for (r_id, r) in enumerate(resistances)
             lb[a][r_id] = sign(dh_lb[a]) * (abs(dh_lb[a]) / (L * r))^(inv(alpha))
-            lb[a][r_id] = max(lb[a][r_id], -sum_demand)
-
             ub[a][r_id] = sign(dh_ub[a]) * (abs(dh_ub[a]) / (L * r))^(inv(alpha))
-            ub[a][r_id] = min(ub[a][r_id], sum_demand)
+
+            # TODO: These seem to be valid bounds when tanks and pumps aren't
+            # present, but it should be fixed to include these, too.
+            #lb[a][r_id] = max(lb[a][r_id], -sum_demand)
+            #ub[a][r_id] = min(ub[a][r_id], sum_demand)
 
             if link["flow_direction"] == POSITIVE
                 lb[a][r_id] = max(lb[a][r_id], 0.0)
@@ -103,7 +114,7 @@ function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
         end
     end
 
-    for (a, link) in ref(wm, n, :pumps)
+    for (a, pump) in ref(wm, n, :pumps)
         # TODO: Need better bounds here.
         lb[a] = [0.0]
         ub[a] = [Inf]

@@ -71,7 +71,7 @@ function constraint_undirected_potential_loss_pipe_ne(wm::GenericWaterModel{T}, 
     resistances = ref(wm, n, :resistance, a)
 
     c = JuMP.@NLconstraint(wm.model, sum(r * f_alpha(q_ne[r_id]) for (r_id, r)
-                             in enumerate(resistances)) - inv(L) * (h_i - h_j) == 0.0)
+                           in enumerate(resistances)) - inv(L) * (h_i - h_j) == 0.0)
 
     con(wm, n, :potential_loss_ne)[a] = c
 end
@@ -89,8 +89,19 @@ function constraint_undirected_potential_loss_check_valve(wm::GenericWaterModel{
     q = var(wm, n, :q, a)
     x_cv = var(wm, n, :x_cv, a)
 
-    c = JuMP.@NLconstraint(wm.model, x_cv * r * f_alpha(q) - inv(L) * x_cv * (h_i - h_j) == 0.0)
-    con(wm, n, :potential_loss)[a] = c
+    ## TODO: Possible formulation below (expand out...)?
+    #c = JuMP.@NLconstraint(wm.model, x_cv * r * f_alpha(q) - inv(L) * x_cv * (h_i - h_j) == 0.0)
+    #con(wm, n, :potential_loss)[a] = c
+
+    q_ub = max(abs(JuMP.upper_bound(q)), abs(JuMP.lower_bound(q)))
+    JuMP.@NLconstraint(wm.model, x_cv >= inv(q_ub) * abs(q))
+    #JuMP.@NLconstraint(wm.model, x_cv <= q_ub * q^2)
+
+    M = 1.0e9
+    m = 1.0e-9
+
+    c_1 = JuMP.@NLconstraint(wm.model, r * f_alpha(q) - inv(L) * (h_i - h_j) <= M * x_cv)
+    c_2 = JuMP.@NLconstraint(wm.model, r * f_alpha(q) - inv(L) * (h_i - h_j) >= -M * x_cv)
 end
 
 function constraint_undirected_potential_loss_pipe(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
@@ -119,13 +130,12 @@ function constraint_undirected_potential_loss_pump(wm::GenericWaterModel{T}, a::
         con(wm, n)[:potential_loss_2] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:potential_loss_3] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:potential_loss_4] = Dict{Int, JuMP.ConstraintRef}()
+        con(wm, n)[:potential_loss_5] = Dict{Int, JuMP.ConstraintRef}()
+        con(wm, n)[:potential_loss_6] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    i = ref(wm, n, :pumps, a)["f_id"]
-    h_i = var(wm, n, :h, i)
-
-    j = ref(wm, n, :pumps, a)["t_id"]
-    h_j = var(wm, n, :h, j)
+    h_i = var(wm, n, :h, ref(wm, n, :pumps, a)["f_id"])
+    h_j = var(wm, n, :h, ref(wm, n, :pumps, a)["t_id"])
 
     q = var(wm, n, :q, a)
     g = var(wm, n, :g, a)
@@ -135,17 +145,19 @@ function constraint_undirected_potential_loss_pump(wm::GenericWaterModel{T}, a::
     M = 1.0e6
     m = 1.0e-6
 
-    c_1 = JuMP.@NLconstraint(wm.model, -(h_i - h_j) - g <= M * x_pump)
-    c_2 = JuMP.@NLconstraint(wm.model, -(h_i - h_j) - g >= -M * x_pump)
-
-    # TODO: These can probably be stronger.
-    c_3 = JuMP.@NLconstraint(wm.model, abs(q) <= M * x_pump)
-    c_4 = JuMP.@NLconstraint(wm.model, abs(q) >= m * x_pump)
-
+    c_1 = JuMP.@constraint(wm.model, -(h_i - h_j) - g <= M * x_pump)
+    c_2 = JuMP.@constraint(wm.model, -(h_i - h_j) - g >= -M * x_pump)
     con(wm, n, :potential_loss_1)[a] = c_1
     con(wm, n, :potential_loss_2)[a] = c_2
+
+    # TODO: These can probably be stronger.
+    c_3 = JuMP.@NLconstraint(wm.model, q*q <= M^2 * x_pump)
+    c_4 = JuMP.@NLconstraint(wm.model, q*q >= m^2 * x_pump)
     con(wm, n, :potential_loss_3)[a] = c_3
     con(wm, n, :potential_loss_4)[a] = c_4
+
+    #con(wm, n, :potential_loss_5)[a] = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * x_pump)
+    #con(wm, n, :potential_loss_6)[a] = JuMP.@NLconstraint(wm.model, (1 - x_pump) * h_i <= (1 - x_pump) * h_j)
 end
 
 function get_function_from_pump_curve(pump_curve::Array{Tuple{Float64,Float64}})
@@ -165,7 +177,7 @@ function constraint_undirected_head_gain_pump_quadratic_fit(wm::GenericWaterMode
     q = var(wm, n, :q, a)
     g = var(wm, n, :g, a)
 
-    c = JuMP.@constraint(wm.model, A * q^2 + B * q - g == -C)
+    c = JuMP.@NLconstraint(wm.model, A * q^2 + B * q + C == g)
     con(wm, n, :head_gain)[a] = c
 end
 

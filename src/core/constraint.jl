@@ -3,24 +3,23 @@
 ########################################################################
 
 function constraint_undirected_flow_conservation(wm::GenericWaterModel, i::Int, n::Int=wm.cnw)
-    # Create the constraint dictionary if necessary.
     if !haskey(con(wm, n), :flow_conservation)
         con(wm, n)[:flow_conservation] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    demands = Dict(jid => ref(wm, n, :junctions, jid)["demand"] for jid in ref(wm, n, :node_junctions, i))
+    demands = Dict(jid => ref(wm, n, :junctions, jid)["demand"]
+                   for jid in ref(wm, n, :node_junctions, i))
 
-    q = var(wm, n, :q)
-    q_r = var(wm, n, :q_r)
-    q_t = var(wm, n, :q_t)
+    q = var(wm, n, :q) # All link flows.
+    q_r = var(wm, n, :q_r) # Reservoir outflows.
+    q_t = var(wm, n, :q_t) # Tank outflows.
 
     # Add the flow conservation constraint.
     con(wm, n, :flow_conservation)[i] = JuMP.@constraint(wm.model,
-        sum(q[l] for (l,f,t) in ref(wm, n, :node_arcs_to, i)) +
-        sum(-q[l] for (l,f,t) in ref(wm, n, :node_arcs_fr, i))
-        ==
-        sum(-q_r[rid] for rid in ref(wm, n, :node_reservoirs, i)) +
-        sum(-q_t[tid] for tid in ref(wm, n, :node_tanks, i)) +
+        sum(q[l] for (l, f, t) in ref(wm, n, :node_arcs_to, i)) +
+        sum(-q[l] for (l, f, t) in ref(wm, n, :node_arcs_fr, i)) +
+        sum(q_r[rid] for rid in ref(wm, n, :node_reservoirs, i)) +
+        sum(-q_t[tid] for tid in ref(wm, n, :node_tanks, i)) ==
         sum(demands[jid] for jid in ref(wm, n, :node_junctions, i)))
 end
 
@@ -59,11 +58,11 @@ function constraint_directed_resistance_selection_ne(wm::GenericWaterModel, a::I
         con(wm, n)[:resistance_selection_n] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
     end
 
-    con(wm, n, :resistance_selection_p)[a] = Dict{Int, JuMP.ConstraintRef}()
-    con(wm, n, :resistance_selection_n)[a] = Dict{Int, JuMP.ConstraintRef}()
-
     con_sum = JuMP.@constraint(wm.model, sum(var(wm, n, :x_res, a)) == 1.0)
     con(wm, n, :resistance_selection_sum)[a] = con_sum
+
+    con(wm, n, :resistance_selection_p)[a] = Dict{Int, JuMP.ConstraintRef}()
+    con(wm, n, :resistance_selection_n)[a] = Dict{Int, JuMP.ConstraintRef}()
 
     for r in 1:length(ref(wm, n, :resistance, a))
         x_res = var(wm, n, :x_res, a)[r]
@@ -248,7 +247,7 @@ function constraint_link_volume(wm::GenericWaterModel, i::Int, n::Int=wm.cnw)
     elevation = ref(wm, n, :nodes, i)["elevation"]
     surface_area = 0.25 * pi * ref(wm, n, :tanks, i)["diameter"]^2
 
-    c = JuMP.@constraint(wm.model, h - V * inv(surface_area) == elevation)
+    c = JuMP.@constraint(wm.model, h - elevation == inv(surface_area) * V)
     con(wm, n, :link_volume)[i] = c
 end
 
@@ -322,13 +321,13 @@ function constraint_check_valve(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
         con(wm, n)[:check_valve_2] = Dict{Int, JuMP.ConstraintRef}()
     end
 
+    q = var(wm, n, :q, a)
     h_i = var(wm, n, :h, ref(wm, n, :links, a)["f_id"])
     h_j = var(wm, n, :h, ref(wm, n, :links, a)["t_id"])
-    q = var(wm, n, :q, a)
     x_cv = var(wm, n, :x_cv, a)
 
     con(wm, n, :check_valve_1)[a] = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * x_cv)
-    con(wm, n, :check_valve_2)[a] = JuMP.@constraint(wm.model, (1 - x_cv) * h_i <= (1 - x_cv) * h_j)
+    #con(wm, n, :check_valve_2)[a] = JuMP.@NLconstraint(wm.model, (1 - x_cv) * h_i <= (1 - x_cv) * h_j)
 end
 
 "Constraint to ensure at least one direction is set to take flow to a junction with demand."
@@ -359,8 +358,9 @@ function constraint_tank_state_initial(wm::GenericWaterModel, n::Int, i::Int, in
     V = var(wm, n, :V, i)
     q_t = var(wm, n, :q_t, i)
 
-    con(wm, n, :tank_state_1)[i] = JuMP.@constraint(wm.model, V == initial_volume)
-    con(wm, n, :tank_state_2)[i] = JuMP.@constraint(wm.model, q_t == 0.0)
+    #con(wm, n, :tank_state_1)[i] = JuMP.@constraint(wm.model, V - q_t * time_step == initial_volume)
+    #con(wm, n, :tank_state_1)[i] = JuMP.@constraint(wm.model, V == initial_volume)
+    #con(wm, n, :tank_state_2)[i] = JuMP.@constraint(wm.model, q_t == 0.0)
 end
 
 function constraint_tank_state(wm::GenericWaterModel, n_1::Int, n_2::Int, i::Int, time_step::Float64)

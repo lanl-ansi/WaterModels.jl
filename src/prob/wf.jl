@@ -18,23 +18,21 @@ function post_wf(wm::GenericWaterModel{T}) where T
     variable_volume(wm)
     variable_pump(wm)
 
+    for a in ids(wm, :links)
+        constraint_link_flow(wm, a)
+    end
+
     for a in setdiff(ids(wm, :pipes), ids(wm, :check_valves))
         constraint_potential_loss_pipe(wm, a)
-        constraint_link_flow(wm, a)
     end
 
     for a in ids(wm, :check_valves)
         constraint_check_valve(wm, a)
         constraint_potential_loss_check_valve(wm, a)
-        constraint_link_flow(wm, a)
     end
 
     for a in ids(wm, :pumps)
         constraint_potential_loss_pump(wm, a)
-    end
-
-    for a in ids(wm, :check_valves)
-        constraint_check_valve(wm, a)
     end
 
     for (i, node) in ref(wm, :nodes)
@@ -45,9 +43,9 @@ function post_wf(wm::GenericWaterModel{T}) where T
         #end
     end
 
-    #for i in collect(ids(wm, :reservoirs))
-    #    constraint_source_flow(wm, i)
-    #end
+    ##for i in collect(ids(wm, :reservoirs))
+    ##    constraint_source_flow(wm, i)
+    ##end
 
     for i in ids(wm, :tanks)
         constraint_link_volume(wm, i)
@@ -71,6 +69,7 @@ function post_mn_wf(wm::GenericWaterModel{T}) where T
 
         variable_reservoir(wm, n)
         variable_tank(wm, n)
+        variable_check_valve(wm, n)
         variable_head(wm, n)
         variable_flow(wm, n)
         variable_volume(wm, n)
