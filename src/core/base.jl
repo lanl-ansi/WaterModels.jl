@@ -251,6 +251,29 @@ function build_ref(data::Dict{String,<:Any})
         ref[:pipes_ne] = filter(is_ne_link, ref[:pipes])
         ref[:links_ne] = filter(is_ne_link, ref[:links])
 
+        ref[:arcs_fr] = [(i,comp["f_id"],comp["t_id"]) for (i,comp) in ref[:links]]
+        #ref[:arcs_to]   = [(i,comp["t_id"],comp["f_id"]) for (i,comp) in ref[:links]]
+        #ref[:arcs] = [ref[:arcs_fr]; ref[:arcs_to]]
+
+        #node_arcs = Dict((i, Tuple{Int,Int,Int}[]) for (i,node) in ref[:nodes])
+        #for (l,i,j) in ref[:arcs]
+        #    push!(node_arcs[i], (l,i,j))
+        #end
+        #ref[:node_arcs] = node_arcs
+
+        node_arcs_fr = Dict((i, Tuple{Int,Int,Int}[]) for (i,node) in ref[:nodes])
+        for (l,i,j) in ref[:arcs_fr]
+            push!(node_arcs_fr[i], (l,i,j))
+        end
+        ref[:node_arcs_fr] = node_arcs_fr
+
+        node_arcs_to = Dict((i, Tuple{Int,Int,Int}[]) for (i,node) in ref[:nodes])
+        for (l,i,j) in ref[:arcs_fr]
+            push!(node_arcs_to[j], (l,i,j))
+        end
+        ref[:node_arcs_to] = node_arcs_to
+
+
         #ref[:nodes] = merge(ref[:junctions], ref[:tanks], ref[:reservoirs])
         node_junctions = Dict((i, Int[]) for (i,node) in ref[:nodes])
         for (i, junction) in ref[:junctions]

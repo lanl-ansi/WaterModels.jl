@@ -12,13 +12,13 @@ function constraint_undirected_flow_conservation(wm::GenericWaterModel, i::Int, 
     flow_sum = JuMP.AffExpr(0.0)
 
     # Add all incoming flow to node i.
-    for (a, link) in filter(is_in_node(i), ref(wm, n, :links))
-        JuMP.add_to_expression!(flow_sum, var(wm, n, :q, a))
+    for (l,f,t) in ref(wm, n, :node_arcs_fr, i)
+        JuMP.add_to_expression!(flow_sum, -var(wm, n, :q, l))
     end
 
     # Subtract all outgoing flow from node i.
-    for (a, link) in filter(is_out_node(i), ref(wm, n, :links))
-        JuMP.add_to_expression!(flow_sum, -var(wm, n, :q, a))
+    for (l,f,t) in ref(wm, n, :node_arcs_to, i)
+        JuMP.add_to_expression!(flow_sum, var(wm, n, :q, l))
     end
 
     for rid in ref(wm, n, :node_reservoirs, i)
@@ -51,15 +51,17 @@ function constraint_directed_flow_conservation(wm::GenericWaterModel, i::Int, n:
     flow_sum = JuMP.AffExpr(0.0)
 
     # Add all incoming flow to node i.
-    for (a, conn) in filter(is_in_node(i), ref(wm, n, :links))
-        JuMP.add_to_expression!(flow_sum, var(wm, n, :qp, a))
-        JuMP.add_to_expression!(flow_sum, -var(wm, n, :qn, a))
+    #println(ref(wm, n, :node_arcs_fr, i))
+    for (l,f,t) in ref(wm, n, :node_arcs_fr, i)
+        JuMP.add_to_expression!(flow_sum, -var(wm, n, :qp, l))
+        JuMP.add_to_expression!(flow_sum, var(wm, n, :qn, l))
     end
 
     # Subtract all outgoing flow from node i.
-    for (a, conn) in filter(is_out_node(i), ref(wm, n, :links))
-        JuMP.add_to_expression!(flow_sum, -var(wm, n, :qp, a))
-        JuMP.add_to_expression!(flow_sum, var(wm, n, :qn, a))
+    #println(ref(wm, n, :node_arcs_to, i))
+    for (l,f,t) in ref(wm, n, :node_arcs_to, i)
+        JuMP.add_to_expression!(flow_sum, var(wm, n, :qp, l))
+        JuMP.add_to_expression!(flow_sum, -var(wm, n, :qn, l))
     end
 
     for rid in ref(wm, n, :node_reservoirs, i)
