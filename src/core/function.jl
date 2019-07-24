@@ -44,6 +44,8 @@ function d2f_alpha(alpha::Float64; convex::Bool=false)
     end
 end
 
+# TODO: Overload the functions below based on the type of model.
+# Make sure this works with multinetworks. Throw an error if the alpha is different across the multinetwork.
 function function_if_alpha(wm::GenericWaterModel, n::Int=wm.cnw; convex::Bool=false)
     alpha = ref(wm, n, :alpha) - 1.0
     f = JuMP.register(wm.model, :if_alpha, 1, if_alpha(alpha, convex=convex), f_alpha(alpha, convex=convex), df_alpha(alpha, convex=convex))

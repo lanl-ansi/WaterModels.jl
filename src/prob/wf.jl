@@ -5,6 +5,7 @@ function run_wf(network, model_constructor, optimizer; relaxed::Bool=false, kwar
 end
 
 function post_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw; kwargs...) where T <: AbstractWaterFormulation
+    # TODO: Do not use conditionals here.
     if T <: Union{AbstractMICPForm, AbstractNCNLPForm}
         function_f_alpha(wm, n, convex=false)
     elseif T <: AbstractCNLPForm
