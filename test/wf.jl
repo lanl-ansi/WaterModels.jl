@@ -37,8 +37,8 @@
         @test solution["termination_status"] == MOI.LOCALLY_SOLVED
         @test isapprox(solution["solution"]["pipes"]["2"]["q"], 0.093565, rtol=1.0e-4)
         @test isapprox(solution["solution"]["pipes"]["6"]["q"], 0.055710, rtol=1.0e-4)
-        @test isapprox(solution["solution"]["junctions"]["2"]["h"], 203.247650, rtol=1.0e-4)
-        @test isapprox(solution["solution"]["junctions"]["6"]["h"], 195.445953, rtol=1.0e-4)
+        @test isapprox(solution["solution"]["nodes"]["2"]["h"], 203.247650, rtol=1.0e-4)
+        @test isapprox(solution["solution"]["nodes"]["6"]["h"], 195.445953, rtol=1.0e-4)
     end
 
     @testset "Shamir network (unknown flow directions), MICP formulation." begin
@@ -51,7 +51,7 @@
         @test solution["termination_status"] == MOI.OPTIMAL
         @test isapprox(solution["solution"]["pipes"]["2"]["q"], 0.093565, rtol=0.05)
         @test isapprox(solution["solution"]["pipes"]["6"]["q"], 0.055710, rtol=0.05)
-        @test isapprox(solution["solution"]["junctions"]["2"]["h"], 203.247650, rtol=0.05)
-        @test isapprox(solution["solution"]["junctions"]["6"]["h"], 195.445953, rtol=0.05)
+        @test isapprox(solution["solution"]["nodes"]["2"]["h"], 203.247650, rtol=0.05)
+        @test isapprox(solution["solution"]["nodes"]["6"]["h"], 195.445953, rtol=0.05)
     end
 end

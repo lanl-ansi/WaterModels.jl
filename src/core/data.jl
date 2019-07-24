@@ -273,8 +273,8 @@ end
 
 
 function set_start_head!(data)
-    for (i, junction) in data["junctions"]
-        junction["h_start"] = junction["h"]
+    for (i, node) in data["nodes"]
+        node["h_start"] = node["h"]
     end
 end
 
