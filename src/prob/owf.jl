@@ -58,7 +58,7 @@ function post_mn_owf(wm::GenericWaterModel{T}) where T
 
         for a in ids(wm, n, :pipes)
             constraint_potential_loss_pipe(wm, a, n)
-            constraint_link_flow(wm, a, n)
+            constraint_link_flow(wm, a, nw=n)
         end
 
         for a in collect(ids(wm, n, :pumps))
@@ -66,7 +66,7 @@ function post_mn_owf(wm::GenericWaterModel{T}) where T
         end
 
         for (i, node) in  ref(wm, n, :nodes)
-            constraint_flow_conservation(wm, i, n=n)
+            constraint_flow_conservation(wm, i, nw=n)
 
             #if junction["demand"] > 0.0
             #    constraint_sink_flow(wm, i, n)

@@ -39,14 +39,6 @@ end
 function constraint_potential_loss_pump(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMILPRForm
 end
 
-function constraint_link_flow_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMILPRForm
-    constraint_link_directed_flow_ne(wm, a, n)
-end
-
-function constraint_link_flow(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMILPRForm
-    constraint_link_directed_flow(wm, a, n)
-end
-
 function constraint_source_flow(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractMILPRForm
     constraint_directed_source_flow(wm, i, n)
 end

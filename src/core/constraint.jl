@@ -2,7 +2,7 @@
 # This file defines commonly-used constraints for water systems models.
 ########################################################################
 
-function constraint_undirected_flow_conservation(wm::GenericWaterModel, n::Int, i::Int, node_arcs_fr, node_arcs_to, node_reservoirs, node_demands)
+function constraint_flow_conservation(wm::GenericWaterModel{T}, n::Int, i::Int, node_arcs_fr, node_arcs_to, node_reservoirs, node_demands) where T <: AbstractUndirectedFlowFormulation
     q = var(wm, n, :q)
     q_r = var(wm, n, :q_r)
 
@@ -23,7 +23,7 @@ function constraint_undirected_flow_conservation(wm::GenericWaterModel, n::Int, 
 end
 
 
-function constraint_directed_flow_conservation(wm::GenericWaterModel, n::Int, i::Int, node_arcs_fr, node_arcs_to, node_reservoirs, node_demands)
+function constraint_flow_conservation(wm::GenericWaterModel{T}, n::Int, i::Int, node_arcs_fr, node_arcs_to, node_reservoirs, node_demands) where T <: AbstractDirectedFlowFormulation
     qn = var(wm, n, :qn)
     qp = var(wm, n, :qp)
     q_r = var(wm, n, :q_r)
@@ -231,45 +231,53 @@ function constraint_directed_potential_loss_ub_pipe(wm::GenericWaterModel, a::In
     con(wm, n, :directed_potential_loss_ub_pipe_n)[a] = con_n
 end
 
-function constraint_link_undirected_flow_ne(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
+
+function constraint_link_flow_ne(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractUndirectedFlowFormulation
     if !haskey(con(wm, n), :link_undirected_flow_ne)
         con(wm, n)[:link_undirected_flow_ne] = Dict{Int, JuMP.ConstraintRef}()
     end
 
     q_ne = var(wm, n, :q_ne, a)
     q = var(wm, n, :q, a)
-    c = JuMP.@constraint(wm.model, sum(q_ne) - q == 0.0)
+
+    c = JuMP.@constraint(wm.model, sum(q_ne) == q)
     con(wm, n, :link_undirected_flow_ne)[a] = c
 end
 
-function constraint_link_directed_flow_ne(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
+function constraint_link_flow_ne(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractDirectedFlowFormulation
     if !haskey(con(wm, n), :link_directed_flow_n_ne)
         con(wm, n)[:link_directed_flow_p_ne] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:link_directed_flow_n_ne] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    qp_ne = var(wm, n, :qp_ne, a)
     qp = var(wm, n, :qp, a)
-    con_p = JuMP.@constraint(wm.model, sum(qp_ne) - qp == 0.0)
+    qn = var(wm, n, :qn, a)
+
+    qp_ne = var(wm, n, :qp_ne, a)
+    qn_ne = var(wm, n, :qn_ne, a)
+
+    con_p = JuMP.@constraint(wm.model, sum(qp_ne) == qp)
     con(wm, n, :link_directed_flow_p_ne)[a] = con_p
 
-    qn_ne = var(wm, n, :qn_ne, a)
-    qn = var(wm, n, :qn, a)
-    con_n = JuMP.@constraint(wm.model, sum(qn_ne) - qn == 0.0)
+    con_n = JuMP.@constraint(wm.model, sum(qn_ne) == qn)
     con(wm, n, :link_directed_flow_n_ne)[a] = con_n
 end
 
-function constraint_link_directed_flow(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
-    if !haskey(con(wm, n), :link_directed_flow)
-        con(wm, n)[:link_directed_flow] = Dict{Int, JuMP.ConstraintRef}()
-    end
 
+# do nothing by default
+function constraint_link_flow(wm::GenericWaterModel, n::Int, a::Int)
+end
+
+# link undirected flow variables into the directed flow variable
+function constraint_link_flow(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractDirectedFlowFormulation
     q = var(wm, n, :q, a)
     qp = var(wm, n, :qp, a)
     qn = var(wm, n, :qn, a)
-    c = JuMP.@constraint(wm.model, (qp - qn) - q == 0.0)
-    con(wm, n, :link_directed_flow)[a] = c
+
+    con(wm, n, :link_directed_flow)[a] = JuMP.@constraint(wm.model, qp - qn == q)
 end
+
+
 
 function constraint_undirected_sink_flow(wm::GenericWaterModel, i::Int, n::Int=wm.cnw)
 end

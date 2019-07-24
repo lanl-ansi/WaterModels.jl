@@ -34,13 +34,6 @@ function constraint_potential_loss_pump(wm::GenericWaterModel{T}, a::Int, n::Int
     constraint_undirected_head_gain_pump_quadratic_fit(wm, a, n)
 end
 
-function constraint_link_flow_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
-    constraint_link_undirected_flow_ne(wm, a, n)
-end
-
-function constraint_link_flow(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
-end
-
 function constraint_source_flow(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
 end
 
