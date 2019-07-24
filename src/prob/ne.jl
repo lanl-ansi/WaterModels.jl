@@ -12,8 +12,11 @@ function post_ne(wm::GenericWaterModel{T}) where T
     end
 
     variable_reservoir(wm)
+    variable_tank(wm)
+    variable_check_valve(wm)
     variable_head(wm)
     variable_flow(wm)
+    variable_volume(wm)
     variable_pump(wm)
     variable_flow_ne(wm)
     variable_resistance_ne(wm)
@@ -26,7 +29,12 @@ function post_ne(wm::GenericWaterModel{T}) where T
         constraint_potential_loss_pipe(wm, a)
     end
 
-    for a in collect(ids(wm, :pipes_ne))
+    for a in ids(wm, :check_valves)
+        constraint_check_valve(wm, a)
+        constraint_potential_loss_check_valve(wm, a)
+    end
+
+    for a in ids(wm, :pipes_ne)
         constraint_potential_loss_pipe_ne(wm, a)
         constraint_resistance_selection_ne(wm, a)
         constraint_link_flow_ne(wm, a)
@@ -36,12 +44,20 @@ function post_ne(wm::GenericWaterModel{T}) where T
         constraint_potential_loss_pump(wm, a)
     end
 
+    for a in ids(wm, :check_valves)
+        constraint_check_valve(wm, a)
+    end
+
     for (i, node) in ref(wm, :nodes)
         constraint_flow_conservation(wm, i)
 
         #if junction["demand"] > 0.0
         #    constraint_sink_flow(wm, i)
         #end
+    end
+
+    for i in ids(wm, :tanks)
+        constraint_link_volume(wm, i)
     end
 
     #for i in collect(ids(wm, :reservoirs))

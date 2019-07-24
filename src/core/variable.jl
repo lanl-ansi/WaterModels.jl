@@ -10,7 +10,22 @@ function get_start(set, item_key, first_value_key, second_value_key, default)
     return get(get(get(set, item_key, Dict()), second_value_key, Dict()), first_value_key, default)
 end
 
-# TODO: Create volume variables for tanks and create constraints that map these to heads.
+function variable_volume(wm::GenericWaterModel, n::Int=wm.cnw)
+    lb, ub = calc_tank_volume_bounds(wm, n)
+    var(wm, n)[:V] = JuMP.@variable(wm.model, [i in ids(wm, n, :tanks)],
+        base_name="V[$(n)]", lower_bound=lb[i], upper_bound=ub[i], 
+        start=get_start(ref(wm, n, :nodes), i, "V_start", ub[i]))
+end
+
+function variable_tank(wm::GenericWaterModel, n::Int=wm.cnw)
+    var(wm, n)[:q_t] = JuMP.@variable(wm.model, [i in ids(wm, n, :tanks)],
+        base_name="q_t[$(n)]", start=get_start(ref(wm, n, :nodes), i, "q_t_start", 0.0))
+end
+
+function variable_check_valve(wm::GenericWaterModel, n::Int=wm.cnw)
+    var(wm, n)[:x_cv] = JuMP.@variable(wm.model, [i in ids(wm, n, :check_valves)], binary=true,
+        base_name="x_cv[$(n)]", start=get_start(ref(wm, n, :links), i, "x_cv_start", 0.0))
+end
 
 function variable_undirected_flow(wm::GenericWaterModel, n::Int=wm.cnw; bounded::Bool=true)
     # Get indices for all network arcs.
@@ -168,19 +183,10 @@ function variable_directed_flow_ne(wm::GenericWaterModel, n::Int=wm.cnw; bounded
 end
 
 function variable_pressure_head(wm::GenericWaterModel, n::Int=wm.cnw)
-    # Get indices for all network nodes.
-    node_ids = sort(collect(ids(wm, n, :nodes)))
-
-    # Get the bounds associated with heads at nodes.
-    lbs, ubs = calc_head_bounds(wm, n)
-
-    # Initialize variables associated with head.
-    h = JuMP.@variable(wm.model, [i in node_ids], lower_bound=lbs[i],
-                       upper_bound=ubs[i], base_name="h[$(n)]",
-                       start=get_start(ref(wm, n, :nodes), i,
-                                       "h_start", ubs[i]))
-
-    var(wm, n)[:h] = h
+    lb, ub = calc_head_bounds(wm, n)
+    var(wm, n)[:h] = JuMP.@variable(wm.model, [i in ids(wm, n, :nodes)],
+        base_name="h[$(n)]", lower_bound=lb[i], upper_bound=ub[i], 
+        start=get_start(ref(wm, n, :nodes), i, "h_start", ub[i]))
 end
 
 function variable_directed_head_difference(wm::GenericWaterModel, n::Int=wm.cnw)
@@ -266,16 +272,8 @@ end
 
 
 function variable_reservoir(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractWaterFormulation
-    # Get indices for all network nodes.
-    reservoir_ids = sort(collect(ids(wm, n, :reservoirs)))
-
     # Initialize variables associated with reservoir flow
-    q_r = JuMP.@variable(wm.model, [i in reservoir_ids],
-        base_name="q_r[$(n)]",
-        #lower_bound=0.0,
-        start=get_start(ref(wm, n, :reservoirs), i, "q_r_start", 0.0)
-    )
-
-    var(wm, n)[:q_r] = q_r
+    var(wm, n)[:q_r] = JuMP.@variable(wm.model, [i in ids(wm, n, :reservoirs)],
+        base_name="q_r[$(n)]", start=get_start(ref(wm, n, :reservoirs), i, "q_r_start", 0.0))
 end
 

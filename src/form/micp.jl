@@ -69,6 +69,7 @@ function constraint_directed_potential_loss_pipe_ne(wm::GenericWaterModel{T}, a:
 
     L = ref(wm, n, :links, a)["length"]
 
+    #var(wm, n, :qn_ne, (a, r_id)) =
     for (r_id, r) in enumerate(ref(wm, n, :resistance, a))
         qn_ne = var(wm, n, :qn_ne, a)[r_id]
         dhn = var(wm, n, :dhn, a)

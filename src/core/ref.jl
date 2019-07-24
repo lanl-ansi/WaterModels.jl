@@ -1,4 +1,3 @@
-
 function calc_head_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
     nodes = ref(wm, n, :nodes)
     # Get maximum elevation/head values at nodes.
@@ -155,4 +154,22 @@ function calc_directed_flow_upper_bounds(wm::GenericWaterModel, alpha::Float64, 
     end
 
     return ub_n, ub_p
+end
+
+function calc_tank_volume_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
+    lb = Dict{Int64, Float64}(i => 0.0 for i in ids(wm, n, :tanks))
+    ub = Dict{Int64, Float64}(i => Inf for i in ids(wm, n, :tanks))
+
+    for (i, tank) in ref(wm, n, :tanks)
+        # TODO: Change this after we drop nothing entries from dictionaries.
+        if tank["curve_name"] == nothing
+            surface_area = 0.25 * pi * tank["diameter"]^2
+            lb[i] = min(tank["min_vol"], surface_area * tank["min_level"])
+            ub[i] = surface_area * tank["max_level"]
+        else
+            Memento.error(_LOGGER, "Only cylindrical tanks are currently supported.")
+        end
+    end
+
+    return lb, ub
 end

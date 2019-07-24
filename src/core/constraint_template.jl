@@ -6,3 +6,32 @@
 #
 # Constraint templates should always be defined over "GenericWaterModel" and
 # should never refer to model variables.
+
+""
+function constraint_tank_state(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
+    tank = ref(wm, nw, :tanks, i)
+
+    if haskey(ref(wm, nw), :time_series)
+        time_step = convert(Float64, ref(wm, nw, :time_series)["time_step"])
+    else
+        Memento.error(_LOGGER, "Tank states cannot be controlled outside of a time series.")
+    end
+
+    initial_level = ref(wm, nw, :tanks, i)["init_level"]
+    surface_area = 0.25 * pi * ref(wm, nw, :tanks, i)["diameter"]^2
+    V_initial = surface_area * initial_level
+
+    constraint_tank_state_initial(wm, nw, i, V_initial, time_step)
+end
+
+function constraint_storage_state(wm::GenericWaterModel, i::Int, nw_1::Int, nw_2::Int)
+    tank = ref(wm, nw_2, :tanks, i)
+
+    if haskey(ref(wm, nw), :time_series)
+        time_step = ref(wm, nw, :time_series)["time_step"]
+    else
+        Memento.error(_LOGGER, "Tank states cannot be controlled outside of a time series.")
+    end
+
+    constraint_tank_state(wm, nw_1, nw_2, i, time_step)
+end

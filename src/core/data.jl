@@ -161,6 +161,10 @@ function has_known_flow_direction(link::Pair{Int, Any})
     return link.second["flow_direction"] != UNKNOWN
 end
 
+function has_check_valve(pipe::Pair{Int64, Any})
+    return pipe.second["status"] == "CV"
+end
+
 function is_ne_link(link::Pair{Int64, Any})
     return any([x in ["diameters", "resistances"] for x in keys(link.second)])
 end
