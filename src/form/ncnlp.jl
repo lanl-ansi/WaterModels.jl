@@ -123,8 +123,8 @@ function constraint_undirected_potential_loss_pump(wm::GenericWaterModel{T}, a::
 
     con(wm, n, :potential_loss_1)[a] = c_1
     con(wm, n, :potential_loss_2)[a] = c_2
-    con(wm, n, :potential_loss_3)[a] = c_2
-    con(wm, n, :potential_loss_4)[a] = c_3
+    con(wm, n, :potential_loss_3)[a] = c_3
+    con(wm, n, :potential_loss_4)[a] = c_4
 end
 
 function get_function_from_pump_curve(pump_curve::Array{Tuple{Float64,Float64}})
