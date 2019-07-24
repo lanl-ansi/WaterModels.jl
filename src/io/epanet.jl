@@ -958,7 +958,13 @@ function _read_pipes!(data::Dict{String, Any})
             pipe["minor_loss"] = parse(Float64, current[7])
             pipe["status"] = current[8]
             pipe["initial_status"] = current[8]
-            pipe["flow_direction"] = UNKNOWN
+
+            # If the pipe has a check valve, ensure unidirectional flow.
+            if uppercase(pipe["status"]) == "CV"
+                pipe["flow_direction"] = POSITIVE
+            else
+                pipe["flow_direction"] = UNKNOWN
+            end
 
             data["pipes"][current[1]] = pipe
         end
@@ -1029,6 +1035,9 @@ function _read_pumps!(data::Dict{String, Any})
             if pump["pump_type"] == nothing
                 Memento.error(_LOGGER, "Either head curve ID or pump power must be specified for all pumps.")
             end
+
+            # All pumps are unidirectional.
+            pump["flow_direction"] = POSITIVE
 
             data["pumps"][current[1]] = pump
         end

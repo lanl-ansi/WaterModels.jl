@@ -35,6 +35,7 @@ include("io/geojson.jl")
 
 include("core/base.jl")
 include("core/data.jl")
+include("core/ref.jl")
 include("core/function.jl")
 include("core/solution.jl")
 include("core/types.jl")
@@ -55,4 +56,5 @@ include("prob/wf.jl")
 
 include("util/relax.jl")
 
+include("core/export.jl")
 end
