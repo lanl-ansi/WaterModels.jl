@@ -150,7 +150,12 @@ function constraint_undirected_potential_loss_pump(wm::GenericWaterModel{T}, a::
 end
 
 function get_function_from_pump_curve(pump_curve::Array{Tuple{Float64,Float64}})
-    println("hello", pump_curve)
+    LsqFit.@. func(x, p) = p[1]*x*x + p[2]*x + p[3]
+    p0 = [0.0, 0.0, 0.0]
+    xdata = first.(pump_curve)
+    ydata = last.(pump_curve)
+    fit = LsqFit.curve_fit(func, xdata, ydata, p0)
+    println(fit)
 end
 
 function constraint_undirected_head_gain_pump_quadratic_fit(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm

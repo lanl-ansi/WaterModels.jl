@@ -40,6 +40,7 @@ function _add_link_ids!(data::Dict{String, Any})
         end
     end
 
+
     for link_type in ["pumps"]
         # Update the link IDs in time series.
         ts_link_ids = Array{Int64, 1}()
@@ -117,7 +118,6 @@ function _add_node_ids!(data::Dict{String, Any})
     for node_type in node_types
         nid_field = node_id_field[node_type]
         for (i,comp) in data[node_type]
-            #println("$i $(comp["id"])")
             @assert i == "$(comp["id"])"
             comp[nid_field] = comp["id"]
             node = Dict{String, Any}(
@@ -261,13 +261,9 @@ function _get_node_by_name(data::Dict{String, Any}, name::AbstractString)
 end
 
 function _get_node_id_by_name(data::Dict{String, Any}, name::AbstractString)
-    node_types = ["junctions", "reservoirs", "tanks"]
-
-    for node_type in node_types
-        for (node_id, node) in data[node_type]
-            if node["name"] == name
-                return node["id"]
-            end
+    for (node_id, node) in data["nodes"]
+        if node["name"] == name
+            return node["id"]
         end
     end
 end
