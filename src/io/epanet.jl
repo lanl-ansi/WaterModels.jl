@@ -82,6 +82,11 @@ end
 
 function _add_node_ids!(data::Dict{String, Any})
     node_types = ["junctions", "reservoirs", "tanks"]
+    node_id_field = Dict(
+        "junctions" => "junction_node",
+        "reservoirs" => "reservoir_node",
+        "tanks" => "tank_node",
+    )
     node_names = vcat([collect(keys(data[t])) for t in node_types]...)
     all_int = all([tryparse(Int64, x) != nothing for x in node_names])
 
@@ -107,6 +112,48 @@ function _add_node_ids!(data::Dict{String, Any})
             data[node_type] = DataStructures.OrderedDict{String,Any}(new_keys .=> values(data[node_type]))
         end
     end
+
+    nodes = Dict{String, Any}()
+    for node_type in node_types
+        nid_field = node_id_field[node_type]
+        for (i,comp) in data[node_type]
+            #println("$i $(comp["id"])")
+            @assert i == "$(comp["id"])"
+            comp[nid_field] = comp["id"]
+            node = Dict{String, Any}(
+                "id" => comp["id"],
+                "source_id" => [node_type, comp["source_id"]]
+            )
+            if haskey(comp, "name")
+                node["name"] = comp["name"]
+            end
+            if haskey(comp, "elevation")
+                node["elevation"] = pop!(comp, "elevation")
+            end
+            if haskey(comp, "minimumHead")
+                node["minimumHead"] = pop!(comp, "minimumHead")
+            end
+            if haskey(comp, "maximumHead")
+                node["maximumHead"] = pop!(comp, "maximumHead")
+            end
+            if haskey(comp, "head")
+                node["elevation"] = comp["head"]
+            end
+            @assert !haskey(nodes, i)
+            nodes[i] = node
+        end
+    end
+    data["nodes"] = nodes
+
+    for (i,junction) in data["junctions"]
+        if isapprox(junction["demand"], 0.0)
+            Memento.info(_LOGGER, "dropping junction $(i) due to zero demand")
+            delete!(data["junctions"], i)
+        end
+    end
+
+    # Update the node IDs in time series.
+    ts_node_ids = Array{Int64, 1}()
 
     for node_type in ["junctions", "reservoirs"]
         # Update the node IDs in time series.

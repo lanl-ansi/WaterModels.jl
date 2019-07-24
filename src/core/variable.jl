@@ -12,7 +12,7 @@ end
 
 # TODO: Create volume variables for tanks and create constraints that map these to heads.
 
-function variable_undirected_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw; bounded::Bool=true) where T <: AbstractWaterFormulation
+function variable_undirected_flow(wm::GenericWaterModel, n::Int=wm.cnw; bounded::Bool=true)
     # Get indices for all network arcs.
     arcs = sort(collect(ids(wm, n, :links)))
 
@@ -36,7 +36,7 @@ function variable_undirected_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw; bound
     end
 end
 
-function variable_undirected_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; bounded::Bool=true) where T <: AbstractWaterFormulation
+function variable_undirected_flow_ne(wm::GenericWaterModel, n::Int=wm.cnw; bounded::Bool=true)
     # Get indices for all network arcs.
     arcs = sort(collect(ids(wm, n, :links)))
     var(wm, n)[:q_ne] = Dict{Int, Array{JuMP.VariableRef, 1}}()
@@ -71,7 +71,7 @@ function variable_undirected_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; bo
     end
 end
 
-function variable_directed_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw; bounded::Bool=true) where T <: AbstractWaterFormulation
+function variable_directed_flow(wm::GenericWaterModel, n::Int=wm.cnw; bounded::Bool=true)
     # Get indices for all network arcs.
     arcs = sort(collect(ids(wm, n, :links)))
 
@@ -110,7 +110,7 @@ function variable_directed_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw; bounded
     end
 end
 
-function variable_directed_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; bounded::Bool=true) where T <: AbstractWaterFormulation
+function variable_directed_flow_ne(wm::GenericWaterModel, n::Int=wm.cnw; bounded::Bool=true)
     # Get indices for all network arcs.
     arcs = sort(collect(ids(wm, n, :links_ne)))
     resistances = ref(wm, n, :resistance)
@@ -167,7 +167,7 @@ function variable_directed_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw; boun
     end
 end
 
-function variable_pressure_head(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractWaterFormulation
+function variable_pressure_head(wm::GenericWaterModel, n::Int=wm.cnw)
     # Get indices for all network nodes.
     node_ids = sort(collect(ids(wm, n, :nodes)))
 
@@ -183,7 +183,7 @@ function variable_pressure_head(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T
     var(wm, n)[:h] = h
 end
 
-function variable_directed_head_difference(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractWaterFormulation
+function variable_directed_head_difference(wm::GenericWaterModel, n::Int=wm.cnw)
     # Get indices for all network arcs.
     arcs = sort(collect(ids(wm, n, :links)))
 
@@ -263,3 +263,19 @@ function variable_resistance_ne(wm::GenericWaterModel, n::Int=wm.cnw)
         var(wm, n)[:x_res][a] = x_res
     end
 end
+
+
+function variable_reservoir(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractWaterFormulation
+    # Get indices for all network nodes.
+    reservoir_ids = sort(collect(ids(wm, n, :reservoirs)))
+
+    # Initialize variables associated with reservoir flow
+    q_r = JuMP.@variable(wm.model, [i in reservoir_ids],
+        base_name="q_r[$(n)]",
+        #lower_bound=0.0,
+        start=get_start(wm.ref[:nw][n][:reservoirs], i, "q_r_start", 0.0)
+    )
+
+    var(wm, n)[:q_r] = q_r
+end
+

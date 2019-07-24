@@ -1,17 +1,4 @@
 # Define CNLP (convex nonlinear programming) implementations of water distribution models.
-export CNLPWaterModel, StandardCNLPForm
-
-"AbstractCNLPForm is derived from AbstractWaterFormulation"
-abstract type AbstractCNLPForm <: AbstractWaterFormulation end
-
-"StandardCNLPForm is derived from AbstractCNLPForm"
-abstract type StandardCNLPForm <: AbstractCNLPForm end
-
-"The CNLP model relaxes constraints into the objective."
-const CNLPWaterModel = GenericWaterModel{StandardCNLPForm}
-
-"CNLP constructor."
-CNLPWaterModel(data::Dict{String, Any}; kwargs...) = GenericWaterModel(data, StandardCNLPForm; kwargs...)
 
 function variable_head(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractCNLPForm
 end

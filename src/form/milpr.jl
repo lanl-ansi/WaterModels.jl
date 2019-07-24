@@ -1,14 +1,4 @@
 # Define MILPR (mixed-integer linear, relaxed program) implementations of water distribution models.
-export MILPRWaterModel, StandardMILPRForm
-
-abstract type AbstractMILPRForm <: AbstractWaterFormulation end
-abstract type StandardMILPRForm <: AbstractMILPRForm end
-
-"The default MILPR (mixed-integer linear, relaxed) model is a linear outer-approximation of the MICP model."
-const MILPRWaterModel = GenericWaterModel{StandardMILPRForm}
-
-"Default MILPR constructor."
-MILPRWaterModel(data::Dict{String,Any}; kwargs...) = GenericWaterModel(data, StandardMILPRForm; kwargs...)
 
 function variable_head(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractMILPRForm
     variable_pressure_head(wm, n)
@@ -51,10 +41,6 @@ end
 
 function constraint_flow_conservation(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractMILPRForm
     constraint_directed_flow_conservation(wm, i, n)
-end
-
-function constraint_flow_conservation_ne(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractMILPRForm
-    constraint_directed_flow_conservation_ne(wm, i, n)
 end
 
 function constraint_link_flow_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMILPRForm
