@@ -38,10 +38,6 @@ function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, a::Int, n::
     constraint_directed_potential_loss_pipe_ne(wm, a, n)
 end
 
-function constraint_flow_conservation(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractMICPForm
-    constraint_directed_flow_conservation(wm, i, n)
-end
-
 function constraint_link_flow_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMICPForm
     constraint_link_directed_flow_ne(wm, a, n)
 end

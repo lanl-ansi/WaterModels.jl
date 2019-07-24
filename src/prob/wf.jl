@@ -66,7 +66,7 @@ function post_mn_wf(wm::GenericWaterModel{T}) where T
         end
 
         for (i, node) in ref(wm, n, :nodes)
-            constraint_flow_conservation(wm, i, n)
+            constraint_flow_conservation(wm, i, n=n)
 
             #if junction["demand"] > 0.0
             #    constraint_sink_flow(wm, i, n)

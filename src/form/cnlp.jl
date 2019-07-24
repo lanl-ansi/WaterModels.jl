@@ -17,10 +17,6 @@ end
 function constraint_potential_loss_pump(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractCNLPForm
 end
 
-function constraint_flow_conservation(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractCNLPForm
-    constraint_directed_flow_conservation(wm, i, n)
-end
-
 function constraint_link_flow(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractCNLPForm
     constraint_link_directed_flow(wm, a, n)
 end
