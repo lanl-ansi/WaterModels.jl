@@ -38,10 +38,6 @@ function constraint_flow_conservation(wm::GenericWaterModel{T}, i::Int, n::Int=w
     constraint_undirected_flow_conservation(wm, i, n)
 end
 
-function constraint_flow_conservation_ne(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
-    constraint_undirected_flow_conservation_ne(wm, i, n)
-end
-
 function constraint_link_flow_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
     constraint_link_undirected_flow_ne(wm, a, n)
 end

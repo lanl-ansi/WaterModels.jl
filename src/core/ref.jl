@@ -1,55 +1,46 @@
 
 function calc_head_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
-    # Get indices of nodes used in the network.
-    junction_ids = collect(ids(wm, :junctions))
-    reservoir_ids = collect(ids(wm, :reservoirs))
-    tank_ids = collect(ids(wm, :tanks))
-    nodes = [junction_ids; reservoir_ids; tank_ids]
-
-    # Get placeholders for junctions and reservoirs.
-    junctions = ref(wm, n, :junctions)
-    reservoirs = ref(wm, n, :reservoirs)
-    tanks = ref(wm, n, :tanks)
-
+    nodes = ref(wm, n, :nodes)
     # Get maximum elevation/head values at nodes.
-    max_elev = maximum([node["elevation"] for node in values(junctions)])
-    max_head = maximum([node["head"] for node in values(reservoirs)])
+    max_elev = maximum(node["elevation"] for (i,node) in nodes)
 
     # Initialize the dictionaries for minimum and maximum heads.
-    head_min = Dict([(i, -Inf) for i in nodes])
-    head_max = Dict([(i, Inf) for i in nodes])
+    head_min = Dict((i, -Inf) for (i,node) in nodes)
+    head_max = Dict((i,  Inf) for (i,node) in nodes)
 
-    for (i, junction) in junctions
+    for (i, node) in nodes
         # The minimum head at junctions must be above the initial elevation.
-        if haskey(junction, "minimumHead")
-            head_min[i] = max(junction["elevation"], junction["minimumHead"])
+        if haskey(node, "minimumHead")
+            head_min[i] = max(node["elevation"], node["minimumHead"])
         else
-            head_min[i] = junction["elevation"]
+            head_min[i] = node["elevation"]
         end
 
         # The maximum head at junctions must be below the max reservoir height.
-        if haskey(junction, "maximumHead")
-            head_max[i] = max(max(max_elev, max_head), junction["maximumHead"])
+        if haskey(node, "maximumHead")
+            head_max[i] = max(max_elev, node["maximumHead"])
         else
-            head_max[i] = max(max_elev, max_head)
+            head_max[i] = max_elev
         end
     end
 
-    for (i, reservoir) in reservoirs
+    for (i, reservoir) in ref(wm, n, :reservoirs)
         # Head values at reservoirs are fixed.
-        head_min[i] = reservoir["head"]
-        head_max[i] = reservoir["head"]
+        node_id = reservoir["reservoir_node"]
+        head_min[node_id] = reservoir["head"]
+        head_max[node_id] = reservoir["head"]
     end
 
-    for (i, tank) in tanks
-        head_min[i] = tank["elevation"] + tank["min_level"] 
-        head_max[i] = tank["elevation"] + tank["max_level"] 
+    for (i, tank) in ref(wm, n, :tanks)
+        node_id = tank["tank_node"]
+        node = ref(wm, n, :nodes, node_id)
+        head_min[node_id] = node["elevation"] + tank["min_level"]
+        head_max[node_id] = node["elevation"] + tank["max_level"]
     end
 
     # Return the dictionaries of lower and upper bounds.
     return head_min, head_max
 end
-
 
 function calc_head_difference_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
     # Get placeholders for junctions and reservoirs.
@@ -69,7 +60,6 @@ function calc_head_difference_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
     # Return the head difference bound dictionaries.
     return head_diff_min, head_diff_max
 end
-
 
 function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
     links = ref(wm, n, :links)
@@ -123,7 +113,6 @@ function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
     return lb, ub
 end
 
-
 function calc_directed_flow_upper_bounds(wm::GenericWaterModel, alpha::Float64, n::Int=wm.cnw)
     # Get a dictionary of resistance values.
     dh_lb, dh_ub = calc_head_difference_bounds(wm, n)
@@ -167,4 +156,3 @@ function calc_directed_flow_upper_bounds(wm::GenericWaterModel, alpha::Float64, 
 
     return ub_n, ub_p
 end
-

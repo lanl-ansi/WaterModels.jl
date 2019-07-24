@@ -9,6 +9,7 @@ function post_owf(wm::GenericWaterModel{T}) where T
         function_if_alpha(wm, convex=true)
     end
 
+    variable_reservoir(wm)
     variable_head(wm)
     variable_flow(wm)
     variable_pump(wm)
@@ -23,7 +24,7 @@ function post_owf(wm::GenericWaterModel{T}) where T
         constraint_potential_loss_pump(wm, a)
     end
 
-    for (i, junction) in ref(wm, :junctions)
+    for (i, node) in ref(wm, :nodes)
         constraint_flow_conservation(wm, i)
 
         #if junction["demand"] > 0.0
@@ -50,6 +51,7 @@ function post_mn_owf(wm::GenericWaterModel{T}) where T
     end
 
     for (n, network) in nws(wm)
+        variable_reservoir(wm, n)
         variable_head(wm, n)
         variable_flow(wm, n)
         variable_pump(wm, n)
@@ -63,7 +65,7 @@ function post_mn_owf(wm::GenericWaterModel{T}) where T
             constraint_potential_loss_pump(wm, a, n)
         end
 
-        for (i, junction) in wm.ref[:nw][n][:junctions]
+        for (i, node) in wm.ref[:nw][n][:nodes]
             constraint_flow_conservation(wm, i, n)
 
             #if junction["demand"] > 0.0

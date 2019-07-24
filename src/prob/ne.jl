@@ -11,6 +11,7 @@ function post_ne(wm::GenericWaterModel{T}) where T
         Memento.error(_LOGGER, "CNLP formulation does not support network expansion.")
     end
 
+    variable_reservoir(wm)
     variable_head(wm)
     variable_flow(wm)
     variable_pump(wm)
@@ -35,7 +36,7 @@ function post_ne(wm::GenericWaterModel{T}) where T
         constraint_potential_loss_pump(wm, a)
     end
 
-    for (i, junction) in ref(wm, :junctions)
+    for (i, node) in ref(wm, :nodes)
         constraint_flow_conservation(wm, i)
 
         #if junction["demand"] > 0.0
