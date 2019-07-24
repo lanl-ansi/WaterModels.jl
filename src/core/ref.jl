@@ -26,14 +26,16 @@ function calc_head_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
 
     for (i, reservoir) in ref(wm, n, :reservoirs)
         # Head values at reservoirs are fixed.
-        head_min[i] = reservoir["head"]
-        head_max[i] = reservoir["head"]
+        node_id = reservoir["reservoir_node"]
+        head_min[node_id] = reservoir["head"]
+        head_max[node_id] = reservoir["head"]
     end
 
     for (i, tank) in ref(wm, n, :tanks)
-        node = ref(wm, n, :nodes)[tank["tank_node"]]
-        head_min[i] = node["elevation"] + tank["min_level"]
-        head_max[i] = node["elevation"] + tank["max_level"]
+        node_id = tank["tank_node"]
+        node = ref(wm, n, :nodes, node_id)
+        head_min[node_id] = node["elevation"] + tank["min_level"]
+        head_max[node_id] = node["elevation"] + tank["max_level"]
     end
 
     # Return the dictionaries of lower and upper bounds.
