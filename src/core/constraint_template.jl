@@ -84,10 +84,37 @@ function constraint_potential_loss_pipe(wm::GenericWaterModel, a::Int; nw::Int=w
 end
 
 function constraint_head_difference(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
-    constraint_head_difference(wm, nw, a)
+    if !haskey(con(wm, nw), :head_difference_1)
+        con(wm, nw)[:head_difference_1] = Dict{Int, JuMP.ConstraintRef}()
+        con(wm, nw)[:head_difference_2] = Dict{Int, JuMP.ConstraintRef}()
+        con(wm, nw)[:head_difference_3] = Dict{Int, JuMP.ConstraintRef}()
+    end
+
+    f_id = ref(wm, nw, :links, a)["f_id"]
+
+    head_fr = nothing
+    for rid in ref(wm, nw, :node_reservoirs, f_id)
+        #TODO this is a good place to check these are consistent
+        head_fr = ref(wm, nw, :reservoirs, rid)["head"]
+    end
+
+    t_id = ref(wm, nw, :links, a)["t_id"]
+
+    head_to = nothing
+    for rid in ref(wm, nw, :node_reservoirs, t_id)
+        #TODO this is a good place to check these are consistent
+        head_to = ref(wm, nw, :reservoirs, rid)["head"]
+    end
+
+    constraint_head_difference(wm, nw, a, f_id, t_id, head_fr, head_to)
 end
 
 function constraint_flow_direction_selection(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
+    if !haskey(con(wm, nw), :flow_direction_selection_n)
+        con(wm, nw)[:flow_direction_selection_n] = Dict{Int, JuMP.ConstraintRef}()
+        con(wm, nw)[:flow_direction_selection_p] = Dict{Int, JuMP.ConstraintRef}()
+    end
+
     constraint_flow_direction_selection(wm, nw, a)
 end
 

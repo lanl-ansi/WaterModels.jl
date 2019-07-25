@@ -14,7 +14,7 @@ end
 function constraint_potential_loss_pipe(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractCNLPForm
 end
 
-function constraint_head_difference(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractCNLPForm
+function constraint_head_difference(wm::GenericWaterModel{T}, n::Int, a::Int, f_id, t_id, head_fr, head_to) where T <: AbstractCNLPForm
 end
 
 function constraint_flow_direction_selection(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractCNLPForm

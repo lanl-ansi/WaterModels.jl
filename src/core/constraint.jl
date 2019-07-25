@@ -111,11 +111,6 @@ function constraint_flow_direction_selection(wm::GenericWaterModel, n::Int, a::I
 end
 
 function constraint_flow_direction_selection(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractDirectedFlowFormulation
-    if !haskey(con(wm, n), :flow_direction_selection_n)
-        con(wm, n)[:flow_direction_selection_n] = Dict{Int, JuMP.ConstraintRef}()
-        con(wm, n)[:flow_direction_selection_p] = Dict{Int, JuMP.ConstraintRef}()
-    end
-
     x_dir = var(wm, n, :x_dir, a)
 
     qp = var(wm, n, :qp, a)
@@ -159,27 +154,13 @@ function constraint_flow_direction_selection_ne(wm::GenericWaterModel{T}, n::Int
 end
 
 
-function constraint_head_difference(wm::GenericWaterModel, n::Int, a::Int)
-    if !haskey(con(wm, n), :head_difference_1)
-        con(wm, n)[:head_difference_1] = Dict{Int, JuMP.ConstraintRef}()
-        con(wm, n)[:head_difference_2] = Dict{Int, JuMP.ConstraintRef}()
-        con(wm, n)[:head_difference_3] = Dict{Int, JuMP.ConstraintRef}()
+function constraint_head_difference(wm::GenericWaterModel, n::Int, a::Int, f_id, t_id, head_fr, head_to)
+    if head_fr == nothing
+        head_fr = var(wm, n, :h, f_id)
     end
 
-    i = ref(wm, n, :links, a)["f_id"]
-
-    if i in collect(ids(wm, n, :reservoirs))
-        h_i = ref(wm, n, :reservoirs, i)["head"]
-    else
-        h_i = var(wm, n, :h, i)
-    end
-
-    j = ref(wm, n, :links, a)["t_id"]
-
-    if j in collect(ids(wm, n, :reservoirs))
-        h_j = ref(wm, n, :reservoirs, j)["head"]
-    else
-        h_j = var(wm, n, :h, j)
+    if head_to == nothing
+        head_to = var(wm, n, :h, t_id)
     end
 
     x_dir = var(wm, n, :x_dir, a)
@@ -194,7 +175,7 @@ function constraint_head_difference(wm::GenericWaterModel, n::Int, a::Int)
     con_2 = JuMP.@constraint(wm.model, dhn - dhn_ub * (1.0 - x_dir) <= 0.0)
     con(wm, n, :head_difference_2)[a] = con_2
 
-    con_3 = JuMP.@constraint(wm.model, (h_i - h_j) - (dhp - dhn) == 0.0)
+    con_3 = JuMP.@constraint(wm.model, (head_fr - head_to) - (dhp - dhn) == 0.0)
     con(wm, n, :head_difference_3)[a] = con_3
 end
 
