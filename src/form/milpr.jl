@@ -18,52 +18,15 @@ end
 function variable_pump(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractMILPRForm
 end
 
-function constraint_resistance_selection_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMILPRForm
-    constraint_directed_resistance_selection_ne(wm, a, n)
+function constraint_potential_loss_pump(wm::GenericWaterModel{T}, n::Int, a::Int, f_id::Int, t_id::Int) where T <: AbstractMILPRForm
 end
 
-function constraint_potential_loss_pipe(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMILPRForm
-    constraint_directed_head_difference(wm, a, n)
-    constraint_flow_direction_selection(wm, a, n)
-    constraint_directed_potential_loss_ub_pipe(wm, a, n)
-    constraint_directed_potential_loss_pipe(wm, a, n)
-end
-
-function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMILPRForm
-    constraint_directed_head_difference(wm, a, n)
-    constraint_flow_direction_selection_ne(wm, a, n)
-    constraint_directed_potential_loss_ub_pipe_ne(wm, a, n)
-    constraint_directed_potential_loss_pipe_ne(wm, a, n)
-end
-
-function constraint_potential_loss_pump(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMILPRForm
-end
-
-function constraint_flow_conservation(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractMILPRForm
-    constraint_directed_flow_conservation(wm, i, n)
-end
-
-function constraint_link_flow_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMILPRForm
-    constraint_link_directed_flow_ne(wm, a, n)
-end
-
-function constraint_link_flow(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMILPRForm
-    constraint_link_directed_flow(wm, a, n)
-end
-
-function constraint_source_flow(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractMILPRForm
-    constraint_directed_source_flow(wm, i, n)
-end
-
-function constraint_sink_flow(wm::GenericWaterModel{T}, i::Int, n::Int=wm.cnw) where T <: AbstractMILPRForm
-    constraint_directed_sink_flow(wm, i, n)
-end
 
 function get_linear_outer_approximation(q::JuMP.VariableRef, q_hat::Float64, alpha::Float64)
     return q_hat^alpha + alpha * q_hat^(alpha - 1.0) * (q - q_hat)
 end
 
-function constraint_directed_potential_loss_pipe_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMILPRForm
+function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, f_id, t_id, len, pipe_resistances) where T <: AbstractMILPRForm
     if !haskey(con(wm, n), :potential_loss_pipe_n_ne)
         con(wm, n)[:potential_loss_pipe_n_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
         con(wm, n)[:potential_loss_pipe_p_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
@@ -72,10 +35,9 @@ function constraint_directed_potential_loss_pipe_ne(wm::GenericWaterModel{T}, a:
     con(wm, n, :potential_loss_pipe_n_ne)[a] = Dict{Int, JuMP.ConstraintRef}()
     con(wm, n, :potential_loss_pipe_p_ne)[a] = Dict{Int, JuMP.ConstraintRef}()
 
-    alpha = ref(wm, n, :alpha)
-    L = ref(wm, n, :links, a)["length"]
+    L = len
 
-    for (r_id, r) in enumerate(ref(wm, n, :resistance, a))
+    for (r_id, r) in enumerate(pipe_resistances)
         qn_ne = var(wm, n, :qn_ne, a)[r_id]
         qn_ne_ub = JuMP.upper_bound(qn_ne)
         dhn = var(wm, n, :dhn, a)
@@ -100,15 +62,14 @@ function constraint_directed_potential_loss_pipe_ne(wm::GenericWaterModel{T}, a:
     end
 end
 
-function constraint_directed_potential_loss_pipe(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMILPRForm
+function constraint_potential_loss_pipe(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, f_id, t_id, len, r_min) where T <: AbstractMILPRForm
     if !haskey(con(wm, n), :potential_loss_pipe_n)
         con(wm, n)[:potential_loss_pipe_n] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:potential_loss_pipe_p] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    alpha = ref(wm, n, :alpha)
-    L = ref(wm, n, :links, a)["length"]
-    r = minimum(ref(wm, n, :resistance, a))
+    L = len
+    r = r_min
 
     qn = var(wm, n, :qn, a)
     qn_ub = JuMP.upper_bound(qn)

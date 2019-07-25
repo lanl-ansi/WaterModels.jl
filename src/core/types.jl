@@ -1,8 +1,15 @@
 @enum FLOW_DIRECTION POSITIVE=1 NEGATIVE=-1 UNKNOWN=0
 
 
+"models with two positive flow variables, one for each direction"
+abstract type AbstractDirectedFlowFormulation <: AbstractWaterFormulation end
+
+"models with one flow variable, the sign of the variable indicates the flow direction"
+abstract type AbstractUndirectedFlowFormulation <: AbstractWaterFormulation end
+
+
 "AbstractCNLPForm is derived from AbstractWaterFormulation"
-abstract type AbstractCNLPForm <: AbstractWaterFormulation end
+abstract type AbstractCNLPForm <: AbstractDirectedFlowFormulation end
 
 "StandardCNLPForm is derived from AbstractCNLPForm"
 abstract type StandardCNLPForm <: AbstractCNLPForm end
@@ -14,7 +21,7 @@ const CNLPWaterModel = GenericWaterModel{StandardCNLPForm}
 CNLPWaterModel(data::Dict{String, Any}; kwargs...) = GenericWaterModel(data, StandardCNLPForm; kwargs...)
 
 
-abstract type AbstractNCNLPForm <: AbstractWaterFormulation end
+abstract type AbstractNCNLPForm <: AbstractUndirectedFlowFormulation end
 abstract type StandardNCNLPForm <: AbstractNCNLPForm end
 
 "The default NCNLP (non-convex nonlinear programming) model retains the exact head loss physics."
@@ -25,7 +32,7 @@ NCNLPWaterModel(data::Dict{String,Any}; kwargs...) = GenericWaterModel(data, Sta
 
 
 
-abstract type AbstractMILPRForm <: AbstractWaterFormulation end
+abstract type AbstractMILPRForm <: AbstractDirectedFlowFormulation end
 abstract type StandardMILPRForm <: AbstractMILPRForm end
 
 "The default MILPR (mixed-integer linear, relaxed) model is a linear outer-approximation of the MICP model."
@@ -36,7 +43,7 @@ MILPRWaterModel(data::Dict{String,Any}; kwargs...) = GenericWaterModel(data, Sta
 
 
 
-abstract type AbstractMICPForm <: AbstractWaterFormulation end
+abstract type AbstractMICPForm <: AbstractDirectedFlowFormulation end
 abstract type StandardMICPForm <: AbstractMICPForm end
 
 "The default MICP (mixed-integer convex program) model is a relaxation of the non-convex MINLP model."
