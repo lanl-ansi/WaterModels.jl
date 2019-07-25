@@ -20,7 +20,7 @@ end
 function constraint_flow_direction_selection(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractCNLPForm
 end
 
-function constraint_potential_loss_ub_pipe(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractCNLPForm
+function constraint_potential_loss_ub_pipe(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, len, r_max) where T <: AbstractCNLPForm
 end
 
 function constraint_potential_loss_pump(wm::GenericWaterModel{T}, n::Int, a::Int, f_id::Int, t_id::Int) where T <: AbstractCNLPForm

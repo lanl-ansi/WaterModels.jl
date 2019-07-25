@@ -45,7 +45,7 @@ end
 function constraint_head_difference(wm::GenericWaterModel{T}, n::Int, a::Int, f_id, t_id, head_fr, head_to) where T <: AbstractNCNLPForm
 end
 
-function constraint_potential_loss_ub_pipe(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractNCNLPForm
+function constraint_potential_loss_ub_pipe(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, len, r_max) where T <: AbstractNCNLPForm
 end
 
 function constraint_potential_loss_check_valve(wm::GenericWaterModel{T}, n::Int, a::Int, f_id::Int, t_id::Int, len, r_min) where T <: AbstractNCNLPForm

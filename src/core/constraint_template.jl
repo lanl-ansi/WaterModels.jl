@@ -119,7 +119,16 @@ function constraint_flow_direction_selection(wm::GenericWaterModel, a::Int; nw::
 end
 
 function constraint_potential_loss_ub_pipe(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
-    constraint_potential_loss_ub_pipe(wm, nw, a)
+    if !haskey(con(wm, nw), :directed_potential_loss_ub_pipe_n)
+        con(wm, nw)[:directed_potential_loss_ub_pipe_p] = Dict{Int, JuMP.ConstraintRef}()
+        con(wm, nw)[:directed_potential_loss_ub_pipe_n] = Dict{Int, JuMP.ConstraintRef}()
+    end
+
+    alpha = ref(wm, nw, :alpha)
+    len = ref(wm, nw, :pipes, a)["length"]
+    r_max = maximum(ref(wm, nw, :resistance, a))
+
+    constraint_potential_loss_ub_pipe(wm, nw, a, alpha, len, r_max)
 end
 
 
@@ -167,10 +176,10 @@ function constraint_potential_loss_check_valve(wm::GenericWaterModel, a::Int; nw
     f_id = ref(wm, nw, :links, a)["f_id"]
     t_id = ref(wm, nw, :links, a)["t_id"]
 
-    l = ref(wm, nw, :pipes, a)["length"]
+    len = ref(wm, nw, :pipes, a)["length"]
     r_min = minimum(ref(wm, nw, :resistance, a))
 
-    constraint_potential_loss_check_valve(wm, nw, a, f_id, t_id, l, r_min)
+    constraint_potential_loss_check_valve(wm, nw, a, f_id, t_id, len, r_min)
 end
 
 
