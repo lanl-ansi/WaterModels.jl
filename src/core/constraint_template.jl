@@ -19,7 +19,7 @@ function constraint_flow_conservation(wm::GenericWaterModel, i::Int; nw::Int=wm.
     node_arcs_fr = ref(wm, nw, :node_arcs_fr, i)
     node_arcs_to = ref(wm, nw, :node_arcs_to, i)
     node_reservoirs = ref(wm, nw, :node_reservoirs, i)
-    node_tanks = ref(wm, n, :node_tanks, i)
+    node_tanks = ref(wm, nw, :node_tanks, i)
 
     node_demands = Dict(k => ref(wm, nw, :junctions, k, "demand") for k in node_junctions)
 
@@ -32,7 +32,7 @@ function constraint_sink_flow(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
         con(wm, n)[:directed_sink_flow] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    links = ref(wm, n, :links)
+    links = ref(wm, nw, :links)
     constraint_sink_flow(wm, nw, i, links)
 end
 
@@ -41,7 +41,7 @@ function constraint_source_flow(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
         con(wm, n)[:directed_source_flow] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    links = ref(wm, n, :links)
+    links = ref(wm, nw, :links)
     constraint_sink_flow(wm, nw, i, links)
 end
 
@@ -56,17 +56,16 @@ end
 
 
 ### Tank Constraints ###
-function constraint_link_volume(wm::GenericWaterModel, i::Int, n::Int=wm.cnw)
-    if !haskey(con(wm, n), :link_volume)
-        con(wm, n)[:link_volume] = Dict{Int, JuMP.ConstraintRef}()
+function constraint_link_volume(wm::GenericWaterModel, i::Int, nw::Int=wm.cnw)
+    if !haskey(con(wm, nw), :link_volume)
+        con(wm, nw)[:link_volume] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    tank = ref(wm, n, :tanks, i)
-
-    elevation = ref(wm, n, :nodes, tank["tank_node"])["elevation"]
+    tank = ref(wm, nw, :tanks, i)
+    elevation = ref(wm, nw, :nodes, tank["tank_node"])["elevation"]
     surface_area = 0.25 * pi * tank["diameter"]^2
 
-    constraint_link_volume(wm, n, i, elevation, surface_area)
+    constraint_link_volume(wm, nw, i, elevation, surface_area)
 end
 
 

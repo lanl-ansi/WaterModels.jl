@@ -61,9 +61,9 @@ end
 
 function post_mn_owf(wm::GenericWaterModel{T}) where T
     if T <: Union{AbstractMICPForm, AbstractNCNLPForm}
-        function_f_alpha(wm, wm.cnw, convex=false)
+        function_f_alpha(wm, convex=false)
     elseif T <: AbstractCNLPForm
-        function_if_alpha(wm, wm.cnw, convex=true)
+        function_if_alpha(wm, convex=true)
     end
 
     for (n, network) in nws(wm)

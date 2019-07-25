@@ -60,13 +60,13 @@ function run_mn_wf(file, model_constructor, optimizer; kwargs...)
 end
 
 function post_mn_wf(wm::GenericWaterModel{T}) where T
-    for (n, network) in nws(wm)
-        if T <: Union{AbstractMICPForm, AbstractNCNLPForm}
-            function_f_alpha(wm, n, convex=false)
-        elseif T <: AbstractCNLPForm
-            function_if_alpha(wm, n, convex=true)
-        end
+    if T <: Union{AbstractMICPForm, AbstractNCNLPForm}
+        function_f_alpha(wm, convex=false)
+    elseif T <: AbstractCNLPForm
+        function_if_alpha(wm, convex=true)
+    end
 
+    for (n, network) in nws(wm)
         variable_reservoir(wm, n)
         variable_tank(wm, n)
         variable_check_valve(wm, n)
