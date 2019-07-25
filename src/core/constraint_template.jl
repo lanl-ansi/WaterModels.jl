@@ -19,16 +19,11 @@ function constraint_flow_conservation(wm::GenericWaterModel, i::Int; nw::Int=wm.
     node_arcs_fr = ref(wm, nw, :node_arcs_fr, i)
     node_arcs_to = ref(wm, nw, :node_arcs_to, i)
     node_reservoirs = ref(wm, nw, :node_reservoirs, i)
-
-    # TBD
-    # for tid in ref(wm, n, :node_tanks, i)
-    #     tank = ref(wm, n, :tanks, tid)
-    #     # TODO add tank vars as loads
-    # end
+    node_tanks = ref(wm, n, :node_tanks, i)
 
     node_demands = Dict(k => ref(wm, nw, :junctions, k, "demand") for k in node_junctions)
 
-    constraint_flow_conservation(wm, nw, i, node_arcs_fr, node_arcs_to, node_reservoirs, node_demands)
+    constraint_flow_conservation(wm, nw, i, node_arcs_fr, node_arcs_to, node_reservoirs, node_tanks, node_demands)
 end
 
 
@@ -37,7 +32,8 @@ function constraint_sink_flow(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
         con(wm, n)[:directed_sink_flow] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    constraint_sink_flow(wm, nw, i)
+    links = ref(wm, n, :links)
+    constraint_sink_flow(wm, nw, i, links)
 end
 
 function constraint_source_flow(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
@@ -45,7 +41,8 @@ function constraint_source_flow(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
         con(wm, n)[:directed_source_flow] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    constraint_sink_flow(wm, nw, i)
+    links = ref(wm, n, :links)
+    constraint_sink_flow(wm, nw, i, links)
 end
 
 
@@ -59,6 +56,20 @@ end
 
 
 ### Tank Constraints ###
+function constraint_link_volume(wm::GenericWaterModel, i::Int, n::Int=wm.cnw)
+    if !haskey(con(wm, n), :link_volume)
+        con(wm, n)[:link_volume] = Dict{Int, JuMP.ConstraintRef}()
+    end
+
+    tank = ref(wm, n, :tanks, i)
+
+    elevation = ref(wm, n, :nodes, tank["tank_node"])["elevation"]
+    surface_area = 0.25 * pi * tank["diameter"]^2
+
+    constraint_link_volume(wm, n, i, elevation, surface_area)
+end
+
+
 ""
 function constraint_tank_state(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
     tank = ref(wm, nw, :tanks, i)
@@ -106,6 +117,11 @@ end
 
 ### Pipe Constraints ###
 function constraint_potential_loss_pipe(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    alpha = ref(wm, nw, :alpha)
+
+    pipe = ref(wm, nw, :pipes, a)
+    pipe_resistances = ref(wm, nw, :resistance, a)
+
     constraint_potential_loss_pipe(wm, nw, a)
 
     constraint_head_difference(wm, a; nw=nw, kwargs...)
@@ -163,24 +179,58 @@ end
 
 
 function constraint_potential_loss_pipe_ne(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
-    constraint_potential_loss_pipe_ne(wm, nw, a)
+    alpha = ref(wm, nw, :alpha)
+
+    pipe = ref(wm, nw, :pipes, a)
+    pipe_resistances = ref(wm, nw, :resistance, a)
+
+    constraint_potential_loss_pipe_ne(wm, nw, a, alpha, pipe["f_id"], pipe["t_id"], pipe["length"], pipe_resistances)
 
     constraint_head_difference(wm, a; nw=nw, kwargs...)
     constraint_flow_direction_selection_ne(wm, a; nw=nw, kwargs...)
     constraint_potential_loss_ub_pipe_ne(wm, a; nw=nw, kwargs...)
 end
 
+# TODO see if this can be removed
+function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, a::Int; nw::Int=wm.cnw, kwargs...) where T <: AbstractMICPForm
+    alpha = ref(wm, nw, :alpha)
+
+    pipe = ref(wm, nw, :pipes, a)
+    pipe_resistances = ref(wm, nw, :resistance, a)
+
+    constraint_potential_loss_pipe_ne(wm, nw, a, alpha, pipe["f_id"], pipe["t_id"], pipe["length"], pipe_resistances)
+
+    constraint_flow_direction_selection_ne(wm, a; nw=nw, kwargs...)
+    constraint_potential_loss_ub_pipe_ne(wm, a; nw=nw, kwargs...)
+end
+
+
 function constraint_flow_direction_selection_ne(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
-    constraint_flow_direction_selection_ne(wm, nw, a)
+    if !haskey(con(wm, nw), :flow_direction_selection_ne_n)
+        con(wm, nw)[:flow_direction_selection_ne_p] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
+        con(wm, nw)[:flow_direction_selection_ne_n] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
+    end
+
+    con(wm, nw, :flow_direction_selection_ne_p)[a] = Dict{Int, JuMP.ConstraintRef}()
+    con(wm, nw, :flow_direction_selection_ne_n)[a] = Dict{Int, JuMP.ConstraintRef}()
+
+    pipe_resistances = ref(wm, nw, :resistance, a)
+    constraint_flow_direction_selection_ne(wm, nw, a, pipe_resistances)
 end
 
 function constraint_potential_loss_ub_pipe_ne(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
-    constraint_potential_loss_ub_pipe_ne(wm, nw, a)
+    alpha = ref(wm, nw, :alpha)
+    len = ref(wm, nw, :pipes, a)["length"]
+    pipe_resistances = ref(wm, nw, :resistance, a)
+
+    constraint_potential_loss_ub_pipe_ne(wm, nw, a, alpha, len, pipe_resistances)
 end
 
 
 function constraint_resistance_selection_ne(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
-    constraint_resistance_selection_ne(wm, nw, a)
+    pipe_resistances = ref(wm, nw, :resistance, a)
+
+    constraint_resistance_selection_ne(wm, nw, a, pipe_resistances)
 end
 
 

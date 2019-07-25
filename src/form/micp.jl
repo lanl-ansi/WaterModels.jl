@@ -21,14 +21,7 @@ end
 function constraint_potential_loss_pump(wm::GenericWaterModel{T}, n::Int, a::Int, f_id::Int, t_id::Int) where T <: AbstractMICPForm
 end
 
-# TODO see if this can be removed
-function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, a::Int; nw::Int=wm.cnw, kwargs...) where T <: AbstractMICPForm
-    constraint_potential_loss_pipe_ne(wm, nw, a)
-    constraint_flow_direction_selection_ne(wm, a; nw=nw, kwargs...)
-    constraint_potential_loss_ub_pipe_ne(wm, a; nw=nw, kwargs...)
-end
-
-function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractMICPForm
+function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, f_id, t_id, len, pipe_resistances) where T <: AbstractMICPForm
     if !haskey(con(wm, n), :potential_loss_n_ne)
         con(wm, n)[:potential_loss_n_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
         con(wm, n)[:potential_loss_p_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
@@ -37,10 +30,10 @@ function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::
     con(wm, n, :potential_loss_n_ne)[a] = Dict{Int, JuMP.ConstraintRef}()
     con(wm, n, :potential_loss_p_ne)[a] = Dict{Int, JuMP.ConstraintRef}()
 
-    L = ref(wm, n, :links, a)["length"]
+    L = len
 
     #var(wm, n, :qn_ne, (a, r_id)) =
-    for (r_id, r) in enumerate(ref(wm, n, :resistance, a))
+    for (r_id, r) in enumerate(pipe_resistances)
         qn_ne = var(wm, n, :qn_ne, a)[r_id]
         dhn = var(wm, n, :dhn, a)
         con_n = JuMP.@NLconstraint(wm.model, r * f_alpha(qn_ne) - inv(L) * dhn <= 0.0)

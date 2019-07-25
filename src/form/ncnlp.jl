@@ -17,26 +17,22 @@ function variable_pump(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: Abstr
     variable_fixed_speed_pump_operation(wm, n)
 end
 
-function constraint_potential_loss_ub_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractNCNLPForm
+function constraint_potential_loss_ub_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, len, pipe_resistances) where T <: AbstractNCNLPForm
 end
 
-function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
+function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, f_id, t_id, len, pipe_resistances) where T <: AbstractNCNLPForm
     if !haskey(con(wm, n), :potential_loss_ne)
         con(wm, n)[:potential_loss_ne] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    i = ref(wm, n, :pipes, a)["f_id"]
-    h_i = var(wm, n, :h, i)
+    L = len
 
-    j = ref(wm, n, :pipes, a)["t_id"]
-    h_j = var(wm, n, :h, j)
-
-    L = ref(wm, n, :pipes, a)["length"]
+    h_i = var(wm, n, :h, f_id)
+    h_j = var(wm, n, :h, t_id)
     q_ne = var(wm, n, :q_ne, a)
-    resistances = ref(wm, n, :resistance, a)
 
     c = JuMP.@NLconstraint(wm.model, sum(r * f_alpha(q_ne[r_id]) for (r_id, r)
-                           in enumerate(resistances)) - inv(L) * (h_i - h_j) == 0.0)
+        in enumerate(pipe_resistances)) - inv(L) * (h_i - h_j) == 0.0)
 
     con(wm, n, :potential_loss_ne)[a] = c
 end

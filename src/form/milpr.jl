@@ -26,7 +26,7 @@ function get_linear_outer_approximation(q::JuMP.VariableRef, q_hat::Float64, alp
     return q_hat^alpha + alpha * q_hat^(alpha - 1.0) * (q - q_hat)
 end
 
-function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractMILPRForm
+function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, f_id, t_id, len, pipe_resistances) where T <: AbstractMILPRForm
     if !haskey(con(wm, n), :potential_loss_pipe_n_ne)
         con(wm, n)[:potential_loss_pipe_n_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
         con(wm, n)[:potential_loss_pipe_p_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
@@ -35,10 +35,9 @@ function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::
     con(wm, n, :potential_loss_pipe_n_ne)[a] = Dict{Int, JuMP.ConstraintRef}()
     con(wm, n, :potential_loss_pipe_p_ne)[a] = Dict{Int, JuMP.ConstraintRef}()
 
-    alpha = ref(wm, n, :alpha)
-    L = ref(wm, n, :links, a)["length"]
+    L = len
 
-    for (r_id, r) in enumerate(ref(wm, n, :resistance, a))
+    for (r_id, r) in enumerate(pipe_resistances)
         qn_ne = var(wm, n, :qn_ne, a)[r_id]
         qn_ne_ub = JuMP.upper_bound(qn_ne)
         dhn = var(wm, n, :dhn, a)
