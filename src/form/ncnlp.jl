@@ -68,23 +68,19 @@ function constraint_potential_loss_check_valve(wm::GenericWaterModel{T}, n::Int,
     c_2 = JuMP.@NLconstraint(wm.model, r * f_alpha(q) - inv(L) * (h_i - h_j) >= -M * x_cv)
 end
 
-function constraint_potential_loss_pipe(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractNCNLPForm
+function constraint_potential_loss_pipe(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, f_id, t_id, len, r_min) where T <: AbstractNCNLPForm
     if !haskey(con(wm, n), :potential_loss)
         con(wm, n)[:potential_loss] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    i = ref(wm, n, :pipes, a)["f_id"]
-    h_i = var(wm, n, :h, i)
+    L = len
+    r = r_min
 
-    j = ref(wm, n, :pipes, a)["t_id"]
-    h_j = var(wm, n, :h, j)
-
-    L = ref(wm, n, :pipes, a)["length"]
-    r = minimum(ref(wm, n, :resistance, a))
+    h_i = var(wm, n, :h, f_id)
+    h_j = var(wm, n, :h, t_id)
     q = var(wm, n, :q, a)
 
     c = JuMP.@NLconstraint(wm.model, r * f_alpha(q) - inv(L) * (h_i - h_j) == 0.0)
-
     con(wm, n, :potential_loss)[a] = c
 end
 

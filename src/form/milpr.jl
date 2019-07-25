@@ -62,15 +62,14 @@ function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::
     end
 end
 
-function constraint_potential_loss_pipe(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractMILPRForm
+function constraint_potential_loss_pipe(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, f_id, t_id, len, r_min) where T <: AbstractMILPRForm
     if !haskey(con(wm, n), :potential_loss_pipe_n)
         con(wm, n)[:potential_loss_pipe_n] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:potential_loss_pipe_p] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    alpha = ref(wm, n, :alpha)
-    L = ref(wm, n, :links, a)["length"]
-    r = minimum(ref(wm, n, :resistance, a))
+    L = len
+    r = r_min
 
     qn = var(wm, n, :qn, a)
     qn_ub = JuMP.upper_bound(qn)

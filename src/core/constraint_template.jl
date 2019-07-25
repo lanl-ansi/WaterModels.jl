@@ -119,9 +119,9 @@ function constraint_potential_loss_pipe(wm::GenericWaterModel, a::Int; nw::Int=w
     alpha = ref(wm, nw, :alpha)
 
     pipe = ref(wm, nw, :pipes, a)
-    pipe_resistances = ref(wm, nw, :resistance, a)
+    r_min = minimum(ref(wm, nw, :resistance, a))
 
-    constraint_potential_loss_pipe(wm, nw, a)
+    constraint_potential_loss_pipe(wm, nw, a, alpha, pipe["f_id"], pipe["t_id"], pipe["length"], r_min)
 
     constraint_head_difference(wm, a; nw=nw, kwargs...)
     constraint_flow_direction_selection(wm, a; nw=nw, kwargs...)
