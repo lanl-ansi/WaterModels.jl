@@ -71,7 +71,6 @@ end
 
 function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
     links = ref(wm, n, :links)
-    pipes = ref(wm, n, :pipes)
     dh_lb, dh_ub = calc_head_difference_bounds(wm, n)
 
     alpha = ref(wm, n, :alpha)
@@ -81,8 +80,8 @@ function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
     lb = Dict([(a, Float64[]) for a in keys(links)])
     ub = Dict([(a, Float64[]) for a in keys(links)])
 
-    for (a, link) in pipes
-        L = link["length"]
+    for (a, pipe) in ref(wm, n, :pipes)
+        L = pipe["length"]
         resistances = ref(wm, n, :resistance, a)
         num_resistances = length(resistances)
 
@@ -98,15 +97,15 @@ function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
             #lb[a][r_id] = max(lb[a][r_id], -sum_demand)
             #ub[a][r_id] = min(ub[a][r_id], sum_demand)
 
-            if link["flow_direction"] == POSITIVE
+            if pipe["flow_direction"] == POSITIVE
                 lb[a][r_id] = max(lb[a][r_id], 0.0)
-            elseif link["flow_direction"] == NEGATIVE
+            elseif pipe["flow_direction"] == NEGATIVE
                 ub[a][r_id] = min(ub[a][r_id], 0.0)
             end
 
-            if haskey(link, "diameters") && haskey(link, "maximumVelocity")
-                D_a = link["diameters"][r_id]["diameter"]
-                v_a = link["maximumVelocity"]
+            if haskey(pipe, "diameters") && haskey(pipe, "maximumVelocity")
+                D_a = pipe["diameters"][r_id]["diameter"]
+                v_a = pipe["maximumVelocity"]
                 rate_bound = 0.25 * pi * v_a * D_a * D_a
                 lb[a][r_id] = max(lb[a][r_id], -rate_bound)
                 ub[a][r_id] = min(ub[a][r_id], rate_bound)
@@ -116,7 +115,7 @@ function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
 
     for (a, pump) in ref(wm, n, :pumps)
         # TODO: Need better bounds here.
-        lb[a] = [0.0]
+        lb[a] = [-Inf]
         ub[a] = [Inf]
     end
 

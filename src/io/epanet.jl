@@ -894,6 +894,21 @@ function _read_patterns!(data::Dict{String, Any})
         end
     end
 
+    # Ensure the hydraulic and pattern time steps are equal.
+    if "pattern_timestep" in keys(data["options"]["time"])
+        hydraulic_timestep = data["options"]["time"]["hydraulic_timestep"]
+        pattern_timestep = data["options"]["time"]["pattern_timestep"]
+
+        if hydraulic_timestep != pattern_timestep
+            factor = convert(Int64, pattern_timestep / hydraulic_timestep)
+
+            for (pattern_name, pattern) in data["patterns"]
+                pattern = [pattern[div(i, factor)+1] for i=0:factor*length(pattern)-1]
+                data["patterns"][pattern_name] = pattern
+            end
+        end
+    end
+
     if data["options"]["hydraulic"]["pattern"] == "" && "1" in keys(data["patterns"])
         # If there is a pattern called "1", then it is the default pattern if no other is supplied.
         data["options"]["hydraulic"]["pattern"] = "1"
@@ -1045,7 +1060,6 @@ function _read_pumps!(data::Dict{String, Any})
                 Memento.error(_LOGGER, "Either head curve ID or pump power must be specified for all pumps.")
             end
 
-            # All pumps are unidirectional.
             pump["flow_direction"] = POSITIVE
 
             data["pumps"][current[1]] = pump

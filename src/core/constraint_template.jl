@@ -225,6 +225,7 @@ function constraint_check_valve(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
     if !haskey(con(wm, nw), :check_valve_1)
         con(wm, nw)[:check_valve_1] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, nw)[:check_valve_2] = Dict{Int, JuMP.ConstraintRef}()
+        con(wm, nw)[:check_valve_3] = Dict{Int, JuMP.ConstraintRef}()
     end
 
     f_id = ref(wm, nw, :links, a)["f_id"]
@@ -248,13 +249,12 @@ function constraint_potential_loss_check_valve(wm::GenericWaterModel, a::Int; nw
 end
 
 
-
 ### Pump Constraints ###
 function constraint_potential_loss_pump(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     f_id = ref(wm, nw, :pumps, a)["f_id"]
     t_id = ref(wm, nw, :pumps, a)["t_id"]
-    constraint_potential_loss_pump(wm, nw, a, f_id, t_id)
 
+    constraint_potential_loss_pump(wm, nw, a, f_id, t_id)
     constraint_head_gain_pump_quadratic_fit(wm, a; nw=nw, kwargs...)
 end
 
@@ -265,8 +265,5 @@ function constraint_head_gain_pump_quadratic_fit(wm::GenericWaterModel, a::Int; 
 
     pump_curve = ref(wm, nw, :pumps, a)["pump_curve"]
     A, B, C = get_function_from_pump_curve(pump_curve)
-
     constraint_head_gain_pump_quadratic_fit(wm, nw, a, A, B, C)
 end
-
-

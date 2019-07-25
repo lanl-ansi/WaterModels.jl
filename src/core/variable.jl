@@ -215,7 +215,7 @@ end
 function variable_fixed_speed_pump_operation(wm::GenericWaterModel, n::Int=wm.cnw)
     var(wm, n)[:x_pump] = JuMP.@variable(wm.model, [a in ids(wm, n, :pumps)],
         base_name="x_pump[$(n)]", binary=true,
-        start=get_start(ref(wm, n, :links), a, "x_pump_start", 1.0))
+        start=get_start(ref(wm, n, :pumps), a, "x_pump_start", 1.0))
 end
 
 function variable_head_gain(wm::GenericWaterModel, n::Int=wm.cnw)
