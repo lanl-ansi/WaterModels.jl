@@ -149,11 +149,24 @@ end
 
 
 ### Pump Constraints ###
-function constraint_potential_loss_pump(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
-    constraint_potential_loss_pump(wm, nw, a)
-    constraint_head_gain_pump_quadratic_fit(wm, nw, a)
+function constraint_potential_loss_pump(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    f_id = ref(wm, nw, :pumps, a)["f_id"]
+    t_id = ref(wm, nw, :pumps, a)["t_id"]
+    constraint_potential_loss_pump(wm, nw, a, f_id, t_id)
+
+    constraint_head_gain_pump_quadratic_fit(wm, a; nw=nw, kwargs...)
 end
 
+function constraint_head_gain_pump_quadratic_fit(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
+    if !haskey(con(wm, nw), :head_gain)
+        con(wm, nw)[:head_gain] = Dict{Int, JuMP.ConstraintRef}()
+    end
+
+    pump_curve = ref(wm, nw, :pumps, a)["pump_curve"]
+    A, B, C = get_function_from_pump_curve(pump_curve)
+
+    constraint_head_gain_pump_quadratic_fit(wm, nw, a, A, B, C)
+end
 
 
 ### Tank Constraints ###

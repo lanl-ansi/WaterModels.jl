@@ -92,7 +92,7 @@ function constraint_potential_loss_pipe(wm::GenericWaterModel{T}, n::Int, a::Int
     con(wm, n, :potential_loss)[a] = c
 end
 
-function constraint_potential_loss_pump(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractNCNLPForm
+function constraint_potential_loss_pump(wm::GenericWaterModel{T}, n::Int, a::Int, f_id::Int, t_id::Int) where T <: AbstractNCNLPForm
     if !haskey(con(wm, n), :potential_loss_1)
         con(wm, n)[:potential_loss_1] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:potential_loss_2] = Dict{Int, JuMP.ConstraintRef}()
@@ -102,8 +102,8 @@ function constraint_potential_loss_pump(wm::GenericWaterModel{T}, n::Int, a::Int
         con(wm, n)[:potential_loss_6] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    h_i = var(wm, n, :h, ref(wm, n, :pumps, a)["f_id"])
-    h_j = var(wm, n, :h, ref(wm, n, :pumps, a)["t_id"])
+    h_i = var(wm, n, :h, f_id)
+    h_j = var(wm, n, :h, t_id)
 
     q = var(wm, n, :q, a)
     g = var(wm, n, :g, a)
@@ -134,14 +134,7 @@ function get_function_from_pump_curve(pump_curve::Array{Tuple{Float64,Float64}})
     return LsqFit.coef(fit)
 end
 
-function constraint_head_gain_pump_quadratic_fit(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractNCNLPForm
-    if !haskey(con(wm, n), :head_gain)
-        con(wm, n)[:head_gain] = Dict{Int, JuMP.ConstraintRef}()
-    end
-
-    pump_curve = ref(wm, n, :pumps, a)["pump_curve"]
-    A, B, C = get_function_from_pump_curve(pump_curve)
-
+function constraint_head_gain_pump_quadratic_fit(wm::GenericWaterModel{T}, n::Int, a::Int, A, B, C) where T <: AbstractNCNLPForm
     q = var(wm, n, :q, a)
     g = var(wm, n, :g, a)
 
