@@ -13,7 +13,7 @@ function constraint_flow_conservation(wm::GenericWaterModel{T}, n::Int, i::Int, 
         sum(q[l] for (l,f,t) in node_arcs_to)
         ==
         sum(-q_r[rid] for rid in node_reservoirs) +
-        sum(q_t[tid] for tid in node_tanks) +
+        sum(-q_t[tid] for tid in node_tanks) +
         sum(demand for (jid, demand) in node_demands)
     )
 end
@@ -323,27 +323,23 @@ end
 ""
 function constraint_tank_state_initial(wm::GenericWaterModel, n::Int, i::Int, initial_volume::Float64, time_step::Float64)
     if !haskey(con(wm, n), :tank_state_1)
-        con(wm, n)[:tank_state_1] = Dict{Int, JuMP.ConstraintRef}()
-        con(wm, n)[:tank_state_2] = Dict{Int, JuMP.ConstraintRef}()
+        con(wm, n)[:tank_state] = Dict{Int, JuMP.ConstraintRef}()
     end
 
     V = var(wm, n, :V, i)
-    q_t = var(wm, n, :q_t, i)
-
-    #con(wm, n, :tank_state_1)[i] = JuMP.@constraint(wm.model, V - q_t * time_step == initial_volume)
-    #con(wm, n, :tank_state_1)[i] = JuMP.@constraint(wm.model, V == initial_volume)
-    #con(wm, n, :tank_state_2)[i] = JuMP.@constraint(wm.model, q_t == 0.0)
+    con(wm, n, :tank_state)[i] = JuMP.@constraint(wm.model, V == initial_volume)
 end
 
+
+""
 function constraint_tank_state(wm::GenericWaterModel, n_1::Int, n_2::Int, i::Int, time_step::Float64)
-    if !haskey(con(wm, n), :tank_state_1)
-        con(wm, n)[:tank_state_1] = Dict{Int, JuMP.ConstraintRef}()
-        con(wm, n)[:tank_state_2] = Dict{Int, JuMP.ConstraintRef}()
+    if !haskey(con(wm, n_2), :tank_state_1)
+        con(wm, n_2)[:tank_state] = Dict{Int, JuMP.ConstraintRef}()
     end
 
     V_1 = var(wm, n_1, :V, i)
     V_2 = var(wm, n_2, :V, i)
-    q_t = var(wm, n_2, :q_t, i)
+    q_t = var(wm, n_1, :q_t, i)
 
-    con(wm, n, :tank_state_1)[i] = JuMP.@constraint(wm.model, V_2 - V_1 == time_step * q_t)
+    con(wm, n_2, :tank_state)[i] = JuMP.@constraint(wm.model, V_2 - V_1 + time_step * q_t == 0.0)
 end

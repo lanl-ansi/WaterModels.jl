@@ -56,7 +56,7 @@ end
 
 
 ### Tank Constraints ###
-function constraint_link_volume(wm::GenericWaterModel, i::Int, nw::Int=wm.cnw)
+function constraint_link_volume(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
     if !haskey(con(wm, nw), :link_volume)
         con(wm, nw)[:link_volume] = Dict{Int, JuMP.ConstraintRef}()
     end
@@ -88,13 +88,13 @@ end
 function constraint_tank_state(wm::GenericWaterModel, i::Int, nw_1::Int, nw_2::Int)
     tank = ref(wm, nw_2, :tanks, i)
 
-    if haskey(ref(wm, nw), :time_series)
-        time_step = ref(wm, nw, :time_series)["time_step"]
+    if haskey(ref(wm, nw_2, :options)["time"], "hydraulic_timestep")
+        time_step = ref(wm, nw_2, :options)["time"]["hydraulic_timestep"]
     else
         Memento.error(_LOGGER, "Tank states cannot be controlled outside of a time series.")
     end
 
-    constraint_tank_state(wm, nw_1, nw_2, i, time_step)
+    constraint_tank_state(wm, nw_1, nw_2, i, convert(Float64, time_step))
 end
 
 
@@ -111,7 +111,6 @@ end
 function constraint_link_flow_ne(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
     constraint_link_flow_ne(wm, nw, a)
 end
-
 
 
 ### Pipe Constraints ###
