@@ -121,11 +121,29 @@ end
 
 ### Check Valve Constraints ###
 function constraint_check_valve(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
-    constraint_check_valve(wm, nw, a)
+    if !haskey(con(wm, nw), :check_valve_1)
+        con(wm, nw)[:check_valve_1] = Dict{Int, JuMP.ConstraintRef}()
+        con(wm, nw)[:check_valve_2] = Dict{Int, JuMP.ConstraintRef}()
+    end
+
+    f_id = ref(wm, nw, :links, a)["f_id"]
+    t_id = ref(wm, nw, :links, a)["t_id"]
+
+    constraint_check_valve(wm, nw, a, f_id, t_id)
 end
 
 function constraint_potential_loss_check_valve(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
-    constraint_potential_loss_check_valve(wm, nw, a)
+    if !haskey(con(wm, nw), :potential_loss)
+        con(wm, nw)[:potential_loss] = Dict{Int, JuMP.ConstraintRef}()
+    end
+
+    f_id = ref(wm, nw, :links, a)["f_id"]
+    t_id = ref(wm, nw, :links, a)["t_id"]
+
+    l = ref(wm, nw, :pipes, a)["length"]
+    r_min = minimum(ref(wm, nw, :resistance, a))
+
+    constraint_potential_loss_check_valve(wm, nw, a, f_id, t_id, l, r_min)
 end
 
 
