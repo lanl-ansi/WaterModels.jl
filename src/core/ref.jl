@@ -172,8 +172,7 @@ function calc_tank_volume_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
     ub = Dict{Int64, Float64}(i => Inf for i in ids(wm, n, :tanks))
 
     for (i, tank) in ref(wm, n, :tanks)
-        # TODO: Change this after we drop nothing entries from dictionaries.
-        if tank["curve_name"] == nothing
+        if !("curve_name" in keys(tank))
             surface_area = 0.25 * pi * tank["diameter"]^2
             lb[i] = min(tank["min_vol"], surface_area * tank["min_level"])
             ub[i] = surface_area * tank["max_level"]

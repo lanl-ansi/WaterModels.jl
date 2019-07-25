@@ -404,7 +404,26 @@ function _string_time_to_seconds(s::AbstractString)
         end
     end
 end
-    
+
+function _clean_nothing!(data)
+    for (key, value) in data
+        if isa(value, Dict)
+            value = _clean_nothing!(value)
+        elseif value == nothing
+            delete!(data, key)
+        end
+    end
+
+    return data
+end
+
+#def clean_empty(d):
+#    if not isinstance(d, (dict, list)):
+#        return d
+#    if isinstance(d, list):
+#        return [v for v in (clean_empty(v) for v in d) if v]
+#    return {k: v for k, v in ((k, clean_empty(v)) for k, v in d.items()) if v}
+
 """
     parse_epanet(path)
 
@@ -521,6 +540,9 @@ function parse_epanet(filename::String)
     # Add other data required by InfrastructureModels.
     data["per_unit"] = false
 
+    # Remove all keys that have values of nothing.
+    _clean_nothing!(data)
+
     # Return the dictionary.
     return data
 end
@@ -612,7 +634,7 @@ function _read_controls!(data::Dict{String, Any})
 end
 
 function _read_curves!(data::Dict{String, Any})
-    data["curves"] = DataStructures.OrderedDict{String, Array{Tuple{Float64, Float64}}}()
+    data["curves"] = Dict{String, Array{Tuple{Float64, Float64}}}()
 
     for (line_number, line) in data["sections"]["[CURVES]"]
         line = split(line, ";")[1]
@@ -772,13 +794,11 @@ function _read_junctions!(data::Dict{String, Any})
 end
 
 function _read_options!(data::Dict{String, Any})
-    data["options"] = Dict{String, Any}("energy" => Dict{String, Any}(),
-                                        "hydraulic" => Dict{String, Any}(),
-                                        "quality" => Dict{String, Any}(),
-                                        "solver" => Dict{String, Any}(),
-                                        "graphics" => Dict{String, Any}(),
-                                        "time" => Dict{String, Any}(),
-                                        "results" => Dict{String, Any}())
+    data["options"] = DataStructures.OrderedDict{String, Any}(
+        "energy" => Dict{String, Any}(), "hydraulic" => Dict{String, Any}(),
+        "quality" => Dict{String, Any}(), "solver" => Dict{String, Any}(),
+        "graphics" => Dict{String, Any}(), "time" => Dict{String, Any}(),
+        "results" => Dict{String, Any}())
 
     for (line_number, line) in data["sections"]["[OPTIONS]"]
         words, comments = _split_line(line)
