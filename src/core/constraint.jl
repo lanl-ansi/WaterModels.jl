@@ -355,13 +355,14 @@ end
 
 
 
-# do nothing by default
-function constraint_potential_loss_pump(wm::GenericWaterModel, n::Int, i::Int)
-end
+# no generic implementation available
+#function constraint_potential_loss_pump(wm::GenericWaterModel, n::Int, i::Int)
+#end
 
-# do nothing by default
-function constraint_head_gain_pump_quadratic_fit(wm::GenericWaterModel, n::Int, i::Int)
-end
+# no generic implementation available
+#function constraint_head_gain_pump_quadratic_fit(wm::GenericWaterModel, n::Int, i::Int)
+#end
+
 
 ""
 function constraint_tank_state_initial(wm::GenericWaterModel, n::Int, i::Int, initial_volume::Float64, time_step::Float64)
