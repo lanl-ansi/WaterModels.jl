@@ -190,19 +190,6 @@ function constraint_potential_loss_pipe_ne(wm::GenericWaterModel, a::Int; nw::In
     constraint_potential_loss_ub_pipe_ne(wm, a; nw=nw, kwargs...)
 end
 
-# TODO see if this can be removed
-function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, a::Int; nw::Int=wm.cnw, kwargs...) where T <: AbstractMICPForm
-    alpha = ref(wm, nw, :alpha)
-
-    pipe = ref(wm, nw, :pipes, a)
-    pipe_resistances = ref(wm, nw, :resistance, a)
-
-    constraint_potential_loss_pipe_ne(wm, nw, a, alpha, pipe["f_id"], pipe["t_id"], pipe["length"], pipe_resistances)
-
-    constraint_flow_direction_selection_ne(wm, a; nw=nw, kwargs...)
-    constraint_potential_loss_ub_pipe_ne(wm, a; nw=nw, kwargs...)
-end
-
 
 function constraint_flow_direction_selection_ne(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
     if !haskey(con(wm, nw), :flow_direction_selection_ne_n)
