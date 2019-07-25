@@ -75,26 +75,26 @@ function post_mn_wf(wm::GenericWaterModel{T}) where T
         variable_volume(wm, n)
         variable_pump(wm, n)
 
-        for a in setdiff(ids(wm, n, :pipes), ids(wm, n, :check_valves))
-            constraint_potential_loss_pipe(wm, a, n)
+        for a in setdiff(ids(wm, :pipes, nw=n), ids(wm, :check_valves, nw=n))
+            constraint_potential_loss_pipe(wm, a, nw=n)
             constraint_link_flow(wm, a, nw=n)
         end
 
-        for a in ids(wm, n, :check_valves)
-            constraint_check_valve(wm, a, n)
-            constraint_potential_loss_check_valve(wm, a, n)
-            constraint_link_flow(wm, a, n)
+        for a in ids(wm, :check_valves, nw=n)
+            constraint_check_valve(wm, a, nw=n)
+            constraint_potential_loss_check_valve(wm, a, nw=n)
+            constraint_link_flow(wm, a, nw=n)
         end
 
-        for a in ids(wm, n, :pumps)
-            constraint_potential_loss_pump(wm, a, n)
+        for a in ids(wm, :pumps, nw=n)
+            constraint_potential_loss_pump(wm, a, nw=n)
         end
 
-        for a in ids(wm, n, :check_valves)
-            constraint_check_valve(wm, a, n)
+        for a in ids(wm, :check_valves, nw=n)
+            constraint_check_valve(wm, a, nw=n)
         end
 
-        for (i, node) in ref(wm, n, :nodes)
+        for (i, node) in ref(wm, :nodes, nw=n)
             constraint_flow_conservation(wm, i, nw=n)
 
             #if junction["demand"] > 0.0
@@ -107,7 +107,7 @@ function post_mn_wf(wm::GenericWaterModel{T}) where T
         #end
  
         for i in ids(wm, n, :tanks)
-            constraint_link_volume(wm, i, n)
+            constraint_link_volume(wm, i, nw=n)
         end
     end
 
