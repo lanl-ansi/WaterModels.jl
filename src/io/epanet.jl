@@ -69,7 +69,7 @@ function _correct_time_series!(data::Dict{String, Any})
     if num_steps >= 1 && patterns != ["1"]
         data["time_series"]["duration"] = data["options"]["time"]["duration"]
         data["time_series"]["time_step"] = data["options"]["time"]["hydraulic_timestep"]
-        data["time_series"]["num_steps"] = convert(Int64, floor(duration / time_step))
+        data["time_series"]["num_steps"] = num_steps
 
         for pattern in patterns
             if !(length(data["patterns"][pattern]) in [1, num_steps])

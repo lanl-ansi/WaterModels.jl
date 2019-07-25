@@ -17,12 +17,6 @@ function variable_volume(wm::GenericWaterModel, n::Int=wm.cnw)
         start=get_start(ref(wm, n, :nodes), i, "V_start", ub[i]))
 end
 
-function variable_tank(wm::GenericWaterModel, n::Int=wm.cnw)
-    var(wm, n)[:q_t] = JuMP.@variable(wm.model, [i in ids(wm, n, :tanks)],
-        base_name="q_t[$(n)]",
-        start=get_start(ref(wm, n, :nodes), i, "q_t_start", 0.0))
-end
-
 function variable_check_valve(wm::GenericWaterModel, n::Int=wm.cnw)
     var(wm, n)[:x_cv] = JuMP.@variable(wm.model, [i in ids(wm, n, :check_valves)],
         base_name="x_cv[$(n)]", binary=true,
@@ -30,24 +24,18 @@ function variable_check_valve(wm::GenericWaterModel, n::Int=wm.cnw)
 end
 
 function variable_undirected_flow(wm::GenericWaterModel, n::Int=wm.cnw; bounded::Bool=true)
-    # Get indices for all network arcs.
-    arcs = sort(collect(ids(wm, n, :links)))
-
     # Initialize directed flow variables. The variables qp correspond to flow
     # from i to j, and the variables qn correspond to flow from j to i.
     if bounded
         lb, ub = calc_flow_rate_bounds(wm, n)
-
         var(wm, n)[:q] = JuMP.@variable(wm.model, [a in ids(wm, n, :links)],
             base_name="q[$(n)]", lower_bound=minimum(lb[a]),
             upper_bound=maximum(ub[a]),
             start=get_start(ref(wm, n, :links), a, "q_start", 1.0e-6))
     else
-        q = JuMP.@variable(wm.model, [a in arcs], base_name="q[$(n)]",
-                           start=get_start(ref(wm, n, :links), a,
-                                           "q_start", 1.0e-6))
-
-        var(wm, n)[:q] = q
+        var(wm, n)[:q] = JuMP.@variable(wm.model, [a in ids(wm, n, :links)],
+            base_name="q[$(n)]",
+            start=get_start(ref(wm, n, :links), a, "q_start", 1.0e-6))
     end
 end
 
@@ -257,10 +245,15 @@ function variable_resistance_ne(wm::GenericWaterModel, n::Int=wm.cnw)
     end
 end
 
-
 function variable_reservoir(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractWaterFormulation
     # Initialize variables associated with reservoir flow.
     var(wm, n)[:q_r] = JuMP.@variable(wm.model, [i in ids(wm, n, :reservoirs)],
         base_name="q_r[$(n)]", lower_bound=0.0,
         start=get_start(ref(wm, n, :reservoirs), i, "q_r_start", 0.0))
+end
+
+function variable_tank(wm::GenericWaterModel, n::Int=wm.cnw)
+    var(wm, n)[:q_t] = JuMP.@variable(wm.model, [i in ids(wm, n, :tanks)],
+        base_name="q_t[$(n)]",
+        start=get_start(ref(wm, n, :nodes), i, "q_t_start", 0.0))
 end
