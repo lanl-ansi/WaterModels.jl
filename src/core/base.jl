@@ -177,6 +177,10 @@ function build_generic_model(data::Dict{String,<:Any}, model_constructor, post_m
         Memento.error(_LOGGER, "Attempted to build a single-network model with multi-network data.")
     end
 
+    if multinetwork && !ismultinetwork(wm)
+        Memento.error(_LOGGER, "Attempted to build a multi-network model with single-network data.")
+    end
+
     post_method(wm)
 
     return wm

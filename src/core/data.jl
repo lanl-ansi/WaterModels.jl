@@ -273,9 +273,6 @@ function _update_data_timepoint!(data::Dict{String,<:Any}, new_data::Dict{String
     end
 end
 
-
-
-
 function set_start_head!(data)
     for (i, node) in data["nodes"]
         node["h_start"] = node["h"]
