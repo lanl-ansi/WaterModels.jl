@@ -18,10 +18,6 @@ end
 function variable_pump(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractMICPForm
 end
 
-function constraint_resistance_selection_ne(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMICPForm
-    constraint_directed_resistance_selection_ne(wm, a, n)
-end
-
 function constraint_potential_loss_pump(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractMICPForm
 end
 

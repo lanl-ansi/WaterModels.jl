@@ -49,10 +49,13 @@ function constraint_source_flow(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
 end
 
 
+
 ### Junction Constraints ###
 
 
+
 ### Tank Constraints ###
+
 
 
 ### Reservoir Constraints ###
@@ -71,6 +74,8 @@ end
 function constraint_link_flow_ne(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
     constraint_link_flow_ne(wm, nw, a)
 end
+
+
 
 ### Pipe Constraints ###
 function constraint_potential_loss_pipe(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
@@ -94,7 +99,6 @@ function constraint_potential_loss_ub_pipe(wm::GenericWaterModel, a::Int; nw::In
 end
 
 
-
 function constraint_potential_loss_pipe_ne(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     constraint_potential_loss_pipe_ne(wm, nw, a)
 
@@ -112,9 +116,14 @@ function constraint_potential_loss_ub_pipe_ne(wm::GenericWaterModel, a::Int; nw:
 end
 
 
+function constraint_resistance_selection_ne(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
+    constraint_resistance_selection_ne(wm, nw, a)
+end
 
-#constraint_resistance_selection_ne(wm, a)
+
 
 ### Pump Constraints ###
-#constraint_potential_loss_pump(wm, a)
-
+function constraint_potential_loss_pump(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
+    constraint_potential_loss_pump(wm, nw, a)
+    constraint_head_gain_pump_quadratic_fit(wm, nw, a)
+end

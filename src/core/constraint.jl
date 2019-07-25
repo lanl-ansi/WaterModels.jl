@@ -45,7 +45,7 @@ function constraint_flow_conservation(wm::GenericWaterModel{T}, n::Int, i::Int, 
 end
 
 
-function constraint_directed_resistance_selection_ne(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
+function constraint_resistance_selection_ne(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractDirectedFlowFormulation
     if !haskey(con(wm, n), :resistance_selection_sum)
         con(wm, n)[:resistance_selection_sum] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:resistance_selection_p] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
@@ -73,7 +73,7 @@ function constraint_directed_resistance_selection_ne(wm::GenericWaterModel, a::I
     end
 end
 
-function constraint_undirected_resistance_selection_ne(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
+function constraint_resistance_selection_ne(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractUndirectedFlowFormulation
     if !haskey(con(wm, n), :resistance_selection_sum)
         con(wm, n)[:resistance_selection_sum] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:resistance_selection_lb] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
@@ -326,3 +326,12 @@ function constraint_source_flow(wm::GenericWaterModel{T}, n::Int, i::Int) where 
     con(wm, n, :directed_source_flow)[i] = c
 end
 
+
+
+# do nothing by default
+function constraint_potential_loss_pump(wm::GenericWaterModel, n::Int, i::Int)
+end
+
+# do nothing by default
+function constraint_head_gain_pump_quadratic_fit(wm::GenericWaterModel, n::Int, i::Int)
+end
