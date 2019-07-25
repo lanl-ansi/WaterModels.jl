@@ -48,11 +48,7 @@ end
 function constraint_potential_loss_ub_pipe(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractNCNLPForm
 end
 
-function constraint_potential_loss_check_valve(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
-    constraint_undirected_potential_loss_check_valve(wm, a, n)
-end
-
-function constraint_undirected_potential_loss_check_valve(wm::GenericWaterModel{T}, a::Int, n::Int=wm.cnw) where T <: AbstractNCNLPForm
+function constraint_potential_loss_check_valve(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractNCNLPForm
     if !haskey(con(wm, n), :potential_loss)
         con(wm, n)[:potential_loss] = Dict{Int, JuMP.ConstraintRef}()
     end

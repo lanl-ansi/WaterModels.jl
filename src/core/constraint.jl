@@ -325,7 +325,7 @@ function constraint_sink_flow(wm::GenericWaterModel{T}, n::Int, i::Int) where T 
 end
 
 
-function constraint_check_valve(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
+function constraint_check_valve(wm::GenericWaterModel, n::Int, a::Int)
     if !haskey(con(wm, n), :check_valve_1)
         con(wm, n)[:check_valve_1] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:check_valve_2] = Dict{Int, JuMP.ConstraintRef}()

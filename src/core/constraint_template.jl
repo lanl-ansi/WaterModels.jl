@@ -119,6 +119,17 @@ end
 
 
 
+### Check Valve Constraints ###
+function constraint_check_valve(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
+    constraint_check_valve(wm, nw, a)
+end
+
+function constraint_potential_loss_check_valve(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
+    constraint_potential_loss_check_valve(wm, nw, a)
+end
+
+
+
 ### Pump Constraints ###
 function constraint_potential_loss_pump(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
     constraint_potential_loss_pump(wm, nw, a)
@@ -137,8 +148,8 @@ function constraint_tank_state(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
         Memento.error(_LOGGER, "Tank states cannot be controlled without a time step.")
     end
 
-    initial_level = ref(wm, nw, :tanks, i)["init_level"]
-    surface_area = 0.25 * pi * ref(wm, nw, :tanks, i)["diameter"]^2
+    initial_level = tank["init_level"]
+    surface_area = 0.25 * pi * tank["diameter"]^2
     V_initial = surface_area * initial_level
 
     constraint_tank_state_initial(wm, nw, i, V_initial, convert(Float64, time_step))
