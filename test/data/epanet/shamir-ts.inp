@@ -44,7 +44,7 @@ shamir (time series) -- Bragalli, D'Ambrosio, Lee, Lodi, Toth (2008)
 
 [PATTERNS]
 ;ID              	Multipliers
- domestic        	1.0 1.0 1.0
+ domestic        	1.0 0.5 0.25
 
 [CURVES]
 ;ID              	X-Value     	Y-Value

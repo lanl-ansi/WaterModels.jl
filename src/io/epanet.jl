@@ -496,10 +496,10 @@ function parse_epanet(filename::String)
 
     # SOURCES
     #_read_sources!(data)
-    
+
     # STATUS
     _read_status!(data)
-    
+ 
     # CONTROLS
     _read_controls!(data)
 
