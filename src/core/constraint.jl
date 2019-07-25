@@ -126,7 +126,11 @@ function constraint_flow_direction_selection(wm::GenericWaterModel{T}, n::Int, a
 end
 
 
-function constraint_flow_direction_selection_ne(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
+# do nothing by default
+function constraint_flow_direction_selection_ne(wm::GenericWaterModel, n::Int, a::Int)
+end
+
+function constraint_flow_direction_selection_ne(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractDirectedFlowFormulation
     if !haskey(con(wm, n), :flow_direction_selection_ne_n)
         con(wm, n)[:flow_direction_selection_ne_p] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
         con(wm, n)[:flow_direction_selection_ne_n] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
@@ -190,7 +194,7 @@ function constraint_head_difference(wm::GenericWaterModel, n::Int, a::Int)
     con(wm, n, :head_difference_3)[a] = con_3
 end
 
-function constraint_directed_potential_loss_ub_pipe_ne(wm::GenericWaterModel, a::Int, n::Int=wm.cnw)
+function constraint_potential_loss_ub_pipe_ne(wm::GenericWaterModel, n::Int, a::Int) where T <: AbstractDirectedFlowFormulation
     if !haskey(con(wm, n), :directed_potential_loss_ub_pipe_ne_n)
         con(wm, n)[:directed_potential_loss_ub_pipe_ne_n] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:directed_potential_loss_ub_pipe_ne_p] = Dict{Int, JuMP.ConstraintRef}()

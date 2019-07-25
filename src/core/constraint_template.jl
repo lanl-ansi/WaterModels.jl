@@ -75,6 +75,7 @@ end
 ### Pipe Constraints ###
 function constraint_potential_loss_pipe(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     constraint_potential_loss_pipe(wm, nw, a)
+
     constraint_head_difference(wm, a; nw=nw, kwargs...)
     constraint_flow_direction_selection(wm, a; nw=nw, kwargs...)
     constraint_potential_loss_ub_pipe(wm, a; nw=nw, kwargs...)
@@ -94,9 +95,24 @@ end
 
 
 
+function constraint_potential_loss_pipe_ne(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    constraint_potential_loss_pipe_ne(wm, nw, a)
+
+    constraint_head_difference(wm, a; nw=nw, kwargs...)
+    constraint_flow_direction_selection_ne(wm, a; nw=nw, kwargs...)
+    constraint_potential_loss_ub_pipe_ne(wm, a; nw=nw, kwargs...)
+end
+
+function constraint_flow_direction_selection_ne(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
+    constraint_flow_direction_selection_ne(wm, nw, a)
+end
+
+function constraint_potential_loss_ub_pipe_ne(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
+    constraint_potential_loss_ub_pipe_ne(wm, nw, a)
+end
 
 
-#constraint_potential_loss_pipe_ne(wm, a)
+
 #constraint_resistance_selection_ne(wm, a)
 
 ### Pump Constraints ###
