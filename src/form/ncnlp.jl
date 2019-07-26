@@ -99,10 +99,10 @@ function constraint_potential_loss_pump(wm::GenericWaterModel{T}, n::Int, a::Int
     x_pump = var(wm, n, :x_pump, a)
 
     # TODO: Big- and little-M values below need to be improved.
-    M = 1.0e9
-    m = 1.0e-9
+    M = 1.0e6
+    m = 1.0e-6
 
-    JuMP.@constraint(wm.model, x_pump == 0.0)
+    #JuMP.@constraint(wm.model, x_pump == 1.0)
 
     c_1 = JuMP.@constraint(wm.model, -(h_i - h_j) - g <= M * (1 - x_pump))
     c_2 = JuMP.@constraint(wm.model, -(h_i - h_j) - g >= -M * (1 - x_pump))
@@ -127,7 +127,7 @@ function get_function_from_pump_curve(pump_curve::Array{Tuple{Float64,Float64}})
         return LsqFit.coef(fit)
     elseif length(pump_curve) == 1
         new_points = [(0.0, 1.33 * pump_curve[1][2]), (2.0 * pump_curve[1][1], 0.0)]
-        pump_curve = vcat(pump_curve, new_points)
+        pump_curve = vcat(new_points, pump_curve)
         fit = LsqFit.curve_fit(func, first.(pump_curve), last.(pump_curve), [0.0, 0.0, 0.0])
         return LsqFit.coef(fit)
     end
@@ -136,8 +136,9 @@ end
 function constraint_head_gain_pump_quadratic_fit(wm::GenericWaterModel{T}, n::Int, a::Int, A, B, C) where T <: AbstractNCNLPForm
     q = var(wm, n, :q, a)
     g = var(wm, n, :g, a)
+    x_pump = var(wm, n, :x_pump, a)
 
-    c = JuMP.@NLconstraint(wm.model, A * q^2 + B * q + C == g)
+    c = JuMP.@NLconstraint(wm.model, A*q^2 + B*abs(q) + C*x_pump == g)
     con(wm, n, :head_gain)[a] = c
 end
 

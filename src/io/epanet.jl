@@ -34,6 +34,7 @@ function _add_link_ids!(data::Dict{String, Any})
                 link_id += 1
             end
 
+
             new_ids = start_id:(start_id+length(keys(data[link_type]))-1)
             new_keys = String[string(x) for x in new_ids]
             data[link_type] = DataStructures.OrderedDict{String,Any}(new_keys .=> values(data[link_type]))
@@ -567,8 +568,11 @@ function _read_controls!(data::Dict{String, Any})
             # Get the status attribute.
             status = uppercase(current[3])
 
+            # TODO: Better way of doing all this?
             if status in ["OPEN", "OPENED", "CLOSED", "ACTIVE"]
                 setting = status
+                action["attribute"] = "state"
+                action["value"] = status == "CLOSED" ? "off" : "on"
             else
                 link_type = _get_link_type_by_name(data, link_name)
 
@@ -607,7 +611,7 @@ function _read_controls!(data::Dict{String, Any})
                     if node_type == "junctions"
                         # TODO: Fill this out when necessary.
                     elseif node_type == "tanks"
-                        condition["node_name"] = node_name
+                        condition["node_id"] = node["id"]
                         condition["node_type"] = node_type
                         condition["attribute"] = "level"
 
@@ -1012,7 +1016,7 @@ function _read_pumps!(data::Dict{String, Any})
             pump["start_node_name"] = current[2]
             pump["end_node_name"] = current[3]
             pump["controls"] = Dict{String, Any}()
-           
+
             pump["pump_type"] = nothing
             pump["power"] = nothing
             pump["pump_curve_name"] = nothing

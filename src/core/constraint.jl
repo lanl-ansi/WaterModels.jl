@@ -320,10 +320,20 @@ end
 #function constraint_head_gain_pump_quadratic_fit(wm::GenericWaterModel, n::Int, i::Int)
 #end
 
+function constraint_pump_control_tank(wm::GenericWaterModel, n::Int, a::Int, i::Int, lt::Float64, gt::Float64, elevation::Float64)
+    h = var(wm, n, :h, i)
+    x = var(wm, n, :x_pump, a)
+    h_ub = JuMP.upper_bound(h) - elevation
+    h_lb = JuMP.lower_bound(h) - elevation
+
+    c_1 = JuMP.@constraint(wm.model, h - elevation >= x * lt + (1 - x) * h_lb)
+    c_2 = JuMP.@constraint(wm.model, h - elevation <= (1 - x) * gt + x * h_ub)
+end
+
 
 ""
 function constraint_tank_state_initial(wm::GenericWaterModel, n::Int, i::Int, initial_volume::Float64, time_step::Float64)
-    if !haskey(con(wm, n), :tank_state_1)
+    if !haskey(con(wm, n), :tank_state)
         con(wm, n)[:tank_state] = Dict{Int, JuMP.ConstraintRef}()
     end
 
@@ -334,7 +344,7 @@ end
 
 ""
 function constraint_tank_state(wm::GenericWaterModel, n_1::Int, n_2::Int, i::Int, time_step::Float64)
-    if !haskey(con(wm, n_2), :tank_state_1)
+    if !haskey(con(wm, n_2), :tank_state)
         con(wm, n_2)[:tank_state] = Dict{Int, JuMP.ConstraintRef}()
     end
 

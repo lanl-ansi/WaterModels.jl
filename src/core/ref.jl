@@ -7,7 +7,7 @@ function calc_head_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
 
     if length(tanks) > 0
         max_tank_elev = maximum(nodes[i]["elevation"] + tank["max_level"] for (i, tank) in tanks)
-        max_elev = max(max_reservoir_elev, max_tank_elev)
+        max_elev = max_reservoir_elev + max_tank_elev
     else
         max_elev = max_reservoir_elev
     end
@@ -28,6 +28,7 @@ function calc_head_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
         if haskey(node, "maximumHead")
             head_max[i] = max(max_elev, node["maximumHead"])
         else
+            # TODO: Is there a better general bound, here?
             head_max[i] = max_elev
         end
     end
@@ -114,8 +115,8 @@ function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
     end
 
     for (a, pump) in ref(wm, n, :pumps)
-        # TODO: Need better bounds here.
-        lb[a] = [-Inf]
+        # TODO: Need better bounds, here.
+        lb[a] = [0.0]
         ub[a] = [Inf]
     end
 

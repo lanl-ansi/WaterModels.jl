@@ -68,6 +68,40 @@ function constraint_link_volume(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
     constraint_link_volume(wm, nw, i, elevation, surface_area)
 end
 
+""
+function constraint_pump_control(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
+    if !haskey(con(wm, nw), :pump_control)
+        con(wm, nw)[:pump_control] = Dict{Int, JuMP.ConstraintRef}()
+    end
+
+    pump = ref(wm, nw, :pumps, a)
+
+    if "controls" in keys(pump)
+        comps = Array{Pair{String, Int64}, 1}()
+        lt, gt = [nothing, nothing]
+
+        for (control_name, control) in pump["controls"]
+            action = control["action"]
+            condition = control["condition"]
+            comps = vcat((condition["node_type"], condition["node_id"]), comps)
+
+            if condition["operator"] == "<="
+                lt = condition["threshold"]
+            elseif condition["operator"] == ">="
+                gt = condition["threshold"]
+            end
+        end
+
+        same_comp = all(y->y==comps[1], comps)
+
+        if same_comp && lt <= gt && comps[1][1] == "tanks"
+            elevation = ref(wm, nw, :nodes, comps[1][2])["elevation"]
+            constraint_pump_control_tank(wm, nw, a, comps[1][2], lt, gt, elevation)
+        else
+            Memento.error(_LOGGER, "Can't handle control condition.")
+        end
+    end
+end
 
 ""
 function constraint_tank_state(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
