@@ -31,7 +31,7 @@ function constraint_flow_conservation(wm::GenericWaterModel{T}, n::Int, i::Int, 
         sum( -qp[l] + qn[l] for (l,f,t) in node_arcs_fr)
         ==
         sum(-q_r[rid] for rid in node_reservoirs) +
-        sum(q_t[tid] for tid in node_tanks) +
+        sum(-q_t[tid] for tid in node_tanks) +
         sum(demand for (jid, demand) in node_demands)
     )
 end
@@ -310,8 +310,6 @@ function constraint_source_flow(wm::GenericWaterModel{T}, n::Int, i::Int, links)
     con(wm, n, :directed_source_flow)[i] = c
 end
 
-
-
 # no generic implementation available
 #function constraint_potential_loss_pump(wm::GenericWaterModel, n::Int, i::Int)
 #end
@@ -320,16 +318,43 @@ end
 #function constraint_head_gain_pump_quadratic_fit(wm::GenericWaterModel, n::Int, i::Int)
 #end
 
-function constraint_pump_control_tank(wm::GenericWaterModel, n::Int, a::Int, i::Int, lt::Float64, gt::Float64, elevation::Float64)
-    h = var(wm, n, :h, i)
-    x = var(wm, n, :x_pump, a)
+function constraint_pump_control_tank(wm::GenericWaterModel, n_1::Int, n_2::Int, a::Int, i::Int, lt::Float64, gt::Float64, elevation::Float64)
+    h = var(wm, n_2, :h, i)
+    x_p = var(wm, n_2, :x_pump, a)
+    x_lt = var(wm, n_2, :x_thrs_lt, a)
+    x_gt = var(wm, n_2, :x_thrs_gt, a)
+    x_bt = var(wm, n_2, :x_thrs_bt, a)
+    x_p_tm1 = var(wm, n_1, :x_pump, a)
+
     h_ub = JuMP.upper_bound(h) - elevation
     h_lb = JuMP.lower_bound(h) - elevation
 
-    c_1 = JuMP.@constraint(wm.model, h - elevation >= x * lt + (1 - x) * h_lb)
-    c_2 = JuMP.@constraint(wm.model, h - elevation <= (1 - x) * gt + x * h_ub)
+    # Pump constraints.
+    # TODO: Clean everything below. There are probably plenty of simplifications.
+    c_1 = JuMP.@constraint(wm.model, h - elevation <= x_p * gt + (1 - x_p) * h_ub)
+    c_2 = JuMP.@constraint(wm.model, h - elevation >= (1 - x_p) * lt + x_p * h_lb)
+    c_3 = JuMP.@constraint(wm.model, h - elevation <= x_lt * lt + (1 - x_lt) * h_ub)
+    c_4 = JuMP.@constraint(wm.model, h - elevation >= x_gt * gt + (1 - x_gt) * h_lb)
+    c_5 = JuMP.@constraint(wm.model, h - elevation <= x_bt * gt + (1 - x_bt) * h_ub)
+    c_6 = JuMP.@constraint(wm.model, h - elevation >= x_bt * lt + (1 - x_bt) * h_lb)
+    c_7 = JuMP.@constraint(wm.model, x_lt + x_gt + x_bt == 1)
+
+    w_1 = JuMP.@variable(wm.model, binary=true, start=1.0)
+    c_8 = JuMP.@constraint(wm.model, w_1 <= x_p_tm1)
+    c_9 = JuMP.@constraint(wm.model, w_1 <= x_bt)
+    c_10 = JuMP.@constraint(wm.model, w_1 >= x_bt + x_p_tm1 - 1.0)
+
+    w_2 = JuMP.@variable(wm.model, binary=true, start=0.0)
+    c_11 = JuMP.@constraint(wm.model, w_2 <= x_lt + x_gt)
+    c_12 = JuMP.@constraint(wm.model, w_2 <= x_p)
+    c_13 = JuMP.@constraint(wm.model, w_2 >= (x_lt + x_gt) + x_p - 1.0)
+    c_14 = JuMP.@constraint(wm.model, w_1 + w_2 == x_p)
 end
 
+function constraint_pump_control_initial(wm::GenericWaterModel, n::Int, a::Int, status::Bool)
+    x = var(wm, n, :x_pump, a)
+    c_1 = JuMP.@constraint(wm.model, x == status)
+end
 
 ""
 function constraint_tank_state_initial(wm::GenericWaterModel, n::Int, i::Int, initial_volume::Float64, time_step::Float64)

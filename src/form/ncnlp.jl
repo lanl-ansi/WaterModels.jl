@@ -15,6 +15,8 @@ end
 
 function variable_pump(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractNCNLPForm
     variable_fixed_speed_pump_operation(wm, n)
+    # TODO: The below need not be created in the OWF.
+    variable_fixed_speed_pump_threshold(wm, n) 
 end
 
 function constraint_potential_loss_ub_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, len, pipe_resistances) where T <: AbstractNCNLPForm
@@ -63,7 +65,7 @@ function constraint_potential_loss_check_valve(wm::GenericWaterModel{T}, n::Int,
     #JuMP.@NLconstraint(wm.model, x_cv <= q_ub * q^2)
     
     JuMP.@constraint(wm.model, q >= m * x_cv)
-    JuMP.@constraint(wm.model, q <= q_ub * x_cv)
+    JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * x_cv)
     c_1 = JuMP.@NLconstraint(wm.model, r_min * f_alpha(q) - inv(len) * (h_i - h_j) <= M * (1 - x_cv))
     c_2 = JuMP.@NLconstraint(wm.model, r_min * f_alpha(q) - inv(len) * (h_i - h_j) >= -M * (1 - x_cv))
 end
@@ -102,16 +104,14 @@ function constraint_potential_loss_pump(wm::GenericWaterModel{T}, n::Int, a::Int
     M = 1.0e6
     m = 1.0e-6
 
-    #JuMP.@constraint(wm.model, x_pump == 1.0)
-
     c_1 = JuMP.@constraint(wm.model, -(h_i - h_j) - g <= M * (1 - x_pump))
     c_2 = JuMP.@constraint(wm.model, -(h_i - h_j) - g >= -M * (1 - x_pump))
     con(wm, n, :potential_loss_1)[a] = c_1
     con(wm, n, :potential_loss_2)[a] = c_2
 
     # TODO: These can probably be stronger.
-    c_3 = JuMP.@NLconstraint(wm.model, q <= M * x_pump)
-    c_4 = JuMP.@NLconstraint(wm.model, q >= m * x_pump)
+    c_3 = JuMP.@constraint(wm.model, q <= M * x_pump)
+    c_4 = JuMP.@constraint(wm.model, q >= m * x_pump)
     #con(wm, n, :potential_loss_3)[a] = c_3
     #con(wm, n, :potential_loss_4)[a] = c_4
 
@@ -138,7 +138,7 @@ function constraint_head_gain_pump_quadratic_fit(wm::GenericWaterModel{T}, n::In
     g = var(wm, n, :g, a)
     x_pump = var(wm, n, :x_pump, a)
 
-    c = JuMP.@NLconstraint(wm.model, A*q^2 + B*abs(q) + C*x_pump == g)
+    c = JuMP.@NLconstraint(wm.model, A*q^2 + B*q + C*x_pump == g)
     con(wm, n, :head_gain)[a] = c
 end
 

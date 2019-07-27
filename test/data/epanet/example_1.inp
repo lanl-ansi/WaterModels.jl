@@ -56,8 +56,7 @@ wall reactions are included.
 [PATTERNS]
 ;ID              	Multipliers
 ;Demand Pattern
- 1               	1.0         	1.2         	1.4         	1.6         	1.4         	1.2         
- 1               	1.0         	0.8         	0.6         	0.4         	0.6         	0.8         
+ 1               	1.0         	1.2
 
 [CURVES]
 ;ID              	X-Value     	Y-Value
@@ -113,7 +112,7 @@ wall reactions are included.
 ;Tank            	Model
 
 [TIMES]
- Duration           	24:00 
+ Duration           	4:00 
  Hydraulic Timestep 	1:00 
  Quality Timestep   	0:05 
  Pattern Timestep   	2:00 

@@ -218,6 +218,18 @@ function variable_fixed_speed_pump_operation(wm::GenericWaterModel, n::Int=wm.cn
         start=get_start(ref(wm, n, :pumps), a, "x_pump_start", 1.0))
 end
 
+function variable_fixed_speed_pump_threshold(wm::GenericWaterModel, n::Int=wm.cnw)
+    var(wm, n)[:x_thrs_gt] = JuMP.@variable(wm.model, [a in ids(wm, n, :pumps)],
+        base_name="x_thrs_gt[$(n)]", binary=true,
+        start=get_start(ref(wm, n, :pumps), a, "x_thrs_gt_start", 0.0))
+    var(wm, n)[:x_thrs_lt] = JuMP.@variable(wm.model, [a in ids(wm, n, :pumps)],
+        base_name="x_thrs_lt[$(n)]", binary=true,
+        start=get_start(ref(wm, n, :pumps), a, "x_thrs_lt_start", 0.0))
+    var(wm, n)[:x_thrs_bt] = JuMP.@variable(wm.model, [a in ids(wm, n, :pumps)],
+        base_name="x_thrs_bt[$(n)]", binary=true,
+        start=get_start(ref(wm, n, :pumps), a, "x_thrs_bt_start", 1.0))
+end
+
 function variable_head_gain(wm::GenericWaterModel, n::Int=wm.cnw)
     var(wm, n)[:g] = JuMP.@variable(wm.model, [a in ids(wm, n, :pumps)],
         base_name="g[$(n)]", lower_bound=0.0,

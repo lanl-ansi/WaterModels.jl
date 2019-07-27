@@ -68,15 +68,52 @@ function constraint_link_volume(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
     constraint_link_volume(wm, nw, i, elevation, surface_area)
 end
 
+function constraint_pump_control(wm::GenericWaterModel, a::Int, nw_1::Int, nw_2::Int)
+    if !haskey(con(wm, nw_2), :pump_control)
+        con(wm, nw_2)[:pump_control] = Dict{Int, JuMP.ConstraintRef}()
+    end
+
+    pump = ref(wm, nw_2, :pumps, a)
+
+    if "controls" in keys(pump)
+        comps = Array{Pair{String, Int64}, 1}()
+        lt, gt = [nothing, nothing]
+
+        for (control_name, control) in pump["controls"]
+            action = control["action"]
+            condition = control["condition"]
+            comps = vcat((condition["node_type"], condition["node_id"]), comps)
+
+            if condition["operator"] == "<="
+                lt = condition["threshold"]
+            elseif condition["operator"] == ">="
+                gt = condition["threshold"]
+            end
+        end
+
+        same_comp = all(y->y==comps[1], comps)
+
+        if same_comp && lt <= gt && comps[1][1] == "tanks"
+            elevation = ref(wm, nw_2, :nodes, comps[1][2])["elevation"]
+            constraint_pump_control_tank(wm, nw_1, nw_2, a, comps[1][2], lt, gt, elevation)
+        else
+            Memento.error(_LOGGER, "Can't handle control condition.")
+        end
+    end
+end
+
 ""
-function constraint_pump_control(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
+function constraint_pump_control(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw, initial::Bool=false)
     if !haskey(con(wm, nw), :pump_control)
         con(wm, nw)[:pump_control] = Dict{Int, JuMP.ConstraintRef}()
     end
 
     pump = ref(wm, nw, :pumps, a)
 
-    if "controls" in keys(pump)
+    if initial == true && "initial_status" in keys(pump)
+        initial_status = uppercase(pump["initial_status"]) != "CLOSED"
+        constraint_pump_control_initial(wm, nw, a, initial_status)
+    elseif "controls" in keys(pump)
         comps = Array{Pair{String, Int64}, 1}()
         lt, gt = [nothing, nothing]
 
@@ -120,6 +157,8 @@ function constraint_tank_state(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
 end
 
 function constraint_tank_state(wm::GenericWaterModel, i::Int, nw_1::Int, nw_2::Int)
+    # TODO: What happens if a tank exists in nw_1 but not in nw_2? The index
+    # "i" is assumed to be present in both, here...
     tank = ref(wm, nw_2, :tanks, i)
 
     if haskey(ref(wm, nw_2, :options)["time"], "hydraulic_timestep")

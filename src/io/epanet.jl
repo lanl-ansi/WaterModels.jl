@@ -19,6 +19,11 @@ function _add_link_ids!(data::Dict{String, Any})
                 link["id"] = parse(Int64, link_name)
                 link["f_id"] = _get_node_id_by_name(data, link["start_node_name"])
                 link["t_id"] = _get_node_id_by_name(data, link["end_node_name"])
+
+                # Add default status for pump if not present (Open).
+                if link_type == "pumps" && link["initial_status"] == nothing
+                    link["initial_status"] = "Open"
+                end
             end
         end
     else
@@ -32,8 +37,12 @@ function _add_link_ids!(data::Dict{String, Any})
                 link["f_id"] = _get_node_id_by_name(data, link["start_node_name"])
                 link["t_id"] = _get_node_id_by_name(data, link["end_node_name"])
                 link_id += 1
-            end
 
+                # Add default status for pump if not present (Open).
+                if link_type == "pumps" && link["initial_status"] == nothing
+                    link["initial_status"] = "Open"
+                end
+            end
 
             new_ids = start_id:(start_id+length(keys(data[link_type]))-1)
             new_keys = String[string(x) for x in new_ids]
@@ -1016,6 +1025,7 @@ function _read_pumps!(data::Dict{String, Any})
             pump["start_node_name"] = current[2]
             pump["end_node_name"] = current[3]
             pump["controls"] = Dict{String, Any}()
+            pump["initial_status"] = nothing
 
             pump["pump_type"] = nothing
             pump["power"] = nothing

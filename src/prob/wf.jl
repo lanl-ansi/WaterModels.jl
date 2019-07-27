@@ -33,7 +33,7 @@ function post_wf(wm::GenericWaterModel{T}) where T
     for a in ids(wm, :pumps)
         constraint_link_flow(wm, a)
         constraint_potential_loss_pump(wm, a)
-        constraint_pump_control(wm, a)
+        constraint_pump_control(wm, a, initial=true)
     end
 
     for (i, node) in ref(wm, :nodes)
@@ -91,7 +91,6 @@ function post_mn_wf(wm::GenericWaterModel{T}) where T
         for a in ids(wm, :pumps, nw=n)
             constraint_link_flow(wm, a, nw=n)
             constraint_potential_loss_pump(wm, a, nw=n)
-            constraint_pump_control(wm, a, nw=n)
         end
 
         for (i, node) in ref(wm, :nodes, nw=n)
@@ -115,14 +114,25 @@ function post_mn_wf(wm::GenericWaterModel{T}) where T
 
     n_1 = network_ids[1]
 
+    # Initial conditions of pumps.
+    for a in ids(wm, :pumps, nw=n_1)
+        constraint_pump_control(wm, a, nw=n_1, initial=true)
+    end
+
+    # Initial conditions of tanks.
     for i in ids(wm, :tanks, nw=n_1)
         constraint_tank_state(wm, i, nw=n_1)
     end
 
+    # Pump and tank states after the initial time step.
     for n_2 in network_ids[2:end]
        for i in ids(wm, :tanks, nw=n_2)
            constraint_tank_state(wm, i, n_1, n_2)
        end
+
+        for a in ids(wm, :pumps, nw=n_2)
+            constraint_pump_control(wm, a, n_1, n_2)
+        end
 
        n_1 = n_2
     end

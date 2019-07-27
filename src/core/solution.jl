@@ -49,6 +49,7 @@ end
 function get_solution(wm::GenericWaterModel, sol::Dict{String,<:Any})
     add_pipe_flow_rate_setpoint(sol, wm)
     add_pump_flow_rate_setpoint(sol, wm)
+    add_pump_status_setpoint(sol, wm)
     add_pipe_resistance_setpoint(sol, wm)
     add_node_head_setpoint(sol, wm)
     add_reservoir_setpoint(sol, wm)
@@ -60,6 +61,10 @@ end
 
 function add_pump_flow_rate_setpoint(sol, wm::GenericWaterModel)
     add_setpoint(sol, wm, "pumps", "q", :q)
+end
+
+function add_pump_status_setpoint(sol, wm::GenericWaterModel)
+    add_setpoint(sol, wm, "pumps", "x_pump", :x_pump)
 end
 
 function add_node_head_setpoint(sol, wm::GenericWaterModel)
