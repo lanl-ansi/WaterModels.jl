@@ -14,13 +14,38 @@
         @test solution["termination_status"] == MOI.LOCALLY_SOLVED
     end
 
-    #@testset "Richmond network (unknown flow directions), NCNLP formulation." begin
-    #    solution = run_wf(richmond_skeleton_path, NCNLPWaterModel, ipopt)
-    #end
+    @testset "Richmond network, multinetwork NCNLP formulation." begin
+        network_data = WaterModels.parse_file(richmond_skeleton_path)
+        mn_data = WaterModels.make_multinetwork(network_data)
+        wm = build_generic_model(mn_data, NCNLPWaterModel, WaterModels.post_mn_wf, multinetwork=true)
+        f_1, f_2, f_3, f_4, f_5 = WaterModels.function_f_alpha_args(wm)
+        f = Juniper.register(f_1, f_2, f_3, f_4, f_5, autodiff=false)
+        juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f]) #, log_levels=[])
+        solution = WaterModels.solve_generic_model(wm, juniper)
 
-    #@testset "Single-time Richmond network, NCNLP formulation." begin
-    #    solution = run_wf(richmond_skeleton_sp_path, NCNLPWaterModel, ipopt)
-    #end
+        #@test isapprox(solution["solution"]["nodes"]["17"]["h"], 243.052536, rtol=1.0e-3)
+        #@test isapprox(solution["solution"]["nodes"]["39"]["h"], 187.250000, rtol=1.0e-3)
+        #@test isapprox(solution["solution"]["nodes"]["45"]["h"], 243.120010, rtol=1.0e-3)
+        #@test isapprox(solution["solution"]["pipes"]["18"]["q"], 5.308596e-03, rtol=1.0e-3)
+        #@test isapprox(solution["solution"]["pipes"]["44"]["q"], 9.160000e-03, rtol=1.0e-3)
+        #@test isapprox(solution["solution"]["pumps"]["47"]["q"], 0.00000000, atol=1.0e-7)
+    end
+
+    @testset "Single-time Richmond network, NCNLP formulation." begin
+        network_data = WaterModels.parse_file(richmond_skeleton_sp_path)
+        wm = build_generic_model(network_data, NCNLPWaterModel, WaterModels.post_wf, multinetwork=false)
+        f_1, f_2, f_3, f_4, f_5 = WaterModels.function_f_alpha_args(wm)
+        f = Juniper.register(f_1, f_2, f_3, f_4, f_5, autodiff=false)
+        juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
+        solution = WaterModels.solve_generic_model(wm, juniper)
+        @test solution["termination_status"] == MOI.LOCALLY_SOLVED
+        @test isapprox(solution["solution"]["nodes"]["17"]["h"], 243.052536, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nodes"]["39"]["h"], 187.250000, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nodes"]["45"]["h"], 243.120010, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["pipes"]["18"]["q"], 5.308596e-03, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["pipes"]["44"]["q"], 9.160000e-03, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["pumps"]["47"]["q"], 0.00000000, atol=1.0e-7)
+    end
 
     @testset "Shamir network (unknown flow directions), CNLP formulation." begin
         solution = run_wf(shamir_path, CNLPWaterModel, ipopt)

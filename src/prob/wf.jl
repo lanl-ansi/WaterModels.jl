@@ -44,9 +44,9 @@ function post_wf(wm::GenericWaterModel{T}) where T
         #end
     end
 
-    ##for i in collect(ids(wm, :reservoirs))
-    ##    constraint_source_flow(wm, i)
-    ##end
+    #for i in collect(ids(wm, :reservoirs))
+    #    constraint_source_flow(wm, i)
+    #end
 
     for i in ids(wm, :tanks)
         constraint_link_volume(wm, i)
@@ -126,15 +126,15 @@ function post_mn_wf(wm::GenericWaterModel{T}) where T
 
     # Pump and tank states after the initial time step.
     for n_2 in network_ids[2:end]
-       for i in ids(wm, :tanks, nw=n_2)
-           constraint_tank_state(wm, i, n_1, n_2)
-       end
+        for i in ids(wm, :tanks, nw=n_2)
+            constraint_tank_state(wm, i, n_1, n_2)
+        end
 
         for a in ids(wm, :pumps, nw=n_2)
             constraint_pump_control(wm, a, n_1, n_2)
         end
 
-       n_1 = n_2
+        n_1 = n_2
     end
 
     objective_wf(wm)

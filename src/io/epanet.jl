@@ -70,6 +70,42 @@ function _add_link_ids!(data::Dict{String, Any})
     end
 end
 
+function _correct_status!(data::Dict{String, Any})
+    for (id, pump) in data["pumps"]
+        initial_status = pump["initial_status"]
+
+        # TODO: This needs to be generic for controls not dependent on tanks.
+        lt, gt = [nothing, nothing]
+        node_type_lt, node_type_gt = [nothing, nothing]
+        node_id_lt, node_id_gt = [nothing, nothing]
+
+        for (control_id, control) in pump["controls"]
+            if control["condition"]["operator"] == "<="
+                lt = control["condition"]["threshold"]
+                node_type_lt = control["condition"]["node_type"]
+                node_id_lt = control["condition"]["node_id"]
+            elseif control["condition"]["operator"] == ">="
+                gt = control["condition"]["threshold"]
+                node_type_gt = control["condition"]["node_type"]
+                node_id_gt = control["condition"]["node_id"]
+            end
+        end
+
+        if node_type_lt == "tanks" && node_type_gt == "tanks"
+            if node_id_lt == node_id_gt
+                node_id = string(node_id_lt)
+                init_level = data["tanks"][node_id]["init_level"]
+
+                if init_level <= lt
+                    pump["initial_status"] = "Open"
+                elseif init_level >= gt
+                    pump["initial_status"] = "Closed"
+                end
+            end
+        end
+    end
+end
+
 function _correct_time_series!(data::Dict{String, Any})
     duration = data["options"]["time"]["duration"]
     time_step = data["options"]["time"]["hydraulic_timestep"]
@@ -533,7 +569,10 @@ function parse_epanet(filename::String)
 
     # EMITTERS
     #_read_emitters!(data)
-    
+
+    # Correct status data based on control data.
+    _correct_status!(data)
+
     # Add or remove time series information.
     _correct_time_series!(data)
 

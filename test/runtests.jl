@@ -21,9 +21,11 @@ Memento.setlevel!(Memento.getlogger(WaterModels), "error")
 
 # Default MIP and NLP optimizers.
 const cbc = JuMP.with_optimizer(Cbc.Optimizer, logLevel=0)
-const ipopt = JuMP.with_optimizer(Ipopt.Optimizer, tol=1.0e-9, acceptable_tol=1.0e-9, max_iter=9999, print_level=0)
-const ipopt_ws = JuMP.with_optimizer(Ipopt.Optimizer, tol=1.0e-9, acceptable_tol=1.0e-9, max_iter=9999,
-                                     mu_init=1.0e-9, start_with_resto="yes", print_level=0)
+const ipopt = JuMP.with_optimizer(Ipopt.Optimizer, tol=1.0e-9,
+    acceptable_tol=1.0e-9, max_iter=9999, print_level=0)
+const ipopt_ws = JuMP.with_optimizer(Ipopt.Optimizer, tol=1.0e-9,
+    acceptable_tol=1.0e-9, max_iter=9999, mu_init=1.0e-9,
+    start_with_resto="yes", print_level=0)
 
 include("common.jl")
 

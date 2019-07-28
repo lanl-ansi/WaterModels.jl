@@ -6,6 +6,7 @@ function calc_head_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
     max_reservoir_elev = maximum(node["elevation"] for (i, node) in nodes)
 
     if length(tanks) > 0
+        # TODO: Better bound here when tanks/pumps are present?
         max_tank_elev = maximum(nodes[i]["elevation"] + tank["max_level"] for (i, tank) in tanks)
         max_elev = max_reservoir_elev + max_tank_elev
     else
@@ -36,8 +37,9 @@ function calc_head_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
     for (i, reservoir) in ref(wm, n, :reservoirs)
         # Head values at reservoirs are fixed.
         node_id = reservoir["reservoir_node"]
-        head_min[node_id] = reservoir["head"]
-        head_max[node_id] = reservoir["head"]
+        node = ref(wm, n, :nodes, node_id)
+        head_min[node_id] = node["elevation"]
+        head_max[node_id] = node["elevation"]
     end
 
     for (i, tank) in ref(wm, n, :tanks)
@@ -90,27 +92,30 @@ function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
         ub[a] = zeros(Float64, (num_resistances,))
 
         for (r_id, r) in enumerate(resistances)
-            lb[a][r_id] = sign(dh_lb[a]) * (abs(dh_lb[a]) / (L * r))^(inv(alpha))
-            ub[a][r_id] = sign(dh_ub[a]) * (abs(dh_ub[a]) / (L * r))^(inv(alpha))
+            lb[a][r_id] = -100.0
+            ub[a][r_id] = 100.0
+
+            #lb[a][r_id] = sign(dh_lb[a]) * (abs(dh_lb[a]) / (L * r))^(inv(alpha))
+            #ub[a][r_id] = sign(dh_ub[a]) * (abs(dh_ub[a]) / (L * r))^(inv(alpha))
 
             # TODO: These seem to be valid bounds when tanks and pumps aren't
             # present, but it should be fixed to include these, too.
             #lb[a][r_id] = max(lb[a][r_id], -sum_demand)
             #ub[a][r_id] = min(ub[a][r_id], sum_demand)
 
-            if pipe["flow_direction"] == POSITIVE
-                lb[a][r_id] = max(lb[a][r_id], 0.0)
-            elseif pipe["flow_direction"] == NEGATIVE
-                ub[a][r_id] = min(ub[a][r_id], 0.0)
-            end
+            #if pipe["flow_direction"] == POSITIVE
+            #    lb[a][r_id] = max(lb[a][r_id], 0.0)
+            #elseif pipe["flow_direction"] == NEGATIVE
+            #    ub[a][r_id] = min(ub[a][r_id], 0.0)
+            #end
 
-            if haskey(pipe, "diameters") && haskey(pipe, "maximumVelocity")
-                D_a = pipe["diameters"][r_id]["diameter"]
-                v_a = pipe["maximumVelocity"]
-                rate_bound = 0.25 * pi * v_a * D_a * D_a
-                lb[a][r_id] = max(lb[a][r_id], -rate_bound)
-                ub[a][r_id] = min(ub[a][r_id], rate_bound)
-            end
+            #if haskey(pipe, "diameters") && haskey(pipe, "maximumVelocity")
+            #    D_a = pipe["diameters"][r_id]["diameter"]
+            #    v_a = pipe["maximumVelocity"]
+            #    rate_bound = 0.25 * pi * v_a * D_a * D_a
+            #    lb[a][r_id] = max(lb[a][r_id], -rate_bound)
+            #    ub[a][r_id] = min(ub[a][r_id], rate_bound)
+            #end
         end
     end
 

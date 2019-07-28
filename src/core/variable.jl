@@ -260,7 +260,7 @@ end
 function variable_reservoir(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractWaterFormulation
     # Initialize variables associated with reservoir flow.
     var(wm, n)[:q_r] = JuMP.@variable(wm.model, [i in ids(wm, n, :reservoirs)],
-        base_name="q_r[$(n)]", lower_bound=0.0,
+        base_name="q_r[$(n)]",
         start=get_start(ref(wm, n, :reservoirs), i, "q_r_start", 0.0))
 end
 
