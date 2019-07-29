@@ -257,7 +257,7 @@ function constraint_link_flow(wm::GenericWaterModel{T}, n::Int, a::Int) where T 
     qp = var(wm, n, :qp, a)
     qn = var(wm, n, :qn, a)
 
-    con(wm, n, :link_directed_flow)[a] = JuMP.@constraint(wm.model, qp - qn == q)
+    con(wm, n, :link_flow)[a] = JuMP.@constraint(wm.model, qp - qn == q)
 end
 
 
