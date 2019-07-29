@@ -174,7 +174,8 @@ function _add_node_ids!(data::Dict{String, Any})
                 node["name"] = comp["name"]
             end
             if haskey(comp, "elevation")
-                node["elevation"] = pop!(comp, "elevation")
+                #node["elevation"] = pop!(comp, "elevation")
+                node["elevation"] = comp["elevation"]
             end
             if haskey(comp, "minimumHead")
                 node["minimumHead"] = pop!(comp, "minimumHead")
@@ -1143,9 +1144,11 @@ function _read_reservoirs!(data::Dict{String, Any})
                 if demand_units == "LPS" # If liters per second...
                     # Retain the original value (in meters).
                     reservoir["head"] = parse(Float64, current[2])
+                    reservoir["elevation"] = parse(Float64, current[2])
                 elseif demand_units == "GPM" # If gallons per minute...
                     # Convert elevation from feet to meters.
                     reservoir["head"] = 0.3048 * parse(Float64, current[2])
+                    reservoir["elevation"] = 0.3048 * parse(Float64, current[2])
                 else
                     Memento.error(_LOGGER, "Could not find a valid \"units\" option type.")
                 end
@@ -1164,10 +1167,11 @@ function _read_reservoirs!(data::Dict{String, Any})
 
             if pattern != nothing && length(data["patterns"][pattern]) > 1
                 head = reservoir["head"] .* data["patterns"][pattern]
-                entry = Dict{String, Array{Float64}}("head" => head)
+                entry = Dict{String, Array{Float64}}("head" => head, "elevation" => head)
                 data["time_series"]["reservoirs"][current[1]] = entry
             elseif pattern != nothing && pattern != "1"
                 reservoir["head"] *= data["patterns"][pattern][1]
+                reservoir["elevation"] *= data["patterns"][pattern][1]
             end
         end
     end

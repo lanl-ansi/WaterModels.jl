@@ -115,6 +115,7 @@ function constraint_potential_loss_pump(wm::GenericWaterModel{T}, n::Int, a::Int
     #con(wm, n, :potential_loss_3)[a] = c_3
     #con(wm, n, :potential_loss_4)[a] = c_4
 
+    # TODO: Why does the problem become infeasible when these are active?
     #con(wm, n, :potential_loss_5)[a] = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * x_pump)
     #con(wm, n, :potential_loss_6)[a] = JuMP.@NLconstraint(wm.model, x_pump * h_i <= x_pump * h_j)
 end

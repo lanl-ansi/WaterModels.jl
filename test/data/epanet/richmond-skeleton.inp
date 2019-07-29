@@ -138,21 +138,21 @@ Richmond Skeleton Water Supply System
 ;
  Fac_11          	1           
 ;
- CBTariff        	2.40925     	2.40925     
+ CBTariff        	2.40925     	2.40925    
 ;
- HHTariff        	2.46        	2.46        
+ HHTariff        	2.46        	2.46       
 ;
- LZGTariff       	2.460       	2.460       
+ LZGTariff       	2.460       	2.460      
 ;
- LZHZTariff      	2.456666667 	2.456666667 
+ LZHZTariff      	2.456666667 	2.456666667
 ;
- STariff         	2.44        	2.44        
+ STariff         	2.44        	2.44       
 ;
- STTariff        	2.41        	2.41        
+ STTariff        	2.41        	2.41       
 ;
- 40              	70.33       	69.55       
+ 40              	70.33       	69.55      
 ;
- domestic        	1.10        	1.61        
+ domestic        	1.10        	1.61       
 
 [CURVES]
 ;ID              	X-Value     	Y-Value

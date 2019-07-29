@@ -1,16 +1,16 @@
 function calc_head_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
     nodes = ref(wm, n, :nodes)
     tanks = ref(wm, n, :tanks)
+    reservoirs = ref(wm, n, :reservoirs)
 
-    # Get maximum elevation/head values at nodes.
-    max_reservoir_elev = maximum(node["elevation"] for (i, node) in nodes)
-
-    if length(tanks) > 0
-        # TODO: Better bound here when tanks/pumps are present?
+    if length(tanks) > 0 && length(reservoirs) > 0
         max_tank_elev = maximum(nodes[i]["elevation"] + tank["max_level"] for (i, tank) in tanks)
-        max_elev = max_reservoir_elev + max_tank_elev
-    else
-        max_elev = max_reservoir_elev
+        max_reservoir_elev = maximum(res["elevation"] for (i, res) in reservoirs)
+        max_elev = max_tank_elev + max_reservoir_elev
+    elseif length(tanks) > 0 && length(reservoirs) == 0
+        max_elev = maximum(nodes[i]["elevation"] + tank["max_level"] for (i, tank) in tanks)
+    elseif length(tanks) == 0 && length(reservoirs) > 0
+        max_elev = maximum(res["elevation"] for (i, res) in reservoirs)
     end
 
     # Initialize the dictionaries for minimum and maximum heads.
@@ -37,7 +37,8 @@ function calc_head_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
     for (i, reservoir) in ref(wm, n, :reservoirs)
         # Head values at reservoirs are fixed.
         node_id = reservoir["reservoir_node"]
-        node = ref(wm, n, :nodes, node_id)
+        # TODO: Elevation should be a node attribute only.
+        node = ref(wm, n, :reservoirs, node_id)
         head_min[node_id] = node["elevation"]
         head_max[node_id] = node["elevation"]
     end
@@ -95,11 +96,15 @@ function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
             lb[a][r_id] = -100.0
             ub[a][r_id] = 100.0
 
+            if uppercase(pipe["status"]) == "CV"
+                lb[a][r_id] = 0.0
+            end
+
             #lb[a][r_id] = sign(dh_lb[a]) * (abs(dh_lb[a]) / (L * r))^(inv(alpha))
             #ub[a][r_id] = sign(dh_ub[a]) * (abs(dh_ub[a]) / (L * r))^(inv(alpha))
 
-            # TODO: These seem to be valid bounds when tanks and pumps aren't
-            # present, but it should be fixed to include these, too.
+            ## TODO: These seem to be valid bounds when tanks and pumps aren't
+            ## present, but it should be fixed to include these, too.
             #lb[a][r_id] = max(lb[a][r_id], -sum_demand)
             #ub[a][r_id] = min(ub[a][r_id], sum_demand)
 

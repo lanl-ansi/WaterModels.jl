@@ -51,8 +51,9 @@ function objective_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: Standa
     linear_term = JuMP.@variable(wm.model, base_name="linear_objective_term", start=linear_expr_start)
     JuMP.@constraint(wm.model, linear_expr == linear_term)
 
-    qn = var(wm, n, :qn)
     qp = var(wm, n, :qp)
+    qn = var(wm, n, :qn)
+
     # Initialize the objective.
     objective_expr = JuMP.@NLexpression(wm.model, linear_term +
         sum(link["length"] * ref(wm, n, :resistance, a)[1] *

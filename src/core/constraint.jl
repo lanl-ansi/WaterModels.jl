@@ -268,6 +268,7 @@ function constraint_check_valve(wm::GenericWaterModel, n::Int, a::Int, f_id::Int
     x_cv = var(wm, n, :x_cv, a)
 
     con(wm, n, :check_valve_1)[a] = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * x_cv)
+    # TODO: These constraints result in infeasibility in Richmond full case.
     con(wm, n, :check_valve_2)[a] = JuMP.@NLconstraint(wm.model, x_cv * h_i >= x_cv * h_j)
     con(wm, n, :check_valve_3)[a] = JuMP.@NLconstraint(wm.model, (1 - x_cv) * h_i <= (1 - x_cv) * h_j)
 end

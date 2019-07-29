@@ -76,7 +76,7 @@ function post_mn_wf(wm::GenericWaterModel{T}) where T
         variable_volume(wm, n)
         variable_pump(wm, n)
 
-        for (a, pipe) in ref(wm, :pipes)
+        for (a, pipe) in ref(wm, :pipes, nw=n)
             constraint_link_flow(wm, a, nw=n)
 
             # TODO: Call this something other than status.
@@ -105,7 +105,7 @@ function post_mn_wf(wm::GenericWaterModel{T}) where T
         #    constraint_source_flow(wm, i, nw=n)
         #end
  
-        for i in ids(wm, n, :tanks)
+        for i in ids(wm, :tanks, nw=n)
             constraint_link_volume(wm, i, nw=n)
         end
     end
