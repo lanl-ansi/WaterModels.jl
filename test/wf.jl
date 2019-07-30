@@ -18,7 +18,7 @@
     #    network_data = WaterModels.parse_file(richmond_skeleton_path)
     #    mn_data = WaterModels.make_multinetwork(network_data)
     #    wm = build_generic_model(mn_data, NCNLPWaterModel, WaterModels.post_mn_wf, multinetwork=true)
-    #    f_1, f_2, f_3, f_4, f_5 = WaterModels.function_f_alpha_args(wm)
+    #    f_1, f_2, f_3, f_4, f_5 = fun(wm, :head_loss)
     #    f = Juniper.register(f_1, f_2, f_3, f_4, f_5, autodiff=false)
     #    juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f]) #, log_levels=[])
     #    solution = WaterModels.solve_generic_model(wm, juniper)
@@ -35,8 +35,7 @@
     @testset "Single-time Richmond network, NCNLP formulation." begin
         network_data = WaterModels.parse_file(richmond_skeleton_sp_path)
         wm = build_generic_model(network_data, NCNLPWaterModel, WaterModels.post_wf, multinetwork=false)
-        f_1, f_2, f_3, f_4, f_5 = WaterModels.function_f_alpha_args(wm)
-        f = Juniper.register(f_1, f_2, f_3, f_4, f_5, autodiff=false)
+        f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
         juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
         solution = WaterModels.solve_generic_model(wm, juniper)
 
@@ -114,8 +113,7 @@
     @testset "Example 1 network (with tanks and pumps), NCNLP formulation." begin
         network_data = WaterModels.parse_file(example_1_sp_path)
         wm = build_generic_model(network_data, NCNLPWaterModel, WaterModels.post_wf)
-        f_1, f_2, f_3, f_4, f_5 = WaterModels.function_f_alpha_args(wm)
-        f = Juniper.register(f_1, f_2, f_3, f_4, f_5, autodiff=false)
+        f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
         juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
         solution = WaterModels.solve_generic_model(wm, juniper)
 
@@ -132,8 +130,7 @@
         network_data = WaterModels.parse_file(example_1_path)
         mn_data = WaterModels.make_multinetwork(network_data)
         wm = build_generic_model(mn_data, NCNLPWaterModel, WaterModels.post_mn_wf, multinetwork=true)
-        f_1, f_2, f_3, f_4, f_5 = WaterModels.function_f_alpha_args(wm)
-        f = Juniper.register(f_1, f_2, f_3, f_4, f_5, autodiff=false)
+        f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
         juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
         solution = WaterModels.solve_generic_model(wm, juniper)
 

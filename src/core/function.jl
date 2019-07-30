@@ -44,21 +44,40 @@ function d2f_alpha(alpha::Float64; convex::Bool=false)
     end
 end
 
-# TODO: Overload the functions below based on the type of model.
-# Make sure this works with multinetworks. Throw an error if the alpha is different across the multinetwork.
-function function_if_alpha(wm::GenericWaterModel, n::Int=wm.cnw; convex::Bool=false)
-    alpha = ref(wm, n, :alpha) - 1.0
-    f = JuMP.register(wm.model, :if_alpha, 1, if_alpha(alpha, convex=convex), f_alpha(alpha, convex=convex), df_alpha(alpha, convex=convex))
-    wm.fun[:nw][n][:if_alpha] = (:if_alpha, 1, if_alpha(alpha, convex=convex), f_alpha(alpha, convex=convex), df_alpha(alpha, convex=convex))
+function get_alpha_min_1(wm::GenericWaterModel)
+    alpha = [ref(wm, nw, :alpha) for nw in nw_ids(wm)]
+
+    if !all(y -> y == alpha[1], alpha)
+        Memento.error(_LOGGER, "Head loss exponents are different across the multinetwork.")
+    else
+        return alpha[1] - 1.0
+    end
 end
 
-function function_f_alpha(wm::GenericWaterModel, n::Int=wm.cnw; convex::Bool=false)
-    alpha = ref(wm, n, :alpha) - 1.0
-    f = JuMP.register(wm.model, :f_alpha, 1, f_alpha(alpha, convex=convex), df_alpha(alpha, convex=convex), d2f_alpha(alpha, convex=convex))
-    wm.fun[:nw][n][:f_alpha] = (:f_alpha, 1, f_alpha(alpha, convex=convex), df_alpha(alpha, convex=convex), d2f_alpha(alpha, convex=convex))
+function function_head_loss(wm::GenericWaterModel)
+    # By default, head loss is not defined using nonlinear registered functions.
 end
 
-function function_f_alpha_args(wm::GenericWaterModel, n::Int=wm.cnw; convex::Bool=false)
-    alpha = ref(wm, n, :alpha) - 1.0
-    return :f_alpha, 1, f_alpha(alpha, convex=convex), df_alpha(alpha, convex=convex), d2f_alpha(alpha, convex=convex)
+function function_head_loss(wm::GenericWaterModel{T}) where T <: AbstractCNLPForm
+    alpha = get_alpha_min_1(wm)
+    f = JuMP.register(wm.model, :head_loss, 1, if_alpha(alpha, convex=true),
+        f_alpha(alpha, convex=true), df_alpha(alpha, convex=true))
+    wm.fun[:head_loss] = (:head_loss, 1, if_alpha(alpha, convex=true),
+        f_alpha(alpha, convex=true), df_alpha(alpha, convex=true))
+end
+
+function function_head_loss(wm::GenericWaterModel{T}) where T <: AbstractMICPForm
+    alpha = get_alpha_min_1(wm)
+    f = JuMP.register(wm.model, :head_loss, 1, f_alpha(alpha, convex=true),
+        df_alpha(alpha, convex=true), d2f_alpha(alpha, convex=true))
+    wm.fun[:head_loss] = (:head_loss, 1, f_alpha(alpha, convex=true),
+        df_alpha(alpha, convex=true), d2f_alpha(alpha, convex=true))
+end
+
+function function_head_loss(wm::GenericWaterModel{T}) where T <: AbstractNCNLPForm
+    alpha = get_alpha_min_1(wm)
+    f = JuMP.register(wm.model, :head_loss, 1, f_alpha(alpha, convex=false),
+        df_alpha(alpha, convex=false), d2f_alpha(alpha, convex=false))
+    wm.fun[:head_loss] = (:head_loss, 1, f_alpha(alpha, convex=false),
+        df_alpha(alpha, convex=false), d2f_alpha(alpha, convex=false))
 end

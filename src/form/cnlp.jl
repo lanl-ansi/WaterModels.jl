@@ -57,7 +57,7 @@ function objective_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: Standa
     # Initialize the objective.
     objective_expr = JuMP.@NLexpression(wm.model, linear_term +
         sum(link["length"] * ref(wm, n, :resistance, a)[1] *
-        (if_alpha(qn[a]) + if_alpha(qp[a]))
+        (head_loss(qn[a]) + head_loss(qp[a]))
         for (a, link) in ref(wm, n, :links)))
 
     return JuMP.@NLobjective(wm.model, MOI.MIN_SENSE, objective_expr)

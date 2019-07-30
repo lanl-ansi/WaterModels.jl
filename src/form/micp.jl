@@ -36,12 +36,12 @@ function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::
     for (r_id, r) in enumerate(pipe_resistances)
         qn_ne = var(wm, n, :qn_ne, a)[r_id]
         dhn = var(wm, n, :dhn, a)
-        con_n = JuMP.@NLconstraint(wm.model, r * f_alpha(qn_ne) - inv(L) * dhn <= 0.0)
+        con_n = JuMP.@NLconstraint(wm.model, r * head_loss(qn_ne) - inv(L) * dhn <= 0.0)
         con(wm, n, :potential_loss_n_ne, a)[r_id] = con_n
 
         qp_ne = var(wm, n, :qp_ne, a)[r_id]
         dhp = var(wm, n, :dhp, a)
-        con_p = JuMP.@NLconstraint(wm.model, r * f_alpha(qp_ne) - inv(L) * dhp <= 0.0)
+        con_p = JuMP.@NLconstraint(wm.model, r * head_loss(qp_ne) - inv(L) * dhp <= 0.0)
         con(wm, n, :potential_loss_p_ne, a)[r_id] = con_p
     end
 end
@@ -57,12 +57,12 @@ function constraint_potential_loss_pipe(wm::GenericWaterModel{T}, n::Int, a::Int
 
     qn = var(wm, n, :qn, a)
     dhn = var(wm, n, :dhn, a)
-    con_n = JuMP.@NLconstraint(wm.model, r * f_alpha(qn) - inv(L) * dhn <= 0.0)
+    con_n = JuMP.@NLconstraint(wm.model, r * head_loss(qn) - inv(L) * dhn <= 0.0)
     con(wm, n, :potential_loss_n)[a] = con_n
 
     qp = var(wm, n, :qp, a)
     dhp = var(wm, n, :dhp, a)
-    con_p = JuMP.@NLconstraint(wm.model, r * f_alpha(qp) - inv(L) * dhp <= 0.0)
+    con_p = JuMP.@NLconstraint(wm.model, r * head_loss(qp) - inv(L) * dhp <= 0.0)
     con(wm, n, :potential_loss_p)[a] = con_p
 end
 

@@ -266,11 +266,13 @@ function constraint_check_valve(wm::GenericWaterModel, n::Int, a::Int, f_id::Int
     h_i = var(wm, n, :h, f_id)
     h_j = var(wm, n, :h, t_id)
     x_cv = var(wm, n, :x_cv, a)
+    q_ub = JuMP.upper_bound(q)
 
-    con(wm, n, :check_valve_1)[a] = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * x_cv)
-    # TODO: These constraints result in infeasibility in Richmond full case.
-    con(wm, n, :check_valve_2)[a] = JuMP.@NLconstraint(wm.model, x_cv * h_i >= x_cv * h_j)
-    con(wm, n, :check_valve_3)[a] = JuMP.@NLconstraint(wm.model, (1 - x_cv) * h_i <= (1 - x_cv) * h_j)
+    con(wm, n, :check_valve_1)[a] = JuMP.@constraint(wm.model, q <= q_ub * x_cv)
+    con(wm, n, :check_valve_2)[a] = JuMP.@constraint(wm.model, q >= 1.0e-6 * x_cv)
+    # TODO: These constraints seem to result in infeasibility in multiperiod Richmond case.
+    con(wm, n, :check_valve_3)[a] = JuMP.@NLconstraint(wm.model, x_cv * h_i >= x_cv * h_j)
+    con(wm, n, :check_valve_4)[a] = JuMP.@NLconstraint(wm.model, (1 - x_cv) * h_i <= (1 - x_cv) * h_j)
 end
 
 
@@ -357,26 +359,16 @@ function constraint_pump_control_initial(wm::GenericWaterModel, n::Int, a::Int, 
     c_1 = JuMP.@constraint(wm.model, x == status)
 end
 
-""
-function constraint_tank_state_initial(wm::GenericWaterModel, n::Int, i::Int, initial_volume::Float64, time_step::Float64)
-    if !haskey(con(wm, n), :tank_state)
-        con(wm, n)[:tank_state] = Dict{Int, JuMP.ConstraintRef}()
-    end
-
+function constraint_tank_state_initial(wm::GenericWaterModel, n::Int, i::Int, V_0::Float64, time_step::Float64)
     V = var(wm, n, :V, i)
-    con(wm, n, :tank_state)[i] = JuMP.@constraint(wm.model, V == initial_volume)
+    c = JuMP.@constraint(wm.model, V == V_0)
+    con(wm, n, :tank_state)[i] = c
 end
 
-
-""
 function constraint_tank_state(wm::GenericWaterModel, n_1::Int, n_2::Int, i::Int, time_step::Float64)
-    if !haskey(con(wm, n_2), :tank_state)
-        con(wm, n_2)[:tank_state] = Dict{Int, JuMP.ConstraintRef}()
-    end
-
+    q_t = var(wm, n_1, :q_t, i)
     V_1 = var(wm, n_1, :V, i)
     V_2 = var(wm, n_2, :V, i)
-    q_t = var(wm, n_1, :q_t, i)
-
-    con(wm, n_2, :tank_state)[i] = JuMP.@constraint(wm.model, V_2 - V_1 + time_step * q_t == 0.0)
+    c = JuMP.@constraint(wm.model, V_2 - V_1 + time_step * q_t == 0.0)
+    con(wm, n_2, :tank_state)[i] = c
 end

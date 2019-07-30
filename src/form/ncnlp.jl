@@ -31,7 +31,7 @@ function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::
     h_j = var(wm, n, :h, t_id)
     q_ne = var(wm, n, :q_ne, a)
 
-    c = JuMP.@NLconstraint(wm.model, sum(r * f_alpha(q_ne[r_id]) for (r_id, r)
+    c = JuMP.@NLconstraint(wm.model, sum(r * head_loss(q_ne[r_id]) for (r_id, r)
         in enumerate(pipe_resistances)) - inv(len) * (h_i - h_j) == 0.0)
 
     con(wm, n, :potential_loss_ne)[a] = c
@@ -44,30 +44,17 @@ end
 function constraint_potential_loss_ub_pipe(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, len, r_max) where T <: AbstractNCNLPForm
 end
 
-function constraint_potential_loss_check_valve(wm::GenericWaterModel{T}, n::Int, a::Int, f_id::Int, t_id::Int, len, r_min) where T <: AbstractNCNLPForm
+function constraint_potential_loss_check_valve(wm::GenericWaterModel{T}, n::Int, a::Int, f_id::Int, t_id::Int, len::Float64, r::Float64) where T <: AbstractNCNLPForm
     q = var(wm, n, :q, a)
     h_i = var(wm, n, :h, f_id)
     h_j = var(wm, n, :h, t_id)
     x_cv = var(wm, n, :x_cv, a)
 
-    ## TODO: Possible formulation below (expand out...)?
-    #c = JuMP.@NLconstraint(wm.model, x_cv * r_min * f_alpha(q) - inv(len) * x_cv * (h_i - h_j) == 0.0)
+    # TODO: Possible formulation below (expand out...)?
+    #c = JuMP.@NLconstraint(wm.model, x_cv * r * head_loss(q) - inv(len) * x_cv * (h_i - h_j) == 0.0)
     #c = JuMP.@NLconstraint(wm.model, (1 - x_cv) * h_j >= (1 - x_cv) * h_i)
-
-    q_ub = max(abs(JuMP.upper_bound(q)), abs(JuMP.lower_bound(q)))
-    #c = JuMP.@constraint(wm.model, q <= x_cv * q_ub)
-    #con(wm, n, :potential_loss)[a] = c
-
-    M = 1.0e6
-    m = 1.0e-6
-
-    #JuMP.@NLconstraint(wm.model, x_cv >= inv(q_ub) * abs(q))
-    #JuMP.@NLconstraint(wm.model, x_cv <= q_ub * q^2)
-    
-    JuMP.@constraint(wm.model, q >= m * x_cv)
-    JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * x_cv)
-    c_1 = JuMP.@NLconstraint(wm.model, r_min * f_alpha(q) - inv(len) * (h_i - h_j) <= M * (1 - x_cv))
-    c_2 = JuMP.@NLconstraint(wm.model, r_min * f_alpha(q) - inv(len) * (h_i - h_j) >= -M * (1 - x_cv))
+    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(q) - inv(len) * (h_i - h_j) <= 1.0e6 * (1 - x_cv))
+    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(q) - inv(len) * (h_i - h_j) >= -1.0e6 * (1 - x_cv))
 end
 
 function constraint_potential_loss_pipe(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, f_id, t_id, len, r_min) where T <: AbstractNCNLPForm
@@ -79,7 +66,7 @@ function constraint_potential_loss_pipe(wm::GenericWaterModel{T}, n::Int, a::Int
     h_j = var(wm, n, :h, t_id)
     q = var(wm, n, :q, a)
 
-    c = JuMP.@NLconstraint(wm.model, r_min * f_alpha(q) - inv(len) * (h_i - h_j) == 0.0)
+    c = JuMP.@NLconstraint(wm.model, r_min * head_loss(q) - inv(len) * (h_i - h_j) == 0.0)
     con(wm, n, :potential_loss)[a] = c
 end
 

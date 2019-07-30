@@ -53,12 +53,11 @@ function GenericWaterModel(data::Dict{String,<:Any}, T::DataType; ext = Dict{Sym
     ref = build_ref(data)
     var = Dict{Symbol,Any}(:nw => Dict{Int,Any}())
     con = Dict{Symbol,Any}(:nw => Dict{Int,Any}())
-    fun = Dict{Symbol,Any}(:nw => Dict{Int,Any}())
+    fun = Dict{Symbol,Any}()
 
     for nw_id in keys(ref[:nw])
         var[:nw][nw_id] = Dict{Symbol, Any}()
         con[:nw][nw_id] = Dict{Symbol, Any}()
-        fun[:nw][nw_id] = Dict{Symbol, Any}()
     end
 
     cnw = minimum([k for k in keys(var[:nw])])
@@ -121,9 +120,8 @@ con(wm::GenericWaterModel, key::Symbol; nw::Int=wm.cnw) = wm.con[:nw][nw][key]
 con(wm::GenericWaterModel, key::Symbol, idx; nw::Int=wm.cnw) = wm.con[:nw][nw][key][idx]
 
 ""
-fun(wm::GenericWaterModel, nw::Int) = wm.fun[:nw][nw]
-fun(wm::GenericWaterModel, nw::Int, key::Symbol) = wm.fun[:nw][nw][key]
-
+fun(wm::GenericWaterModel) = wm.fun
+fun(wm::GenericWaterModel, key::Symbol) = wm.fun[key]
 
 ""
 function optimize!(wm::GenericWaterModel, optimizer::JuMP.OptimizerFactory)

@@ -20,8 +20,7 @@
         ## TODO: Use Juniper once user-defined derivatives are allowed.
         #post_ne = WaterModels.get_post_ne(alpha)
         #wm = build_generic_model(network, MICPWaterModel, post_ne)
-        #f_1, f_2, f_3, f_4, f_5 = WaterModels.function_f_alpha_args(wm)
-        #f = Juniper.register(f_1, f_2, f_3, f_4, f_5, autodiff=false)
+        #f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
         #juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f])
         #result = WaterModels.solve_generic_model(wm, juniper)
 

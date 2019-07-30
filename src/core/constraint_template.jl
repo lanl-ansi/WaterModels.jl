@@ -218,6 +218,7 @@ function constraint_check_valve(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
         con(wm, nw)[:check_valve_1] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, nw)[:check_valve_2] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, nw)[:check_valve_3] = Dict{Int, JuMP.ConstraintRef}()
+        con(wm, nw)[:check_valve_4] = Dict{Int, JuMP.ConstraintRef}()
     end
 
     f_id = ref(wm, nw, :links, a)["f_id"]

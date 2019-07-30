@@ -3,13 +3,11 @@ function run_ne(network, model_constructor, optimizer; relaxed::Bool=false, kwar
 end
 
 function post_ne(wm::GenericWaterModel{T}) where T
-    if T <: AbstractNCNLPForm
-        function_f_alpha(wm, convex=false)
-    elseif T <: AbstractMICPForm
-        function_f_alpha(wm, convex=true)
-    elseif T <: AbstractCNLPForm
+    if T <: AbstractCNLPForm
         Memento.error(_LOGGER, "CNLP formulation does not support network expansion.")
     end
+
+    function_head_loss(wm)
 
     variable_reservoir(wm)
     variable_tank(wm)
