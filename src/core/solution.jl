@@ -98,7 +98,7 @@ function add_pipe_resistance_setpoint(sol, wm::GenericWaterModel)
 
     if :x_res in keys(var(wm))
         for (i, link) in data_dict
-            a = link["id"]
+            a = link["index"]
             sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
 
             if a in keys(var(wm, :x_res))
@@ -111,7 +111,7 @@ function add_pipe_resistance_setpoint(sol, wm::GenericWaterModel)
         end
     else
         for (i, link) in data_dict
-            a = link["id"]
+            a = link["index"]
             sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
             x_res, r_id = findmin(ref(wm, :resistance, a))
             sol_item["r"] = ref(wm, :resistance, a)[r_id]
@@ -122,7 +122,7 @@ end
 "adds values based on JuMP variables"
 function add_setpoint(sol::Dict{String, Any}, wm::GenericWaterModel,
                       dict_name::String, param_name::String,
-                      variable_symbol::Symbol; index_name::String="id",
+                      variable_symbol::Symbol; index_name::String="index",
                       default_value=(item) -> NaN, scale=(x, item) -> x,
                       extract_var=(var, idx, item) -> var[idx],
                       sol_dict=get(sol, dict_name, Dict{String, Any}()))

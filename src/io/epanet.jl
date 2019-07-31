@@ -16,10 +16,10 @@ function _add_link_ids!(data::Dict{String, Any})
     if all_int
         for link_type in link_types
             for (link_name, link) in data[link_type]
-                link["id"] = parse(Int64, link_name)
+                link["index"] = parse(Int64, link_name)
                 link["node_fr"] = data["node_map"][pop!(link, "start_node_name")]
                 link["node_to"] = data["node_map"][pop!(link, "end_node_name")]
-                data["link_map"][link_name] = link["id"]
+                data["link_map"][link_name] = link["index"]
 
                 # Add default status for pump if not present (Open).
                 if link_type == "pumps" && link["initial_status"] == nothing
@@ -34,10 +34,10 @@ function _add_link_ids!(data::Dict{String, Any})
             starnode_to = link_id
 
             for (link_name, link) in data[link_type]
-                link["id"] = link_id
+                link["index"] = link_id
                 link["node_fr"] = data["node_map"][pop!(link, "start_node_name")]
                 link["node_to"] = data["node_map"][pop!(link, "end_node_name")]
-                data["link_map"][link_name] = link["id"]
+                data["link_map"][link_name] = link["index"]
                 link_id += 1
 
                 # Add default status for pump if not present (Open).
@@ -135,8 +135,8 @@ function _add_node_ids!(data::Dict{String, Any})
     if all([tryparse(Int64, x) != nothing for x in node_names])
         for node_type in node_types
             for (node_name, node) in data[node_type]
-                node["id"] = parse(Int64, node_name)
-                data["node_map"][node_name] = node["id"]
+                node["index"] = parse(Int64, node_name)
+                data["node_map"][node_name] = node["index"]
             end
         end
     else
@@ -146,8 +146,8 @@ function _add_node_ids!(data::Dict{String, Any})
             starnode_to = node_id
 
             for (node_name, node) in data[node_type]
-                node["id"] = node_id
-                data["node_map"][node_name] = node["id"]
+                node["index"] = node_id
+                data["node_map"][node_name] = node["index"]
                 node_id += 1
             end
 
@@ -163,9 +163,9 @@ function _add_node_ids!(data::Dict{String, Any})
         nid_field = node_id_field[node_type]
 
         for (i, comp) in data[node_type]
-            @assert i == "$(comp["id"])"
-            comp[nid_field] = comp["id"]
-            node = Dict{String, Any}("id" => comp["id"],
+            @assert i == "$(comp["index"])"
+            comp[nid_field] = comp["index"]
+            node = Dict{String, Any}("index" => comp["index"],
                 "source_id" => [node_type, comp["source_id"]])
 
             if haskey(comp, "name")
@@ -517,7 +517,7 @@ function parse_epanet(filename::String)
     # TANKS
     _read_tanks!(data)
 
-    # Create consistent node "id" fields.
+    # Create consistent node "index" fields.
     _add_node_ids!(data)
 
     # PIPES
@@ -532,7 +532,7 @@ function parse_epanet(filename::String)
     # ENERGY
     _read_energy!(data)
 
-    # Create consistent link "id" fields.
+    # Create consistent link "index" fields.
     _add_link_ids!(data)
 
     # COORDINATES
@@ -647,7 +647,7 @@ function _read_controls!(data::Dict{String, Any})
                     if node_type == "junctions"
                         # TODO: Fill this out when necessary.
                     elseif node_type == "tanks"
-                        condition["node_id"] = node["id"]
+                        condition["node_id"] = node["index"]
                         condition["node_type"] = node_type
                         condition["attribute"] = "level"
 
