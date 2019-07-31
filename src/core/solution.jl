@@ -1,7 +1,7 @@
 ""
 function build_solution(wm::GenericWaterModel, solve_time; objective = NaN, solution_builder = get_solution)
     sol = init_solution(wm)
-    data = Dict{String,Any}("name" => wm.data["name"])
+    data = Dict{String, Any}("name" => wm.data["name"])
 
     if InfrastructureModels.ismultinetwork(wm.data)
         sol["multinetwork"] = true
@@ -46,7 +46,7 @@ function init_solution(wm::GenericWaterModel)
 end
 
 ""
-function get_solution(wm::GenericWaterModel, sol::Dict{String,<:Any})
+function get_solution(wm::GenericWaterModel, sol::Dict{String, <:Any})
     add_pipe_flow_rate_setpoint(sol, wm)
     add_pump_flow_rate_setpoint(sol, wm)
     add_pump_status_setpoint(sol, wm)
@@ -120,7 +120,7 @@ function add_pipe_resistance_setpoint(sol, wm::GenericWaterModel)
 end
 
 "adds values based on JuMP variables"
-function add_setpoint(sol::Dict{String, Any}, wm::GenericWaterModel,
+function add_setpoint(sol::Dict{String, <:Any}, wm::GenericWaterModel,
                       dict_name::String, param_name::String,
                       variable_symbol::Symbol; index_name::String="index",
                       default_value=(item) -> NaN, scale=(x, item) -> x,

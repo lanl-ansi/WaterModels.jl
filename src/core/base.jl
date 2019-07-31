@@ -33,27 +33,27 @@ Methods on `GenericWaterModel` for defining variables and adding constraints sho
 mutable struct GenericWaterModel{T<:AbstractWaterFormulation}
     model::JuMP.Model
 
-    data::Dict{String,<:Any}
-    setting::Dict{String,<:Any}
-    solution::Dict{String,<:Any}
+    data::Dict{String, <:Any}
+    setting::Dict{String, <:Any}
+    solution::Dict{String, <:Any}
 
-    ref::Dict{Symbol,<:Any}
-    var::Dict{Symbol,<:Any}
-    con::Dict{Symbol,<:Any}
-    fun::Dict{Symbol,<:Any}
+    ref::Dict{Symbol, <:Any}
+    var::Dict{Symbol, <:Any}
+    con::Dict{Symbol, <:Any}
+    fun::Dict{Symbol, <:Any}
     cnw::Int
 
     # Extensions should define a type to hold information particular to
     # their functionality, and store an instance of the type in this
     # dictionary keyed on an extension-specific symbol.
-    ext::Dict{Symbol,<:Any}
+    ext::Dict{Symbol, <:Any}
 end
 
-function GenericWaterModel(data::Dict{String,<:Any}, T::DataType; ext = Dict{Symbol,Any}(), setting = Dict{String,Any}(), jump_model::JuMP.Model=JuMP.Model(), kwargs...)
+function GenericWaterModel(data::Dict{String, <:Any}, T::DataType; ext = Dict{Symbol, Any}(), setting = Dict{String, Any}(), jump_model::JuMP.Model=JuMP.Model(), kwargs...)
     ref = build_ref(data)
-    var = Dict{Symbol,Any}(:nw => Dict{Int,Any}())
-    con = Dict{Symbol,Any}(:nw => Dict{Int,Any}())
-    fun = Dict{Symbol,Any}()
+    var = Dict{Symbol, Any}(:nw => Dict{Int, Any}())
+    con = Dict{Symbol, Any}(:nw => Dict{Int, Any}())
+    fun = Dict{Symbol, Any}()
 
     for nw_id in keys(ref[:nw])
         var[:nw][nw_id] = Dict{Symbol, Any}()
@@ -66,7 +66,7 @@ function GenericWaterModel(data::Dict{String,<:Any}, T::DataType; ext = Dict{Sym
              jump_model,
              data,
              setting,
-             Dict{String,Any}(), # solution
+             Dict{String, Any}(), # solution
              ref,
              var,
              con,
@@ -148,7 +148,7 @@ function run_generic_model(file::String, model_constructor, optimizer, post_meth
 end
 
 ""
-function run_generic_model(data::Dict{String,<:Any}, model_constructor, optimizer, post_method; relaxed::Bool=false, solution_builder=get_solution, kwargs...)
+function run_generic_model(data::Dict{String, <:Any}, model_constructor, optimizer, post_method; relaxed::Bool=false, solution_builder=get_solution, kwargs...)
     wm = build_generic_model(data, model_constructor, post_method; kwargs...)
     #wm, time, bytes_alloc, sec_in_gc = @timed build_generic_model(data, model_constructor, post_method; kwargs...)
     #println("model build time: $(time)")
@@ -167,7 +167,7 @@ function build_generic_model(file::String, model_constructor, post_method; kwarg
 end
 
 ""
-function build_generic_model(data::Dict{String,<:Any}, model_constructor, post_method; multinetwork=false, kwargs...)
+function build_generic_model(data::Dict{String, <:Any}, model_constructor, post_method; multinetwork=false, kwargs...)
     # NOTE, this model constructor will build the ref dict using the latest info from the data
     wm = model_constructor(data; kwargs...)
 
@@ -216,14 +216,14 @@ Some of the common keys include:
 * `:emitters` -- the set of emitters in the network,
 * `:nodes` -- the set of all nodes in the network
 """
-function build_ref(data::Dict{String,<:Any})
-    refs = Dict{Symbol,Any}()
+function build_ref(data::Dict{String, <:Any})
+    refs = Dict{Symbol, Any}()
 
-    nws = refs[:nw] = Dict{Int,Any}()
+    nws = refs[:nw] = Dict{Int, Any}()
 
     if InfrastructureModels.ismultinetwork(data)
         for (key, item) in data
-            if !isa(item, Dict{String,Any}) || key in _wm_global_keys
+            if !isa(item, Dict{String, Any}) || key in _wm_global_keys
                 refs[Symbol(key)] = item
             end
         end
@@ -234,12 +234,12 @@ function build_ref(data::Dict{String,<:Any})
 
     for (n, nw_data) in nws_data
         nw_id = parse(Int, n)
-        ref = nws[nw_id] = Dict{Symbol,Any}()
+        ref = nws[nw_id] = Dict{Symbol, Any}()
 
         for (key, item) in nw_data
-            if isa(item, Dict{String,Any})
+            if isa(item, Dict{String, Any})
                 try
-                    item_lookup = Dict{Int,Any}([(parse(Int, k), v) for (k, v) in item])
+                    item_lookup = Dict{Int, Any}([(parse(Int, k), v) for (k, v) in item])
                     ref[Symbol(key)] = item_lookup
                 catch
                     ref[Symbol(key)] = item

@@ -18,7 +18,7 @@ abstract type StandardCNLPForm <: AbstractCNLPForm end
 const CNLPWaterModel = GenericWaterModel{StandardCNLPForm}
 
 "Default CNLP constructor"
-CNLPWaterModel(data::Dict{String, Any}; kwargs...) = GenericWaterModel(data, StandardCNLPForm; kwargs...)
+CNLPWaterModel(data::Dict{String, <:Any}; kwargs...) = GenericWaterModel(data, StandardCNLPForm; kwargs...)
 
 
 abstract type AbstractNCNLPForm <: AbstractUndirectedFlowFormulation end
@@ -28,7 +28,7 @@ abstract type StandardNCNLPForm <: AbstractNCNLPForm end
 const NCNLPWaterModel = GenericWaterModel{StandardNCNLPForm}
 
 "Default NCNLP constructor"
-NCNLPWaterModel(data::Dict{String,Any}; kwargs...) = GenericWaterModel(data, StandardNCNLPForm; kwargs...)
+NCNLPWaterModel(data::Dict{String, <:Any}; kwargs...) = GenericWaterModel(data, StandardNCNLPForm; kwargs...)
 
 
 
@@ -39,7 +39,7 @@ abstract type StandardMILPRForm <: AbstractMILPRForm end
 const MILPRWaterModel = GenericWaterModel{StandardMILPRForm}
 
 "Default MILPR constructor"
-MILPRWaterModel(data::Dict{String,Any}; kwargs...) = GenericWaterModel(data, StandardMILPRForm; kwargs...)
+MILPRWaterModel(data::Dict{String, <:Any}; kwargs...) = GenericWaterModel(data, StandardMILPRForm; kwargs...)
 
 
 
@@ -50,4 +50,4 @@ abstract type StandardMICPForm <: AbstractMICPForm end
 const MICPWaterModel = GenericWaterModel{StandardMICPForm}
 
 "Default MICP constructor."
-MICPWaterModel(data::Dict{String,Any}; kwargs...) = GenericWaterModel(data, StandardMICPForm; kwargs...)
+MICPWaterModel(data::Dict{String, <:Any}; kwargs...) = GenericWaterModel(data, StandardMICPForm; kwargs...)

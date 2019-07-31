@@ -1,4 +1,4 @@
-function export_geojson(data::Dict{String, Any}, path::String)
+function export_geojson(data::Dict{String, <:Any}, path::String)
     dict = export_geojson(data)
 
     open(path, "w") do f
@@ -6,7 +6,7 @@ function export_geojson(data::Dict{String, Any}, path::String)
     end
 end
 
-function export_geojson(data::Dict{String, Any})
+function export_geojson(data::Dict{String, <:Any})
     nodes = merge(data["junctions"], data["reservoirs"])
     node_features = build_nodes_geojson(nodes)
     links = merge(data["pipes"], data["valves"])
@@ -15,7 +15,7 @@ function export_geojson(data::Dict{String, Any})
     return Dict("type" => "FeatureCollection", "features" => features)
 end
 
-function build_links_geojson(data::Dict{String, Any}, nodes::Dict{String, Any})
+function build_links_geojson(data::Dict{String, <:Any}, nodes::Dict{String, <:Any})
     link_array = []
 
     for (key, item) in data
@@ -26,7 +26,7 @@ function build_links_geojson(data::Dict{String, Any}, nodes::Dict{String, Any})
     return link_array
 end
 
-function build_nodes_geojson(data::Dict{String, Any})
+function build_nodes_geojson(data::Dict{String, <:Any})
     node_array = []
 
     for (key, item) in data
@@ -37,7 +37,7 @@ function build_nodes_geojson(data::Dict{String, Any})
     return node_array
 end
 
-function build_linestring_geojson(data::Dict{String, Any}, nodes::Dict{String, Any})
+function build_linestring_geojson(data::Dict{String, <:Any}, nodes::Dict{String, <:Any})
     geometry = Dict{String, Any}("type" => "LineString")
 
     if data["q"] >= 0.0
@@ -58,7 +58,7 @@ function build_linestring_geojson(data::Dict{String, Any}, nodes::Dict{String, A
     return Dict{String, Any}("type" => "Feature", "geometry" => geometry, "properties" => properties)
 end
 
-function build_point_geojson(data::Dict{String, Any})
+function build_point_geojson(data::Dict{String, <:Any})
     geometry = Dict{String, Any}("type" => "Point", "coordinates" => [data["x"], data["y"]])
     properties = deepcopy(data)
     pop!(properties, "x")
