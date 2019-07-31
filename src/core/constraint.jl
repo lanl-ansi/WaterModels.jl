@@ -134,13 +134,13 @@ function constraint_flow_direction_selection_ne(wm::GenericWaterModel{T}, n::Int
 end
 
 
-function constraint_head_difference(wm::GenericWaterModel, n::Int, a::Int, f_id, t_id, head_fr, head_to)
+function constraint_head_difference(wm::GenericWaterModel, n::Int, a::Int, node_fr, node_to, head_fr, head_to)
     if head_fr == nothing
-        head_fr = var(wm, n, :h, f_id)
+        head_fr = var(wm, n, :h, node_fr)
     end
 
     if head_to == nothing
-        head_to = var(wm, n, :h, t_id)
+        head_to = var(wm, n, :h, node_to)
     end
 
     x_dir = var(wm, n, :x_dir, a)
@@ -261,10 +261,10 @@ function constraint_link_flow(wm::GenericWaterModel{T}, n::Int, a::Int) where T 
 end
 
 
-function constraint_check_valve(wm::GenericWaterModel, n::Int, a::Int, f_id::Int, t_id::Int)
+function constraint_check_valve(wm::GenericWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int)
     q = var(wm, n, :q, a)
-    h_i = var(wm, n, :h, f_id)
-    h_j = var(wm, n, :h, t_id)
+    h_i = var(wm, n, :h, node_fr)
+    h_j = var(wm, n, :h, node_to)
     x_cv = var(wm, n, :x_cv, a)
     q_ub = JuMP.upper_bound(q)
 
@@ -284,9 +284,9 @@ end
 function constraint_sink_flow(wm::GenericWaterModel{T}, n::Int, i::Int, links) where T <: AbstractDirectedFlowFormulation
     # Collect the required variables.
     x_dir = var(wm, n, :x_dir)
-    out_arcs = filter(a -> i == a.second["f_id"], links)
+    out_arcs = filter(a -> i == a.second["node_fr"], links)
     out = Array{JuMP.VariableRef}([x_dir[a] for a in keys(out_arcs)])
-    in_arcs = filter(a -> i == a.second["t_id"], links)
+    in_arcs = filter(a -> i == a.second["node_to"], links)
     in = Array{JuMP.VariableRef}([x_dir[a] for a in keys(in_arcs)])
 
     # Add the sink flow direction constraint.
@@ -303,9 +303,9 @@ end
 function constraint_source_flow(wm::GenericWaterModel{T}, n::Int, i::Int, links) where T <: AbstractDirectedFlowFormulation
     # Collect the required variables.
     x_dir = var(wm, n, :x_dir)
-    out_arcs = filter(a -> i == a.second["f_id"], links)
+    out_arcs = filter(a -> i == a.second["node_fr"], links)
     out = Array{JuMP.VariableRef}([x_dir[a] for a in keys(out_arcs)])
-    in_arcs = filter(a -> i == a.second["t_id"], links)
+    in_arcs = filter(a -> i == a.second["node_to"], links)
     in = Array{JuMP.VariableRef}([x_dir[a] for a in keys(in_arcs)])
 
     # Add the source flow direction constraint.

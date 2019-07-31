@@ -254,8 +254,8 @@ function build_ref(data::Dict{String,<:Any})
         ref[:links_ne] = filter(is_ne_link, ref[:links])
         ref[:check_valves] = filter(has_check_valve, ref[:pipes])
 
-        ref[:arcs_fr] = [(i, comp["f_id"], comp["t_id"]) for (i, comp) in ref[:links]]
-        #ref[:arcs_to]   = [(i,comp["t_id"],comp["f_id"]) for (i,comp) in ref[:links]]
+        ref[:arcs_fr] = [(i, comp["node_fr"], comp["node_to"]) for (i, comp) in ref[:links]]
+        #ref[:arcs_to]   = [(i,comp["node_to"],comp["node_fr"]) for (i,comp) in ref[:links]]
         #ref[:arcs] = [ref[:arcs_fr]; ref[:arcs_to]]
 
         #node_arcs = Dict((i, Tuple{Int,Int,Int}[]) for (i,node) in ref[:nodes])

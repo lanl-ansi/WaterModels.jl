@@ -18,7 +18,7 @@ end
 function variable_pump(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractMILPRForm
 end
 
-function constraint_potential_loss_pump(wm::GenericWaterModel{T}, n::Int, a::Int, f_id::Int, t_id::Int) where T <: AbstractMILPRForm
+function constraint_potential_loss_pump(wm::GenericWaterModel{T}, n::Int, a::Int, node_fr::Int, node_to::Int) where T <: AbstractMILPRForm
 end
 
 
@@ -26,7 +26,7 @@ function get_linear_outer_approximation(q::JuMP.VariableRef, q_hat::Float64, alp
     return q_hat^alpha + alpha * q_hat^(alpha - 1.0) * (q - q_hat)
 end
 
-function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, f_id, t_id, len, pipe_resistances) where T <: AbstractMILPRForm
+function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, node_fr, node_to, len, pipe_resistances) where T <: AbstractMILPRForm
     if !haskey(con(wm, n), :potential_loss_pipe_n_ne)
         con(wm, n)[:potential_loss_pipe_n_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
         con(wm, n)[:potential_loss_pipe_p_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
@@ -62,7 +62,7 @@ function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::
     end
 end
 
-function constraint_potential_loss_pipe(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, f_id, t_id, len, r_min) where T <: AbstractMILPRForm
+function constraint_potential_loss_pipe(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, node_fr, node_to, len, r_min) where T <: AbstractMILPRForm
     if !haskey(con(wm, n), :potential_loss_pipe_n)
         con(wm, n)[:potential_loss_pipe_n] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:potential_loss_pipe_p] = Dict{Int, JuMP.ConstraintRef}()

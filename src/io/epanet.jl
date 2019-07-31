@@ -17,8 +17,8 @@ function _add_link_ids!(data::Dict{String, Any})
         for link_type in link_types
             for (link_name, link) in data[link_type]
                 link["id"] = parse(Int64, link_name)
-                link["f_id"] = data["node_map"][pop!(link, "start_node_name")]
-                link["t_id"] = data["node_map"][pop!(link, "end_node_name")]
+                link["node_fr"] = data["node_map"][pop!(link, "start_node_name")]
+                link["node_to"] = data["node_map"][pop!(link, "end_node_name")]
                 data["link_map"][link_name] = link["id"]
 
                 # Add default status for pump if not present (Open).
@@ -31,12 +31,12 @@ function _add_link_ids!(data::Dict{String, Any})
         link_id::Int64 = 1
 
         for link_type in link_types
-            start_id = link_id
+            starnode_to = link_id
 
             for (link_name, link) in data[link_type]
                 link["id"] = link_id
-                link["f_id"] = data["node_map"][pop!(link, "start_node_name")]
-                link["t_id"] = data["node_map"][pop!(link, "end_node_name")]
+                link["node_fr"] = data["node_map"][pop!(link, "start_node_name")]
+                link["node_to"] = data["node_map"][pop!(link, "end_node_name")]
                 data["link_map"][link_name] = link["id"]
                 link_id += 1
 
@@ -46,7 +46,7 @@ function _add_link_ids!(data::Dict{String, Any})
                 end
             end
 
-            new_ids = start_id:(start_id+length(keys(data[link_type]))-1)
+            new_ids = starnode_to:(starnode_to+length(keys(data[link_type]))-1)
             new_keys = String[string(x) for x in new_ids]
             data[link_type] = DataStructures.OrderedDict{String,Any}(new_keys .=> values(data[link_type]))
         end
@@ -143,7 +143,7 @@ function _add_node_ids!(data::Dict{String, Any})
         node_id::Int64 = 1
 
         for node_type in node_types
-            start_id = node_id
+            starnode_to = node_id
 
             for (node_name, node) in data[node_type]
                 node["id"] = node_id
@@ -151,7 +151,7 @@ function _add_node_ids!(data::Dict{String, Any})
                 node_id += 1
             end
 
-            new_ids = start_id:(start_id+length(keys(data[node_type]))-1)
+            new_ids = starnode_to:(starnode_to+length(keys(data[node_type]))-1)
             new_keys = String[string(x) for x in new_ids]
             data[node_type] = DataStructures.OrderedDict{String,Any}(new_keys .=> values(data[node_type]))
         end

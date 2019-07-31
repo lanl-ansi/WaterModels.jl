@@ -115,7 +115,7 @@ function constraint_potential_loss_pipe(wm::GenericWaterModel, a::Int; nw::Int=w
     pipe = ref(wm, nw, :pipes, a)
     r_min = minimum(ref(wm, nw, :resistance, a))
 
-    constraint_potential_loss_pipe(wm, nw, a, alpha, pipe["f_id"], pipe["t_id"], pipe["length"], r_min)
+    constraint_potential_loss_pipe(wm, nw, a, alpha, pipe["node_fr"], pipe["node_to"], pipe["length"], r_min)
     constraint_head_difference(wm, a; nw=nw, kwargs...)
     constraint_flow_direction_selection(wm, a; nw=nw, kwargs...)
     constraint_potential_loss_ub_pipe(wm, a; nw=nw, kwargs...)
@@ -128,23 +128,23 @@ function constraint_head_difference(wm::GenericWaterModel, a::Int; nw::Int=wm.cn
         con(wm, nw)[:head_difference_3] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    f_id = ref(wm, nw, :links, a)["f_id"]
+    node_fr = ref(wm, nw, :links, a)["node_fr"]
 
     head_fr = nothing
-    for rid in ref(wm, nw, :node_reservoirs, f_id)
+    for rid in ref(wm, nw, :node_reservoirs, node_fr)
         #TODO this is a good place to check these are consistent
         head_fr = ref(wm, nw, :reservoirs, rid)["head"]
     end
 
-    t_id = ref(wm, nw, :links, a)["t_id"]
+    node_to = ref(wm, nw, :links, a)["node_to"]
 
     head_to = nothing
-    for rid in ref(wm, nw, :node_reservoirs, t_id)
+    for rid in ref(wm, nw, :node_reservoirs, node_to)
         #TODO this is a good place to check these are consistent
         head_to = ref(wm, nw, :reservoirs, rid)["head"]
     end
 
-    constraint_head_difference(wm, nw, a, f_id, t_id, head_fr, head_to)
+    constraint_head_difference(wm, nw, a, node_fr, node_to, head_fr, head_to)
 end
 
 function constraint_flow_direction_selection(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
@@ -176,7 +176,7 @@ function constraint_potential_loss_pipe_ne(wm::GenericWaterModel, a::Int; nw::In
     pipe = ref(wm, nw, :pipes, a)
     pipe_resistances = ref(wm, nw, :resistance, a)
 
-    constraint_potential_loss_pipe_ne(wm, nw, a, alpha, pipe["f_id"], pipe["t_id"], pipe["length"], pipe_resistances)
+    constraint_potential_loss_pipe_ne(wm, nw, a, alpha, pipe["node_fr"], pipe["node_to"], pipe["length"], pipe_resistances)
 
     constraint_head_difference(wm, a; nw=nw, kwargs...)
     constraint_flow_direction_selection_ne(wm, a; nw=nw, kwargs...)
@@ -221,10 +221,10 @@ function constraint_check_valve(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
         con(wm, nw)[:check_valve_4] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    f_id = ref(wm, nw, :links, a)["f_id"]
-    t_id = ref(wm, nw, :links, a)["t_id"]
+    node_fr = ref(wm, nw, :links, a)["node_fr"]
+    node_to = ref(wm, nw, :links, a)["node_to"]
 
-    constraint_check_valve(wm, nw, a, f_id, t_id)
+    constraint_check_valve(wm, nw, a, node_fr, node_to)
 end
 
 function constraint_potential_loss_check_valve(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
@@ -232,22 +232,22 @@ function constraint_potential_loss_check_valve(wm::GenericWaterModel, a::Int; nw
         con(wm, nw)[:potential_loss] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    f_id = ref(wm, nw, :links, a)["f_id"]
-    t_id = ref(wm, nw, :links, a)["t_id"]
+    node_fr = ref(wm, nw, :links, a)["node_fr"]
+    node_to = ref(wm, nw, :links, a)["node_to"]
 
     len = ref(wm, nw, :pipes, a)["length"]
     r_min = minimum(ref(wm, nw, :resistance, a))
 
-    constraint_potential_loss_check_valve(wm, nw, a, f_id, t_id, len, r_min)
+    constraint_potential_loss_check_valve(wm, nw, a, node_fr, node_to, len, r_min)
 end
 
 
 ### Pump Constraints ###
 function constraint_potential_loss_pump(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
-    f_id = ref(wm, nw, :pumps, a)["f_id"]
-    t_id = ref(wm, nw, :pumps, a)["t_id"]
+    node_fr = ref(wm, nw, :pumps, a)["node_fr"]
+    node_to = ref(wm, nw, :pumps, a)["node_to"]
 
-    constraint_potential_loss_pump(wm, nw, a, f_id, t_id)
+    constraint_potential_loss_pump(wm, nw, a, node_fr, node_to)
     constraint_head_gain_pump_quadratic_fit(wm, a; nw=nw, kwargs...)
 end
 

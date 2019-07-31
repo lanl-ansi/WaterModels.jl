@@ -65,8 +65,8 @@ function calc_head_difference_bounds(wm::GenericWaterModel, n::Int = wm.cnw)
 
     # Compute the head difference bounds.
     for (a, link) in links
-        head_diff_min[a] = head_lbs[link["f_id"]] - head_ubs[link["t_id"]]
-        head_diff_max[a] = head_ubs[link["f_id"]] - head_lbs[link["t_id"]]
+        head_diff_min[a] = head_lbs[link["node_fr"]] - head_ubs[link["node_to"]]
+        head_diff_max[a] = head_ubs[link["node_fr"]] - head_lbs[link["node_to"]]
     end
 
     # Return the head difference bound dictionaries.

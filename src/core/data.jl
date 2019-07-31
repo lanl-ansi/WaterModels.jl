@@ -175,13 +175,13 @@ end
 
 function is_out_node(i::Int)
     return function (link::Pair{Int, Any})
-        return link.second["f_id"] == i
+        return link.second["node_fr"] == i
     end
 end
 
 function is_in_node(i::Int)
     return function (link::Pair{Int, Any})
-        return link.second["t_id"] == i
+        return link.second["node_to"] == i
     end
 end
 

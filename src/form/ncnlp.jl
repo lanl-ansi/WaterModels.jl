@@ -22,13 +22,13 @@ end
 function constraint_potential_loss_ub_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, len, pipe_resistances) where T <: AbstractNCNLPForm
 end
 
-function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, f_id, t_id, len, pipe_resistances) where T <: AbstractNCNLPForm
+function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, node_fr, node_to, len, pipe_resistances) where T <: AbstractNCNLPForm
     if !haskey(con(wm, n), :potential_loss_ne)
         con(wm, n)[:potential_loss_ne] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    h_i = var(wm, n, :h, f_id)
-    h_j = var(wm, n, :h, t_id)
+    h_i = var(wm, n, :h, node_fr)
+    h_j = var(wm, n, :h, node_to)
     q_ne = var(wm, n, :q_ne, a)
 
     c = JuMP.@NLconstraint(wm.model, sum(r * head_loss(q_ne[r_id]) for (r_id, r)
@@ -38,16 +38,16 @@ function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::
 end
 
 
-function constraint_head_difference(wm::GenericWaterModel{T}, n::Int, a::Int, f_id, t_id, head_fr, head_to) where T <: AbstractNCNLPForm
+function constraint_head_difference(wm::GenericWaterModel{T}, n::Int, a::Int, node_fr, node_to, head_fr, head_to) where T <: AbstractNCNLPForm
 end
 
 function constraint_potential_loss_ub_pipe(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, len, r_max) where T <: AbstractNCNLPForm
 end
 
-function constraint_potential_loss_check_valve(wm::GenericWaterModel{T}, n::Int, a::Int, f_id::Int, t_id::Int, len::Float64, r::Float64) where T <: AbstractNCNLPForm
+function constraint_potential_loss_check_valve(wm::GenericWaterModel{T}, n::Int, a::Int, node_fr::Int, node_to::Int, len::Float64, r::Float64) where T <: AbstractNCNLPForm
     q = var(wm, n, :q, a)
-    h_i = var(wm, n, :h, f_id)
-    h_j = var(wm, n, :h, t_id)
+    h_i = var(wm, n, :h, node_fr)
+    h_j = var(wm, n, :h, node_to)
     x_cv = var(wm, n, :x_cv, a)
 
     # TODO: Possible formulation below (expand out...)?
@@ -57,20 +57,20 @@ function constraint_potential_loss_check_valve(wm::GenericWaterModel{T}, n::Int,
     c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(q) - inv(len) * (h_i - h_j) >= -1.0e6 * (1 - x_cv))
 end
 
-function constraint_potential_loss_pipe(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, f_id, t_id, len, r_min) where T <: AbstractNCNLPForm
+function constraint_potential_loss_pipe(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, node_fr, node_to, len, r_min) where T <: AbstractNCNLPForm
     if !haskey(con(wm, n), :potential_loss)
         con(wm, n)[:potential_loss] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    h_i = var(wm, n, :h, f_id)
-    h_j = var(wm, n, :h, t_id)
+    h_i = var(wm, n, :h, node_fr)
+    h_j = var(wm, n, :h, node_to)
     q = var(wm, n, :q, a)
 
     c = JuMP.@NLconstraint(wm.model, r_min * head_loss(q) - inv(len) * (h_i - h_j) == 0.0)
     con(wm, n, :potential_loss)[a] = c
 end
 
-function constraint_potential_loss_pump(wm::GenericWaterModel{T}, n::Int, a::Int, f_id::Int, t_id::Int) where T <: AbstractNCNLPForm
+function constraint_potential_loss_pump(wm::GenericWaterModel{T}, n::Int, a::Int, node_fr::Int, node_to::Int) where T <: AbstractNCNLPForm
     if !haskey(con(wm, n), :potential_loss_1)
         con(wm, n)[:potential_loss_1] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:potential_loss_2] = Dict{Int, JuMP.ConstraintRef}()
@@ -80,8 +80,8 @@ function constraint_potential_loss_pump(wm::GenericWaterModel{T}, n::Int, a::Int
         con(wm, n)[:potential_loss_6] = Dict{Int, JuMP.ConstraintRef}()
     end
 
-    h_i = var(wm, n, :h, f_id)
-    h_j = var(wm, n, :h, t_id)
+    h_i = var(wm, n, :h, node_fr)
+    h_j = var(wm, n, :h, node_to)
 
     q = var(wm, n, :q, a)
     g = var(wm, n, :g, a)
