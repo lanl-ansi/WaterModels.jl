@@ -460,8 +460,6 @@ function _clean_nothing!(data)
             delete!(data, key)
         end
     end
-
-    return data
 end
 
 """
