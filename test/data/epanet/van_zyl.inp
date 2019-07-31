@@ -1,0 +1,164 @@
+[TITLE]
+van Zyl (2004) network, modified by Byron Tasseff
+
+[JUNCTIONS]
+;ID    Elev   Demand  Pattern
+ n1    10.0   0.0              ;
+ n2    10.0   0.0              ;
+ n3    75.0   0.0              ;
+ n6    30.0   100.0   pattern24;
+ n5    30.0   50.0    pattern24;
+ n12   100.0  0.0              ;
+ n13   100.0  0.0              ;
+ n10   100.0  0.0              ;
+ n11   100.0  0.0              ;
+ n361  100.0  0.0              ;
+ n365  100.0  0.0              ;
+ n362  100.0  0.0              ;
+ n364  100.0  0.0              ;
+
+[RESERVOIRS]
+;ID  Head  Pattern
+ r1  20.0         ;
+
+[TANKS]
+;ID  Elevation  InitLevel  MinLevel  MaxLevel  Diameter  MinVol  VolCurve
+ t5  80.0       4.5        0.0       5.0       25.0      0.0             ;
+ t6  85.0       9.5        0.0       10.0      20.0      0.0             ;
+
+[PIPES]
+;ID    Node1  Node2  Length  Diameter  Roughness  MinorLoss  Status
+ p1    r1     n1     1.0     1000.0    100.0      0.0        Open;
+ p2    n2     n3     2600.0  450.0     100.0      0.0        Open;
+ p3    n3     t5     1000.0  350.0     100.0      0.0        Open;
+ p4    n365   t6     2000.0  350.0     100.0      0.0        Open;
+ p6    t6     n6     1100.0  300.0     100.0      0.0        Open;
+ p5    t5     n5     500.0   300.0     100.0      0.0        Open;
+ p7    n6     n5     1.0     200.0     100.0      0.0        Open;
+ p12   n1     n12    1.0     1000.0    100.0      0.0        Open;
+ p10   n1     n10    1.0     1000.0    100.0      0.0        Open;
+ p11   n11    n2     1.0     1000.0    100.0      0.0        Open;
+ p13   n13    n2     1.0     1000.0    100.0      0.0        Open;
+ p361  n361   n362   1.0     1000.0    100.0      0.0        Open;
+ p364  n364   n365   1.0     1000.0    100.0      0.0        Open;
+ p18   n3     n361   1.0     1000.0    100.0      0.0        Open;
+ p19   n361   n365   1.0     1000.0    100.0      0.0        CV;
+
+[PUMPS]
+;ID    Node1  Node2  Parameters
+ pmp1  n10    n11    HEAD 1;
+ pmp2  n12    n13    HEAD 1;
+ pmp6  n362   n364   HEAD 6;
+
+[VALVES]
+;ID   Node1  Node2  Diameter  Type  Setting  MinorLoss   
+
+[TAGS]
+
+[DEMANDS]
+;Junction        	Demand      	Pattern         	Category
+
+[STATUS]
+;ID   Status/Setting
+
+[PATTERNS]
+;ID         Multipliers
+ pattern24   0.6200 0.6200 0.6700 0.7600 0.9100 1.1000
+ pattern24   1.4800 1.7100 1.4800 1.0200 0.7300 0.5500
+ pattern24   0.4900 0.5500 0.7300 1.0200 1.3600 1.5300
+ pattern24   1.5300 1.3600 1.1000 0.9100 0.7600 0.6700
+ pumptariff  0.0244 0.0244 0.0244 0.0244 0.0244 0.0244
+ pumptariff  0.0244 0.1194 0.1194 0.1194 0.1194 0.1194
+ pumptariff  0.1194 0.1194 0.1194 0.1194 0.1194 0.1194
+ pumptariff  0.1194 0.1194 0.1194 0.1194 0.1194 0.1194
+
+[CURVES]
+;ID    X-Value  Y-Value
+ 1     0.0      100.0
+ 1     120.0    90.0
+ 1     150.0    83.0
+ 6     0.0      120.0
+ 6     90.0     75.0
+ 6     150.0    0.0
+ leff  50.0     78.0
+ leff  107.0    80.0
+ leff  151.0    68.0
+ leff  200.0    60.0
+
+[CONTROLS]
+
+[RULES]
+
+[ENERGY]
+ Global Efficiency  	    85
+ Global Price       	    0.0
+ Demand Charge      	    0.0
+ Pump  pmp1  Efficiency  leff
+ Pump  pmp1  Price       1
+ Pump  pmp1  Pattern   	 pumptariff
+ Pump  pmp2  Efficiency  leff
+ Pump  pmp2  Price       1
+ Pump  pmp2  Pattern   	 pumptariff
+ Pump  pmp6  Price       1
+ Pump  pmp6  Pattern   	 pumptariff
+
+[EMITTERS]
+;Junction  Coefficient
+
+[QUALITY]
+;Node  InitQual
+
+[SOURCES]
+;Node  Type  Quality  Pattern
+
+[REACTIONS]
+;Type  Pipe/Tank  Coefficient
+
+[REACTIONS]
+
+[MIXING]
+;Tank  Model
+
+[TIMES]
+ Duration           	24:00
+ Hydraulic Timestep 	1:00
+ Quality Timestep   	0:05
+ Pattern Timestep   	1:00
+ Pattern Start      	0:00
+ Report Timestep    	1:00
+ Report Start       	0:00
+ Start ClockTime    	12 am
+ Statistic          	NONE
+
+[REPORT]
+ Status   Yes
+ Summary  No
+ Page     0
+
+[OPTIONS]
+ Units              	LPS
+ Headloss           	H-W
+ Specific Gravity   	1.0
+ Viscosity          	1.0
+ Trials             	40
+ Accuracy           	0.00001
+ Unbalanced         	Continue 10
+ Pattern             1
+ Demand Multiplier  	1.0
+ Emitter Exponent   	0.5
+ Quality            	None mg/L
+ Diffusivity        	1.0
+ Tolerance          	0.01
+
+[COORDINATES]
+;Node   X-Coord  Y-Coord
+
+[VERTICES]
+;Link   X-Coord  Y-Coord
+
+[LABELS]
+;X-Coord   Y-Coord  Label & Anchor Node
+
+[BACKDROP]
+
+[END]
