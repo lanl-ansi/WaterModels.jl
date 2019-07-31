@@ -17,8 +17,8 @@ function _add_link_ids!(data::Dict{String, Any})
         for link_type in link_types
             for (link_name, link) in data[link_type]
                 link["id"] = parse(Int64, link_name)
-                link["f_id"] = _get_node_id_by_name(data, link["start_node_name"])
-                link["t_id"] = _get_node_id_by_name(data, link["end_node_name"])
+                link["f_id"] = _get_node_id_by_name(data, pop!(link, "start_node_name"))
+                link["t_id"] = _get_node_id_by_name(data, pop!(link, "end_node_name"))
 
                 # Add default status for pump if not present (Open).
                 if link_type == "pumps" && link["initial_status"] == nothing
@@ -34,8 +34,8 @@ function _add_link_ids!(data::Dict{String, Any})
 
             for (link_name, link) in data[link_type]
                 link["id"] = link_id
-                link["f_id"] = _get_node_id_by_name(data, link["start_node_name"])
-                link["t_id"] = _get_node_id_by_name(data, link["end_node_name"])
+                link["f_id"] = _get_node_id_by_name(data, pop!(link, "start_node_name"))
+                link["t_id"] = _get_node_id_by_name(data, pop!(link, "end_node_name"))
                 link_id += 1
 
                 # Add default status for pump if not present (Open).
