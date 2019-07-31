@@ -47,7 +47,7 @@ function constraint_link_volume(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
     end
 
     tank = ref(wm, nw, :tanks, i)
-    elevation = ref(wm, nw, :nodes, tank["tank_node"])["elevation"]
+    elevation = ref(wm, nw, :nodes, tank["tanks_node"])["elevation"]
     surface_area = 0.25 * pi * tank["diameter"]^2
     constraint_link_volume(wm, nw, i, elevation, surface_area)
 end

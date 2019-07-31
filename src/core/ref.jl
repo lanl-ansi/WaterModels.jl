@@ -36,7 +36,7 @@ function calc_head_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
 
     for (i, reservoir) in ref(wm, n, :reservoirs)
         # Head values at reservoirs are fixed.
-        node_id = reservoir["reservoir_node"]
+        node_id = reservoir["reservoirs_node"]
         # TODO: Elevation should be a node attribute only.
         node = ref(wm, n, :reservoirs, node_id)
         head_min[node_id] = node["elevation"]
@@ -44,7 +44,7 @@ function calc_head_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
     end
 
     for (i, tank) in ref(wm, n, :tanks)
-        node_id = tank["tank_node"]
+        node_id = tank["tanks_node"]
         node = ref(wm, n, :nodes, node_id)
         head_min[node_id] = node["elevation"] + tank["min_level"]
         head_max[node_id] = node["elevation"] + tank["max_level"]

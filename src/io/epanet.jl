@@ -17,8 +17,9 @@ function _add_link_ids!(data::Dict{String, Any})
         for link_type in link_types
             for (link_name, link) in data[link_type]
                 link["id"] = parse(Int64, link_name)
-                link["f_id"] = _get_node_id_by_name(data, pop!(link, "start_node_name"))
-                link["t_id"] = _get_node_id_by_name(data, pop!(link, "end_node_name"))
+                link["f_id"] = data["node_map"][pop!(link, "start_node_name")]
+                link["t_id"] = data["node_map"][pop!(link, "end_node_name")]
+                data["link_map"][link_name] = link["id"]
 
                 # Add default status for pump if not present (Open).
                 if link_type == "pumps" && link["initial_status"] == nothing
@@ -34,8 +35,9 @@ function _add_link_ids!(data::Dict{String, Any})
 
             for (link_name, link) in data[link_type]
                 link["id"] = link_id
-                link["f_id"] = _get_node_id_by_name(data, pop!(link, "start_node_name"))
-                link["t_id"] = _get_node_id_by_name(data, pop!(link, "end_node_name"))
+                link["f_id"] = data["node_map"][pop!(link, "start_node_name")]
+                link["t_id"] = data["node_map"][pop!(link, "end_node_name")]
+                data["link_map"][link_name] = link["id"]
                 link_id += 1
 
                 # Add default status for pump if not present (Open).
@@ -50,14 +52,12 @@ function _add_link_ids!(data::Dict{String, Any})
         end
     end
 
-
     for link_type in ["pumps"]
         # Update the link IDs in time series.
         ts_link_ids = Array{Int64, 1}()
 
         for (link_name, link) in data["time_series"][link_type]
-            id = _get_link_id_by_name(data, link_name)
-            ts_link_ids = vcat(ts_link_ids, id)
+            ts_link_ids = vcat(ts_link_ids, data["link_map"][link_name])
         end
 
         new_keys = String[string(x) for x in ts_link_ids]
@@ -129,18 +129,14 @@ end
 
 function _add_node_ids!(data::Dict{String, Any})
     node_types = ["junctions", "reservoirs", "tanks"]
-    node_id_field = Dict(
-        "junctions" => "junction_node",
-        "reservoirs" => "reservoir_node",
-        "tanks" => "tank_node",
-    )
+    node_id_field = Dict(t => t * "_node" for t in node_types)
     node_names = vcat([collect(keys(data[t])) for t in node_types]...)
-    all_int = all([tryparse(Int64, x) != nothing for x in node_names])
 
-    if all_int
+    if all([tryparse(Int64, x) != nothing for x in node_names])
         for node_type in node_types
             for (node_name, node) in data[node_type]
                 node["id"] = parse(Int64, node_name)
+                data["node_map"][node_name] = node["id"]
             end
         end
     else
@@ -151,6 +147,7 @@ function _add_node_ids!(data::Dict{String, Any})
 
             for (node_name, node) in data[node_type]
                 node["id"] = node_id
+                data["node_map"][node_name] = node["id"]
                 node_id += 1
             end
 
@@ -161,40 +158,47 @@ function _add_node_ids!(data::Dict{String, Any})
     end
 
     nodes = Dict{String, Any}()
+
     for node_type in node_types
         nid_field = node_id_field[node_type]
-        for (i,comp) in data[node_type]
+
+        for (i, comp) in data[node_type]
             @assert i == "$(comp["id"])"
             comp[nid_field] = comp["id"]
-            node = Dict{String, Any}(
-                "id" => comp["id"],
-                "source_id" => [node_type, comp["source_id"]]
-            )
+            node = Dict{String, Any}("id" => comp["id"],
+                "source_id" => [node_type, comp["source_id"]])
+
             if haskey(comp, "name")
                 node["name"] = comp["name"]
             end
+
             if haskey(comp, "elevation")
                 #node["elevation"] = pop!(comp, "elevation")
                 node["elevation"] = comp["elevation"]
             end
+
             if haskey(comp, "minimumHead")
                 node["minimumHead"] = pop!(comp, "minimumHead")
             end
+
             if haskey(comp, "maximumHead")
                 node["maximumHead"] = pop!(comp, "maximumHead")
             end
+
             if haskey(comp, "head")
                 node["elevation"] = comp["head"]
             end
+
             @assert !haskey(nodes, i)
             nodes[i] = node
         end
     end
+
     data["nodes"] = nodes
 
-    for (i,junction) in data["junctions"]
-        if isapprox(junction["demand"], 0.0)
-            Memento.info(_LOGGER, "dropping junction $(i) due to zero demand")
+    for (i, junction) in data["junctions"]
+        if isapprox(junction["demand"], 0.0, atol=1.0e-7)
+            Memento.info(_LOGGER, "Dropping junction $(i) due to zero demand.")
             delete!(data["junctions"], i)
         end
     end
@@ -207,8 +211,7 @@ function _add_node_ids!(data::Dict{String, Any})
         ts_node_ids = Array{Int64, 1}()
 
         for (node_name, node) in data["time_series"][node_type]
-            id = _get_node_id_by_name(data, node_name)
-            ts_node_ids = vcat(ts_node_ids, id)
+            ts_node_ids = vcat(ts_node_ids, data["node_map"][node_name])
         end
 
         new_keys = String[string(x) for x in ts_node_ids]
@@ -256,6 +259,10 @@ function _initialize_data()
     data["flow_units"] = nothing
     data["time_series"] = Dict{String, Any}()
 
+    # Map EPANET indices to internal indices.
+    data["node_map"] = Dict{String, Int}()
+    data["link_map"] = Dict{String, Int}()
+
     return data
 end
 
@@ -283,18 +290,6 @@ function _get_link_by_name(data::Dict{String, Any}, name::AbstractString)
     end
 end
 
-function _get_link_id_by_name(data::Dict{String, Any}, name::AbstractString)
-    link_types = ["pumps", "pipes", "valves"]
-
-    for link_type in link_types
-        for (link_id, link) in data[link_type]
-            if link["name"] == name
-                return link["id"]
-            end
-        end
-    end
-end
-
 function _get_node_by_name(data::Dict{String, Any}, name::AbstractString)
     node_types = ["junctions", "reservoirs", "tanks"]
 
@@ -303,14 +298,6 @@ function _get_node_by_name(data::Dict{String, Any}, name::AbstractString)
             if node["name"] == name
                 return node
             end
-        end
-    end
-end
-
-function _get_node_id_by_name(data::Dict{String, Any}, name::AbstractString)
-    for (node_id, node) in data["nodes"]
-        if node["name"] == name
-            return node["id"]
         end
     end
 end
@@ -577,6 +564,8 @@ function parse_epanet(filename::String)
 
     # Delete the data that has now been properly parsed.
     delete!(data, "sections")
+    delete!(data, "node_map")
+    delete!(data, "link_map")
 
     # Add other data required by InfrastructureModels.
     data["per_unit"] = false

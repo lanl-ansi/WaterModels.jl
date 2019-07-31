@@ -280,19 +280,19 @@ function build_ref(data::Dict{String,<:Any})
         #ref[:nodes] = merge(ref[:junctions], ref[:tanks], ref[:reservoirs])
         node_junctions = Dict((i, Int[]) for (i,node) in ref[:nodes])
         for (i, junction) in ref[:junctions]
-            push!(node_junctions[junction["junction_node"]], i)
+            push!(node_junctions[junction["junctions_node"]], i)
         end
         ref[:node_junctions] = node_junctions
 
         node_tanks = Dict((i, Int[]) for (i,node) in ref[:nodes])
         for (i,tank) in ref[:tanks]
-            push!(node_tanks[tank["tank_node"]], i)
+            push!(node_tanks[tank["tanks_node"]], i)
         end
         ref[:node_tanks] = node_tanks
 
         node_reservoirs = Dict((i, Int[]) for (i,node) in ref[:nodes])
         for (i,reservoir) in ref[:reservoirs]
-            push!(node_reservoirs[reservoir["reservoir_node"]], i)
+            push!(node_reservoirs[reservoir["reservoirs_node"]], i)
         end
         ref[:node_reservoirs] = node_reservoirs
 
