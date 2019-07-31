@@ -155,7 +155,7 @@ function objective_owf(wm::GenericWaterModel{T}) where T <: StandardNCNLPForm
                 q = var(wm, n)[:q][a]
 
                 energy_price = pump["energy_price"]
-                pump_cost = JuMP.@NLexpression(wm.model, constant * energy_price * g * abs(q))
+                pump_cost = JuMP.@NLexpression(wm.model, constant * energy_price * g * q)
                 con = JuMP.@NLconstraint(wm.model, pump_cost == costs[a])
             else
                 Memento.error(_LOGGER, "No cost given for pump \"$(pump["name"])\"")

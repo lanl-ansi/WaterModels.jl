@@ -96,31 +96,26 @@ function calc_flow_rate_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
             lb[a][r_id] = -100.0
             ub[a][r_id] = 100.0
 
-            if uppercase(pipe["status"]) == "CV"
-                lb[a][r_id] = 0.0
-            end
-
+            # TODO: These seem to be valid bounds when tanks and pumps aren't
+            # present, but it should be fixed to include these, too.
             #lb[a][r_id] = sign(dh_lb[a]) * (abs(dh_lb[a]) / (L * r))^(inv(alpha))
             #ub[a][r_id] = sign(dh_ub[a]) * (abs(dh_ub[a]) / (L * r))^(inv(alpha))
-
-            ## TODO: These seem to be valid bounds when tanks and pumps aren't
-            ## present, but it should be fixed to include these, too.
             #lb[a][r_id] = max(lb[a][r_id], -sum_demand)
             #ub[a][r_id] = min(ub[a][r_id], sum_demand)
 
-            #if pipe["flow_direction"] == POSITIVE
-            #    lb[a][r_id] = max(lb[a][r_id], 0.0)
-            #elseif pipe["flow_direction"] == NEGATIVE
-            #    ub[a][r_id] = min(ub[a][r_id], 0.0)
-            #end
+            if pipe["flow_direction"] == POSITIVE || has_check_valve(pipe)
+                lb[a][r_id] = max(lb[a][r_id], 0.0)
+            elseif pipe["flow_direction"] == NEGATIVE
+                ub[a][r_id] = min(ub[a][r_id], 0.0)
+            end
 
-            #if haskey(pipe, "diameters") && haskey(pipe, "maximumVelocity")
-            #    D_a = pipe["diameters"][r_id]["diameter"]
-            #    v_a = pipe["maximumVelocity"]
-            #    rate_bound = 0.25 * pi * v_a * D_a * D_a
-            #    lb[a][r_id] = max(lb[a][r_id], -rate_bound)
-            #    ub[a][r_id] = min(ub[a][r_id], rate_bound)
-            #end
+            if haskey(pipe, "diameters") && haskey(pipe, "maximumVelocity")
+                D_a = pipe["diameters"][r_id]["diameter"]
+                v_a = pipe["maximumVelocity"]
+                rate_bound = 0.25 * pi * v_a * D_a * D_a
+                lb[a][r_id] = max(lb[a][r_id], -rate_bound)
+                ub[a][r_id] = min(ub[a][r_id], rate_bound)
+            end
         end
     end
 
