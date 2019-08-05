@@ -264,18 +264,21 @@ function build_ref(data::Dict{String, <:Any})
         #end
         #ref[:node_arcs] = node_arcs
 
-        node_arcs_fr = Dict((i, Tuple{Int,Int,Int}[]) for (i,node) in ref[:nodes])
-        for (l,i,j) in ref[:arcs_fr]
-            push!(node_arcs_fr[i], (l,i,j))
+        node_arcs_fr = Dict((i, Tuple{Int, Int, Int}[]) for (i, node) in ref[:nodes])
+
+        for (l, i, j) in ref[:arcs_fr]
+            push!(node_arcs_fr[i], (l, i, j))
         end
+
         ref[:node_arcs_fr] = node_arcs_fr
 
-        node_arcs_to = Dict((i, Tuple{Int,Int,Int}[]) for (i,node) in ref[:nodes])
-        for (l,i,j) in ref[:arcs_fr]
-            push!(node_arcs_to[j], (l,i,j))
-        end
-        ref[:node_arcs_to] = node_arcs_to
+        node_arcs_to = Dict((i, Tuple{Int, Int, Int}[]) for (i, node) in ref[:nodes])
 
+        for (l, i, j) in ref[:arcs_fr]
+            push!(node_arcs_to[j], (l, i, j))
+        end
+
+        ref[:node_arcs_to] = node_arcs_to
 
         #ref[:nodes] = merge(ref[:junctions], ref[:tanks], ref[:reservoirs])
         node_junctions = Dict((i, Int[]) for (i,node) in ref[:nodes])

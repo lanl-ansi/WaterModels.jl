@@ -68,11 +68,11 @@ function add_pump_status_setpoint(sol, wm::GenericWaterModel)
 end
 
 function add_node_head_setpoint(sol, wm::GenericWaterModel)
-    if :h in keys(var(wm))
-        add_setpoint(sol, wm, "nodes", "h", :h)
-    else
-        # TODO: Add something here to compute heads from a flow rate solution.
-    end
+    add_setpoint(sol, wm, "nodes", "h", :h)
+end
+
+function add_node_head_setpoint(sol, wm::GenericWaterModel{T}) where T <: AbstractCNLPForm
+    add_dual_setpoint(sol, wm, "nodes", "h", :flow_conservation)
 end
 
 function add_reservoir_setpoint(sol, wm::GenericWaterModel)
@@ -144,6 +144,38 @@ function add_setpoint(sol::Dict{String, <:Any}, wm::GenericWaterModel,
         try
             variable = extract_var(var(wm, wm.cnw, variable_symbol), idx, item)
             sol_item[param_name] = scale(JuMP.value(variable), item)
+        catch
+        end
+
+        sol_item[param_name] = sol_item[param_name][1]
+    end
+end
+
+"adds dual values based on JuMP constraints"
+function add_dual_setpoint(sol::Dict{String, <:Any}, wm::GenericWaterModel,
+                           dict_name::String, param_name::String,
+                           constraint_symbol::Symbol; index_name::String="index",
+                           default_value=(item) -> NaN, scale=(x, item) -> x,
+                           extract_con=(con, idx, item) -> con[idx],
+                           sol_dict=get(sol, dict_name, Dict{String, Any}()))
+    if InfrastructureModels.ismultinetwork(wm.data)
+        data_dict = wm.data["nw"]["$(wm.cnw)"][dict_name]
+    else
+        data_dict = wm.data[dict_name]
+    end
+
+    if length(data_dict) > 0
+        sol[dict_name] = sol_dict
+    end
+
+    for (i, item) in data_dict
+        idx = item[index_name]
+        sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
+        sol_item[param_name] = default_value(item)
+
+        try
+            constraint = extract_con(con(wm, wm.cnw, constraint_symbol), idx, item)
+            sol_item[param_name] = -scale(JuMP.dual(constraint), item)
         catch
         end
 

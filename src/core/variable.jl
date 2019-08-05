@@ -39,6 +39,11 @@ function variable_undirected_flow(wm::GenericWaterModel, n::Int=wm.cnw; bounded:
     end
 end
 
+function variable_undirected_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractDirectedFlowFormulation
+    var(wm, n)[:q] = JuMP.@expression(wm.model, [a in ids(wm, n, :links)],
+                                      var(wm, n, :qp, a) - var(wm, n, :qn, a))
+end
+
 function variable_undirected_flow_ne(wm::GenericWaterModel, n::Int=wm.cnw; bounded::Bool=true)
     # Get indices for all network arcs.
     arcs = sort(collect(ids(wm, n, :links)))

@@ -9,33 +9,27 @@ function constraint_flow_conservation(wm::GenericWaterModel{T}, n::Int, i::Int, 
 
     # Add the flow conservation constraint.
     con(wm, n, :flow_conservation)[i] = JuMP.@constraint(wm.model,
-        sum(-q[l] for (l,f,t) in node_arcs_fr) +
-        sum(q[l] for (l,f,t) in node_arcs_to)
-        ==
+        sum(-q[l] for (l, f, t) in node_arcs_fr) +
+        sum( q[l] for (l, f, t) in node_arcs_to) ==
         sum(-q_r[rid] for rid in node_reservoirs) +
         sum(-q_t[tid] for tid in node_tanks) +
-        sum(demand for (jid, demand) in node_demands)
-    )
+        sum(demand for (jid, demand) in node_demands))
 end
 
-
 function constraint_flow_conservation(wm::GenericWaterModel{T}, n::Int, i::Int, node_arcs_fr, node_arcs_to, node_reservoirs, node_tanks, node_demands) where T <: AbstractDirectedFlowFormulation
-    qn = var(wm, n, :qn)
-    qp = var(wm, n, :qp)
+    q_p = var(wm, n, :qp)
+    q_n = var(wm, n, :qn)
     q_r = var(wm, n, :q_r)
     q_t = var(wm, n, :q_t)
 
     # Add the flow conservation constraint.
     con(wm, n, :flow_conservation)[i] = JuMP.@constraint(wm.model,
-        sum(  qp[l] - qn[l] for (l,f,t) in node_arcs_to) +
-        sum( -qp[l] + qn[l] for (l,f,t) in node_arcs_fr)
-        ==
+        sum( q_p[l] - q_n[l] for (l, f, t) in node_arcs_to) +
+        sum(-q_p[l] + q_n[l] for (l, f, t) in node_arcs_fr) ==
         sum(-q_r[rid] for rid in node_reservoirs) +
         sum(-q_t[tid] for tid in node_tanks) +
-        sum(demand for (jid, demand) in node_demands)
-    )
+        sum(demand for (jid, demand) in node_demands))
 end
-
 
 function constraint_resistance_selection_ne(wm::GenericWaterModel{T}, n::Int, a::Int, pipe_resistances) where T <: AbstractDirectedFlowFormulation
     if !haskey(con(wm, n), :resistance_selection_sum)
