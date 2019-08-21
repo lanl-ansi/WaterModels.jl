@@ -47,7 +47,7 @@
 
         junction_ids = keys(network_data["time_series"]["junctions"])
         for step_index in 1:ts_length
-            WaterModels.load_timepoint!(network_data, step_index)
+            InfrastructureModels.load_timepoint!(network_data, step_index)
             ts_demand = sum(network_data["time_series"]["junctions"][jid]["demand"][step_index] for jid in junction_ids)
             demand = sum(network_data["junctions"][jid]["demand"] for jid in junction_ids)
             @test isapprox(ts_demand, demand)
