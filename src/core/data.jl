@@ -197,85 +197,15 @@ the network data. Significant multinetwork space savings can often be achieved
 by building application specific methods of building multinetwork with minimal
 data replication.
 """
-function replicate(sn_data::Dict{String, <:Any}, count::Int; global_keys::Set{String}=Set{String}())
-    wm_global_keys = Set(["per_unit"])
-    return InfrastructureModels.replicate(sn_data, count, global_keys=union(global_keys, _wm_global_keys))
+function replicate(data::Dict{String, <:Any}, count::Int; global_keys::Set{String}=Set{String}())
+    return InfrastructureModels.replicate(data, count, union(global_keys, _wm_global_keys))
 end
-
 
 "turns a single network and a time_series data block into a multi-network"
-function make_multinetwork(data::Dict{String, <:Any})
-    if InfrastructureModels.ismultinetwork(data)
-        Memento.error(_LOGGER, "make_multinetwork does not support multinetwork data")
-    end
-
-    if !haskey(data, "time_series")
-        Memento.error(_LOGGER, "make_multinetwork requires time_series data")
-    end
-
-    # hard coded for the moment
-    steps = data["time_series"]["num_steps"]
-
-    mn_data = InfrastructureModels.replicate(data, steps, global_keys=_wm_global_keys)
-    time_series = pop!(mn_data, "time_series")
-
-    for i in 1:steps
-        nw_data = mn_data["nw"]["$(i)"]
-        for (k,v) in data["time_series"]
-            if isa(v, Dict) && haskey(nw_data, k)
-                #println(k); println(v)
-                _update_data_timepoint!(nw_data[k], v, i)
-            end
-        end
-    end
-
-    return mn_data
+function make_multinetwork(data::Dict{String, <:Any}; global_keys::Set{String}=Set{String}())
+    return InfrastructureModels.make_multinetwork(data, union(global_keys, _wm_global_keys))
 end
 
-
-"loads a single time point from a time_series data block into the current network"
-function load_timepoint!(data::Dict{String, <:Any}, step_index::Int)
-    if InfrastructureModels.ismultinetwork(data)
-        Memento.error(_LOGGER, "load_timepoint! does not support multinetwork data")
-    end
-
-    if !haskey(data, "time_series")
-        Memento.error(_LOGGER, "load_timepoint! requires time_series data")
-    end
-
-    if step_index < 1 || step_index > data["time_series"]["num_steps"]
-        Memento.error(_LOGGER, "a step index of $(step_index) is outside the valid range of 1:$(data["time_series"]["num_steps"])")
-    end
-
-    for (k,v) in data["time_series"]
-        if isa(v, Dict) && haskey(data, k)
-            _update_data_timepoint!(data[k], v, step_index)
-        end
-    end
-
-    data["step_index"] = step_index
-
-    return
-end
-
-
-"recursive call of _update_data"
-function _update_data_timepoint!(data::Dict{String, <:Any}, new_data::Dict{String, <:Any}, step::Int)
-    for (key, new_v) in new_data
-        if haskey(data, key)
-            v = data[key]
-            if isa(v, Dict) && isa(new_v, Dict)
-                _update_data_timepoint!(v, new_v, step)
-            elseif (!isa(v, Dict) || !isa(v, Array)) && isa(new_v, Array)
-                data[key] = new_v[step]
-            else
-                Memento.warn(_LOGGER, "skipping key $(key) because object types do not match, target $(typeof(v)) source $(typeof(new_v))")
-            end
-        else
-            Memento.warn(_LOGGER, "skipping time_series key $(key) because it does not occur in the target data")
-        end
-    end
-end
 
 function set_start_head!(data)
     for (i, node) in data["nodes"]
