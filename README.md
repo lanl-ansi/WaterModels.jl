@@ -20,7 +20,7 @@ This decoupling enables the definition of a wide variety of water network optimi
 
 **Core Problem Specifications**
 * Water Flow (wf)
-* Constrained Water Flow (wf)
+* Constrained Water Flow (cwf)
 * Optimal Water Flow (owf)
 * Network Expansion (ne)
 
