@@ -21,6 +21,7 @@ const CNLPWaterModel = GenericWaterModel{StandardCNLPForm}
 CNLPWaterModel(data::Dict{String, <:Any}; kwargs...) = GenericWaterModel(data, StandardCNLPForm; kwargs...)
 
 
+
 abstract type AbstractNCNLPForm <: AbstractUndirectedFlowFormulation end
 abstract type StandardNCNLPForm <: AbstractNCNLPForm end
 

@@ -1,7 +1,7 @@
 # Define NCNLP (non-convex nonlinear programming) implementations of water distribution models.
 
 function variable_head(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractNCNLPForm
-    variable_pressure_head(wm, n)
+    variable_hydraulic_head(wm, n)
     variable_head_gain(wm, n)
 end
 

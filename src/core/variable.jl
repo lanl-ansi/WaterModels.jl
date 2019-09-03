@@ -39,6 +39,22 @@ function variable_undirected_flow(wm::GenericWaterModel, n::Int=wm.cnw; bounded:
     end
 end
 
+function variable_flow_violation(wm::GenericWaterModel, n::Int=wm.cnw)
+    # Initialize directed flow variables. The variables qp correspond to flow
+    # from i to j, and the variables qn correspond to flow from j to i.
+    var(wm, n)[:Delta_e] = JuMP.@variable(wm.model, [a in ids(wm, n, :links)],
+        base_name="Delta_e[$(n)]", lower_bound=0.0,
+        start=get_start(ref(wm, n, :links), a, "Delta_e_start", 0.0))
+end
+
+function variable_head_violation(wm::GenericWaterModel, n::Int=wm.cnw)
+    # Initialize directed flow variables. The variables qp correspond to flow
+    # from i to j, and the variables qn correspond to flow from j to i.
+    var(wm, n)[:Delta_v] = JuMP.@variable(wm.model, [i in ids(wm, n, :nodes)],
+        base_name="Delta_v[$(n)]", lower_bound=0.0,
+        start=get_start(ref(wm, n, :nodes), i, "Delta_v_start", 0.0))
+end
+
 function variable_undirected_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractDirectedFlowFormulation
     var(wm, n)[:q] = JuMP.@expression(wm.model, [a in ids(wm, n, :links)],
                                       var(wm, n, :qp, a) - var(wm, n, :qn, a))
@@ -175,11 +191,17 @@ function variable_directed_flow_ne(wm::GenericWaterModel, n::Int=wm.cnw; bounded
     end
 end
 
-function variable_pressure_head(wm::GenericWaterModel, n::Int=wm.cnw)
-    lb, ub = calc_head_bounds(wm, n)
-    var(wm, n)[:h] = JuMP.@variable(wm.model, [i in ids(wm, n, :nodes)],
-        base_name="h[$(n)]", lower_bound=lb[i], upper_bound=ub[i], 
-        start=get_start(ref(wm, n, :nodes), i, "h_start", ub[i]))
+function variable_hydraulic_head(wm::GenericWaterModel, n::Int=wm.cnw; bounded::Bool=true)
+    if bounded
+        lb, ub = calc_head_bounds(wm, n)
+        var(wm, n)[:h] = JuMP.@variable(wm.model, [i in ids(wm, n, :nodes)],
+            base_name="h[$(n)]", lower_bound=lb[i], upper_bound=ub[i],
+            start=get_start(ref(wm, n, :nodes), i, "h_start", ub[i]))
+    else
+        var(wm, n)[:h] = JuMP.@variable(wm.model, [i in ids(wm, n, :nodes)],
+            base_name="h[$(n)]",
+            start=get_start(ref(wm, n, :nodes), i, "h_start", 0.0))
+    end
 end
 
 function variable_directed_head_difference(wm::GenericWaterModel, n::Int=wm.cnw)

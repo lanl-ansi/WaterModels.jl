@@ -191,15 +191,15 @@ end
 
 
 """
-Turns in given single network data in multinetwork data with a `count`
+Turns the given single network data into multinetwork data with a `count`
 replicate of the given network. Note that this function performs a deepcopy of
 the network data. Significant multinetwork space savings can often be achieved
-by building application specific methods of building multinetwork with minimal
+by building application-specific methods of building multinetworks with minimal
 data replication.
 """
-function replicate(sn_data::Dict{String, <:Any}, count::Int; global_keys::Set{String}=Set{String}())
+function replicate(sn_data::Dict{String, <:Any}, count::Int, global_keys::Set{String}=Set{String}())
     wm_global_keys = Set(["per_unit"])
-    return InfrastructureModels.replicate(sn_data, count, global_keys=union(global_keys, _wm_global_keys))
+    return InfrastructureModels.replicate(sn_data, count, union(global_keys, _wm_global_keys))
 end
 
 
@@ -216,7 +216,7 @@ function make_multinetwork(data::Dict{String, <:Any})
     # hard coded for the moment
     steps = data["time_series"]["num_steps"]
 
-    mn_data = InfrastructureModels.replicate(data, steps, global_keys=_wm_global_keys)
+    mn_data = InfrastructureModels.replicate(data, steps, _wm_global_keys)
     time_series = pop!(mn_data, "time_series")
 
     for i in 1:steps
@@ -297,8 +297,8 @@ function set_start_directed_flow_rate!(data::Dict{String, <:Any})
 end
 
 function set_start_directed_head_difference!(data::Dict{String, <:Any})
-    head_loss_type = data["options"]["headloss"]
-    alpha = head_loss_type == "H-W" ? 1.852 : 2.0
+    headloss = data["options"]["hydraulic"]["headloss"]
+    alpha = headloss == "H-W" ? 1.852 : 2.0
 
     for (a, pipe) in data["pipes"]
         dh_abs = pipe["length"] * pipe["r"] * abs(pipe["q"])^(alpha)

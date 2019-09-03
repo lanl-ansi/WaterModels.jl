@@ -1,7 +1,7 @@
 # Define MILPR (mixed-integer linear, relaxed program) implementations of water distribution models.
 
 function variable_head(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractMILPRForm
-    variable_pressure_head(wm, n)
+    variable_hydraulic_head(wm, n)
     variable_directed_head_difference(wm, n)
 end
 

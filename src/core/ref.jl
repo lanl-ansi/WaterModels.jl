@@ -1,3 +1,9 @@
+function get_link_id(wm::GenericWaterModel, i::Int, j::Int, n::Int=wm.cnw)
+    arcs = vcat(ref(wm, n, :node_arcs_fr, i), ref(wm, n, :node_arcs_to, i))
+    arc_id = findfirst(x -> x[2] in [i, j] && x[3] in [i, j], arcs)
+    return arcs[arc_id][1]
+end
+
 function calc_head_bounds(wm::GenericWaterModel, n::Int=wm.cnw)
     nodes = ref(wm, n, :nodes)
     tanks = ref(wm, n, :tanks)
