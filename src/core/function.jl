@@ -44,7 +44,7 @@ function d2f_alpha(alpha::Float64; convex::Bool=false)
     end
 end
 
-function get_alpha_min_1(wm::GenericWaterModel)
+function get_alpha_min_1(wm::AbstractWaterModel)
     alpha = [ref(wm, nw, :alpha) for nw in nw_ids(wm)]
 
     if !all(y -> y == alpha[1], alpha)
@@ -54,11 +54,11 @@ function get_alpha_min_1(wm::GenericWaterModel)
     end
 end
 
-function function_head_loss(wm::GenericWaterModel)
+function function_head_loss(wm::AbstractWaterModel)
     # By default, head loss is not defined using nonlinear registered functions.
 end
 
-function function_head_loss(wm::GenericWaterModel{T}) where T <: AbstractCNLPForm
+function function_head_loss(wm::AbstractCNLPModel)
     alpha = get_alpha_min_1(wm)
     f = JuMP.register(wm.model, :head_loss, 1, if_alpha(alpha, convex=true),
         f_alpha(alpha, convex=true), df_alpha(alpha, convex=true))
@@ -66,7 +66,7 @@ function function_head_loss(wm::GenericWaterModel{T}) where T <: AbstractCNLPFor
         f_alpha(alpha, convex=true), df_alpha(alpha, convex=true))
 end
 
-function function_head_loss(wm::GenericWaterModel{T}) where T <: AbstractMICPForm
+function function_head_loss(wm::AbstractMICPModel)
     alpha = get_alpha_min_1(wm)
     f = JuMP.register(wm.model, :head_loss, 1, f_alpha(alpha, convex=true),
         df_alpha(alpha, convex=true), d2f_alpha(alpha, convex=true))
@@ -74,7 +74,7 @@ function function_head_loss(wm::GenericWaterModel{T}) where T <: AbstractMICPFor
         df_alpha(alpha, convex=true), d2f_alpha(alpha, convex=true))
 end
 
-function function_head_loss(wm::GenericWaterModel{T}) where T <: AbstractNCNLPForm
+function function_head_loss(wm::AbstractNCNLPModel)
     alpha = get_alpha_min_1(wm)
     f = JuMP.register(wm.model, :head_loss, 1, f_alpha(alpha, convex=false),
         df_alpha(alpha, convex=false), d2f_alpha(alpha, convex=false))

@@ -1,8 +1,8 @@
-function run_wf(network, model_constructor, optimizer; relaxed::Bool=false, kwargs...)
-    return run_generic_model(network, model_constructor, optimizer, post_wf, relaxed=relaxed; kwargs...)
+function run_wf(network, model_constructor, optimizer; kwargs...)
+    return run_model(network, model_constructor, optimizer, post_wf; kwargs...)
 end
 
-function post_wf(wm::GenericWaterModel{T}) where T
+function post_wf(wm::AbstractWaterModel)
     function_head_loss(wm)
 
     variable_reservoir(wm)
@@ -52,10 +52,10 @@ function post_wf(wm::GenericWaterModel{T}) where T
 end
 
 function run_mn_wf(file, model_constructor, optimizer; kwargs...)
-    return run_generic_model(file, model_constructor, optimizer, post_mn_wf; multinetwork=true, kwargs...)
+    return run_model(file, model_constructor, optimizer, post_mn_wf; multinetwork=true, kwargs...)
 end
 
-function post_mn_wf(wm::GenericWaterModel{T}) where T
+function post_mn_wf(wm::AbstractWaterModel)
     function_head_loss(wm)
 
     for (n, network) in nws(wm)

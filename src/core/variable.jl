@@ -10,20 +10,20 @@ function get_start(set, item_key, first_value_key, second_value_key, default)
     return get(get(get(set, item_key, Dict()), second_value_key, Dict()), first_value_key, default)
 end
 
-function variable_volume(wm::GenericWaterModel, n::Int=wm.cnw)
+function variable_volume(wm::AbstractWaterModel, n::Int=wm.cnw)
     lb, ub = calc_tank_volume_bounds(wm, n)
     var(wm, n)[:V] = JuMP.@variable(wm.model, [i in ids(wm, n, :tanks)],
         base_name="V[$(n)]", lower_bound=lb[i], upper_bound=ub[i], 
         start=get_start(ref(wm, n, :nodes), i, "V_start", ub[i]))
 end
 
-function variable_check_valve(wm::GenericWaterModel, n::Int=wm.cnw)
+function variable_check_valve(wm::AbstractWaterModel, n::Int=wm.cnw)
     var(wm, n)[:x_cv] = JuMP.@variable(wm.model, [i in ids(wm, n, :check_valves)],
         base_name="x_cv[$(n)]", binary=true,
         start=get_start(ref(wm, n, :links), i, "x_cv_start", 0.0))
 end
 
-function variable_undirected_flow(wm::GenericWaterModel, n::Int=wm.cnw; bounded::Bool=true)
+function variable_undirected_flow(wm::AbstractWaterModel, n::Int=wm.cnw; bounded::Bool=true)
     # Initialize directed flow variables. The variables qp correspond to flow
     # from i to j, and the variables qn correspond to flow from j to i.
     if bounded
@@ -39,7 +39,7 @@ function variable_undirected_flow(wm::GenericWaterModel, n::Int=wm.cnw; bounded:
     end
 end
 
-function variable_flow_violation(wm::GenericWaterModel, n::Int=wm.cnw)
+function variable_flow_violation(wm::AbstractWaterModel, n::Int=wm.cnw)
     # Initialize directed flow variables. The variables qp correspond to flow
     # from i to j, and the variables qn correspond to flow from j to i.
     var(wm, n)[:Delta_e] = JuMP.@variable(wm.model, [a in ids(wm, n, :links)],
@@ -47,7 +47,7 @@ function variable_flow_violation(wm::GenericWaterModel, n::Int=wm.cnw)
         start=get_start(ref(wm, n, :links), a, "Delta_e_start", 0.0))
 end
 
-function variable_head_violation(wm::GenericWaterModel, n::Int=wm.cnw)
+function variable_head_violation(wm::AbstractWaterModel, n::Int=wm.cnw)
     # Initialize directed flow variables. The variables qp correspond to flow
     # from i to j, and the variables qn correspond to flow from j to i.
     var(wm, n)[:Delta_v] = JuMP.@variable(wm.model, [i in ids(wm, n, :nodes)],
@@ -55,12 +55,12 @@ function variable_head_violation(wm::GenericWaterModel, n::Int=wm.cnw)
         start=get_start(ref(wm, n, :nodes), i, "Delta_v_start", 0.0))
 end
 
-function variable_undirected_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractDirectedFlowFormulation
+function variable_undirected_flow(wm::AbstractDirectedFlowModel, n::Int=wm.cnw)
     var(wm, n)[:q] = JuMP.@expression(wm.model, [a in ids(wm, n, :links)],
-                                      var(wm, n, :qp, a) - var(wm, n, :qn, a))
+        var(wm, n, :qp, a) - var(wm, n, :qn, a))
 end
 
-function variable_undirected_flow_ne(wm::GenericWaterModel, n::Int=wm.cnw; bounded::Bool=true)
+function variable_undirected_flow_ne(wm::AbstractWaterModel, n::Int=wm.cnw; bounded::Bool=true)
     # Get indices for all network arcs.
     arcs = sort(collect(ids(wm, n, :links)))
     var(wm, n)[:q_ne] = Dict{Int, Array{JuMP.VariableRef, 1}}()
@@ -95,7 +95,7 @@ function variable_undirected_flow_ne(wm::GenericWaterModel, n::Int=wm.cnw; bound
     end
 end
 
-function variable_directed_flow(wm::GenericWaterModel, n::Int=wm.cnw; bounded::Bool=true)
+function variable_directed_flow(wm::AbstractWaterModel, n::Int=wm.cnw; bounded::Bool=true)
     # Get indices for all network arcs.
     arcs = sort(collect(ids(wm, n, :links)))
 
@@ -134,7 +134,7 @@ function variable_directed_flow(wm::GenericWaterModel, n::Int=wm.cnw; bounded::B
     end
 end
 
-function variable_directed_flow_ne(wm::GenericWaterModel, n::Int=wm.cnw; bounded::Bool=true)
+function variable_directed_flow_ne(wm::AbstractWaterModel, n::Int=wm.cnw; bounded::Bool=true)
     # Get indices for all network arcs.
     arcs = sort(collect(ids(wm, n, :links_ne)))
     resistances = ref(wm, n, :resistance)
@@ -191,7 +191,7 @@ function variable_directed_flow_ne(wm::GenericWaterModel, n::Int=wm.cnw; bounded
     end
 end
 
-function variable_hydraulic_head(wm::GenericWaterModel, n::Int=wm.cnw; bounded::Bool=true)
+function variable_hydraulic_head(wm::AbstractWaterModel, n::Int=wm.cnw; bounded::Bool=true)
     if bounded
         lb, ub = calc_head_bounds(wm, n)
         var(wm, n)[:h] = JuMP.@variable(wm.model, [i in ids(wm, n, :nodes)],
@@ -204,7 +204,7 @@ function variable_hydraulic_head(wm::GenericWaterModel, n::Int=wm.cnw; bounded::
     end
 end
 
-function variable_directed_head_difference(wm::GenericWaterModel, n::Int=wm.cnw)
+function variable_directed_head_difference(wm::AbstractWaterModel, n::Int=wm.cnw)
     # Get indices for all network arcs.
     arcs = sort(collect(ids(wm, n, :links)))
 
@@ -230,7 +230,7 @@ function variable_directed_head_difference(wm::GenericWaterModel, n::Int=wm.cnw)
     var(wm, n)[:dhn] = dhn
 end
 
-function variable_flow_direction(wm::GenericWaterModel, n::Int=wm.cnw)
+function variable_flow_direction(wm::AbstractWaterModel, n::Int=wm.cnw)
     # Initialize variables associated with flow direction. If this variable is
     # equal to one, the flow direction is from i to j. If it is equal to zero,
     # the flow direction is from j to i.
@@ -239,13 +239,13 @@ function variable_flow_direction(wm::GenericWaterModel, n::Int=wm.cnw)
         start=get_start(ref(wm, n, :links), a, "x_dir_start", 1.0))
 end
 
-function variable_fixed_speed_pump_operation(wm::GenericWaterModel, n::Int=wm.cnw)
+function variable_fixed_speed_pump_operation(wm::AbstractWaterModel, n::Int=wm.cnw)
     var(wm, n)[:x_pump] = JuMP.@variable(wm.model, [a in ids(wm, n, :pumps)],
         base_name="x_pump[$(n)]", binary=true,
         start=get_start(ref(wm, n, :pumps), a, "x_pump_start", 1.0))
 end
 
-function variable_fixed_speed_pump_threshold(wm::GenericWaterModel, n::Int=wm.cnw)
+function variable_fixed_speed_pump_threshold(wm::AbstractWaterModel, n::Int=wm.cnw)
     var(wm, n)[:x_thrs_gt] = JuMP.@variable(wm.model, [a in ids(wm, n, :pumps)],
         base_name="x_thrs_gt[$(n)]", binary=true,
         start=get_start(ref(wm, n, :pumps), a, "x_thrs_gt_start", 0.0))
@@ -257,13 +257,13 @@ function variable_fixed_speed_pump_threshold(wm::GenericWaterModel, n::Int=wm.cn
         start=get_start(ref(wm, n, :pumps), a, "x_thrs_bt_start", 1.0))
 end
 
-function variable_head_gain(wm::GenericWaterModel, n::Int=wm.cnw)
+function variable_head_gain(wm::AbstractWaterModel, n::Int=wm.cnw)
     var(wm, n)[:g] = JuMP.@variable(wm.model, [a in ids(wm, n, :pumps)],
         base_name="g[$(n)]", lower_bound=0.0,
         start=get_start(ref(wm, n, :links), a, "g", 0.0))
 end
 
-function variable_resistance_ne(wm::GenericWaterModel, n::Int=wm.cnw)
+function variable_resistance_ne(wm::AbstractWaterModel, n::Int=wm.cnw)
     # Get indices for all network arcs.
     arcs = sort(collect(ids(wm, n, :links)))
 
@@ -284,14 +284,14 @@ function variable_resistance_ne(wm::GenericWaterModel, n::Int=wm.cnw)
     end
 end
 
-function variable_reservoir(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractWaterFormulation
+function variable_reservoir(wm::AbstractWaterModel, n::Int=wm.cnw)
     # Initialize variables associated with reservoir flow.
     var(wm, n)[:q_r] = JuMP.@variable(wm.model, [i in ids(wm, n, :reservoirs)],
         base_name="q_r[$(n)]",
         start=get_start(ref(wm, n, :reservoirs), i, "q_r_start", 0.0))
 end
 
-function variable_tank(wm::GenericWaterModel, n::Int=wm.cnw)
+function variable_tank(wm::AbstractWaterModel, n::Int=wm.cnw)
     var(wm, n)[:q_t] = JuMP.@variable(wm.model, [i in ids(wm, n, :tanks)],
         base_name="q_t[$(n)]",
         start=get_start(ref(wm, n, :nodes), i, "q_t_start", 0.0))

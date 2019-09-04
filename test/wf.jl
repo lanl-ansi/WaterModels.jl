@@ -17,11 +17,11 @@
     #@testset "Richmond network, multinetwork NCNLP formulation." begin
     #    network_data = WaterModels.parse_file(richmond_skeleton_path)
     #    mn_data = WaterModels.make_multinetwork(network_data)
-    #    wm = build_generic_model(mn_data, NCNLPWaterModel, WaterModels.post_mn_wf, multinetwork=true)
+    #    wm = build_model(mn_data, NCNLPWaterModel, WaterModels.post_mn_wf, multinetwork=true)
     #    f_1, f_2, f_3, f_4, f_5 = fun(wm, :head_loss)
     #    f = Juniper.register(f_1, f_2, f_3, f_4, f_5, autodiff=false)
     #    juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f]) #, log_levels=[])
-    #    solution = WaterModels.solve_generic_model(wm, juniper)
+    #    solution = WaterModels.optimize_model!(wm, juniper)
 
     #    @test solution["termination_status"] == MOI.LOCALLY_SOLVED
     #    @test isapprox(solution["solution"]["nw"]["1"]["nodes"]["17"]["h"], 243.052536, rtol=1.0e-3)
@@ -34,10 +34,10 @@
 
     @testset "Single-time Richmond network, NCNLP formulation." begin
         network_data = WaterModels.parse_file(richmond_skeleton_sp_path)
-        wm = build_generic_model(network_data, NCNLPWaterModel, WaterModels.post_wf, multinetwork=false)
+        wm = build_model(network_data, NCNLPWaterModel, WaterModels.post_wf, multinetwork=false)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
         juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
-        solution = WaterModels.solve_generic_model(wm, juniper)
+        solution = WaterModels.optimize_model!(wm, juniper)
 
         @test solution["termination_status"] == MOI.LOCALLY_SOLVED
         @test isapprox(solution["solution"]["nodes"]["17"]["h"], 243.052536, rtol=1.0e-3)
@@ -55,7 +55,7 @@
         @test isapprox(solution["solution"]["pipes"]["6"]["q"], 0.055710, rtol=1.0e-3)
     end
 
-    @testset "Shamir network, multinetwork CNLP formulation." begin
+    @testset "Shamir network, CNLP formulation." begin
         solution = run_wf(shamir_path, CNLPWaterModel, ipopt)
         @test solution["termination_status"] == MOI.LOCALLY_SOLVED
         @test isapprox(solution["solution"]["pipes"]["2"]["q"], 0.093565, rtol=1.0e-3)
@@ -76,8 +76,8 @@
     @testset "Shamir network, multinetwork NCNLP formulation." begin
         network_data = WaterModels.parse_file(shamir_ts_path)
         mn_data = WaterModels.make_multinetwork(network_data)
-        wm = build_generic_model(mn_data, NCNLPWaterModel, WaterModels.post_mn_wf, multinetwork=true)
-        solution = solve_generic_model(wm, ipopt)
+        wm = build_model(mn_data, NCNLPWaterModel, WaterModels.post_mn_wf, multinetwork=true)
+        solution = optimize_model!(wm, ipopt)
 
         @test solution["termination_status"] == MOI.LOCALLY_SOLVED
         @test isapprox(solution["solution"]["nw"]["1"]["pipes"]["2"]["q"], 0.09356500, rtol=1.0e-3)
@@ -91,8 +91,8 @@
     @testset "Shamir network (with tank), multinetwork NCNLP formulation." begin
         network_data = WaterModels.parse_file(shamir_ts_tank_path)
         mn_data = WaterModels.make_multinetwork(network_data)
-        wm = build_generic_model(mn_data, NCNLPWaterModel, WaterModels.post_mn_wf, multinetwork=true)
-        solution = solve_generic_model(wm, ipopt)
+        wm = build_model(mn_data, NCNLPWaterModel, WaterModels.post_mn_wf, multinetwork=true)
+        solution = optimize_model!(wm, ipopt)
 
         @test solution["termination_status"] == MOI.LOCALLY_SOLVED
         @test isapprox(solution["solution"]["nw"]["1"]["pipes"]["2"]["q"], 0.09356500, rtol=1.0e-3)
@@ -114,10 +114,10 @@
 
     @testset "Example 1 network (with tanks and pumps), NCNLP formulation." begin
         network_data = WaterModels.parse_file(example_1_sp_path)
-        wm = build_generic_model(network_data, NCNLPWaterModel, WaterModels.post_wf)
+        wm = build_model(network_data, NCNLPWaterModel, WaterModels.post_wf)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
         juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
-        solution = WaterModels.solve_generic_model(wm, juniper)
+        solution = WaterModels.optimize_model!(wm, juniper)
 
         @test solution["termination_status"] == MOI.LOCALLY_SOLVED
         @test isapprox(solution["solution"]["pumps"]["9"]["q"], 0.117737, rtol=1.0e-3)
@@ -131,10 +131,10 @@
     @testset "Example 1 network (with tanks and pumps), multinetwork NCNLP formulation." begin
         network_data = WaterModels.parse_file(example_1_path)
         mn_data = WaterModels.make_multinetwork(network_data)
-        wm = build_generic_model(mn_data, NCNLPWaterModel, WaterModels.post_mn_wf, multinetwork=true)
+        wm = build_model(mn_data, NCNLPWaterModel, WaterModels.post_mn_wf, multinetwork=true)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
         juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
-        solution = WaterModels.solve_generic_model(wm, juniper)
+        solution = WaterModels.optimize_model!(wm, juniper)
 
         @test solution["termination_status"] == MOI.LOCALLY_SOLVED
         @test isapprox(solution["solution"]["nw"]["1"]["pumps"]["9"]["q"], 0.117737, rtol=1.0e-3)
@@ -152,7 +152,11 @@
     end
 
     @testset "Shamir network (unknown flow directions), MICP formulation." begin
-        solution = run_wf(shamir_path, MICPWaterModel, ipopt, relaxed=true)
+        network_data = WaterModels.parse_file(shamir_path)
+        wm = build_model(network_data, MICPWaterModel, WaterModels.post_wf, multinetwork=false)
+        f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
+        juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
+        solution = WaterModels.optimize_model!(wm, juniper)
         @test solution["termination_status"] == MOI.LOCALLY_SOLVED
     end
 

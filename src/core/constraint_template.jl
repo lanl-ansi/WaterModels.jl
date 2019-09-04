@@ -4,11 +4,11 @@
 # the required parameters from a given network data structure and pass the data
 # as named arguments to the Water Flow formulations.
 #
-# Constraint templates should always be defined over "GenericWaterModel" and
+# Constraint templates should always be defined over "AbstractWaterModel" and
 # should never refer to model variables.
 
 ### Node Constraints ###
-function constraint_flow_conservation(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
+function constraint_flow_conservation(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
     # Create the constraint dictionary if necessary.
     if !haskey(con(wm, nw), :flow_conservation)
         con(wm, nw)[:flow_conservation] = Dict{Int, JuMP.ConstraintRef}()
@@ -24,7 +24,7 @@ function constraint_flow_conservation(wm::GenericWaterModel, i::Int; nw::Int=wm.
     constraint_flow_conservation(wm, nw, i, arcs_fr, arcs_to, res, tank, demand)
 end
 
-function constraint_sink_flow(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
+function constraint_sink_flow(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
     if !haskey(con(wm, n), :sink_flow)
         con(wm, n)[:sink_flow] = Dict{Int, JuMP.ConstraintRef}()
     end
@@ -32,7 +32,7 @@ function constraint_sink_flow(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
     constraint_sink_flow(wm, nw, i, ref(wm, nw, :links))
 end
 
-function constraint_source_flow(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
+function constraint_source_flow(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
     if !haskey(con(wm, n), :source_flow)
         con(wm, n)[:source_flow] = Dict{Int, JuMP.ConstraintRef}()
     end
@@ -41,7 +41,7 @@ function constraint_source_flow(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
 end
 
 ### Tank Constraints ###
-function constraint_link_volume(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
+function constraint_link_volume(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
     if !haskey(con(wm, nw), :link_volume)
         con(wm, nw)[:link_volume] = Dict{Int, JuMP.ConstraintRef}()
     end
@@ -52,7 +52,7 @@ function constraint_link_volume(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
     constraint_link_volume(wm, nw, i, elevation, surface_area)
 end
 
-function constraint_tank_state(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
+function constraint_tank_state(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
     if !haskey(con(wm, nw), :tank_state)
         con(wm, nw)[:tank_state] = Dict{Int, JuMP.ConstraintRef}()
     end
@@ -71,7 +71,7 @@ function constraint_tank_state(wm::GenericWaterModel, i::Int; nw::Int=wm.cnw)
     constraint_tank_state_initial(wm, nw, i, V_initial, time_step)
 end
 
-function constraint_tank_state(wm::GenericWaterModel, i::Int, nw_1::Int, nw_2::Int)
+function constraint_tank_state(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2::Int)
     if !haskey(con(wm, nw_2), :tank_state)
         con(wm, nw_2)[:tank_state] = Dict{Int, JuMP.ConstraintRef}()
     end
@@ -89,7 +89,7 @@ function constraint_tank_state(wm::GenericWaterModel, i::Int, nw_1::Int, nw_2::I
 end
 
 ### Link Constraints ###
-function constraint_link_flow(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
+function constraint_link_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
     if !haskey(con(wm, nw), :link_flow)
         con(wm, nw)[:link_flow] = Dict{Int, JuMP.ConstraintRef}()
     end
@@ -97,7 +97,7 @@ function constraint_link_flow(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
     constraint_link_flow(wm, nw, a)
 end
 
-function constraint_link_flow_ne(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
+function constraint_link_flow_ne(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
     if !haskey(con(wm, nw), :link_flow_ne)
         con(wm, nw)[:link_flow_ne] = Dict{Int, JuMP.ConstraintRef}()
     end
@@ -106,7 +106,7 @@ function constraint_link_flow_ne(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
 end
 
 ### Pipe Constraints ###
-function constraint_potential_loss_pipe(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_potential_loss_pipe(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     if !haskey(con(wm, nw), :potential_loss)
         con(wm, nw)[:potential_loss] = Dict{Int, JuMP.ConstraintRef}()
     end
@@ -121,7 +121,7 @@ function constraint_potential_loss_pipe(wm::GenericWaterModel, a::Int; nw::Int=w
     constraint_potential_loss_ub_pipe(wm, a; nw=nw, kwargs...)
 end
 
-function constraint_head_difference(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
+function constraint_head_difference(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
     if !haskey(con(wm, nw), :head_difference_1)
         con(wm, nw)[:head_difference_1] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, nw)[:head_difference_2] = Dict{Int, JuMP.ConstraintRef}()
@@ -147,7 +147,7 @@ function constraint_head_difference(wm::GenericWaterModel, a::Int; nw::Int=wm.cn
     constraint_head_difference(wm, nw, a, node_fr, node_to, head_fr, head_to)
 end
 
-function constraint_flow_direction_selection(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
+function constraint_flow_direction_selection(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
     if !haskey(con(wm, nw), :flow_direction_selection_n)
         con(wm, nw)[:flow_direction_selection_n] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, nw)[:flow_direction_selection_p] = Dict{Int, JuMP.ConstraintRef}()
@@ -156,7 +156,7 @@ function constraint_flow_direction_selection(wm::GenericWaterModel, a::Int; nw::
     constraint_flow_direction_selection(wm, nw, a)
 end
 
-function constraint_potential_loss_ub_pipe(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
+function constraint_potential_loss_ub_pipe(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
     if !haskey(con(wm, nw), :directed_potential_loss_ub_pipe_n)
         con(wm, nw)[:directed_potential_loss_ub_pipe_p] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, nw)[:directed_potential_loss_ub_pipe_n] = Dict{Int, JuMP.ConstraintRef}()
@@ -170,7 +170,7 @@ function constraint_potential_loss_ub_pipe(wm::GenericWaterModel, a::Int; nw::In
 end
 
 
-function constraint_potential_loss_pipe_ne(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_potential_loss_pipe_ne(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     alpha = ref(wm, nw, :alpha)
 
     pipe = ref(wm, nw, :pipes, a)
@@ -184,7 +184,7 @@ function constraint_potential_loss_pipe_ne(wm::GenericWaterModel, a::Int; nw::In
 end
 
 
-function constraint_flow_direction_selection_ne(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
+function constraint_flow_direction_selection_ne(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
     if !haskey(con(wm, nw), :flow_direction_selection_ne_n)
         con(wm, nw)[:flow_direction_selection_ne_p] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
         con(wm, nw)[:flow_direction_selection_ne_n] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
@@ -197,7 +197,7 @@ function constraint_flow_direction_selection_ne(wm::GenericWaterModel, a::Int; n
     constraint_flow_direction_selection_ne(wm, nw, a, pipe_resistances)
 end
 
-function constraint_potential_loss_ub_pipe_ne(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
+function constraint_potential_loss_ub_pipe_ne(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
     alpha = ref(wm, nw, :alpha)
     len = ref(wm, nw, :pipes, a)["length"]
     pipe_resistances = ref(wm, nw, :resistance, a)
@@ -206,14 +206,14 @@ function constraint_potential_loss_ub_pipe_ne(wm::GenericWaterModel, a::Int; nw:
 end
 
 
-function constraint_resistance_selection_ne(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
+function constraint_resistance_selection_ne(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
     pipe_resistances = ref(wm, nw, :resistance, a)
 
     constraint_resistance_selection_ne(wm, nw, a, pipe_resistances)
 end
 
 ### Check Valve Constraints ###
-function constraint_check_valve(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
+function constraint_check_valve(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
     if !haskey(con(wm, nw), :check_valve_1)
         con(wm, nw)[:check_valve_1] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, nw)[:check_valve_2] = Dict{Int, JuMP.ConstraintRef}()
@@ -227,7 +227,7 @@ function constraint_check_valve(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
     constraint_check_valve(wm, nw, a, node_fr, node_to)
 end
 
-function constraint_potential_loss_check_valve(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
+function constraint_potential_loss_check_valve(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
     if !haskey(con(wm, nw), :potential_loss)
         con(wm, nw)[:potential_loss] = Dict{Int, JuMP.ConstraintRef}()
     end
@@ -243,7 +243,7 @@ end
 
 
 ### Pump Constraints ###
-function constraint_potential_loss_pump(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_potential_loss_pump(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     node_fr = ref(wm, nw, :pumps, a)["node_fr"]
     node_to = ref(wm, nw, :pumps, a)["node_to"]
 
@@ -251,7 +251,7 @@ function constraint_potential_loss_pump(wm::GenericWaterModel, a::Int; nw::Int=w
     constraint_head_gain_pump_quadratic_fit(wm, a; nw=nw, kwargs...)
 end
 
-function constraint_head_gain_pump_quadratic_fit(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
+function constraint_head_gain_pump_quadratic_fit(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
     if !haskey(con(wm, nw), :head_gain)
         con(wm, nw)[:head_gain] = Dict{Int, JuMP.ConstraintRef}()
     end
@@ -261,7 +261,7 @@ function constraint_head_gain_pump_quadratic_fit(wm::GenericWaterModel, a::Int; 
     constraint_head_gain_pump_quadratic_fit(wm, nw, a, A, B, C)
 end
 
-function constraint_pump_control(wm::GenericWaterModel, a::Int, nw_1::Int, nw_2::Int)
+function constraint_pump_control(wm::AbstractWaterModel, a::Int, nw_1::Int, nw_2::Int)
     if !haskey(con(wm, nw_2), :pump_control)
         con(wm, nw_2)[:pump_control] = Dict{Int, JuMP.ConstraintRef}()
     end
@@ -295,7 +295,7 @@ function constraint_pump_control(wm::GenericWaterModel, a::Int, nw_1::Int, nw_2:
     end
 end
 
-function constraint_pump_control(wm::GenericWaterModel, a::Int; nw::Int=wm.cnw)
+function constraint_pump_control(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
     if !haskey(con(wm, nw), :pump_control)
         con(wm, nw)[:pump_control] = Dict{Int, JuMP.ConstraintRef}()
     end

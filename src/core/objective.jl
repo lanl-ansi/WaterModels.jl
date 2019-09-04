@@ -2,7 +2,7 @@
 # This file defines commonly-used objectives for water systems models.
 ######################################################################
 
-function get_resistance_cost_expression(wm::GenericWaterModel, n::Int=wm.cnw)
+function get_resistance_cost_expression(wm::AbstractWaterModel, n::Int=wm.cnw)
     expr = JuMP.AffExpr(0.0)
 
     for (a, link) in ref(wm, n, :links_ne)
@@ -13,7 +13,7 @@ function get_resistance_cost_expression(wm::GenericWaterModel, n::Int=wm.cnw)
     return expr
 end
 
-function objective_ne(wm::GenericWaterModel, n::Int=wm.cnw)
+function objective_ne(wm::AbstractWaterModel, n::Int=wm.cnw)
     objective = get_resistance_cost_expression(wm, n)
-    return JuMP.@objective(wm.model, MOI.MIN_SENSE, objective)
+    return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
 end

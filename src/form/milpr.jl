@@ -1,24 +1,24 @@
 # Define MILPR (mixed-integer linear, relaxed program) implementations of water distribution models.
 
-function variable_head(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractMILPRForm
+function variable_head(wm::AbstractMILPRModel, n::Int=wm.cnw) 
     variable_hydraulic_head(wm, n)
     variable_directed_head_difference(wm, n)
 end
 
-function variable_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractMILPRForm
+function variable_flow(wm::AbstractMILPRModel, n::Int=wm.cnw) 
     variable_undirected_flow(wm, n, bounded=true)
     variable_directed_flow(wm, n, bounded=true)
     variable_flow_direction(wm, n)
 end
 
-function variable_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractMILPRForm
+function variable_flow_ne(wm::AbstractMILPRModel, n::Int=wm.cnw) 
     variable_directed_flow_ne(wm, n, bounded=true)
 end
 
-function variable_pump(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractMILPRForm
+function variable_pump(wm::AbstractMILPRModel, n::Int=wm.cnw) 
 end
 
-function constraint_potential_loss_pump(wm::GenericWaterModel{T}, n::Int, a::Int, node_fr::Int, node_to::Int) where T <: AbstractMILPRForm
+function constraint_potential_loss_pump(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int) 
 end
 
 
@@ -26,7 +26,7 @@ function get_linear_outer_approximation(q::JuMP.VariableRef, q_hat::Float64, alp
     return q_hat^alpha + alpha * q_hat^(alpha - 1.0) * (q - q_hat)
 end
 
-function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, node_fr, node_to, len, pipe_resistances) where T <: AbstractMILPRForm
+function constraint_potential_loss_pipe_ne(wm::AbstractMILPRModel, n::Int, a::Int, alpha, node_fr, node_to, len, pipe_resistances) 
     if !haskey(con(wm, n), :potential_loss_pipe_n_ne)
         con(wm, n)[:potential_loss_pipe_n_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
         con(wm, n)[:potential_loss_pipe_p_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
@@ -62,7 +62,7 @@ function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::
     end
 end
 
-function constraint_potential_loss_pipe(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, node_fr, node_to, len, r_min) where T <: AbstractMILPRForm
+function constraint_potential_loss_pipe(wm::AbstractMILPRModel, n::Int, a::Int, alpha, node_fr, node_to, len, r_min) 
     if !haskey(con(wm, n), :potential_loss_pipe_n)
         con(wm, n)[:potential_loss_pipe_n] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:potential_loss_pipe_p] = Dict{Int, JuMP.ConstraintRef}()
@@ -94,10 +94,10 @@ function constraint_potential_loss_pipe(wm::GenericWaterModel{T}, n::Int, a::Int
     end
 end
 
-function objective_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: StandardMILPRForm
-    JuMP.set_objective_sense(wm.model, MOI.FEASIBILITY_SENSE)
+function objective_wf(wm::AbstractMILPRModel, n::Int=wm.cnw) 
+    JuMP.set_objective_sense(wm.model, _MOI.FEASIBILITY_SENSE)
 end
 
-function objective_owf(wm::GenericWaterModel{T}) where T <: StandardMILPRForm
-    JuMP.set_objective_sense(wm.model, MOI.FEASIBILITY_SENSE)
+function objective_owf(wm::AbstractMILPRModel) 
+    JuMP.set_objective_sense(wm.model, _MOI.FEASIBILITY_SENSE)
 end

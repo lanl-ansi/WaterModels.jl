@@ -2,7 +2,7 @@
 # This file defines commonly-used constraints for water systems models.
 ########################################################################
 
-function constraint_flow_conservation(wm::GenericWaterModel{T}, n::Int, i::Int, node_arcs_fr, node_arcs_to, node_reservoirs, node_tanks, node_demands) where T <: AbstractUndirectedFlowFormulation
+function constraint_flow_conservation(wm::AbstractUndirectedFlowModel, n::Int, i::Int, node_arcs_fr, node_arcs_to, node_reservoirs, node_tanks, node_demands)
     q = var(wm, n, :q)
     q_r = var(wm, n, :q_r)
     q_t = var(wm, n, :q_t)
@@ -16,7 +16,7 @@ function constraint_flow_conservation(wm::GenericWaterModel{T}, n::Int, i::Int, 
         sum(demand for (jid, demand) in node_demands))
 end
 
-function constraint_flow_conservation(wm::GenericWaterModel{T}, n::Int, i::Int, node_arcs_fr, node_arcs_to, node_reservoirs, node_tanks, node_demands) where T <: AbstractDirectedFlowFormulation
+function constraint_flow_conservation(wm::AbstractDirectedFlowModel, n::Int, i::Int, node_arcs_fr, node_arcs_to, node_reservoirs, node_tanks, node_demands)
     q_p = var(wm, n, :qp)
     q_n = var(wm, n, :qn)
     q_r = var(wm, n, :q_r)
@@ -31,7 +31,7 @@ function constraint_flow_conservation(wm::GenericWaterModel{T}, n::Int, i::Int, 
         sum(demand for (jid, demand) in node_demands))
 end
 
-function constraint_resistance_selection_ne(wm::GenericWaterModel{T}, n::Int, a::Int, pipe_resistances) where T <: AbstractDirectedFlowFormulation
+function constraint_resistance_selection_ne(wm::AbstractDirectedFlowModel, n::Int, a::Int, pipe_resistances)
     if !haskey(con(wm, n), :resistance_selection_sum)
         con(wm, n)[:resistance_selection_sum] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:resistance_selection_p] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
@@ -59,7 +59,7 @@ function constraint_resistance_selection_ne(wm::GenericWaterModel{T}, n::Int, a:
     end
 end
 
-function constraint_resistance_selection_ne(wm::GenericWaterModel{T}, n::Int, a::Int, pipe_resistances) where T <: AbstractUndirectedFlowFormulation
+function constraint_resistance_selection_ne(wm::AbstractUndirectedFlowModel, n::Int, a::Int, pipe_resistances)
     if !haskey(con(wm, n), :resistance_selection_sum)
         con(wm, n)[:resistance_selection_sum] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:resistance_selection_lb] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
@@ -89,10 +89,10 @@ end
 
 
 # do nothing by default
-function constraint_flow_direction_selection(wm::GenericWaterModel, n::Int, a::Int)
+function constraint_flow_direction_selection(wm::AbstractWaterModel, n::Int, a::Int)
 end
 
-function constraint_flow_direction_selection(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractDirectedFlowFormulation
+function constraint_flow_direction_selection(wm::AbstractDirectedFlowModel, n::Int, a::Int)
     x_dir = var(wm, n, :x_dir, a)
 
     qp = var(wm, n, :qp, a)
@@ -108,10 +108,10 @@ end
 
 
 # do nothing by default
-function constraint_flow_direction_selection_ne(wm::GenericWaterModel, n::Int, a::Int, pipe_resistances)
+function constraint_flow_direction_selection_ne(wm::AbstractWaterModel, n::Int, a::Int, pipe_resistances)
 end
 
-function constraint_flow_direction_selection_ne(wm::GenericWaterModel{T}, n::Int, a::Int, pipe_resistances) where T <: AbstractDirectedFlowFormulation
+function constraint_flow_direction_selection_ne(wm::AbstractDirectedFlowModel, n::Int, a::Int, pipe_resistances)
     for r in 1:length(pipe_resistances)
         x_dir = var(wm, n, :x_dir, a)
 
@@ -128,7 +128,7 @@ function constraint_flow_direction_selection_ne(wm::GenericWaterModel{T}, n::Int
 end
 
 
-function constraint_head_difference(wm::GenericWaterModel, n::Int, a::Int, node_fr, node_to, head_fr, head_to)
+function constraint_head_difference(wm::AbstractWaterModel, n::Int, a::Int, node_fr, node_to, head_fr, head_to)
     if head_fr == nothing
         head_fr = var(wm, n, :h, node_fr)
     end
@@ -153,7 +153,7 @@ function constraint_head_difference(wm::GenericWaterModel, n::Int, a::Int, node_
     con(wm, n, :head_difference_3)[a] = con_3
 end
 
-function constraint_potential_loss_ub_pipe_ne(wm::GenericWaterModel, n::Int, a::Int, alpha, len, pipe_resistances) where T <: AbstractDirectedFlowFormulation
+function constraint_potential_loss_ub_pipe_ne(wm::AbstractDirectedFlowModel, n::Int, a::Int, alpha, len, pipe_resistances)
     if !haskey(con(wm, n), :directed_potential_loss_ub_pipe_ne_n)
         con(wm, n)[:directed_potential_loss_ub_pipe_ne_n] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:directed_potential_loss_ub_pipe_ne_p] = Dict{Int, JuMP.ConstraintRef}()
@@ -178,7 +178,7 @@ function constraint_potential_loss_ub_pipe_ne(wm::GenericWaterModel, n::Int, a::
     con(wm, n, :directed_potential_loss_ub_pipe_ne_n)[a] = con_n
 end
 
-function constraint_potential_loss_ub_pipe(wm::GenericWaterModel, n::Int, a::Int, alpha, len, r_max)
+function constraint_potential_loss_ub_pipe(wm::AbstractWaterModel, n::Int, a::Int, alpha, len, r_max)
     L = len
     r = r_max
 
@@ -200,7 +200,7 @@ function constraint_potential_loss_ub_pipe(wm::GenericWaterModel, n::Int, a::Int
 end
 
 
-function constraint_link_volume(wm::GenericWaterModel, n::Int, i::Int, elevation, surface_area)
+function constraint_link_volume(wm::AbstractWaterModel, n::Int, i::Int, elevation, surface_area)
     h = var(wm, n, :h, i)
     V = var(wm, n, :V, i)
 
@@ -209,7 +209,7 @@ function constraint_link_volume(wm::GenericWaterModel, n::Int, i::Int, elevation
 end
 
 
-function constraint_link_flow_ne(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractUndirectedFlowFormulation
+function constraint_link_flow_ne(wm::AbstractUndirectedFlowModel, n::Int, a::Int)
     if !haskey(con(wm, n), :link_undirected_flow_ne)
         con(wm, n)[:link_undirected_flow_ne] = Dict{Int, JuMP.ConstraintRef}()
     end
@@ -221,7 +221,7 @@ function constraint_link_flow_ne(wm::GenericWaterModel{T}, n::Int, a::Int) where
     con(wm, n, :link_undirected_flow_ne)[a] = c
 end
 
-function constraint_link_flow_ne(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractDirectedFlowFormulation
+function constraint_link_flow_ne(wm::AbstractDirectedFlowModel, n::Int, a::Int)
     if !haskey(con(wm, n), :link_directed_flow_n_ne)
         con(wm, n)[:link_directed_flow_p_ne] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:link_directed_flow_n_ne] = Dict{Int, JuMP.ConstraintRef}()
@@ -242,11 +242,11 @@ end
 
 
 # do nothing by default
-function constraint_link_flow(wm::GenericWaterModel, n::Int, a::Int)
+function constraint_link_flow(wm::AbstractWaterModel, n::Int, a::Int)
 end
 
 # link undirected flow variables into the directed flow variable
-function constraint_link_flow(wm::GenericWaterModel{T}, n::Int, a::Int) where T <: AbstractDirectedFlowFormulation
+function constraint_link_flow(wm::AbstractDirectedFlowModel, n::Int, a::Int)
     q = var(wm, n, :q, a)
     qp = var(wm, n, :qp, a)
     qn = var(wm, n, :qn, a)
@@ -255,7 +255,7 @@ function constraint_link_flow(wm::GenericWaterModel{T}, n::Int, a::Int) where T 
 end
 
 
-function constraint_check_valve(wm::GenericWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int)
+function constraint_check_valve(wm::AbstractWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int)
     q = var(wm, n, :q, a)
     h_i = var(wm, n, :h, node_fr)
     h_j = var(wm, n, :h, node_to)
@@ -271,11 +271,11 @@ end
 
 
 # do nothing by default
-function constraint_sink_flow(wm::GenericWaterModel, n::Int, i::Int, links)
+function constraint_sink_flow(wm::AbstractWaterModel, n::Int, i::Int, links)
 end
 
 "Constraint to ensure at least one direction is set to take flow to a junction with demand."
-function constraint_sink_flow(wm::GenericWaterModel{T}, n::Int, i::Int, links) where T <: AbstractDirectedFlowFormulation
+function constraint_sink_flow(wm::AbstractDirectedFlowModel, n::Int, i::Int, links)
     # Collect the required variables.
     x_dir = var(wm, n, :x_dir)
     out_arcs = filter(a -> i == a.second["node_fr"], links)
@@ -290,11 +290,11 @@ end
 
 
 # do nothing by default
-function constraint_source_flow(wm::GenericWaterModel, n::Int, i::Int, links)
+function constraint_source_flow(wm::AbstractWaterModel, n::Int, i::Int, links)
 end
 
 "Constraint to ensure at least one direction is set to take flow away from a source."
-function constraint_source_flow(wm::GenericWaterModel{T}, n::Int, i::Int, links) where T <: AbstractDirectedFlowFormulation
+function constraint_source_flow(wm::AbstractDirectedFlowModel, n::Int, i::Int, links)
     # Collect the required variables.
     x_dir = var(wm, n, :x_dir)
     out_arcs = filter(a -> i == a.second["node_fr"], links)
@@ -308,14 +308,14 @@ function constraint_source_flow(wm::GenericWaterModel{T}, n::Int, i::Int, links)
 end
 
 # no generic implementation available
-#function constraint_potential_loss_pump(wm::GenericWaterModel, n::Int, i::Int)
+#function constraint_potential_loss_pump(wm::AbstractWaterModel, n::Int, i::Int)
 #end
 
 # no generic implementation available
-#function constraint_head_gain_pump_quadratic_fit(wm::GenericWaterModel, n::Int, i::Int)
+#function constraint_head_gain_pump_quadratic_fit(wm::AbstractWaterModel, n::Int, i::Int)
 #end
 
-function constraint_pump_control_tank(wm::GenericWaterModel, n_1::Int, n_2::Int, a::Int, i::Int, lt::Float64, gt::Float64, elevation::Float64)
+function constraint_pump_control_tank(wm::AbstractWaterModel, n_1::Int, n_2::Int, a::Int, i::Int, lt::Float64, gt::Float64, elevation::Float64)
     h = var(wm, n_2, :h, i)
     x_p = var(wm, n_2, :x_pump, a)
     x_lt = var(wm, n_2, :x_thrs_lt, a)
@@ -348,18 +348,18 @@ function constraint_pump_control_tank(wm::GenericWaterModel, n_1::Int, n_2::Int,
     c_14 = JuMP.@constraint(wm.model, w_1 + w_2 == x_p)
 end
 
-function constraint_pump_control_initial(wm::GenericWaterModel, n::Int, a::Int, status::Bool)
+function constraint_pump_control_initial(wm::AbstractWaterModel, n::Int, a::Int, status::Bool)
     x = var(wm, n, :x_pump, a)
     c_1 = JuMP.@constraint(wm.model, x == status)
 end
 
-function constraint_tank_state_initial(wm::GenericWaterModel, n::Int, i::Int, V_0::Float64, time_step::Float64)
+function constraint_tank_state_initial(wm::AbstractWaterModel, n::Int, i::Int, V_0::Float64, time_step::Float64)
     V = var(wm, n, :V, i)
     c = JuMP.@constraint(wm.model, V == V_0)
     con(wm, n, :tank_state)[i] = c
 end
 
-function constraint_tank_state(wm::GenericWaterModel, n_1::Int, n_2::Int, i::Int, time_step::Float64)
+function constraint_tank_state(wm::AbstractWaterModel, n_1::Int, n_2::Int, i::Int, time_step::Float64)
     q_t = var(wm, n_1, :q_t, i)
     V_1 = var(wm, n_1, :V, i)
     V_2 = var(wm, n_2, :V, i)

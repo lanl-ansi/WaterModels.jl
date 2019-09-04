@@ -1,56 +1,31 @@
-"root of the water formulation type hierarchy"
-abstract type AbstractWaterFormulation end
+"Root of the water formulation type hierarchy."
+abstract type AbstractWaterModel end
 
-"""
-```
-type GenericWaterModel{T<:AbstractWaterFormulation}
-    model::JuMP.Model
+"A macro for adding the base WaterModels fields to a type definition."
+InfrastructureModels.@def wm_fields begin
+    model::JuMP.AbstractModel
+
     data::Dict{String,<:Any}
     setting::Dict{String,<:Any}
     solution::Dict{String,<:Any}
-    ref::Dict{Symbol,<:Any} # Reference data
-    var::Dict{Symbol,<:Any} # JuMP variables
-    con::Dict{Symbol,<:Any} # JuMP constraint references
-    ext::Dict{Symbol,<:Any} # User extentions
-    fun::Dict{Symbol,<:Any} # JuMP registered functions
-    cnw::Int                # Current network index value
-end
-```
-where
 
-* `data` is the original data, usually from reading in a `.inp` file,
-* `setting` usually looks something like `Dict("output" => Dict("flows" => true))`, and
-* `ref` is a place to store commonly-used precomputed data from the data dictionary,
-  primarily for converting datatypes, filtering deactivated components, and storing
-  system-wide values that need to be computed globally. See `build_ref(data)` for further details.
-
-Methods on `GenericWaterModel` for defining variables and adding constraints should
-
-* work with the `ref` dict, rather than the original `data` dict,
-* add them to `model::JuMP.Model`, and
-* follow the conventions for variable and constraint names.
-"""
-mutable struct GenericWaterModel{T<:AbstractWaterFormulation}
-    model::JuMP.Model
-
-    data::Dict{String, <:Any}
-    setting::Dict{String, <:Any}
-    solution::Dict{String, <:Any}
-
-    ref::Dict{Symbol, <:Any}
-    var::Dict{Symbol, <:Any}
-    con::Dict{Symbol, <:Any}
-    fun::Dict{Symbol, <:Any}
+    ref::Dict{Symbol,<:Any}
+    var::Dict{Symbol,<:Any}
+    con::Dict{Symbol,<:Any}
+    fun::Dict{Symbol,<:Any}
     cnw::Int
 
     # Extensions should define a type to hold information particular to
     # their functionality, and store an instance of the type in this
     # dictionary keyed on an extension-specific symbol.
-    ext::Dict{Symbol, <:Any}
+    ext::Dict{Symbol,<:Any}
 end
 
-function GenericWaterModel(data::Dict{String, <:Any}, T::DataType; ext = Dict{Symbol, Any}(), setting = Dict{String, Any}(), jump_model::JuMP.Model=JuMP.Model(), kwargs...)
-    ref = build_ref(data)
+function InitializeWaterModel(WaterModel::Type, data::Dict{String,<:Any}; ext = Dict{Symbol,Any}(), setting = Dict{String,Any}(), jump_model::JuMP.AbstractModel=JuMP.Model(), kwargs...)
+    @assert WaterModel <: AbstractWaterModel
+
+    ref = InfrastructureModels.ref_initialize(data, _wm_global_keys)
+
     var = Dict{Symbol, Any}(:nw => Dict{Int, Any}())
     con = Dict{Symbol, Any}(:nw => Dict{Int, Any}())
     fun = Dict{Symbol, Any}()
@@ -62,7 +37,7 @@ function GenericWaterModel(data::Dict{String, <:Any}, T::DataType; ext = Dict{Sy
 
     cnw = minimum([k for k in keys(var[:nw])])
 
-    wm = GenericWaterModel{T}(
+    wm = WaterModel(
              jump_model,
              data,
              setting,
@@ -79,53 +54,52 @@ end
 
 # Helper functions for working with multinetworks.
 ""
-ismultinetwork(wm::GenericWaterModel) = (length(wm.ref[:nw]) > 1)
+ismultinetwork(wm::AbstractWaterModel) = (length(wm.ref[:nw]) > 1)
 
 ""
-nw_ids(wm::GenericWaterModel) = keys(wm.ref[:nw])
+nw_ids(wm::AbstractWaterModel) = keys(wm.ref[:nw])
 
 ""
-nws(wm::GenericWaterModel) = wm.ref[:nw]
+nws(wm::AbstractWaterModel) = wm.ref[:nw]
 
 ""
-ids(wm::GenericWaterModel, nw::Int, key::Symbol) = keys(wm.ref[:nw][nw][key])
-ids(wm::GenericWaterModel, key::Symbol; nw::Int=wm.cnw) = keys(wm.ref[:nw][nw][key])
+ids(wm::AbstractWaterModel, nw::Int, key::Symbol) = keys(wm.ref[:nw][nw][key])
+ids(wm::AbstractWaterModel, key::Symbol; nw::Int=wm.cnw) = keys(wm.ref[:nw][nw][key])
 
 ""
-ref(wm::GenericWaterModel, nw::Int) = wm.ref[:nw][nw]
-ref(wm::GenericWaterModel, nw::Int, key::Symbol) = wm.ref[:nw][nw][key]
-ref(wm::GenericWaterModel, nw::Int, key::Symbol, idx) = wm.ref[:nw][nw][key][idx]
-ref(wm::GenericWaterModel, nw::Int, key::Symbol, idx, param::String) = wm.ref[:nw][nw][key][idx][param]
+ref(wm::AbstractWaterModel, nw::Int) = wm.ref[:nw][nw]
+ref(wm::AbstractWaterModel, nw::Int, key::Symbol) = wm.ref[:nw][nw][key]
+ref(wm::AbstractWaterModel, nw::Int, key::Symbol, idx) = wm.ref[:nw][nw][key][idx]
+ref(wm::AbstractWaterModel, nw::Int, key::Symbol, idx, param::String) = wm.ref[:nw][nw][key][idx][param]
 
-ref(wm::GenericWaterModel; nw::Int=wm.cnw) = wm.ref[:nw][nw]
-ref(wm::GenericWaterModel, key::Symbol; nw::Int=wm.cnw) = wm.ref[:nw][nw][key]
-ref(wm::GenericWaterModel, key::Symbol, idx; nw::Int=wm.cnw) = wm.ref[:nw][nw][key][idx]
+ref(wm::AbstractWaterModel; nw::Int=wm.cnw) = wm.ref[:nw][nw]
+ref(wm::AbstractWaterModel, key::Symbol; nw::Int=wm.cnw) = wm.ref[:nw][nw][key]
+ref(wm::AbstractWaterModel, key::Symbol, idx; nw::Int=wm.cnw) = wm.ref[:nw][nw][key][idx]
 
-""
-var(wm::GenericWaterModel, nw::Int) = wm.var[:nw][nw]
-var(wm::GenericWaterModel, nw::Int, key::Symbol) = wm.var[:nw][nw][key]
-var(wm::GenericWaterModel, nw::Int, key::Symbol, idx) = wm.var[:nw][nw][key][idx]
 
-var(wm::GenericWaterModel; nw::Int=wm.cnw) = wm.var[:nw][nw]
-var(wm::GenericWaterModel, key::Symbol; nw::Int=wm.cnw) = wm.var[:nw][nw][key]
-var(wm::GenericWaterModel, key::Symbol, idx; nw::Int=wm.cnw) = wm.var[:nw][nw][key][idx]
+var(wm::AbstractWaterModel, nw::Int) = wm.var[:nw][nw]
+var(wm::AbstractWaterModel, nw::Int, key::Symbol) = wm.var[:nw][nw][key]
+var(wm::AbstractWaterModel, nw::Int, key::Symbol, idx) = wm.var[:nw][nw][key][idx]
 
-""
-con(wm::GenericWaterModel, nw::Int) = wm.con[:nw][nw]
-con(wm::GenericWaterModel, nw::Int, key::Symbol) = wm.con[:nw][nw][key]
-con(wm::GenericWaterModel, nw::Int, key::Symbol, idx) = wm.con[:nw][nw][key][idx]
-
-con(wm::GenericWaterModel; nw::Int=wm.cnw) = wm.con[:nw][nw]
-con(wm::GenericWaterModel, key::Symbol; nw::Int=wm.cnw) = wm.con[:nw][nw][key]
-con(wm::GenericWaterModel, key::Symbol, idx; nw::Int=wm.cnw) = wm.con[:nw][nw][key][idx]
+var(wm::AbstractWaterModel; nw::Int=wm.cnw) = wm.var[:nw][nw]
+var(wm::AbstractWaterModel, key::Symbol; nw::Int=wm.cnw) = wm.var[:nw][nw][key]
+var(wm::AbstractWaterModel, key::Symbol, idx; nw::Int=wm.cnw) = wm.var[:nw][nw][key][idx]
 
 ""
-fun(wm::GenericWaterModel) = wm.fun
-fun(wm::GenericWaterModel, key::Symbol) = wm.fun[key]
+con(wm::AbstractWaterModel, nw::Int) = wm.con[:nw][nw]
+con(wm::AbstractWaterModel, nw::Int, key::Symbol) = wm.con[:nw][nw][key]
+con(wm::AbstractWaterModel, nw::Int, key::Symbol, idx) = wm.con[:nw][nw][key][idx]
+
+con(wm::AbstractWaterModel; nw::Int=wm.cnw) = wm.con[:nw][nw]
+con(wm::AbstractWaterModel, key::Symbol; nw::Int=wm.cnw) = wm.con[:nw][nw][key]
+con(wm::AbstractWaterModel, key::Symbol, idx; nw::Int=wm.cnw) = wm.con[:nw][nw][key][idx]
 
 ""
-function optimize!(wm::GenericWaterModel, optimizer::JuMP.OptimizerFactory)
-    if wm.model.moi_backend.state == MOIU.NO_OPTIMIZER
+fun(wm::AbstractWaterModel) = wm.fun
+fun(wm::AbstractWaterModel, key::Symbol) = wm.fun[key]
+
+function JuMP.optimize!(wm::AbstractWaterModel, optimizer::JuMP.OptimizerFactory)
+    if wm.model.moi_backend.state == _MOI.Utilities.NO_OPTIMIZER
         _, solve_time, solve_bytes_alloc, sec_in_gc = @timed JuMP.optimize!(wm.model, optimizer)
     else
         Memento.warn(_LOGGER, "Model already contains optimizer factory, cannot use optimizer specified in `solve_generic_model`")
@@ -133,69 +107,95 @@ function optimize!(wm::GenericWaterModel, optimizer::JuMP.OptimizerFactory)
     end
 
     try
-        solve_time = MOI.get(wm.model, MOI.SolveTime())
+        solve_time = _MOI.get(wm.model, _MOI.SolveTime())
     catch
-        Memento.warn(_LOGGER, "The given optimizer does not provide the SolveTime() attribute, falling back on @timed. This is not a rigorous timing value.");
+        Memento.warn(_LOGGER, "the given optimizer does not provide the SolveTime() attribute, falling back on @timed.  This is not a rigorous timing value.");
     end
 
-    return JuMP.termination_status(wm.model), JuMP.primal_status(wm.model), solve_time
+    return solve_time
 end
 
 ""
-function run_generic_model(file::String, model_constructor, optimizer, post_method; relaxed::Bool=false, kwargs...)
+function run_model(file::String, model_type::Type, optimizer, post_method; kwargs...)
     data = WaterModels.parse_file(file)
-    return run_generic_model(data, model_constructor, optimizer, post_method, relaxed=relaxed; kwargs...)
+    return run_model(data, model_type, optimizer, post_method; kwargs...)
 end
 
 ""
-function run_generic_model(data::Dict{String, <:Any}, model_constructor, optimizer, post_method; relaxed::Bool=false, solution_builder=get_solution, kwargs...)
-    wm = build_generic_model(data, model_constructor, post_method; kwargs...)
-    #wm, time, bytes_alloc, sec_in_gc = @timed build_generic_model(data, model_constructor, post_method; kwargs...)
-    #println("model build time: $(time)")
+function run_model(data::Dict{String,<:Any}, model_type::Type, optimizer, post_method; ref_extensions=[], solution_builder=solution_owf!, kwargs...)
+    #start_time = time()
+    wm = build_model(data, model_type, post_method; ref_extensions=ref_extensions, kwargs...)
+    #Memento.debug(_LOGGER, "wm model build time: $(time() - start_time)")
 
-    solution = solve_generic_model(wm, optimizer, relaxed=relaxed; solution_builder = solution_builder)
-    #solution, time, bytes_alloc, sec_in_gc = @timed solve_generic_model(wm, optimizer; solution_builder = solution_builder)
-    #println("solution time: $(time)")
+    #start_time = time()
+    result = optimize_model!(wm, optimizer; solution_builder=solution_builder)
+    #Memento.debug(_LOGGER, "wm model solve and solution time: $(time() - start_time)")
 
-    return solution
+    return result
 end
 
 ""
-function build_generic_model(file::String, model_constructor, post_method; kwargs...)
+function build_model(file::String, model_type::Type, post_method; kwargs...)
     data = WaterModels.parse_file(file)
-    return build_generic_model(data, model_constructor, post_method; kwargs...)
+    return build_model(data, model_type, post_method; kwargs...)
 end
 
 ""
-function build_generic_model(data::Dict{String, <:Any}, model_constructor, post_method; multinetwork=false, kwargs...)
+function build_model(data::Dict{String,<:Any}, model_type::Type, post_method; ref_extensions=[], multinetwork=false, kwargs...)
     # NOTE, this model constructor will build the ref dict using the latest info from the data
-    wm = model_constructor(data; kwargs...)
+
+    #start_time = time()
+    wm = InitializeWaterModel(model_type, data; kwargs...)
+    #Memento.info(LOGGER, "wm model_type time: $(time() - start_time)")
 
     if !multinetwork && ismultinetwork(wm)
-        Memento.error(_LOGGER, "Attempted to build a single-network model with multi-network data.")
+        Memento.error(_LOGGER, "attempted to build a single-network model with multi-network data")
     end
 
-    if multinetwork && !ismultinetwork(wm)
-        Memento.error(_LOGGER, "Attempted to build a multi-network model with single-network data.")
+    start_time = time()
+    ref_add_core!(wm)
+    for ref_ext in ref_extensions
+        ref_ext(wm)
     end
+    Memento.debug(_LOGGER, "wm build ref time: $(time() - start_time)")
 
+    start_time = time()
     post_method(wm)
+    Memento.debug(_LOGGER, "wm post_method time: $(time() - start_time)")
 
     return wm
 end
 
 ""
-function solve_generic_model(wm::GenericWaterModel, optimizer::JuMP.OptimizerFactory; relaxed::Bool=false, solution_builder = get_solution)
-    if relaxed
-        relax_integrality!(wm)
+function optimize_model!(wm::AbstractWaterModel, optimizer::JuMP.OptimizerFactory; solution_builder = solution_owf!)
+    start_time = time()
+    solve_time = JuMP.optimize!(wm, optimizer)
+    Memento.debug(_LOGGER, "JuMP model optimize time: $(time() - start_time)")
+
+    start_time = time()
+    result = build_solution(wm, solve_time; solution_builder = solution_builder)
+    Memento.debug(_LOGGER, "WaterModels solution build time: $(time() - start_time)")
+
+    wm.solution = result["solution"]
+
+    return result
+end
+
+
+"used for building ref without the need to build a initialize an AbstractWaterModel"
+function build_ref(data::Dict{String,<:Any}; ref_extensions=[])
+    ref = InfrastructureModels.ref_initialize(data, _wm_global_keys)
+    _ref_add_core!(ref[:nw])
+
+    for ref_ext in ref_extensions
+        ref_ext(wm)
     end
 
-    termination_status, primal_status, solve_time = optimize!(wm, optimizer)
-    solution = build_solution(wm, solve_time; solution_builder = solution_builder)
-    #solution, time, bytes_alloc, sec_in_gc = @timed build_solution(wm, solve_time; solution_builder = solution_builder)
-    #println("build_solution time: $(time)")
+    return ref
+end
 
-    return solution
+function ref_add_core!(wm::AbstractWaterModel)
+    _ref_add_core!(wm.ref[:nw])
 end
 
 """
@@ -216,38 +216,20 @@ Some of the common keys include:
 * `:emitters` -- the set of emitters in the network,
 * `:nodes` -- the set of all nodes in the network
 """
-function build_ref(data::Dict{String, <:Any})
-    refs = Dict{Symbol, Any}()
-
-    nws = refs[:nw] = Dict{Int, Any}()
-
-    if InfrastructureModels.ismultinetwork(data)
-        for (key, item) in data
-            if !isa(item, Dict{String, Any}) || key in _wm_global_keys
-                refs[Symbol(key)] = item
-            end
-        end
-        nws_data = data["nw"]
-    else
-        nws_data = Dict("0" => data)
-    end
-
-    for (n, nw_data) in nws_data
-        nw_id = parse(Int, n)
-        ref = nws[nw_id] = Dict{Symbol, Any}()
-
-        for (key, item) in nw_data
-            if isa(item, Dict{String, Any})
-                try
-                    item_lookup = Dict{Int, Any}([(parse(Int, k), v) for (k, v) in item])
-                    ref[Symbol(key)] = item_lookup
-                catch
-                    ref[Symbol(key)] = item
-                end
-            else
-                ref[Symbol(key)] = item
-            end
-        end
+function _ref_add_core!(nw_refs::Dict)
+    for (nw, ref) in nw_refs
+        #for (key, item) in nw_data
+        #    if isa(item, Dict{String, Any})
+        #        try
+        #            item_lookup = Dict{Int, Any}([(parse(Int, k), v) for (k, v) in item])
+        #            ref[Symbol(key)] = item_lookup
+        #        catch
+        #            ref[Symbol(key)] = item
+        #        end
+        #    else
+        #        ref[Symbol(key)] = item
+        #    end
+        #end
 
         ref[:links] = merge(ref[:pipes], ref[:valves], ref[:pumps])
         ref[:pipes_ne] = filter(is_ne_link, ref[:pipes])
@@ -311,6 +293,19 @@ function build_ref(data::Dict{String, <:Any})
         ref[:resistance] = calc_resistances(ref[:pipes], viscosity, headloss)
         ref[:resistance_cost] = calc_resistance_costs(ref[:pipes], viscosity, headloss)
     end
+end
 
-    return refs
+"Checks if any of the given keys are missing from the given dict."
+function _check_missing_keys(dict, keys, formulation_type)
+    missing_keys = []
+
+    for key in keys
+        if !haskey(dict, key)
+            push!(missing_keys, key)
+        end
+    end
+
+    if length(missing_keys) > 0
+        error(_LOGGER, "The formulation $(formulation_type) requires the variable(s) $(keys), but the $(missing_keys) variable(s) were not found in the model.")
+    end
 end
