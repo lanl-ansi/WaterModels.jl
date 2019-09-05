@@ -24,12 +24,12 @@
     #    solution = WaterModels.optimize_model!(wm, juniper)
 
     #    @test solution["termination_status"] == LOCALLY_SOLVED
-    #    @test isapprox(solution["solution"]["nw"]["1"]["nodes"]["17"]["h"], 243.052536, rtol=1.0e-3)
-    #    @test isapprox(solution["solution"]["nw"]["1"]["nodes"]["39"]["h"], 187.250000, rtol=1.0e-3)
-    #    @test isapprox(solution["solution"]["nw"]["1"]["nodes"]["45"]["h"], 243.120010, rtol=1.0e-3)
-    #    @test isapprox(solution["solution"]["nw"]["1"]["pipes"]["18"]["q"], 5.308596e-03, rtol=1.0e-3)
-    #    @test isapprox(solution["solution"]["nw"]["1"]["pipes"]["44"]["q"], 9.160000e-03, rtol=1.0e-3)
-    #    @test isapprox(solution["solution"]["nw"]["1"]["pumps"]["47"]["q"], 0.00000000, atol=1.0e-7)
+    #    @test isapprox(solution["solution"]["nw"]["1"]["node"]["17"]["h"], 243.052536, rtol=1.0e-3)
+    #    @test isapprox(solution["solution"]["nw"]["1"]["node"]["39"]["h"], 187.250000, rtol=1.0e-3)
+    #    @test isapprox(solution["solution"]["nw"]["1"]["node"]["45"]["h"], 243.120010, rtol=1.0e-3)
+    #    @test isapprox(solution["solution"]["nw"]["1"]["pipe"]["18"]["q"], 5.308596e-03, rtol=1.0e-3)
+    #    @test isapprox(solution["solution"]["nw"]["1"]["pipe"]["44"]["q"], 9.160000e-03, rtol=1.0e-3)
+    #    @test isapprox(solution["solution"]["nw"]["1"]["pump"]["47"]["q"], 0.00000000, atol=1.0e-7)
     #end
 
     @testset "Single-time Richmond network, NCNLP formulation." begin
@@ -40,37 +40,37 @@
         solution = WaterModels.optimize_model!(wm, juniper)
 
         @test solution["termination_status"] == LOCALLY_SOLVED
-        @test isapprox(solution["solution"]["nodes"]["17"]["h"], 243.052536, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nodes"]["39"]["h"], 187.250000, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nodes"]["45"]["h"], 243.120010, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["pipes"]["18"]["q"], 5.308596e-03, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["pipes"]["44"]["q"], 9.160000e-03, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["pumps"]["47"]["q"], 0.00000000, atol=1.0e-7)
+        @test isapprox(solution["solution"]["node"]["17"]["h"], 243.052536, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["node"]["39"]["h"], 187.250000, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["node"]["45"]["h"], 243.120010, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["pipe"]["18"]["q"], 5.308596e-03, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["pipe"]["44"]["q"], 9.160000e-03, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["pump"]["47"]["q"], 0.00000000, atol=1.0e-7)
     end
 
     @testset "Shamir network (unknown flow directions), CNLP formulation." begin
         solution = run_wf(shamir_path, CNLPWaterModel, ipopt)
         @test solution["termination_status"] == LOCALLY_SOLVED
-        @test isapprox(solution["solution"]["pipes"]["2"]["q"], 0.093565, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["pipes"]["6"]["q"], 0.055710, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["pipe"]["2"]["q"], 0.093565, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["pipe"]["6"]["q"], 0.055710, rtol=1.0e-3)
     end
 
     @testset "Shamir network, CNLP formulation." begin
         solution = run_wf(shamir_path, CNLPWaterModel, ipopt)
         @test solution["termination_status"] == LOCALLY_SOLVED
-        @test isapprox(solution["solution"]["pipes"]["2"]["q"], 0.093565, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["pipes"]["6"]["q"], 0.055710, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nodes"]["2"]["h"], 203.247650, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nodes"]["6"]["h"], 195.445953, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["pipe"]["2"]["q"], 0.093565, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["pipe"]["6"]["q"], 0.055710, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["node"]["2"]["h"], 203.247650, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["node"]["6"]["h"], 195.445953, rtol=1.0e-3)
     end
 
     @testset "Shamir network (unknown flow directions), NCNLP formulation." begin
         solution = run_wf(shamir_path, NCNLPWaterModel, ipopt)
         @test solution["termination_status"] == LOCALLY_SOLVED
-        @test isapprox(solution["solution"]["pipes"]["2"]["q"], 0.093565, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["pipes"]["6"]["q"], 0.055710, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nodes"]["2"]["h"], 203.247650, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nodes"]["6"]["h"], 195.445953, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["pipe"]["2"]["q"], 0.093565, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["pipe"]["6"]["q"], 0.055710, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["node"]["2"]["h"], 203.247650, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["node"]["6"]["h"], 195.445953, rtol=1.0e-3)
     end
 
     @testset "Shamir network, multinetwork NCNLP formulation." begin
@@ -80,12 +80,12 @@
         solution = optimize_model!(wm, ipopt)
 
         @test solution["termination_status"] == LOCALLY_SOLVED
-        @test isapprox(solution["solution"]["nw"]["1"]["pipes"]["2"]["q"], 0.09356500, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["1"]["pipes"]["6"]["q"], 0.05571000, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["2"]["pipes"]["2"]["q"], 0.04678500, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["2"]["pipes"]["6"]["q"], 0.02785300, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["3"]["pipes"]["2"]["q"], 0.02339300, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["3"]["pipes"]["6"]["q"], 0.01392600, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["1"]["pipe"]["2"]["q"], 0.09356500, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["1"]["pipe"]["6"]["q"], 0.05571000, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["2"]["pipe"]["2"]["q"], 0.04678500, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["2"]["pipe"]["6"]["q"], 0.02785300, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["3"]["pipe"]["2"]["q"], 0.02339300, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["3"]["pipe"]["6"]["q"], 0.01392600, rtol=1.0e-3)
     end
 
     @testset "Shamir network (with tank), multinetwork NCNLP formulation." begin
@@ -95,21 +95,21 @@
         solution = optimize_model!(wm, ipopt)
 
         @test solution["termination_status"] == LOCALLY_SOLVED
-        @test isapprox(solution["solution"]["nw"]["1"]["pipes"]["2"]["q"], 0.09356500, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["1"]["pipes"]["6"]["q"], 0.05571000, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["2"]["pipes"]["2"]["q"], 0.04678500, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["2"]["pipes"]["6"]["q"], 0.02785300, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["3"]["pipes"]["2"]["q"], 0.02339300, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["3"]["pipes"]["6"]["q"], 0.01392600, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["1"]["nodes"]["1"]["h"], 220.000000, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["1"]["nodes"]["3"]["h"], 200.466599, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["1"]["nodes"]["5"]["h"], 193.808380, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["2"]["nodes"]["1"]["h"], 216.435196, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["2"]["nodes"]["3"]["h"], 211.023941, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["2"]["nodes"]["5"]["h"], 209.179306, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["3"]["nodes"]["1"]["h"], 214.652771, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["3"]["nodes"]["3"]["h"], 213.153824, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["3"]["nodes"]["5"]["h"], 212.642853, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["1"]["pipe"]["2"]["q"], 0.09356500, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["1"]["pipe"]["6"]["q"], 0.05571000, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["2"]["pipe"]["2"]["q"], 0.04678500, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["2"]["pipe"]["6"]["q"], 0.02785300, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["3"]["pipe"]["2"]["q"], 0.02339300, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["3"]["pipe"]["6"]["q"], 0.01392600, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["1"]["node"]["1"]["h"], 220.000000, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["1"]["node"]["3"]["h"], 200.466599, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["1"]["node"]["5"]["h"], 193.808380, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["2"]["node"]["1"]["h"], 216.435196, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["2"]["node"]["3"]["h"], 211.023941, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["2"]["node"]["5"]["h"], 209.179306, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["3"]["node"]["1"]["h"], 214.652771, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["3"]["node"]["3"]["h"], 213.153824, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["3"]["node"]["5"]["h"], 212.642853, rtol=1.0e-3)
     end
 
     @testset "Example 1 network (with tanks and pumps), NCNLP formulation." begin
@@ -120,12 +120,12 @@
         solution = WaterModels.optimize_model!(wm, juniper)
 
         @test solution["termination_status"] == LOCALLY_SOLVED
-        @test isapprox(solution["solution"]["pumps"]["9"]["q"], 0.117737, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["pipes"]["110"]["q"], -0.048338, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["pipes"]["122"]["q"], 0.003734, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nodes"]["9"]["h"], 243.839996, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nodes"]["10"]["h"], 306.125092, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nodes"]["23"]["h"], 295.243073, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["pump"]["9"]["q"], 0.117737, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["pipe"]["110"]["q"], -0.048338, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["pipe"]["122"]["q"], 0.003734, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["node"]["9"]["h"], 243.839996, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["node"]["10"]["h"], 306.125092, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["node"]["23"]["h"], 295.243073, rtol=1.0e-3)
     end
 
     @testset "Example 1 network (with tanks and pumps), multinetwork NCNLP formulation." begin
@@ -137,18 +137,18 @@
         solution = WaterModels.optimize_model!(wm, juniper)
 
         @test solution["termination_status"] == LOCALLY_SOLVED
-        @test isapprox(solution["solution"]["nw"]["1"]["pumps"]["9"]["q"], 0.117737, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["1"]["pipes"]["110"]["q"], -0.048338, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["1"]["pipes"]["122"]["q"], 0.003734, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["1"]["nodes"]["9"]["h"], 243.839996, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["1"]["nodes"]["10"]["h"], 306.125092, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["1"]["nodes"]["23"]["h"], 295.243073, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["3"]["pumps"]["9"]["q"], 0.115926, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["3"]["pipes"]["110"]["q"], -0.032647, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["3"]["pipes"]["122"]["q"], 0.004907, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["3"]["nodes"]["9"]["h"], 243.839996, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["3"]["nodes"]["10"]["h"], 307.325653, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["3"]["nodes"]["23"]["h"], 296.683014, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["1"]["pump"]["9"]["q"], 0.117737, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["1"]["pipe"]["110"]["q"], -0.048338, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["1"]["pipe"]["122"]["q"], 0.003734, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["1"]["node"]["9"]["h"], 243.839996, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["1"]["node"]["10"]["h"], 306.125092, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["1"]["node"]["23"]["h"], 295.243073, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["3"]["pump"]["9"]["q"], 0.115926, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["3"]["pipe"]["110"]["q"], -0.032647, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["3"]["pipe"]["122"]["q"], 0.004907, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["3"]["node"]["9"]["h"], 243.839996, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["3"]["node"]["10"]["h"], 307.325653, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["nw"]["3"]["node"]["23"]["h"], 296.683014, rtol=1.0e-3)
     end
 
     @testset "Shamir network (unknown flow directions), MICP formulation." begin
@@ -163,9 +163,9 @@
     @testset "Shamir network (unknown flow directions), MILPR formulation." begin
         solution = run_wf(shamir_path, MILPRWaterModel, cbc)
         @test solution["termination_status"] == OPTIMAL
-        @test isapprox(solution["solution"]["pipes"]["2"]["q"], 0.093565, rtol=0.05)
-        @test isapprox(solution["solution"]["pipes"]["6"]["q"], 0.055710, rtol=0.05)
-        @test isapprox(solution["solution"]["nodes"]["2"]["h"], 203.247650, rtol=0.05)
-        @test isapprox(solution["solution"]["nodes"]["6"]["h"], 195.445953, rtol=0.05)
+        @test isapprox(solution["solution"]["pipe"]["2"]["q"], 0.093565, rtol=0.05)
+        @test isapprox(solution["solution"]["pipe"]["6"]["q"], 0.055710, rtol=0.05)
+        @test isapprox(solution["solution"]["node"]["2"]["h"], 203.247650, rtol=0.05)
+        @test isapprox(solution["solution"]["node"]["6"]["h"], 195.445953, rtol=0.05)
     end
 end

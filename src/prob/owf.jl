@@ -13,7 +13,7 @@ function post_owf(wm::AbstractWaterModel)
     variable_volume(wm)
     variable_pump(wm)
 
-    for (a, pipe) in ref(wm, :pipes)
+    for (a, pipe) in ref(wm, :pipe)
         constraint_link_flow(wm, a)
 
         # TODO: Call this something other than status.
@@ -25,12 +25,12 @@ function post_owf(wm::AbstractWaterModel)
         end
     end
 
-    for a in ids(wm, :pumps)
+    for a in ids(wm, :pump)
         constraint_link_flow(wm, a)
         constraint_potential_loss_pump(wm, a)
     end
 
-    for (i, node) in ref(wm, :nodes)
+    for (i, node) in ref(wm, :node)
         constraint_flow_conservation(wm, i)
 
         #if junction["demand"] > 0.0
@@ -38,11 +38,11 @@ function post_owf(wm::AbstractWaterModel)
         #end
     end
 
-    #for i in collect(ids(wm, :reservoirs))
+    #for i in collect(ids(wm, :reservoir))
     #    constraint_source_flow(wm, i)
     #end
 
-    for i in ids(wm, :tanks)
+    for i in ids(wm, :tank)
         constraint_link_volume(wm, i)
         constraint_tank_state(wm, i)
     end
@@ -66,7 +66,7 @@ function post_mn_owf(wm::AbstractWaterModel)
         variable_volume(wm, n)
         variable_pump(wm, n)
 
-        for (a, pipe) in ref(wm, :pipes, nw=n)
+        for (a, pipe) in ref(wm, :pipe, nw=n)
             constraint_link_flow(wm, a, nw=n)
 
             # TODO: Call this something other than status.
@@ -78,12 +78,12 @@ function post_mn_owf(wm::AbstractWaterModel)
             end
         end
 
-        for a in ids(wm, :pumps, nw=n)
+        for a in ids(wm, :pump, nw=n)
             constraint_link_flow(wm, a, nw=n)
             constraint_potential_loss_pump(wm, a, nw=n)
         end
 
-        for (i, node) in ref(wm, :nodes, nw=n)
+        for (i, node) in ref(wm, :node, nw=n)
             constraint_flow_conservation(wm, i, nw=n)
 
             #if junction["demand"] > 0.0
@@ -91,11 +91,11 @@ function post_mn_owf(wm::AbstractWaterModel)
             #end
         end
 
-        #for i in collect(ids(wm, n, :reservoirs))
+        #for i in collect(ids(wm, n, :reservoir))
         #    constraint_source_flow(wm, i, nw=n)
         #end
  
-        for i in ids(wm, :tanks, nw=n)
+        for i in ids(wm, :tank, nw=n)
             constraint_link_volume(wm, i, nw=n)
         end
     end
@@ -105,13 +105,13 @@ function post_mn_owf(wm::AbstractWaterModel)
     n_1 = network_ids[1]
 
     # Initial conditions of tanks.
-    for i in ids(wm, :tanks, nw=n_1)
+    for i in ids(wm, :tank, nw=n_1)
         constraint_tank_state(wm, i, nw=n_1)
     end
 
     # Pump and tank states after the initial time step.
     for n_2 in network_ids[2:end]
-        for i in ids(wm, :tanks, nw=n_2)
+        for i in ids(wm, :tank, nw=n_2)
             constraint_tank_state(wm, i, n_1, n_2)
         end
 

@@ -32,8 +32,8 @@ function objective_wf(wm::AbstractCNLPModel, n::Int=wm.cnw)
     q_r = var(wm, n, :q_r)
 
     return JuMP.@NLobjective(wm.model, _MOI.MIN_SENSE,
-        sum(-q_r[i] * res["head"] for (i, res) in ref(wm, n, :reservoirs)) +
+        sum(-q_r[i] * res["head"] for (i, res) in ref(wm, n, :reservoir)) +
         sum(link["length"] * ref(wm, n, :resistance, a)[1] *
         (head_loss(q_p[a]) + head_loss(q_n[a]))
-        for (a, link) in ref(wm, n, :links)))
+        for (a, link) in ref(wm, n, :link)))
 end

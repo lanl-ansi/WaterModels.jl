@@ -15,34 +15,34 @@ function post_ne(wm::AbstractWaterModel)
     variable_flow_ne(wm)
     variable_resistance_ne(wm)
 
-    for a in ids(wm, :links)
+    for a in ids(wm, :link)
         constraint_link_flow(wm, a)
     end
 
-    for a in setdiff(ids(wm, :pipes), ids(wm, :pipes_ne))
+    for a in setdiff(ids(wm, :pipe), ids(wm, :pipe_ne))
         constraint_potential_loss_pipe(wm, a)
     end
 
-    for a in ids(wm, :check_valves)
+    for a in ids(wm, :check_valve)
         constraint_check_valve(wm, a)
         constraint_potential_loss_check_valve(wm, a)
     end
 
-    for a in ids(wm, :pipes_ne)
+    for a in ids(wm, :pipe_ne)
         constraint_potential_loss_pipe_ne(wm, a)
         constraint_resistance_selection_ne(wm, a)
         constraint_link_flow_ne(wm, a)
     end
 
-    for a in ids(wm, :pumps)
+    for a in ids(wm, :pump)
         constraint_potential_loss_pump(wm, a)
     end
 
-    for a in ids(wm, :check_valves)
+    for a in ids(wm, :check_valve)
         constraint_check_valve(wm, a)
     end
 
-    for (i, node) in ref(wm, :nodes)
+    for (i, node) in ref(wm, :node)
         constraint_flow_conservation(wm, i)
 
         #if junction["demand"] > 0.0
@@ -50,11 +50,11 @@ function post_ne(wm::AbstractWaterModel)
         #end
     end
 
-    for i in ids(wm, :tanks)
+    for i in ids(wm, :tank)
         constraint_link_volume(wm, i)
     end
 
-    #for i in collect(ids(wm, :reservoirs))
+    #for i in collect(ids(wm, :reservoir))
     #    constraint_source_flow(wm, i)
     #end
 

@@ -7,9 +7,9 @@ function export_geojson(data::Dict{String, <:Any}, path::String)
 end
 
 function export_geojson(data::Dict{String, <:Any})
-    nodes = merge(data["junctions"], data["reservoirs"])
+    nodes = merge(data["junction"], data["reservoir"])
     node_features = build_nodes_geojson(nodes)
-    links = merge(data["pipes"], data["valves"])
+    links = merge(data["pipe"], data["valve"])
     link_features = build_links_geojson(links, nodes)
     features = vcat(node_features, link_features)
     return Dict("type" => "FeatureCollection", "features" => features)

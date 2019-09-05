@@ -1,11 +1,3 @@
-#"Maps component types to status parameters."
-#const wm_component_status = Dict("nodes" => "status", "pipes" => "status",
-#                                 "pumps" => "status", "tanks" => "status")
-#
-#"Maps component types to inactive status values."
-#const wm_component_status_inactive = Dict("nodes" => 0, "pipes" => 0,
-#                                          "pumps" => 0, "tanks" => 0)
-
 # Functions for working with the WaterModels data format.
 function calc_resistance_hw(diameter::Float64, roughness::Float64)
     return 10.67 * inv(roughness^1.852 * diameter^4.87)
@@ -215,29 +207,29 @@ function make_multinetwork(data::Dict{String, <:Any}; global_keys::Set{String}=S
 end
 
 function set_start_head!(data)
-    for (i, node) in data["nodes"]
+    for (i, node) in data["node"]
         node["h_start"] = node["h"]
     end
 end
 
 function set_start_undirected_flow_rate!(data::Dict{String, <:Any})
-    for (a, pipe) in data["pipes"]
+    for (a, pipe) in data["pipe"]
         pipe["q_start"] = pipe["q"]
     end
 end
 
 function set_start_directed_flow_rate!(data::Dict{String, <:Any})
-    for (a, pipe) in data["pipes"]
+    for (a, pipe) in data["pipe"]
         pipe["qn_start"] = pipe["q"] < 0.0 ? abs(pipe["q"]) : 0.0
         pipe["qp_start"] = pipe["q"] >= 0.0 ? abs(pipe["q"]) : 0.0
     end
 end
 
 function set_start_directed_head_difference!(data::Dict{String, <:Any})
-    head_loss_type = data["options"]["headloss"]
+    head_loss_type = data["option"]["headloss"]
     alpha = head_loss_type == "H-W" ? 1.852 : 2.0
 
-    for (a, pipe) in data["pipes"]
+    for (a, pipe) in data["pipe"]
         dh_abs = pipe["length"] * pipe["r"] * abs(pipe["q"])^(alpha)
         pipe["dhn_start"] = pipe["q"] < 0.0 ? dh_abs : 0.0
         pipe["dhp_start"] = pipe["q"] >= 0.0 ? dh_abs : 0.0
@@ -245,11 +237,11 @@ function set_start_directed_head_difference!(data::Dict{String, <:Any})
 end
 
 function set_start_resistance_ne!(data::Dict{String, <:Any})
-    viscosity = data["options"]["hydraulic"]["viscosity"]
-    head_loss_type = data["options"]["hydraulic"]["headloss"]
-    resistances = calc_resistances(data["pipes"], viscosity, head_loss_type)
+    viscosity = data["option"]["hydraulic"]["viscosity"]
+    head_loss_type = data["option"]["hydraulic"]["headloss"]
+    resistances = calc_resistances(data["pipe"], viscosity, head_loss_type)
 
-    for (a, pipe) in filter(is_ne_link, data["pipes"])
+    for (a, pipe) in filter(is_ne_link, data["pipe"])
         num_resistances = length(resistances[a])
         pipe["x_res_start"] = zeros(Float64, num_resistances)
         r_id = findfirst(r -> isapprox(r, pipe["r"], rtol=1.0e-4), resistances[a])
@@ -258,11 +250,11 @@ function set_start_resistance_ne!(data::Dict{String, <:Any})
 end
 
 function set_start_undirected_flow_rate_ne!(data::Dict{String, <:Any})
-    viscosity = data["options"]["hydraulic"]["viscosity"]
-    head_loss_type = data["options"]["hydraulic"]["headloss"]
-    resistances = calc_resistances(data["pipes"], viscosity, head_loss_type)
+    viscosity = data["option"]["hydraulic"]["viscosity"]
+    head_loss_type = data["option"]["hydraulic"]["headloss"]
+    resistances = calc_resistances(data["pipe"], viscosity, head_loss_type)
 
-    for (a, pipe) in filter(is_ne_link, data["pipes"])
+    for (a, pipe) in filter(is_ne_link, data["pipe"])
         num_resistances = length(resistances[a])
         pipe["q_ne_start"] = zeros(Float64, num_resistances)
         r_id = findfirst(r -> isapprox(r, pipe["r"], rtol=1.0e-4), resistances[a])
@@ -271,11 +263,11 @@ function set_start_undirected_flow_rate_ne!(data::Dict{String, <:Any})
 end
 
 function set_start_directed_flow_rate_ne!(data::Dict{String, <:Any})
-    viscosity = data["options"]["hydraulic"]["viscosity"]
-    head_loss_type = data["options"]["hydraulic"]["headloss"]
-    resistances = calc_resistances(data["pipes"], viscosity, head_loss_type)
+    viscosity = data["option"]["hydraulic"]["viscosity"]
+    head_loss_type = data["option"]["hydraulic"]["headloss"]
+    resistances = calc_resistances(data["pipe"], viscosity, head_loss_type)
 
-    for (a, pipe) in filter(is_ne_link, data["pipes"])
+    for (a, pipe) in filter(is_ne_link, data["pipe"])
         num_resistances = length(resistances[a])
         pipe["qp_ne_start"] = zeros(Float64, num_resistances)
         pipe["qn_ne_start"] = zeros(Float64, num_resistances)
@@ -287,7 +279,7 @@ function set_start_directed_flow_rate_ne!(data::Dict{String, <:Any})
 end
 
 function set_start_flow_direction!(data::Dict{String, <:Any})
-    for (a, pipe) in data["pipes"]
+    for (a, pipe) in data["pipe"]
         pipe["x_dir_start"] = pipe["q"] >= 0.0 ? 1.0 : 0.0
     end
 end

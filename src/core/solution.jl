@@ -13,13 +13,13 @@ function build_solution(wm::AbstractWaterModel, solve_time; solution_builder=sol
             wm.cnw = parse(Int, n)
             solution_builder(wm, sol_nw)
             data_nws[n] = Dict("name" => get(nw_data, "name", "anonymous"),
-                               "link_count" => length(ref(wm, :links)),
-                               "node_count" => length(ref(wm, :nodes)))
+                               "link_count" => length(ref(wm, :link)),
+                               "node_count" => length(ref(wm, :node)))
         end
     else
         solution_builder(wm, sol)
-        data["link_count"] = length(ref(wm, :links))
-        data["node_count"] = length(ref(wm, :nodes))
+        data["link_count"] = length(ref(wm, :link))
+        data["node_count"] = length(ref(wm, :node))
     end
 
     solution = Dict{String,Any}(
@@ -56,31 +56,31 @@ end
 
 ""
 function add_setpoint_node_head!(sol, wm::AbstractWaterModel)
-    add_setpoint!(sol, wm, "nodes", "h", :h)
+    add_setpoint!(sol, wm, "node", "h", :h)
 end
 
 ""
 function add_setpoint_node_head!(sol, wm::AbstractCNLPModel)
-    add_dual!(sol, wm, "nodes", "h", :flow_conservation, scale=(x, item) -> -x)
+    add_dual!(sol, wm, "node", "h", :flow_conservation, scale=(x, item) -> -x)
 end
 
 ""
 function add_setpoint_pipe_flow!(sol, wm::AbstractWaterModel)
-    add_setpoint!(sol, wm, "pipes", "q", :q)
+    add_setpoint!(sol, wm, "pipe", "q", :q)
 end
 
 ""
 function add_setpoint_pipe_resistance!(sol, wm::AbstractWaterModel)
     if InfrastructureModels.ismultinetwork(wm.data)
-        data_dict = wm.data["nw"]["$(wm.cnw)"]["pipes"]
+        data_dict = wm.data["nw"]["$(wm.cnw)"]["pipe"]
     else
-        data_dict = wm.data["pipes"]
+        data_dict = wm.data["pipe"]
     end
 
-    sol_dict = get(sol, "pipes", Dict{String, Any}())
+    sol_dict = get(sol, "pipe", Dict{String, Any}())
 
     if length(data_dict) > 0
-        sol["pipes"] = sol_dict
+        sol["pipe"] = sol_dict
     end
 
     if :x_res in keys(var(wm))
@@ -108,19 +108,19 @@ end
 
 ""
 function add_setpoint_pump_flow!(sol, wm::AbstractWaterModel)
-    add_setpoint!(sol, wm, "pumps", "q", :q)
+    add_setpoint!(sol, wm, "pump", "q", :q)
 end
 
 function add_setpoint_pump_status!(sol, wm::AbstractWaterModel)
-    add_setpoint!(sol, wm, "pumps", "x_pump", :x_pump)
+    add_setpoint!(sol, wm, "pump", "x_pump", :x_pump)
 end
 
 function add_setpoint_reservoir!(sol, wm::AbstractWaterModel)
-    add_setpoint!(sol, wm, "reservoirs", "q_r", :q_r)
+    add_setpoint!(sol, wm, "reservoir", "q_r", :q_r)
 end
 
 function add_setpoint_tank!(sol, wm::AbstractWaterModel)
-    add_setpoint!(sol, wm, "tanks", "q_t", :q_t)
+    add_setpoint!(sol, wm, "tank", "q_t", :q_t)
 end
 
 "Adds values based on JuMP variables."

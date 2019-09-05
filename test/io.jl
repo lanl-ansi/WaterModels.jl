@@ -27,7 +27,7 @@
 
     @testset "parse_file (.json)" begin
         data = WaterModels.parse_file("../test/data/json/shamir.json")
-        pipe_1_max_velocity = data["pipes"]["1"]["maximumVelocity"]
+        pipe_1_max_velocity = data["pipe"]["1"]["maximumVelocity"]
         @test pipe_1_max_velocity == 2.0
     end
 
@@ -38,7 +38,7 @@
 
     @testset "parse_json" begin
         data = WaterModels.parse_json("../test/data/json/shamir.json")
-        pipe_1_max_velocity = data["pipes"]["1"]["maximumVelocity"]
+        pipe_1_max_velocity = data["pipe"]["1"]["maximumVelocity"]
         @test pipe_1_max_velocity == 2.0
     end
 end

@@ -1,9 +1,11 @@
 WaterModels.jl Change Log
 =========================
 
-### v0.1.1
+### v0.2.0
+- Change to a singular naming convention.
 - Update to use JuMP/MOI status values.
 - Add Optimal Water Flow problem.
+- Add MILP formulations.
 - Add MILP-R formulations.
 
 ### v0.1.0

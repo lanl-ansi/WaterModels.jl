@@ -138,18 +138,18 @@ function objective_owf(wm::AbstractNCNLPModel)
     expr = JuMP.AffExpr(0.0)
 
     for (n, nw_ref) in nws(wm)
-        pump_ids = ids(wm, n, :pumps)
+        pump_ids = ids(wm, n, :pump)
         costs = JuMP.@variable(wm.model, [a in pump_ids], base_name="costs[$(n)]",
-                               start=get_start(ref(wm, n, :pumps), a, "costs", 0.0))
+                               start=get_start(ref(wm, n, :pump), a, "costs", 0.0))
 
         efficiency = 0.85 # TODO: Change this after discussion. 0.85 follows Fooladivanda.
         rho = 1000.0 # Water density.
         g = 9.80665 # Gravitational acceleration.
 
-        time_step = nw_ref[:options]["time"]["hydraulic_timestep"]
+        time_step = nw_ref[:option]["time"]["hydraulic_timestep"]
         constant = rho * g * time_step * inv(efficiency)
 
-        for (a, pump) in nw_ref[:pumps]
+        for (a, pump) in nw_ref[:pump]
             if haskey(pump, "energy_price")
                 g = var(wm, n)[:g][a]
                 q = var(wm, n)[:q][a]

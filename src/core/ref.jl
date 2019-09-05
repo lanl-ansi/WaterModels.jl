@@ -5,9 +5,9 @@ function get_link_id(wm::AbstractWaterModel, i::Int, j::Int, n::Int=wm.cnw)
 end
 
 function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
-    nodes = ref(wm, n, :nodes)
-    tanks = ref(wm, n, :tanks)
-    reservoirs = ref(wm, n, :reservoirs)
+    nodes = ref(wm, n, :node)
+    tanks = ref(wm, n, :tank)
+    reservoirs = ref(wm, n, :reservoir)
 
     if length(tanks) > 0 && length(reservoirs) > 0
         max_tank_elev = maximum(nodes[i]["elevation"] + tank["max_level"] for (i, tank) in tanks)
@@ -40,18 +40,18 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
         end
     end
 
-    for (i, reservoir) in ref(wm, n, :reservoirs)
+    for (i, reservoir) in ref(wm, n, :reservoir)
         # Head values at reservoirs are fixed.
-        node_id = reservoir["reservoirs_node"]
+        node_id = reservoir["reservoir_node"]
         # TODO: Elevation should be a node attribute only.
-        node = ref(wm, n, :reservoirs, node_id)
+        node = ref(wm, n, :reservoir, node_id)
         head_min[node_id] = node["elevation"]
         head_max[node_id] = node["elevation"]
     end
 
-    for (i, tank) in ref(wm, n, :tanks)
-        node_id = tank["tanks_node"]
-        node = ref(wm, n, :nodes, node_id)
+    for (i, tank) in ref(wm, n, :tank)
+        node_id = tank["tank_node"]
+        node = ref(wm, n, :node, node_id)
         head_min[node_id] = node["elevation"] + tank["min_level"]
         head_max[node_id] = node["elevation"] + tank["max_level"]
     end
@@ -62,7 +62,7 @@ end
 
 function calc_head_difference_bounds(wm::AbstractWaterModel, n::Int = wm.cnw)
     # Get placeholders for junctions and reservoirs.
-    links = ref(wm, n, :links)
+    links = ref(wm, n, :link)
 
     # Initialize the dictionaries for minimum and maximum head differences.
     head_lbs, head_ubs = calc_head_bounds(wm, n)
@@ -80,17 +80,17 @@ function calc_head_difference_bounds(wm::AbstractWaterModel, n::Int = wm.cnw)
 end
 
 function calc_flow_rate_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
-    links = ref(wm, n, :links)
+    links = ref(wm, n, :link)
     dh_lb, dh_ub = calc_head_difference_bounds(wm, n)
 
     alpha = ref(wm, n, :alpha)
-    junctions = values(ref(wm, n, :junctions))
+    junctions = values(ref(wm, n, :junction))
     sum_demand = sum(junction["demand"] for junction in junctions)
 
     lb = Dict([(a, Float64[]) for a in keys(links)])
     ub = Dict([(a, Float64[]) for a in keys(links)])
 
-    for (a, pipe) in ref(wm, n, :pipes)
+    for (a, pipe) in ref(wm, n, :pipe)
         L = pipe["length"]
         resistances = ref(wm, n, :resistance, a)
         num_resistances = length(resistances)
@@ -125,7 +125,7 @@ function calc_flow_rate_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
         end
     end
 
-    for (a, pump) in ref(wm, n, :pumps)
+    for (a, pump) in ref(wm, n, :pump)
         # TODO: Need better bounds, here.
         lb[a] = [0.0]
         ub[a] = [Inf]
@@ -138,11 +138,11 @@ function calc_directed_flow_upper_bounds(wm::AbstractWaterModel, alpha::Float64,
     # Get a dictionary of resistance values.
     dh_lb, dh_ub = calc_head_difference_bounds(wm, n)
 
-    links = ref(wm, n, :links)
+    links = ref(wm, n, :link)
     ub_n = Dict([(a, Float64[]) for a in keys(links)])
     ub_p = Dict([(a, Float64[]) for a in keys(links)])
 
-    junctions = values(ref(wm, n, :junctions))
+    junctions = values(ref(wm, n, :junction))
     sum_demand = sum(junction["demand"] for junction in junctions)
 
     for (a, link) in links
@@ -179,10 +179,10 @@ function calc_directed_flow_upper_bounds(wm::AbstractWaterModel, alpha::Float64,
 end
 
 function calc_tank_volume_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
-    lb = Dict{Int64, Float64}(i => 0.0 for i in ids(wm, n, :tanks))
-    ub = Dict{Int64, Float64}(i => Inf for i in ids(wm, n, :tanks))
+    lb = Dict{Int64, Float64}(i => 0.0 for i in ids(wm, n, :tank))
+    ub = Dict{Int64, Float64}(i => Inf for i in ids(wm, n, :tank))
 
-    for (i, tank) in ref(wm, n, :tanks)
+    for (i, tank) in ref(wm, n, :tank)
         if !("curve_name" in keys(tank))
             surface_area = 0.25 * pi * tank["diameter"]^2
             lb[i] = min(tank["min_vol"], surface_area * tank["min_level"])

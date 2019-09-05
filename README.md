@@ -9,7 +9,6 @@ Dev:
 [![codecov](https://codecov.io/gh/lanl-ansi/WaterModels.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/lanl-ansi/WaterModels.jl)
 [![](https://img.shields.io/badge/docs-latest-blue.svg)](https://lanl-ansi.github.io/WaterModels.jl/latest)
 
-
 WaterModels.jl is a Julia package for steady state water network optimization.
 It is designed to enable computational evaluation of historical and emerging water network formulations and algorithms using a common platform.
 The software is engineered to decouple problem specifications (e.g., water flow, network expansion) from water network optimization formulations (e.g., mixed-integer linear, mixed-integer nonlinear).
