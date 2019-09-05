@@ -172,6 +172,12 @@ function _add_node_ids!(data::Dict{String, <:Any})
                 node["name"] = comp["name"]
             end
 
+            if haskey(comp, "status")
+                node["status"] = comp["status"]
+            else
+                node["status"] = 1
+            end
+
             if haskey(comp, "elevation")
                 #node["elevation"] = pop!(comp, "elevation")
                 node["elevation"] = comp["elevation"]
@@ -195,6 +201,16 @@ function _add_node_ids!(data::Dict{String, <:Any})
     end
 
     data["nodes"] = nodes
+
+    # TODO: Should we really assume these are always "on?"
+    for (i, tank) in data["tanks"]
+        tank["status"] = 1
+    end
+
+    # TODO: Should we really assume these are always "on?"
+    for (i, reservoir) in data["reservoirs"]
+        reservoir["status"] = 1
+    end
 
     for (i, junction) in data["junctions"]
         if isapprox(junction["demand"], 0.0, atol=1.0e-7)
@@ -1052,6 +1068,7 @@ function _read_pumps!(data::Dict{String, <:Any})
             pump["start_node_name"] = current[2]
             pump["end_node_name"] = current[3]
             pump["controls"] = Dict{String, Any}()
+            pump["status"] = 1 # Assume the pump is on.
             pump["initial_status"] = nothing
 
             pump["pump_type"] = nothing

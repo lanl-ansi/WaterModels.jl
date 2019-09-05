@@ -1,27 +1,27 @@
 # Define MICP (mixed-integer convex program) implementations of water distribution models.
 
-function variable_head(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractMICPForm
+function variable_head(wm::AbstractMICPModel, n::Int=wm.cnw) 
     variable_hydraulic_head(wm, n)
     variable_directed_head_difference(wm, n)
 end
 
-function variable_flow(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractMICPForm
+function variable_flow(wm::AbstractMICPModel, n::Int=wm.cnw) 
     variable_undirected_flow(wm, n, bounded=true)
     variable_directed_flow(wm, n, bounded=true)
     variable_flow_direction(wm, n)
 end
 
-function variable_flow_ne(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractMICPForm
+function variable_flow_ne(wm::AbstractMICPModel, n::Int=wm.cnw) 
     variable_directed_flow_ne(wm, n, bounded=true)
 end
 
-function variable_pump(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: AbstractMICPForm
+function variable_pump(wm::AbstractMICPModel, n::Int=wm.cnw) 
 end
 
-function constraint_potential_loss_pump(wm::GenericWaterModel{T}, n::Int, a::Int, node_fr::Int, node_to::Int) where T <: AbstractMICPForm
+function constraint_potential_loss_pump(wm::AbstractMICPModel, n::Int, a::Int, node_fr::Int, node_to::Int) 
 end
 
-function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, node_fr, node_to, len, pipe_resistances) where T <: AbstractMICPForm
+function constraint_potential_loss_pipe_ne(wm::AbstractMICPModel, n::Int, a::Int, alpha, node_fr, node_to, len, pipe_resistances) 
     if !haskey(con(wm, n), :potential_loss_n_ne)
         con(wm, n)[:potential_loss_n_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
         con(wm, n)[:potential_loss_p_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
@@ -46,7 +46,7 @@ function constraint_potential_loss_pipe_ne(wm::GenericWaterModel{T}, n::Int, a::
     end
 end
 
-function constraint_potential_loss_pipe(wm::GenericWaterModel{T}, n::Int, a::Int, alpha, node_fr, node_to, len, r_min) where T <: AbstractMICPForm
+function constraint_potential_loss_pipe(wm::AbstractMICPModel, n::Int, a::Int, alpha, node_fr, node_to, len, r_min) 
     if !haskey(con(wm, n), :potential_loss_n)
         con(wm, n)[:potential_loss_n] = Dict{Int, JuMP.ConstraintRef}()
         con(wm, n)[:potential_loss_p] = Dict{Int, JuMP.ConstraintRef}()
@@ -66,10 +66,10 @@ function constraint_potential_loss_pipe(wm::GenericWaterModel{T}, n::Int, a::Int
     con(wm, n, :potential_loss_p)[a] = con_p
 end
 
-function objective_wf(wm::GenericWaterModel{T}, n::Int=wm.cnw) where T <: StandardMICPForm
-    JuMP.set_objective_sense(wm.model, MOI.FEASIBILITY_SENSE)
+function objective_wf(wm::AbstractMICPModel, n::Int=wm.cnw) 
+    JuMP.set_objective_sense(wm.model, _MOI.FEASIBILITY_SENSE)
 end
 
-function objective_owf(wm::GenericWaterModel{T}) where T <: StandardMICPForm
-    JuMP.set_objective_sense(wm.model, MOI.FEASIBILITY_SENSE)
+function objective_owf(wm::AbstractMICPModel) 
+    JuMP.set_objective_sense(wm.model, _MOI.FEASIBILITY_SENSE)
 end

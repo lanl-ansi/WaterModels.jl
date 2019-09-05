@@ -1,9 +1,9 @@
-# PowerModels exports everything except internal symbols, which are defined as
+# WaterModels exports everything except internal symbols, which are defined as
 # those whose name starts with an underscore. If you don't want all of these
-# symbols in your environment, then use `import PowerModels` instead of
-# `using PowerModels`.
+# symbols in your environment, then use `import WaterModels` instead of
+# `using WaterModels`.
 
-# Do not add PowerModels-defined symbols to this exclude list. Instead, rename
+# Do not add WaterModels-defined symbols to this exclude list. Instead, rename
 # them with an underscore.
 
 const _EXCLUDE_SYMBOLS = [Symbol(@__MODULE__), :eval, :include]
@@ -23,9 +23,9 @@ end
 
 
 # the follow items are also exported for user-friendlyness when calling
-# `using PowerModels`
+# `using WaterModels`
 
-# so that users do not need to import JuMP to use a solver with PowerModels
+# so that users do not need to import JuMP to use a solver with WaterModels
 import JuMP: with_optimizer
 export with_optimizer
 

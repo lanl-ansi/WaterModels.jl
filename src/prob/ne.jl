@@ -1,12 +1,8 @@
-function run_ne(network, model_constructor, optimizer; relaxed::Bool=false, kwargs...)
-    return run_generic_model(network, model_constructor, optimizer, post_ne, relaxed=relaxed; kwargs...)
+function run_ne(network, model_constructor, optimizer; kwargs...)
+    return run_model(network, model_constructor, optimizer, post_ne; kwargs...)
 end
 
-function post_ne(wm::GenericWaterModel{T}) where T
-    if T <: AbstractCNLPForm
-        Memento.error(_LOGGER, "CNLP formulation does not support network expansion.")
-    end
-
+function post_ne(wm::AbstractWaterModel)
     function_head_loss(wm)
 
     variable_reservoir(wm)

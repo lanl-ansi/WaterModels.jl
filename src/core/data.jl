@@ -1,3 +1,11 @@
+#"Maps component types to status parameters."
+#const wm_component_status = Dict("nodes" => "status", "pipes" => "status",
+#                                 "pumps" => "status", "tanks" => "status")
+#
+#"Maps component types to inactive status values."
+#const wm_component_status_inactive = Dict("nodes" => 0, "pipes" => 0,
+#                                          "pumps" => 0, "tanks" => 0)
+
 # Functions for working with the WaterModels data format.
 function calc_resistance_hw(diameter::Float64, roughness::Float64)
     return 10.67 * inv(roughness^1.852 * diameter^4.87)
@@ -206,7 +214,6 @@ function make_multinetwork(data::Dict{String, <:Any}; global_keys::Set{String}=S
     return InfrastructureModels.make_multinetwork(data, union(global_keys, _wm_global_keys))
 end
 
-
 function set_start_head!(data)
     for (i, node) in data["nodes"]
         node["h_start"] = node["h"]
@@ -270,12 +277,12 @@ function set_start_directed_flow_rate_ne!(data::Dict{String, <:Any})
 
     for (a, pipe) in filter(is_ne_link, data["pipes"])
         num_resistances = length(resistances[a])
-        pipe["qn_ne_start"] = zeros(Float64, num_resistances)
         pipe["qp_ne_start"] = zeros(Float64, num_resistances)
+        pipe["qn_ne_start"] = zeros(Float64, num_resistances)
 
         r_id = findfirst(r -> isapprox(r, pipe["r"], rtol=1.0e-4), resistances[a])
-        pipe["qn_ne_start"][r_id] = pipe["q"] < 0.0 ? abs(pipe["q"]) : 0.0
         pipe["qp_ne_start"][r_id] = pipe["q"] >= 0.0 ? abs(pipe["q"]) : 0.0
+        pipe["qn_ne_start"][r_id] = pipe["q"] < 0.0 ? abs(pipe["q"]) : 0.0
     end
 end
 
