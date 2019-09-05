@@ -512,64 +512,64 @@ function parse_epanet(filename::String)
         data["section"][section] = vcat(data["section"][section], (line_number, line))
     end
 
-    # OPTIONS
+    # Parse [OPTIONS] section.
     _read_option!(data)
 
-    # TIMES
+    # Parse [TIMES] section.
     _read_time!(data)
 
-    # CURVES
+    # Parse [CURVES] section.
     _read_curve!(data)
 
-    # PATTERNS
+    # Parse [PATTERNS] section.
     _read_pattern!(data)
 
-    # JUNCTIONS
+    # Parse [JUNCTIONS] section.
     _read_junction!(data)
 
-    # RESERVOIRS
+    # Parse [RESERVOIRS] section.
     _read_reservoir!(data)
 
-    # TANKS
+    # Parse [TANKS] section.
     _read_tank!(data)
 
     # Create consistent node "index" fields.
     _add_node_ids!(data)
 
-    # PIPES
+    # Parse [PIPES] section.
     _read_pipe!(data)
 
-    # PUMPS
+    # Parse [PUMPS] section.
     _read_pump!(data)
 
-    # VALVES
+    # Parse [VALVES] section.
     _read_valve!(data)
 
-    # ENERGY
+    # Parse [ENERGY] section.
     _read_energy!(data)
 
     # Create consistent link "index" fields.
     _add_link_ids!(data)
 
-    # COORDINATES
-    #_read_coordinates!(data)
+    # Parse [COORDINATES] section.
+    #_read_coordinate!(data)
 
-    # SOURCES
-    #_read_sources!(data)
+    # Parse [SOURCES] section.
+    #_read_source!(data)
 
-    # STATUS
+    # Parse [STATUS] section.
     _read_status!(data)
  
-    # CONTROLS
+    # Parse [CONTROLS] section.
     _read_control!(data)
 
-    # TITLE
+    # Parse [TITLE] section.
     _read_title!(data)
 
-    # DEMANDS
+    # Parse [DEMANDS] section.
     #_read_demand!(data)
 
-    # EMITTERS
+    # Parse [EMITTERS] section.
     #_read_emitter!(data)
 
     # Correct status data based on control data.
