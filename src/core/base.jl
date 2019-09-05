@@ -1,7 +1,18 @@
 "Root of the water formulation type hierarchy."
 abstract type AbstractWaterModel end
 
-"A macro for adding the base WaterModels fields to a type definition."
+"""
+A macro for adding the base WaterModels fields to a type definition, where
+* `data` is the original data, usually from reading in a `.inp` file,
+* `setting` usually looks something like `Dict("output" => Dict("flows" => true))`, and
+* `ref` is a place to store commonly-used precomputed data from the data dictionary,
+  primarily for converting datatypes, filtering deactivated components, and storing
+  system-wide values that need to be computed globally. See `build_ref(data)` for further details.
+Methods on `AbstractWaterModel` for defining variables and adding constraints should
+* work with the `ref` dict, rather than the original `data` dict,
+* add them to `model::JuMP.AbstractModel`, and
+* follow the conventions for variable and constraint names.
+"""
 InfrastructureModels.@def wm_fields begin
     model::JuMP.AbstractModel
 
@@ -21,7 +32,9 @@ InfrastructureModels.@def wm_fields begin
     ext::Dict{Symbol,<:Any}
 end
 
-function InitializeWaterModel(WaterModel::Type, data::Dict{String,<:Any}; ext = Dict{Symbol,Any}(), setting = Dict{String,Any}(), jump_model::JuMP.AbstractModel=JuMP.Model(), kwargs...)
+function InitializeWaterModel(WaterModel::Type, data::Dict{String,<:Any};
+    ext=Dict{Symbol,Any}(), setting=Dict{String,Any}(),
+    jump_model::JuMP.AbstractModel=JuMP.Model(), kwargs...)
     @assert WaterModel <: AbstractWaterModel
 
     ref = InfrastructureModels.ref_initialize(data, _wm_global_keys)
@@ -37,19 +50,18 @@ function InitializeWaterModel(WaterModel::Type, data::Dict{String,<:Any}; ext = 
 
     cnw = minimum([k for k in keys(var[:nw])])
 
-    wm = WaterModel(
-             jump_model,
-             data,
-             setting,
-             Dict{String, Any}(), # solution
-             ref,
-             var,
-             con,
-             fun,
-             cnw,
-             ext)
-
-    return wm
+    return WaterModel(
+        jump_model,
+        data,
+        setting,
+        Dict{String, Any}(), # Solution.
+        ref,
+        var,
+        con,
+        fun,
+        cnw,
+        ext
+    )
 end
 
 # Helper functions for working with multinetworks.
@@ -218,34 +230,15 @@ Some of the common keys include:
 """
 function _ref_add_core!(nw_refs::Dict)
     for (nw, ref) in nw_refs
-        #for (key, item) in nw_data
-        #    if isa(item, Dict{String, Any})
-        #        try
-        #            item_lookup = Dict{Int, Any}([(parse(Int, k), v) for (k, v) in item])
-        #            ref[Symbol(key)] = item_lookup
-        #        catch
-        #            ref[Symbol(key)] = item
-        #        end
-        #    else
-        #        ref[Symbol(key)] = item
-        #    end
-        #end
-
         ref[:links] = merge(ref[:pipes], ref[:valves], ref[:pumps])
         ref[:pipes_ne] = filter(is_ne_link, ref[:pipes])
         ref[:links_ne] = filter(is_ne_link, ref[:links])
         ref[:check_valves] = filter(has_check_valve, ref[:pipes])
 
+        # Set up arcs from existing links.
         ref[:arcs_fr] = [(i, comp["node_fr"], comp["node_to"]) for (i, comp) in ref[:links]]
-        #ref[:arcs_to]   = [(i,comp["node_to"],comp["node_fr"]) for (i,comp) in ref[:links]]
-        #ref[:arcs] = [ref[:arcs_fr]; ref[:arcs_to]]
 
-        #node_arcs = Dict((i, Tuple{Int,Int,Int}[]) for (i,node) in ref[:nodes])
-        #for (l,i,j) in ref[:arcs]
-        #    push!(node_arcs[i], (l,i,j))
-        #end
-        #ref[:node_arcs] = node_arcs
-
+        # Set up dictionaries mapping "from" links for a node.
         node_arcs_fr = Dict((i, Tuple{Int, Int, Int}[]) for (i, node) in ref[:nodes])
 
         for (l, i, j) in ref[:arcs_fr]
@@ -254,6 +247,7 @@ function _ref_add_core!(nw_refs::Dict)
 
         ref[:node_arcs_fr] = node_arcs_fr
 
+        # Set up dictionaries mapping "to" links for a node.
         node_arcs_to = Dict((i, Tuple{Int, Int, Int}[]) for (i, node) in ref[:nodes])
 
         for (l, i, j) in ref[:arcs_fr]
@@ -262,23 +256,31 @@ function _ref_add_core!(nw_refs::Dict)
 
         ref[:node_arcs_to] = node_arcs_to
 
-        #ref[:nodes] = merge(ref[:junctions], ref[:tanks], ref[:reservoirs])
+        # Set up dictionaries mapping nodes to attached junctions.
         node_junctions = Dict((i, Int[]) for (i,node) in ref[:nodes])
+
         for (i, junction) in ref[:junctions]
             push!(node_junctions[junction["junctions_node"]], i)
         end
+
         ref[:node_junctions] = node_junctions
 
+        # Set up dictionaries mapping nodes to attached tanks.
         node_tanks = Dict((i, Int[]) for (i,node) in ref[:nodes])
+
         for (i,tank) in ref[:tanks]
             push!(node_tanks[tank["tanks_node"]], i)
         end
+
         ref[:node_tanks] = node_tanks
 
+        # Set up dictionaries mapping nodes to attached reservoirs.
         node_reservoirs = Dict((i, Int[]) for (i,node) in ref[:nodes])
+
         for (i,reservoir) in ref[:reservoirs]
             push!(node_reservoirs[reservoir["reservoirs_node"]], i)
         end
+
         ref[:node_reservoirs] = node_reservoirs
 
         # TODO: Fix these when feeling ambitious about more carefully handling directions.
@@ -288,10 +290,11 @@ function _ref_add_core!(nw_refs::Dict)
         # Set the resistances based on the head loss type.
         headloss = ref[:options]["hydraulic"]["headloss"]
         viscosity = ref[:options]["hydraulic"]["viscosity"]
-        ref[:alpha] = headloss == "H-W" ? 1.852 : 2.0
-
         ref[:resistance] = calc_resistances(ref[:pipes], viscosity, headloss)
         ref[:resistance_cost] = calc_resistance_costs(ref[:pipes], viscosity, headloss)
+
+        # Set alpha, that is, the exponent used for head loss relationships.
+        ref[:alpha] = uppercase(headloss) == "H-W" ? 1.852 : 2.0
     end
 end
 

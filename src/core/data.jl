@@ -1,10 +1,10 @@
-"Maps component types to status parameters."
-const wm_component_status = Dict("nodes" => "status", "pipes" => "status",
-                                 "pumps" => "status", "tanks" => "status")
-
-"Maps component types to inactive status values."
-const wm_component_status_inactive = Dict("nodes" => 0, "pipes" => 0,
-                                          "pumps" => 0, "tanks" => 0)
+#"Maps component types to status parameters."
+#const wm_component_status = Dict("nodes" => "status", "pipes" => "status",
+#                                 "pumps" => "status", "tanks" => "status")
+#
+#"Maps component types to inactive status values."
+#const wm_component_status_inactive = Dict("nodes" => 0, "pipes" => 0,
+#                                          "pumps" => 0, "tanks" => 0)
 
 # Functions for working with the WaterModels data format.
 function calc_resistance_hw(diameter::Float64, roughness::Float64)

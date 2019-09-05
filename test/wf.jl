@@ -11,7 +11,7 @@
 
     @testset "Balerma network (unknown flow directions), CNLP formulation." begin
         solution = run_wf(balerma_path, CNLPWaterModel, ipopt)
-        @test solution["termination_status"] == MOI.LOCALLY_SOLVED
+        @test solution["termination_status"] == LOCALLY_SOLVED
     end
 
     #@testset "Richmond network, multinetwork NCNLP formulation." begin
@@ -23,7 +23,7 @@
     #    juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f]) #, log_levels=[])
     #    solution = WaterModels.optimize_model!(wm, juniper)
 
-    #    @test solution["termination_status"] == MOI.LOCALLY_SOLVED
+    #    @test solution["termination_status"] == LOCALLY_SOLVED
     #    @test isapprox(solution["solution"]["nw"]["1"]["nodes"]["17"]["h"], 243.052536, rtol=1.0e-3)
     #    @test isapprox(solution["solution"]["nw"]["1"]["nodes"]["39"]["h"], 187.250000, rtol=1.0e-3)
     #    @test isapprox(solution["solution"]["nw"]["1"]["nodes"]["45"]["h"], 243.120010, rtol=1.0e-3)
@@ -39,7 +39,7 @@
         juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
         solution = WaterModels.optimize_model!(wm, juniper)
 
-        @test solution["termination_status"] == MOI.LOCALLY_SOLVED
+        @test solution["termination_status"] == LOCALLY_SOLVED
         @test isapprox(solution["solution"]["nodes"]["17"]["h"], 243.052536, rtol=1.0e-3)
         @test isapprox(solution["solution"]["nodes"]["39"]["h"], 187.250000, rtol=1.0e-3)
         @test isapprox(solution["solution"]["nodes"]["45"]["h"], 243.120010, rtol=1.0e-3)
@@ -50,14 +50,14 @@
 
     @testset "Shamir network (unknown flow directions), CNLP formulation." begin
         solution = run_wf(shamir_path, CNLPWaterModel, ipopt)
-        @test solution["termination_status"] == MOI.LOCALLY_SOLVED
+        @test solution["termination_status"] == LOCALLY_SOLVED
         @test isapprox(solution["solution"]["pipes"]["2"]["q"], 0.093565, rtol=1.0e-3)
         @test isapprox(solution["solution"]["pipes"]["6"]["q"], 0.055710, rtol=1.0e-3)
     end
 
     @testset "Shamir network, CNLP formulation." begin
         solution = run_wf(shamir_path, CNLPWaterModel, ipopt)
-        @test solution["termination_status"] == MOI.LOCALLY_SOLVED
+        @test solution["termination_status"] == LOCALLY_SOLVED
         @test isapprox(solution["solution"]["pipes"]["2"]["q"], 0.093565, rtol=1.0e-3)
         @test isapprox(solution["solution"]["pipes"]["6"]["q"], 0.055710, rtol=1.0e-3)
         @test isapprox(solution["solution"]["nodes"]["2"]["h"], 203.247650, rtol=1.0e-3)
@@ -66,7 +66,7 @@
 
     @testset "Shamir network (unknown flow directions), NCNLP formulation." begin
         solution = run_wf(shamir_path, NCNLPWaterModel, ipopt)
-        @test solution["termination_status"] == MOI.LOCALLY_SOLVED
+        @test solution["termination_status"] == LOCALLY_SOLVED
         @test isapprox(solution["solution"]["pipes"]["2"]["q"], 0.093565, rtol=1.0e-3)
         @test isapprox(solution["solution"]["pipes"]["6"]["q"], 0.055710, rtol=1.0e-3)
         @test isapprox(solution["solution"]["nodes"]["2"]["h"], 203.247650, rtol=1.0e-3)
@@ -79,7 +79,7 @@
         wm = build_model(mn_data, NCNLPWaterModel, WaterModels.post_mn_wf, multinetwork=true)
         solution = optimize_model!(wm, ipopt)
 
-        @test solution["termination_status"] == MOI.LOCALLY_SOLVED
+        @test solution["termination_status"] == LOCALLY_SOLVED
         @test isapprox(solution["solution"]["nw"]["1"]["pipes"]["2"]["q"], 0.09356500, rtol=1.0e-3)
         @test isapprox(solution["solution"]["nw"]["1"]["pipes"]["6"]["q"], 0.05571000, rtol=1.0e-3)
         @test isapprox(solution["solution"]["nw"]["2"]["pipes"]["2"]["q"], 0.04678500, rtol=1.0e-3)
@@ -94,7 +94,7 @@
         wm = build_model(mn_data, NCNLPWaterModel, WaterModels.post_mn_wf, multinetwork=true)
         solution = optimize_model!(wm, ipopt)
 
-        @test solution["termination_status"] == MOI.LOCALLY_SOLVED
+        @test solution["termination_status"] == LOCALLY_SOLVED
         @test isapprox(solution["solution"]["nw"]["1"]["pipes"]["2"]["q"], 0.09356500, rtol=1.0e-3)
         @test isapprox(solution["solution"]["nw"]["1"]["pipes"]["6"]["q"], 0.05571000, rtol=1.0e-3)
         @test isapprox(solution["solution"]["nw"]["2"]["pipes"]["2"]["q"], 0.04678500, rtol=1.0e-3)
@@ -119,7 +119,7 @@
         juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
         solution = WaterModels.optimize_model!(wm, juniper)
 
-        @test solution["termination_status"] == MOI.LOCALLY_SOLVED
+        @test solution["termination_status"] == LOCALLY_SOLVED
         @test isapprox(solution["solution"]["pumps"]["9"]["q"], 0.117737, rtol=1.0e-3)
         @test isapprox(solution["solution"]["pipes"]["110"]["q"], -0.048338, rtol=1.0e-3)
         @test isapprox(solution["solution"]["pipes"]["122"]["q"], 0.003734, rtol=1.0e-3)
@@ -136,7 +136,7 @@
         juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
         solution = WaterModels.optimize_model!(wm, juniper)
 
-        @test solution["termination_status"] == MOI.LOCALLY_SOLVED
+        @test solution["termination_status"] == LOCALLY_SOLVED
         @test isapprox(solution["solution"]["nw"]["1"]["pumps"]["9"]["q"], 0.117737, rtol=1.0e-3)
         @test isapprox(solution["solution"]["nw"]["1"]["pipes"]["110"]["q"], -0.048338, rtol=1.0e-3)
         @test isapprox(solution["solution"]["nw"]["1"]["pipes"]["122"]["q"], 0.003734, rtol=1.0e-3)
@@ -157,12 +157,12 @@
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
         juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
         solution = WaterModels.optimize_model!(wm, juniper)
-        @test solution["termination_status"] == MOI.LOCALLY_SOLVED
+        @test solution["termination_status"] == LOCALLY_SOLVED
     end
 
     @testset "Shamir network (unknown flow directions), MILPR formulation." begin
         solution = run_wf(shamir_path, MILPRWaterModel, cbc)
-        @test solution["termination_status"] == MOI.OPTIMAL
+        @test solution["termination_status"] == OPTIMAL
         @test isapprox(solution["solution"]["pipes"]["2"]["q"], 0.093565, rtol=0.05)
         @test isapprox(solution["solution"]["pipes"]["6"]["q"], 0.055710, rtol=0.05)
         @test isapprox(solution["solution"]["nodes"]["2"]["h"], 203.247650, rtol=0.05)

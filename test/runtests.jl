@@ -6,10 +6,6 @@ import Memento
 Memento.setlevel!(Memento.getlogger(InfrastructureModels), "error")
 WaterModels.logger_config!("error")
 
-# For checking status codes
-import MathOptInterface
-const MOI = MathOptInterface
-
 import Cbc
 import Ipopt
 import JuMP

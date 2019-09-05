@@ -22,19 +22,18 @@ function build_solution(wm::AbstractWaterModel, solve_time; solution_builder=sol
         data["node_count"] = length(ref(wm, :nodes))
     end
 
-    cpu = Sys.cpu_info()[1].model
-    memory = string(Sys.total_memory() / 2^30, " GB")
-
     solution = Dict{String,Any}(
+        "optimizer" => JuMP.solver_name(wm.model),
         "termination_status" => JuMP.termination_status(wm.model),
         "primal_status" => JuMP.primal_status(wm.model),
-        "objective_value" => JuMP.objective_value(wm.model),
+        "dual_status" => JuMP.dual_status(wm.model),
+        "objective" => _guard_objective_value(wm.model),
+        "objective_lb" => _guard_objective_bound(wm.model),
         "solve_time" => solve_time,
         "solution" => sol,
-        "machine" => Dict("cpu" => cpu, "memory" => memory),
+        "machine" => Dict("cpu" => Sys.cpu_info()[1].model,
+            "memory" => string(Sys.total_memory()/2^30, " Gb")),
         "data" => data)
-
-    wm.solution = solution
 
     return solution
 end
@@ -45,115 +44,32 @@ function init_solution(wm::AbstractWaterModel)
     return Dict{String,Any}(key => wm.data[key] for key in data_keys)
 end
 
-""
-function get_solution(wm::AbstractWaterModel, sol::Dict{String, <:Any})
-    add_pipe_flow_rate_setpoint(sol, wm)
-    add_pump_flow_rate_setpoint(sol, wm)
-    add_pump_status_setpoint(sol, wm)
-    add_pipe_resistance_setpoint(sol, wm)
-    add_node_head_setpoint(sol, wm)
-    add_reservoir_setpoint(sol, wm)
-end
-
 function solution_owf!(wm::AbstractWaterModel, sol::Dict{String,<:Any})
-    add_setpoint_pipe_flow!(sol, wm)
-    add_setpoint_pump_flow!(sol, wm)
-    #add_setpoint_pump_status!(sol, wm)
-    add_setpoint_pipe_resistance!(sol, wm)
     add_setpoint_node_head!(sol, wm)
-    #add_setpoint_reservoir!(sol, wm)
-end
-
-function add_pipe_flow_rate_setpoint(sol, wm::AbstractWaterModel)
-    add_setpoint(sol, wm, "pipes", "q", :q)
-end
-
-function add_pump_flow_rate_setpoint(sol, wm::AbstractWaterModel)
-    add_setpoint(sol, wm, "pumps", "q", :q)
-end
-
-function add_pump_status_setpoint(sol, wm::AbstractWaterModel)
-    add_setpoint(sol, wm, "pumps", "x_pump", :x_pump)
-end
-
-function add_node_head_setpoint(sol, wm::AbstractWaterModel)
-    add_setpoint(sol, wm, "nodes", "h", :h)
-end
-
-function add_node_head_setpoint(sol, wm::AbstractCNLPModel)
-    add_dual_setpoint(sol, wm, "nodes", "h", :flow_conservation)
-end
-
-function add_reservoir_setpoint(sol, wm::AbstractWaterModel)
-    add_setpoint(sol, wm, "reservoirs", "q_r", :q_r)
-end
-
-function add_tank_setpoint(sol, wm::AbstractWaterModel)
-    add_setpoint(sol, wm, "reservoirs", "q_t", :q_t)
-end
-
-function add_pipe_resistance_setpoint(sol, wm::AbstractWaterModel)
-    if InfrastructureModels.ismultinetwork(wm.data)
-        data_dict = wm.data["nw"]["$(wm.cnw)"]["pipes"]
-    else
-        data_dict = wm.data["pipes"]
-    end
-
-    sol_dict = get(sol, "pipes", Dict{String, Any}())
-
-    if length(data_dict) > 0
-        sol["pipes"] = sol_dict
-    end
-
-    if :x_res in keys(var(wm))
-        for (i, link) in data_dict
-            a = link["index"]
-            sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
-
-            if a in keys(var(wm, :x_res))
-                x_res, r_id = findmax(JuMP.value.(var(wm, :x_res, a)))
-                sol_item["r"] = ref(wm, :resistance, a)[r_id]
-            else
-                x_res, r_id = findmin(ref(wm, :resistance, a))
-                sol_item["r"] = ref(wm, :resistance, a)[r_id]
-            end
-        end
-    else
-        for (i, link) in data_dict
-            a = link["index"]
-            sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
-            x_res, r_id = findmin(ref(wm, :resistance, a))
-            sol_item["r"] = ref(wm, :resistance, a)[r_id]
-        end
-    end
+    add_setpoint_pipe_flow!(sol, wm)
+    add_setpoint_pipe_resistance!(sol, wm)
+    add_setpoint_pump_flow!(sol, wm)
+    add_setpoint_pump_status!(sol, wm)
+    add_setpoint_reservoir!(sol, wm)
+    add_setpoint_tank!(sol, wm)
 end
 
 ""
 function add_setpoint_node_head!(sol, wm::AbstractWaterModel)
-    add_setpoint!(sol, wm, "nodes", "h", :h,
-        status_name=wm_component_status["nodes"],
-        inactive_status_value=wm_component_status_inactive["nodes"])
+    add_setpoint!(sol, wm, "nodes", "h", :h)
 end
 
+""
 function add_setpoint_node_head!(sol, wm::AbstractCNLPModel)
-    add_dual!(sol, wm, "nodes", "h", :flow_conservation,
-        scale=(x, item) -> -x, status_name=wm_component_status["nodes"])
+    add_dual!(sol, wm, "nodes", "h", :flow_conservation, scale=(x, item) -> -x)
 end
 
 ""
 function add_setpoint_pipe_flow!(sol, wm::AbstractWaterModel)
-    add_setpoint!(sol, wm, "pipes", "q", :q,
-        status_name=wm_component_status["pipes"],
-        inactive_status_value=wm_component_status_inactive["pipes"])
+    add_setpoint!(sol, wm, "pipes", "q", :q)
 end
 
 ""
-function add_setpoint_pump_flow!(sol, wm::AbstractWaterModel)
-    add_setpoint!(sol, wm, "pumps", "q", :q,
-        status_name=wm_component_status["pumps"],
-        inactive_status_value=wm_component_status_inactive["pumps"])
-end
-
 function add_setpoint_pipe_resistance!(sol, wm::AbstractWaterModel)
     if InfrastructureModels.ismultinetwork(wm.data)
         data_dict = wm.data["nw"]["$(wm.cnw)"]["pipes"]
@@ -190,7 +106,24 @@ function add_setpoint_pipe_resistance!(sol, wm::AbstractWaterModel)
     end
 end
 
-"adds values based on JuMP variables"
+""
+function add_setpoint_pump_flow!(sol, wm::AbstractWaterModel)
+    add_setpoint!(sol, wm, "pumps", "q", :q)
+end
+
+function add_setpoint_pump_status!(sol, wm::AbstractWaterModel)
+    add_setpoint!(sol, wm, "pumps", "x_pump", :x_pump)
+end
+
+function add_setpoint_reservoir!(sol, wm::AbstractWaterModel)
+    add_setpoint!(sol, wm, "reservoirs", "q_r", :q_r)
+end
+
+function add_setpoint_tank!(sol, wm::AbstractWaterModel)
+    add_setpoint!(sol, wm, "tanks", "q_t", :q_t)
+end
+
+"Adds values based on JuMP variables."
 function add_setpoint!(
     sol,
     wm::AbstractWaterModel,
@@ -241,8 +174,8 @@ function add_setpoint!(
 end
 
 """
-adds setpoint values based on a given default_value function.
-this significantly improves performance in models where values are not defined
+Adds setpoint values based on a given default_value function. This
+significantly improves performance in models where values are not defined
 """
 function add_setpoint_fixed!(
     sol,
@@ -370,66 +303,21 @@ function add_dual_fixed!(
     end
 end
 
-"adds values based on JuMP variables"
-function add_setpoint(sol::Dict{String, <:Any}, wm::AbstractWaterModel,
-                      dict_name::String, param_name::String,
-                      variable_symbol::Symbol; index_name::String="index",
-                      default_value=(item) -> NaN, scale=(x, item) -> x,
-                      extract_var=(var, idx, item) -> var[idx],
-                      sol_dict=get(sol, dict_name, Dict{String, Any}()))
-    if InfrastructureModels.ismultinetwork(wm.data)
-        data_dict = wm.data["nw"]["$(wm.cnw)"][dict_name]
-    else
-        data_dict = wm.data[dict_name]
-    end
-
-    if length(data_dict) > 0
-        sol[dict_name] = sol_dict
-    end
-
-    for (i, item) in data_dict
-        idx = item[index_name]
-        sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
-        sol_item[param_name] = default_value(item)
-
-        try
-            variable = extract_var(var(wm, wm.cnw, variable_symbol), idx, item)
-            sol_item[param_name] = scale(JuMP.value(variable), item)
-        catch
-        end
-
-        sol_item[param_name] = sol_item[param_name][1]
+"Returns an objective value."
+function _guard_objective_value(model::JuMP.AbstractModel)
+    try
+        return JuMP.objective_value(model)
+    catch
+        return JuMP.objective_sense(model) == _MOI.MAX_SENSE ? -Inf : Inf
     end
 end
 
-"adds dual values based on JuMP constraints"
-function add_dual_setpoint(sol::Dict{String, <:Any}, wm::AbstractWaterModel,
-                           dict_name::String, param_name::String,
-                           constraint_symbol::Symbol; index_name::String="index",
-                           default_value=(item) -> NaN, scale=(x, item) -> x,
-                           extract_con=(con, idx, item) -> con[idx],
-                           sol_dict=get(sol, dict_name, Dict{String, Any}()))
-    if InfrastructureModels.ismultinetwork(wm.data)
-        data_dict = wm.data["nw"]["$(wm.cnw)"][dict_name]
-    else
-        data_dict = wm.data[dict_name]
-    end
 
-    if length(data_dict) > 0
-        sol[dict_name] = sol_dict
-    end
-
-    for (i, item) in data_dict
-        idx = item[index_name]
-        sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
-        sol_item[param_name] = default_value(item)
-
-        try
-            constraint = extract_con(con(wm, wm.cnw, constraint_symbol), idx, item)
-            sol_item[param_name] = -scale(JuMP.dual(constraint), item)
-        catch
-        end
-
-        sol_item[param_name] = sol_item[param_name][1]
+""
+function _guard_objective_bound(model::JuMP.AbstractModel)
+    try
+        return JuMP.objective_bound(model)
+    catch
+        return JuMP.objective_sense(model) == _MOI.MAX_SENSE ? Inf : -Inf
     end
 end

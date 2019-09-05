@@ -202,8 +202,14 @@ function _add_node_ids!(data::Dict{String, <:Any})
 
     data["nodes"] = nodes
 
+    # TODO: Should we really assume these are always "on?"
     for (i, tank) in data["tanks"]
         tank["status"] = 1
+    end
+
+    # TODO: Should we really assume these are always "on?"
+    for (i, reservoir) in data["reservoirs"]
+        reservoir["status"] = 1
     end
 
     for (i, junction) in data["junctions"]
