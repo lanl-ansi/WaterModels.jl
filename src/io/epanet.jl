@@ -567,10 +567,10 @@ function parse_epanet(filename::String)
     _read_title!(data)
 
     # DEMANDS
-    #_read_demands!(data)
+    #_read_demand!(data)
 
     # EMITTERS
-    #_read_emitters!(data)
+    #_read_emitter!(data)
 
     # Correct status data based on control data.
     _correct_status!(data)

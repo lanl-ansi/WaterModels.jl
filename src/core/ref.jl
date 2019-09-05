@@ -1,5 +1,5 @@
 function get_link_id(wm::AbstractWaterModel, i::Int, j::Int, n::Int=wm.cnw)
-    arcs = vcat(ref(wm, n, :node_arcs_fr, i), ref(wm, n, :node_arcs_to, i))
+    arcs = vcat(ref(wm, n, :node_arc_fr, i), ref(wm, n, :node_arc_to, i))
     arc_id = findfirst(x -> x[2] in [i, j] && x[3] in [i, j], arcs)
     return arcs[arc_id][1]
 end

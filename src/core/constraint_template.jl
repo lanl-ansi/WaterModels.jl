@@ -15,8 +15,8 @@ function constraint_flow_conservation(wm::AbstractWaterModel, i::Int; nw::Int=wm
     end
 
     junc = ref(wm, nw, :node_junction, i)
-    arcs_fr = ref(wm, nw, :node_arcs_fr, i)
-    arcs_to = ref(wm, nw, :node_arcs_to, i)
+    arcs_fr = ref(wm, nw, :node_arc_fr, i)
+    arcs_to = ref(wm, nw, :node_arc_to, i)
     res = ref(wm, nw, :node_reservoir, i)
     tank = ref(wm, nw, :node_tank, i)
     demand = Dict(k => ref(wm, nw, :junction, k, "demand") for k in junc)
