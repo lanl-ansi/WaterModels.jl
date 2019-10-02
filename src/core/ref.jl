@@ -1,3 +1,17 @@
+function _get_function_from_pump_curve(pump_curve::Array{Tuple{Float64,Float64}})
+    LsqFit.@. func(x, p) = p[1]*x*x + p[2]*x + p[3]
+
+    if length(pump_curve) > 1
+        fit = LsqFit.curve_fit(func, first.(pump_curve), last.(pump_curve), [0.0, 0.0, 0.0])
+        return LsqFit.coef(fit)
+    elseif length(pump_curve) == 1
+        new_points = [(0.0, 1.33 * pump_curve[1][2]), (2.0 * pump_curve[1][1], 0.0)]
+        pump_curve = vcat(new_points, pump_curve)
+        fit = LsqFit.curve_fit(func, first.(pump_curve), last.(pump_curve), [0.0, 0.0, 0.0])
+        return LsqFit.coef(fit)
+    end
+end
+
 function get_link_id(wm::AbstractWaterModel, i::Int, j::Int, n::Int=wm.cnw)
     arcs = vcat(ref(wm, n, :node_arc_fr, i), ref(wm, n, :node_arc_to, i))
     arc_id = findfirst(x -> x[2] in [i, j] && x[3] in [i, j], arcs)
@@ -128,7 +142,7 @@ function calc_flow_rate_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     for (a, pump) in ref(wm, n, :pump)
         # TODO: Need better bounds, here.
         lb[a] = [0.0]
-        ub[a] = [Inf]
+        ub[a] = [10.0]
     end
 
     return lb, ub

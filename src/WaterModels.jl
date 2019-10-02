@@ -48,16 +48,17 @@ include("core/constraint.jl")
 include("core/constraint_template.jl")
 include("core/objective.jl")
 
+include("form/directed_flow.jl")
+include("form/undirected_flow.jl")
 include("form/cnlp.jl")
 include("form/micp.jl")
 include("form/milpr.jl")
 include("form/ncnlp.jl")
 
-include("prob/ne.jl")
-include("prob/owf.jl")
 include("prob/wf.jl")
-
-include("util/relax.jl")
+include("prob/cwf.jl")
+include("prob/owf.jl")
+include("prob/ne.jl")
 
 include("core/export.jl")
 end

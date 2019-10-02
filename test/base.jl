@@ -1,6 +1,5 @@
 @testset "src/core/base.jl" begin
-    network_path = "../test/data/epanet/shamir.inp"
-    wm = build_model(network_path, CNLPWaterModel, WaterModels.post_wf)
+    wm = build_model("../test/data/epanet/shamir.inp", CNLPWaterModel, WaterModels.post_wf)
 
     @testset "silence" begin
         # This should silence everything except error messages.

@@ -116,11 +116,11 @@ function add_setpoint_pump_status!(sol, wm::AbstractWaterModel)
 end
 
 function add_setpoint_reservoir!(sol, wm::AbstractWaterModel)
-    add_setpoint!(sol, wm, "reservoir", "q_r", :q_r)
+    add_setpoint!(sol, wm, "reservoir", "qr", :qr)
 end
 
 function add_setpoint_tank!(sol, wm::AbstractWaterModel)
-    add_setpoint!(sol, wm, "tank", "q_t", :q_t)
+    add_setpoint!(sol, wm, "tank", "qt", :qt)
 end
 
 "Adds values based on JuMP variables."

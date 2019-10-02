@@ -19,15 +19,15 @@ function post_owf(wm::AbstractWaterModel)
         # TODO: Call this something other than status.
         if pipe["status"] == "CV"
             constraint_check_valve(wm, a)
-            constraint_potential_loss_check_valve(wm, a)
+            constraint_head_loss_check_valve(wm, a)
         else
-            constraint_potential_loss_pipe(wm, a)
+            constraint_head_loss_pipe(wm, a)
         end
     end
 
     for a in ids(wm, :pump)
         constraint_link_flow(wm, a)
-        constraint_potential_loss_pump(wm, a)
+        constraint_head_loss_pump(wm, a)
     end
 
     for (i, node) in ref(wm, :node)
@@ -72,15 +72,15 @@ function post_mn_owf(wm::AbstractWaterModel)
             # TODO: Call this something other than status.
             if pipe["status"] == "CV"
                 constraint_check_valve(wm, a, nw=n)
-                constraint_potential_loss_check_valve(wm, a, nw=n)
+                constraint_head_loss_check_valve(wm, a, nw=n)
             else
-                constraint_potential_loss_pipe(wm, a, nw=n)
+                constraint_head_loss_pipe(wm, a, nw=n)
             end
         end
 
         for a in ids(wm, :pump, nw=n)
             constraint_link_flow(wm, a, nw=n)
-            constraint_potential_loss_pump(wm, a, nw=n)
+            constraint_head_loss_pump(wm, a, nw=n)
         end
 
         for (i, node) in ref(wm, :node, nw=n)

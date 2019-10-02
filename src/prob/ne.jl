@@ -3,60 +3,57 @@ function run_ne(network, model_constructor, optimizer; kwargs...)
 end
 
 function post_ne(wm::AbstractWaterModel)
+    # Create head loss functions, if necessary.
     function_head_loss(wm)
 
+    # Physical variables.
+    variable_head(wm)
+    variable_head_gain(wm)
+    variable_flow(wm)
+    variable_flow_ne(wm)
+    variable_volume(wm)
+
+    # Component-specific variables.
+    variable_check_valve(wm)
+    variable_pump(wm)
     variable_reservoir(wm)
     variable_tank(wm)
-    variable_check_valve(wm)
-    variable_head(wm)
-    variable_flow(wm)
-    variable_volume(wm)
-    variable_pump(wm)
-    variable_flow_ne(wm)
-    variable_resistance_ne(wm)
 
-    for a in ids(wm, :link)
-        constraint_link_flow(wm, a)
-    end
-
-    for a in setdiff(ids(wm, :pipe), ids(wm, :pipe_ne))
-        constraint_potential_loss_pipe(wm, a)
-    end
-
-    for a in ids(wm, :check_valve)
-        constraint_check_valve(wm, a)
-        constraint_potential_loss_check_valve(wm, a)
-    end
-
+    # Head loss for network expansion pipes.
     for a in ids(wm, :pipe_ne)
-        constraint_potential_loss_pipe_ne(wm, a)
-        constraint_resistance_selection_ne(wm, a)
-        constraint_link_flow_ne(wm, a)
+        constraint_head_loss_pipe_ne(wm, a)
     end
 
-    for a in ids(wm, :pump)
-        constraint_potential_loss_pump(wm, a)
+    # Head loss for fixed pipes.
+    for a in ids(wm, :pipe_fixed)
+        constraint_head_loss_pipe(wm, a)
     end
 
-    for a in ids(wm, :check_valve)
-        constraint_check_valve(wm, a)
-    end
-
+    # Flow conservation at all nodes.
     for (i, node) in ref(wm, :node)
         constraint_flow_conservation(wm, i)
+    end
 
-        #if junction["demand"] > 0.0
-        #    constraint_sink_flow(wm, i)
-        #end
+    # Set source node hydraulic heads.
+    for (i, reservoir) in ref(wm, :reservoir)
+        constraint_source_head(wm, i)
+        constraint_source_flow(wm, i)
+    end
+
+    for (i, junction) in ref(wm, :junction)
+        # TODO: The conditional may be redundant, here.
+        if junction["demand"] > 0.0
+            constraint_sink_flow(wm, i)
+        end
     end
 
     for i in ids(wm, :tank)
+        # Link tank volume variables with tank head variables.
         constraint_link_volume(wm, i)
-    end
 
-    #for i in collect(ids(wm, :reservoir))
-    #    constraint_source_flow(wm, i)
-    #end
+        # Set the initial tank volume.
+        constraint_tank_state(wm, i)
+    end
 
     objective_ne(wm)
 end

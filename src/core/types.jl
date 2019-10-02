@@ -10,13 +10,17 @@ abstract type AbstractUndirectedFlowModel <: AbstractWaterModel end
 "Models derived from AbstractDirectedFlowModel"
 abstract type AbstractCNLPModel <: AbstractDirectedFlowModel end
 mutable struct CNLPWaterModel <: AbstractCNLPModel @wm_fields end
-abstract type AbstractMILPRModel <: AbstractDirectedFlowModel end
-mutable struct MILPRWaterModel <: AbstractMILPRModel @wm_fields end
 abstract type AbstractMICPModel <: AbstractDirectedFlowModel end
 mutable struct MICPWaterModel <: AbstractMICPModel @wm_fields end
+abstract type AbstractMILPRModel <: AbstractDirectedFlowModel end
+mutable struct MILPRWaterModel <: AbstractMILPRModel @wm_fields end
 
 "Models derived from AbstractUndirectedFlowModel"
 abstract type AbstractNCNLPModel <: AbstractUndirectedFlowModel end
 mutable struct NCNLPWaterModel <: AbstractNCNLPModel @wm_fields end
 abstract type AbstractMILPModel <: AbstractUndirectedFlowModel end
 mutable struct MILPWaterModel <: AbstractMILPModel @wm_fields end
+
+"Directed models that also use direction variables."
+AbstractIntegerDirectedFlowForms = Union{AbstractMICPModel, AbstractMILPRModel}
+AbstractContinuousDirectedFlowForms = AbstractCNLPModel

@@ -7,6 +7,8 @@ WaterModels.jl Change Log
 - Add Optimal Water Flow problem.
 - Add MILP formulations.
 - Add MILP-R formulations.
+- Add Water Flow (wf) problem formulations.
+- Rename previous Water Flow (wf) problem formulations to Constrained Water Flow (cwf).
 
 ### v0.1.0
 - Refactored nearly everything.

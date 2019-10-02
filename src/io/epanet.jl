@@ -96,10 +96,10 @@ function _correct_status!(data::Dict{String, <:Any})
                 node_id = string(node_id_lt)
                 init_level = data["tank"][node_id]["init_level"]
 
-                if init_level <= lt
-                    pump["initial_status"] = "Open"
-                elseif init_level >= gt
+                if init_level >= gt
                     pump["initial_status"] = "Closed"
+                else
+                    pump["initial_status"] = "Open"
                 end
             end
         end
@@ -819,10 +819,12 @@ function _read_junction!(data::Dict{String, <:Any})
             if length(current) > 2
                 if demand_units == "LPS" # If liters per second...
                     # Convert from liters per second to cubic meters per second.
-                    junction["demand"] = 1.0e-3 * parse(Float64, current[3])
+                    junction["demand"] = 1.0e-3 * parse(Float64, current[3]) *
+                        data["option"]["hydraulic"]["demand_multiplier"]
                 elseif demand_units == "GPM" # If gallons per minute...
                     # Convert from gallons per minute to cubic meters per second.
-                    junction["demand"] = 6.30902e-5 * parse(Float64, current[3])
+                    junction["demand"] = 6.30902e-5 * parse(Float64, current[3]) *
+                        data["option"]["hydraulic"]["demand_multiplier"]
                 end
             end
 

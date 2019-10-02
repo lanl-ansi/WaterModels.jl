@@ -37,7 +37,7 @@ function get_num_resistances(link::Dict{String, <:Any})
     end
 end
 
-function calc_resistance_dw(length_::Float64, diameter::Float64, roughness::Float64, viscosity::Float64, speed::Float64, density::Float64)
+function calc_resistance_dw(diameter::Float64, roughness::Float64, viscosity::Float64, speed::Float64, density::Float64)
     # Compute Reynold's number.
     reynolds_number = density * speed * diameter * inv(viscosity)
 
@@ -46,15 +46,13 @@ function calc_resistance_dw(length_::Float64, diameter::Float64, roughness::Floa
     y1 = 4.61841319859 * inv(w^0.9)
     y2 = (roughness * inv(diameter)) * inv(3.7 * diameter) + y1
     y3 = -8.685889638e-01 * log(y2)
-    return 0.0826 * length_ * inv(diameter^5) * inv(y3*y3)
+    return 0.0826 * inv(diameter^5) * inv(y3*y3)
 end
 
 function calc_resistances_dw(links::Dict{<:Any, <:Any}, viscosity::Float64)
     resistances = Dict([(a, Array{Float64, 1}()) for a in keys(links)])
 
     for (a, link) in links
-        length_ = link["length"]
-
         if haskey(link, "resistances")
             resistances[a] = sort(link["resistances"], rev = true)
         elseif haskey(link, "resistance")
@@ -65,19 +63,20 @@ function calc_resistances_dw(links::Dict{<:Any, <:Any}, viscosity::Float64)
                 # Get relevant values to compute the friction factor.
                 diameter = entry["diameter"]
                 roughness = link["roughness"]
-                r = calc_resistance_dw(length_, diameter, roughness, viscosity, 10.0, 1000.0)
+                r = calc_resistance_dw(diameter, roughness, viscosity, 10.0, 1000.0)
                 resistances[a] = vcat(resistances[a], r)
             end
 
             resistances[a] = sort(resistances[a], rev = true)
         elseif haskey(link, "friction_factor")
             # Return the overall friction factor.
-            resistances[a] = [0.0826 * length_ * inv(diameter^5) * pipe["friction_factor"]]
+            diameter = link["diameter"]
+            resistances[a] = [0.0826*inv(diameter^5) * link["friction_factor"]]
         else
             # Get relevant values to compute the friction factor.
             diameter = link["diameter"]
             roughness = link["roughness"]
-            r = calc_resistance_dw(length_, diameter, roughness, viscosity, 10.0, 1000.0)
+            r = calc_resistance_dw(diameter, roughness, viscosity, 10.0, 1000.0)
             resistances[a] = vcat(resistances[a], r)
         end
     end
@@ -114,15 +113,13 @@ function calc_resistance_costs_dw(links::Dict{Int, <:Any}, viscosity::Float64)
     costs = Dict([(a, Array{Float64, 1}()) for a in keys(links)])
 
     for (a, link) in links
-        length_ = link["length"]
-
         if haskey(link, "diameters")
             resistances = Array{Float64, 1}()
 
             for entry in link["diameters"]
                 diameter = entry["diameter"]
                 roughness = link["roughness"]
-                resistance = calc_resistance_dw(length_, diameter, roughness, viscosity, 10.0, 1000.0)
+                resistance = calc_resistance_dw(diameter, roughness, viscosity, 10.0, 1000.0)
                 resistances = vcat(resistances, resistance)
                 costs[a] = vcat(costs[a], entry["costPerUnitLength"])
             end

@@ -166,9 +166,11 @@ function build_model(data::Dict{String,<:Any}, model_type::Type, post_method; re
 
     start_time = time()
     ref_add_core!(wm)
+
     for ref_ext in ref_extensions
         ref_ext(wm)
     end
+
     Memento.debug(_LOGGER, "wm build ref time: $(time() - start_time)")
 
     start_time = time()
@@ -231,9 +233,11 @@ Some of the common keys include:
 function _ref_add_core!(nw_refs::Dict)
     for (nw, ref) in nw_refs
         ref[:link] = merge(ref[:pipe], ref[:valve], ref[:pump])
+        ref[:check_valve] = filter(has_check_valve, ref[:pipe])
         ref[:pipe_ne] = filter(is_ne_link, ref[:pipe])
         ref[:link_ne] = filter(is_ne_link, ref[:link])
-        ref[:check_valve] = filter(has_check_valve, ref[:pipe])
+        ref[:link_fixed] = filter(!is_ne_link, ref[:link])
+        ref[:pipe_fixed] = filter(!is_ne_link, ref[:pipe])
 
         # Set up arcs from existing links.
         ref[:arc_fr] = [(i, comp["node_fr"], comp["node_to"]) for (i, comp) in ref[:link]]

@@ -18,7 +18,7 @@ end
 function variable_pump(wm::AbstractMILPRModel, n::Int=wm.cnw) 
 end
 
-function constraint_potential_loss_pump(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int) 
+function constraint_head_loss_pump(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int) 
 end
 
 
@@ -26,14 +26,14 @@ function get_linear_outer_approximation(q::JuMP.VariableRef, q_hat::Float64, alp
     return q_hat^alpha + alpha * q_hat^(alpha - 1.0) * (q - q_hat)
 end
 
-function constraint_potential_loss_pipe_ne(wm::AbstractMILPRModel, n::Int, a::Int, alpha, node_fr, node_to, len, pipe_resistances) 
-    if !haskey(con(wm, n), :potential_loss_pipe_n_ne)
-        con(wm, n)[:potential_loss_pipe_n_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
-        con(wm, n)[:potential_loss_pipe_p_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
+function constraint_head_loss_pipe_ne(wm::AbstractMILPRModel, n::Int, a::Int, alpha, node_fr, node_to, len, pipe_resistances) 
+    if !haskey(con(wm, n), :head_loss_pipe_n_ne)
+        con(wm, n)[:head_loss_pipe_n_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
+        con(wm, n)[:head_loss_pipe_p_ne] = Dict{Int, Dict{Int, JuMP.ConstraintRef}}()
     end
 
-    con(wm, n, :potential_loss_pipe_n_ne)[a] = Dict{Int, JuMP.ConstraintRef}()
-    con(wm, n, :potential_loss_pipe_p_ne)[a] = Dict{Int, JuMP.ConstraintRef}()
+    con(wm, n, :head_loss_pipe_n_ne)[a] = Dict{Int, JuMP.ConstraintRef}()
+    con(wm, n, :head_loss_pipe_p_ne)[a] = Dict{Int, JuMP.ConstraintRef}()
 
     L = len
 
@@ -62,10 +62,10 @@ function constraint_potential_loss_pipe_ne(wm::AbstractMILPRModel, n::Int, a::In
     end
 end
 
-function constraint_potential_loss_pipe(wm::AbstractMILPRModel, n::Int, a::Int, alpha, node_fr, node_to, len, r_min) 
-    if !haskey(con(wm, n), :potential_loss_pipe_n)
-        con(wm, n)[:potential_loss_pipe_n] = Dict{Int, JuMP.ConstraintRef}()
-        con(wm, n)[:potential_loss_pipe_p] = Dict{Int, JuMP.ConstraintRef}()
+function constraint_head_loss_pipe(wm::AbstractMILPRModel, n::Int, a::Int, alpha, node_fr, node_to, len, r_min) 
+    if !haskey(con(wm, n), :head_loss_pipe_n)
+        con(wm, n)[:head_loss_pipe_n] = Dict{Int, JuMP.ConstraintRef}()
+        con(wm, n)[:head_loss_pipe_p] = Dict{Int, JuMP.ConstraintRef}()
     end
 
     L = len
