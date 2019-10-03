@@ -25,9 +25,6 @@ function constraint_flow_direction_selection(wm::AbstractCNLPModel, n::Int, a::I
 "The head loss upper bound constraint does not exist within the CNLP model."
 function constraint_head_loss_ub_pipe(wm::AbstractCNLPModel, n::Int, a::Int, alpha::Float64, len::Float64, r::Float64) end
 
-"The pump head loss constraint does not exist within the CNLP model."
-function constraint_head_loss_pump(wm::AbstractCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int) end
-
 "The objective function of the CNLP model results in first-order optimality
 conditions that are similar to the full, nonconvex head loss constraints."
 function objective_wf(wm::AbstractCNLPModel, n::Int=wm.cnw)

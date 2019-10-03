@@ -107,8 +107,7 @@ function constraint_sink_flow(wm::AbstractWaterModel, n::Int, i::Int, links) end
 function constraint_source_flow(wm::AbstractWaterModel, n::Int, i::Int, links) end
 
 # no generic implementation available
-#function constraint_head_loss_pump(wm::AbstractWaterModel, n::Int, i::Int)
-#end
+function constraint_head_gain_pump(wm::AbstractWaterModel, n::Int, a::Int) end
 
 # no generic implementation available
 #function constraint_head_gain_pump_quadratic_fit(wm::AbstractWaterModel, n::Int, i::Int)

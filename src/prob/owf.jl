@@ -27,7 +27,7 @@ function post_owf(wm::AbstractWaterModel)
 
     for a in ids(wm, :pump)
         constraint_link_flow(wm, a)
-        constraint_head_loss_pump(wm, a)
+        constraint_head_gain_pump(wm, a)
     end
 
     for (i, node) in ref(wm, :node)
@@ -80,7 +80,7 @@ function post_mn_owf(wm::AbstractWaterModel)
 
         for a in ids(wm, :pump, nw=n)
             constraint_link_flow(wm, a, nw=n)
-            constraint_head_loss_pump(wm, a, nw=n)
+            constraint_head_gain_pump(wm, a, nw=n)
         end
 
         for (i, node) in ref(wm, :node, nw=n)
