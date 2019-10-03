@@ -35,7 +35,7 @@ include("common.jl")
 
     include("cwf.jl")
 
-    #include("ne.jl")
+    include("ne.jl")
 
     #include("owf.jl")
 

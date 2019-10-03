@@ -234,8 +234,8 @@ function _ref_add_core!(nw_refs::Dict)
     for (nw, ref) in nw_refs
         ref[:link] = merge(ref[:pipe], ref[:valve], ref[:pump])
         ref[:check_valve] = filter(has_check_valve, ref[:pipe])
-        ref[:pipe_ne] = filter(is_ne_link, ref[:pipe])
         ref[:link_ne] = filter(is_ne_link, ref[:link])
+        ref[:pipe_ne] = filter(is_ne_link, ref[:pipe])
         ref[:link_fixed] = filter(!is_ne_link, ref[:link])
         ref[:pipe_fixed] = filter(!is_ne_link, ref[:pipe])
 

@@ -19,14 +19,23 @@ function post_ne(wm::AbstractWaterModel)
     variable_reservoir(wm)
     variable_tank(wm)
 
-    # Head loss for network expansion pipes.
-    for a in ids(wm, :pipe_ne)
+    for (a, pipe) in ref(wm, :pipe_fixed)
+        # TODO: Call this something other than status.
+        if pipe["status"] == "CV"
+            constraint_check_valve(wm, a)
+            constraint_head_loss_check_valve(wm, a)
+        else
+            constraint_head_loss_pipe(wm, a)
+        end
+    end
+
+    for (a, pipe) in ref(wm, :pipe_ne)
         constraint_head_loss_pipe_ne(wm, a)
     end
 
-    # Head loss for fixed pipes.
-    for a in ids(wm, :pipe_fixed)
-        constraint_head_loss_pipe(wm, a)
+    for a in ids(wm, :pump)
+        constraint_head_gain_pump(wm, a)
+        constraint_pump_control(wm, a)
     end
 
     # Flow conservation at all nodes.

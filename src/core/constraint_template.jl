@@ -143,6 +143,11 @@ function constraint_head_loss_pipe_ne(wm::AbstractWaterModel, a::Int; nw::Int=wm
     constraint_resistance_selection_ne(wm, a; nw=nw, kwargs...)
 end
 
+function constraint_resistance_selection_ne(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    pipe_resistances = ref(wm, nw, :resistance, a)
+    constraint_resistance_selection_ne(wm, nw, a, pipe_resistances; kwargs...)
+end
+
 function constraint_flow_direction_selection_ne(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
     pipe_resistances = ref(wm, nw, :resistance, a)
     constraint_flow_direction_selection_ne(wm, nw, a, pipe_resistances)
@@ -153,11 +158,6 @@ function constraint_head_loss_ub_pipe_ne(wm::AbstractWaterModel, a::Int; nw::Int
     L = ref(wm, nw, :pipe, a)["length"]
     pipe_resistances = ref(wm, nw, :resistance, a)
     constraint_head_loss_ub_pipe_ne(wm, nw, a, alpha, L, pipe_resistances)
-end
-
-function constraint_resistance_selection_ne(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
-    pipe_resistances = ref(wm, nw, :resistance, a)
-    constraint_resistance_selection_ne(wm, nw, a, pipe_resistances)
 end
 
 ### Check Valve Constraints ###
@@ -193,24 +193,6 @@ function constraint_head_gain_pump(wm::AbstractWaterModel, a::Int; nw::Int=wm.cn
     force_on ? constraint_head_gain_pump_on(wm, nw, a, node_fr, node_to, curve_fun) :
         constraint_head_gain_pump(wm, nw, a, node_fr, node_to, curve_fun)
 end
-
-#function constraint_head_loss_pump(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
-#    node_fr = ref(wm, nw, :pump, a)["node_fr"]
-#    node_to = ref(wm, nw, :pump, a)["node_to"]
-#
-#    constraint_head_loss_pump(wm, nw, a, node_fr, node_to)
-#    constraint_head_gain_pump_quadratic_fit(wm, a; nw=nw, kwargs...)
-#end
-
-#function constraint_head_gain_pump_quadratic_fit(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
-#    if !haskey(con(wm, nw), :head_gain)
-#        con(wm, nw)[:head_gain] = Dict{Int, JuMP.ConstraintRef}()
-#    end
-#
-#    pump_curve = ref(wm, nw, :pump, a)["pump_curve"]
-#    curve_fun = get_function_from_pump_curve(pump_curve)
-#    constraint_head_gain_pump_quadratic_fit(wm, nw, a, curve_fun)
-#end
 
 function constraint_pump_control(wm::AbstractWaterModel, a::Int, nw_1::Int, nw_2::Int)
     pump = ref(wm, nw_2, :pump, a)
