@@ -83,13 +83,11 @@ function constraint_resistance_selection_ne(wm::AbstractUndirectedFlowModel, n::
 
     for r in 1:length(pipe_resistances)
         x_res = var(wm, n, :x_res, a)[r]
-
         q_ne = var(wm, n, :q_ne, a)[r]
-        q_ne_lb = JuMP.has_lower_bound(q_ne) ? JuMP.lower_bound(q_ne) : -1.0e2
+
+        q_ne_lb = JuMP.has_lower_bound(q_ne) ? JuMP.lower_bound(q_ne) : -10.0
         c_lb = JuMP.@constraint(wm.model, q_ne >= q_ne_lb * x_res)
-
-        q_ne = var(wm, n, :q_ne, a)[r]
-        q_ne_ub = JuMP.has_upper_bound(q_ne) ? JuMP.upper_bound(q_ne) : 1.0e2
+        q_ne_ub = JuMP.has_upper_bound(q_ne) ? JuMP.upper_bound(q_ne) : 10.0
         c_ub = JuMP.@constraint(wm.model, q_ne <= q_ne_ub * x_res)
 
         append!(con(wm, n, :head_loss)[a], [c_lb, c_ub])

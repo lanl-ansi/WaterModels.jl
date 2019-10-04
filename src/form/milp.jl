@@ -72,12 +72,7 @@ end
 "Pump head gain constraint when the pump status is ambiguous."
 function constraint_head_gain_pump(wm::AbstractMILPModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64})
     # Fix reverse flow variable to zero (since this is a pump).
-    qn = var(wm, n, :qn, a)
-    JuMP.fix(qn, 0.0, force=true)
-
-    # Gather common variables.
-    qp = var(wm, n, :qp, a)
-    qp_ub = JuMP.has_upper_bound(qp) ? JuMP.upper_bound(qp) : 10.0
+    q = var(wm, n, :q, a)
 
     g = var(wm, n, :g, a)
     h_i = var(wm, n, :h, node_fr)
@@ -116,6 +111,7 @@ function constraint_head_loss_pipe_ne(wm::AbstractMILPModel, n::Int, a::Int, alp
 
         for (r_id, r) in enumerate(resistances)
             x_res = var(wm, n, :x_res, a)[r_id]
+            q_ne = var(wm, n, :q_ne, a)[r_id]
 
             c_1 = JuMP.@constraint(wm.model, sum(lambda[a, r_id, k] for k in 1:n_b) == x_res)
             c_2 = JuMP.@constraint(wm.model, lambda[a, r_id, 1] <= x_pw[a, 1])
@@ -134,11 +130,15 @@ function constraint_head_loss_pipe_ne(wm::AbstractMILPModel, n::Int, a::Int, alp
             breakpoints = range(q_ne_lb, stop=q_ne_ub, length=n_b)
             f = get_breakpoint_values(collect(breakpoints), alpha)
             JuMP.add_to_expression!(lhs, r * sum(f[k] * lambda[a, r_id, k] for k in 1:n_b))
+
+            q_ne_lhs = sum(breakpoints[k] * lambda[a, r_id, k] for k in 1:n_b)
+            c_5 = JuMP.@constraint(wm.model, q_ne_lhs == q_ne)
+            append!(con(wm, n, :head_loss, a), [c_5])
         end
 
-        c_5 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == 1.0)
-        c_6 = JuMP.@constraint(wm.model, lhs == inv(L) * (h_i - h_j))
-        append!(con(wm, n, :head_loss, a), [c_5, c_6])
+        c_6 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == 1.0)
+        c_7 = JuMP.@constraint(wm.model, lhs == inv(L) * (h_i - h_j))
+        append!(con(wm, n, :head_loss, a), [c_6, c_7])
     end
 end
 
