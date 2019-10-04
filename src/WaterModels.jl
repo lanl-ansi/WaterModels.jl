@@ -52,6 +52,7 @@ include("form/directed_flow.jl")
 include("form/undirected_flow.jl")
 include("form/cnlp.jl")
 include("form/micp.jl")
+include("form/milp.jl")
 include("form/milpr.jl")
 include("form/ncnlp.jl")
 

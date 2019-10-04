@@ -113,15 +113,15 @@ function calc_flow_rate_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
         ub[a] = zeros(Float64, (num_resistances,))
 
         for (r_id, r) in enumerate(resistances)
-            lb[a][r_id] = -100.0
-            ub[a][r_id] = 100.0
+            lb[a][r_id] = -10.0
+            ub[a][r_id] = 10.0
 
             # TODO: These seem to be valid bounds when tanks and pumps aren't
             # present, but it should be fixed to include these, too.
-            #lb[a][r_id] = sign(dh_lb[a]) * (abs(dh_lb[a]) / (L * r))^(inv(alpha))
-            #ub[a][r_id] = sign(dh_ub[a]) * (abs(dh_ub[a]) / (L * r))^(inv(alpha))
-            #lb[a][r_id] = max(lb[a][r_id], -sum_demand)
-            #ub[a][r_id] = min(ub[a][r_id], sum_demand)
+            lb[a][r_id] = sign(dh_lb[a]) * (abs(dh_lb[a]) / (L * r))^(inv(alpha))
+            ub[a][r_id] = sign(dh_ub[a]) * (abs(dh_ub[a]) / (L * r))^(inv(alpha))
+            lb[a][r_id] = max(lb[a][r_id], -sum_demand)
+            ub[a][r_id] = min(ub[a][r_id], sum_demand)
 
             if pipe["flow_direction"] == POSITIVE || has_check_valve(pipe)
                 lb[a][r_id] = max(lb[a][r_id], 0.0)
