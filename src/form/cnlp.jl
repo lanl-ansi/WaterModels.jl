@@ -7,8 +7,11 @@ function variable_head(wm::AbstractCNLPModel, n::Int=wm.cnw; bounded::Bool=true)
     end
 end
 
-"Pump variables do not exist within the CNLP model."
-function variable_pump(wm::AbstractCNLPModel, n::Int=wm.cnw) end
+"Pump control variables do not exist within the CNLP model."
+function variable_pump_control(wm::AbstractCNLPModel, n::Int=wm.cnw) end
+
+"Pump operation variables do not exist within the CNLP model."
+function variable_pump_operation(wm::AbstractCNLPModel, n::Int=wm.cnw) end
 
 "The source head constraint does not exist within the CNLP model."
 function constraint_source_head(wm::AbstractCNLPModel, n::Int, i::Int, h_src::Float64) end

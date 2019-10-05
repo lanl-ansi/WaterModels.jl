@@ -1,9 +1,4 @@
 # Define NCNLP (non-convex nonlinear programming) implementations of water distribution models.
-function variable_pump(wm::AbstractNCNLPModel, n::Int=wm.cnw) 
-    variable_fixed_speed_pump_operation(wm, n)
-    # TODO: The below need not be created in the OWF.
-    variable_fixed_speed_pump_threshold(wm, n) 
-end
 
 function constraint_head_loss_check_valve(wm::AbstractNCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64) 
     q = var(wm, n, :q, a)
@@ -15,9 +10,9 @@ function constraint_head_loss_check_valve(wm::AbstractNCNLPModel, n::Int, a::Int
     #c = JuMP.@NLconstraint(wm.model, x_cv * r * head_loss(q) == inv(L) * x_cv * (h_i - h_j))
     #c = JuMP.@NLconstraint(wm.model, (1 - x_cv) * h_j >= (1 - x_cv) * h_i)
 
-    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(q) - inv(L) * (h_i - h_j) <= 1.0e6 * (1.0 - x_cv))
-    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(q) - inv(L) * (h_i - h_j) >= -1.0e6 * (1.0 - x_cv))
-
+    lhs = JuMP.@NLexpression(wm.model, r * head_loss(q) - inv(L) * (h_i - h_j))
+    c_1 = JuMP.@NLconstraint(wm.model, lhs <= 1.0e6 * (1.0 - x_cv))
+    c_2 = JuMP.@NLconstraint(wm.model, lhs >= -1.0e6 * (1.0 - x_cv))
     append!(con(wm, n, :head_loss)[a], [c_1, c_2])
 end
 
@@ -26,7 +21,7 @@ function constraint_head_loss_pipe(wm::AbstractNCNLPModel, n::Int, a::Int, alpha
     h_j = var(wm, n, :h, node_to)
     q = var(wm, n, :q, a)
 
-    c = JuMP.@NLconstraint(wm.model, r * head_loss(q) == inv(L) * (h_i - h_j))
+    c = JuMP.@NLconstraint(wm.model, L*r * head_loss(q) == (h_i - h_j))
     append!(con(wm, n, :head_loss)[a], [c])
 end
 
@@ -35,8 +30,9 @@ function constraint_head_loss_pipe_ne(wm::AbstractNCNLPModel, n::Int, a::Int, al
     h_j = var(wm, n, :h, node_to)
     q_ne = var(wm, n, :q_ne, a)
 
-    c = JuMP.@NLconstraint(wm.model, sum(r*head_loss(q_ne[r_id]) for (r_id, r)
-        in enumerate(pipe_resistances)) == inv(L) * (h_i - h_j))
+    lhs = JuMP.@NLexpression(wm.model, sum(L*r * head_loss(q_ne[r_id]) for
+        (r_id, r) in enumerate(pipe_resistances)))
+    c = JuMP.@NLconstraint(wm.model, lhs == h_i - h_j)
     append!(con(wm, n, :head_loss)[a], [c])
 end
 

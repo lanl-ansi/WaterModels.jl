@@ -2,6 +2,50 @@
 # This file defines the nonlinear head loss functions for water systems models.
 ###############################################################################
 
+function get_g_constants(alpha::Float64, delta::Float64)
+    p::Float64 = alpha + 1.0
+
+    a::Float64 = 15.0 * inv(8.0) * delta^(p - 1.0) +
+        inv(8.0) * (p - 1.0) * p * delta^(p - 1.0) -
+        7.0 * inv(8.0) * p * delta^(p - 1.0)
+
+    b::Float64 = -5.0 * inv(4.0) * delta^(p - 3.0) -
+        inv(4.0) * (p - 1.0) * p * delta^(p - 3.0) +
+        5.0 * inv(4.0) * p * delta^(p - 3.0)
+
+    c::Float64 = 3.0 * inv(8.0) * delta^(p - 5.0) +
+        inv(8.0) * (p - 1.0) * p * delta^(p - 5.0) -
+        3.0 * inv(8.0) * p * delta^(p - 5.0)
+
+    return a, b, c
+end
+
+function g_alpha(alpha::Float64, delta::Float64)
+    a, b, c = get_g_constants(alpha, delta)
+
+    return function(x::Float64)
+        return c*x*x*x*x*x + b*x*x*x + a*x
+    end
+end
+
+function dg_alpha(alpha::Float64, delta::Float64)
+    p::Float64 = alpha + 1.0
+    a, b, c = get_g_constants(alpha, delta)
+
+    return function(x::Float64)
+        5.0*c * x*x*x*x + 3.0*b * x*x + a
+    end
+end
+
+function d2g_alpha(alpha::Float64, delta::Float64)
+    p::Float64 = alpha + 1.0
+    a, b, c = get_g_constants(alpha, delta)
+
+    return function(x::Float64)
+        20.0*c * x*x*x + 6.0*b * x
+    end
+end
+
 function if_alpha(alpha::Float64; convex::Bool=false)
     return function(x::Float64)
         return inv(2.0 + alpha) * (x*x)^(1.0 + 0.5*alpha)
@@ -16,6 +60,14 @@ function f_alpha(alpha::Float64; convex::Bool=false)
     else
         return function(x::Float64)
             return sign(x) * (x*x)^(0.5 + 0.5*alpha)
+
+            #g = g_alpha(alpha, 1.0e-3)
+
+            #if abs(x) > 1.0e-3
+            #    return sign(x) * (x*x)^(0.5 + 0.5*alpha)
+            #else
+            #    return g(x)
+            #end
         end
     end
 end
@@ -23,11 +75,19 @@ end
 function df_alpha(alpha::Float64; convex::Bool=false)
     if convex
         return function(x::Float64)
-            return x != 0.0 ? (1.0 + alpha) * sign(x) * (x*x)^(0.5*alpha) : 0.0
+            return (1.0 + alpha) * sign(x) * (x*x)^(0.5*alpha)
         end
     else
         return function(x::Float64)
             return (1.0 + alpha) * (x*x)^(0.5*alpha)
+
+            #dg = dg_alpha(alpha, 1.0e-3)
+
+            #if abs(x) > 1.0e-3
+            #    return (1.0 + alpha) * (x*x)^(0.5*alpha)
+            #else
+            #    return dg(x)
+            #end
         end
     end
 end
@@ -35,11 +95,19 @@ end
 function d2f_alpha(alpha::Float64; convex::Bool=false)
     if convex
         return function(x::Float64)
-            return x != 0.0 ? alpha * (1.0 + alpha) * (x*x)^(0.5*alpha - 0.5) : 0.0
+            return alpha * (1.0 + alpha) * (x*x)^(0.5*alpha - 0.5)
         end
     else
         return function(x::Float64)
-            return x != 0.0 ? sign(x) * alpha * (1.0 + alpha) * (x*x)^(0.5*alpha - 0.5) : 0.0
+            return sign(x) * alpha * (1.0 + alpha) * (x*x)^(0.5*alpha - 0.5)
+
+            #d2g = d2g_alpha(alpha, 1.0e-3)
+
+            #if abs(x) > 1.0e-3
+            #    return sign(x) * alpha * (1.0 + alpha) * (x*x)^(0.5*alpha - 0.5)
+            #else
+            #    return d2g(x)
+            #end
         end
     end
 end

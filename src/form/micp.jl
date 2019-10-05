@@ -2,15 +2,15 @@
 
 function constraint_head_loss_pipe_ne(wm::AbstractMICPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances) 
     for (r_id, r) in enumerate(pipe_resistances)
-        dhn = var(wm, n, :dhn, a)
-        qn_ne = var(wm, n, :qn_ne, a)[r_id]
-        cn = JuMP.@NLconstraint(wm.model, r * head_loss(qn_ne) <= inv(L) * dhn)
-
         dhp = var(wm, n, :dhp, a)
         qp_ne = var(wm, n, :qp_ne, a)[r_id]
-        cp = JuMP.@NLconstraint(wm.model, r * head_loss(qp_ne) <= inv(L) * dhp)
+        cp = JuMP.@NLconstraint(wm.model, L*r * head_loss(qp_ne) <= dhp)
 
-        append!(con(wm, n, :head_loss, a), [cn, cp])
+        dhn = var(wm, n, :dhn, a)
+        qn_ne = var(wm, n, :qn_ne, a)[r_id]
+        cn = JuMP.@NLconstraint(wm.model, L*r * head_loss(qn_ne) <= dhn)
+
+        append!(con(wm, n, :head_loss, a), [cp, cn])
     end
 end
 
@@ -47,11 +47,11 @@ end
 function constraint_head_loss_pipe(wm::AbstractMICPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     qp = var(wm, n, :qp, a)
     dhp = var(wm, n, :dhp, a)
-    cp = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= inv(L) * dhp)
+    cp = JuMP.@NLconstraint(wm.model, L*r * head_loss(qp) <= dhp)
 
     qn = var(wm, n, :qn, a)
     dhn = var(wm, n, :dhn, a)
-    cn = JuMP.@NLconstraint(wm.model, r * head_loss(qn) <= inv(L) * dhn)
+    cn = JuMP.@NLconstraint(wm.model, L*r * head_loss(qn) <= dhn)
 
     append!(con(wm, n, :head_loss)[a], [cp, cn])
 end

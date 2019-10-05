@@ -15,7 +15,7 @@ function post_ne(wm::AbstractWaterModel)
 
     # Component-specific variables.
     variable_check_valve(wm)
-    variable_pump(wm)
+    variable_pump_operation(wm)
     variable_reservoir(wm)
     variable_tank(wm)
 

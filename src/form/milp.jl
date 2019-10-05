@@ -1,12 +1,5 @@
 # Define MILP (mixed-integer linear, relaxed program) implementations of water distribution models.
 
-# Define MILP (non-convex nonlinear programming) implementations of water distribution models.
-function variable_pump(wm::AbstractMILPModel, n::Int=wm.cnw) 
-    variable_fixed_speed_pump_operation(wm, n)
-    # TODO: The below need not be created in the OWF.
-    variable_fixed_speed_pump_threshold(wm, n) 
-end
-
 function variable_flow_piecewise_weights(wm::AbstractMILPModel, n::Int=wm.cnw)
     # Set the number of breakpoints used in each outer-approximation.
     num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 1

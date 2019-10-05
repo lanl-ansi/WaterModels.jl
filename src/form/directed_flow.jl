@@ -189,7 +189,7 @@ function constraint_flow_direction_selection_ne(wm::AbstractDirectedFlowModel, n
 
         qn_ne = var(wm, n, :qn_ne, a)[r_id]
         qn_ne_ub = JuMP.has_upper_bound(qn_ne) ? JuMP.upper_bound(qn_ne) : 10.0
-        cn = JuMP.@constraint(wm.model, qn_ne - qn_ne_ub * (1.0 - x_dir) <= 0.0)
+        cn = JuMP.@constraint(wm.model, qn_ne <= qn_ne_ub * (1.0 - x_dir))
 
         append!(con(wm, n, :head_loss)[a], [cp, cn])
     end
@@ -217,14 +217,14 @@ function constraint_head_loss_ub_pipe(wm::AbstractDirectedFlowModel, n::Int, a::
     qp = var(wm, n, :qp, a)
     dhp = var(wm, n, :dhp, a)
     qp_ub = JuMP.has_upper_bound(qp) ? JuMP.upper_bound(qp) : 10.0
-    rhs_p = r * qp_ub^(alpha - 1.0) * qp
-    cp = JuMP.@constraint(wm.model, inv(L) * dhp <= rhs_p)
+    rhs_p = L*r * qp_ub^(alpha - 1.0) * qp
+    cp = JuMP.@constraint(wm.model, dhp <= rhs_p)
 
     qn = var(wm, n, :qn, a)
     dhn = var(wm, n, :dhn, a)
     qn_ub = JuMP.has_upper_bound(qn) ? JuMP.upper_bound(qn) : 10.0
-    rhs_n = r * qn_ub^(alpha - 1.0) * qn
-    cn = JuMP.@constraint(wm.model, inv(L) * dhn <= rhs_n)
+    rhs_n = L*r * qn_ub^(alpha - 1.0) * qn
+    cn = JuMP.@constraint(wm.model, dhn <= rhs_n)
 
     append!(con(wm, n, :head_loss)[a], [cp, cn])
 end
@@ -233,14 +233,14 @@ function constraint_head_loss_ub_pipe_ne(wm::AbstractDirectedFlowModel, n::Int, 
     dhp = var(wm, n, :dhp, a)
     qp_ne = var(wm, n, :qp_ne, a)
     qp_ne_ub = JuMP.upper_bound.(qp_ne)
-    slopes_p = pipe_resistances .* qp_ne_ub.^(alpha - 1.0)
-    cp = JuMP.@constraint(wm.model, inv(L) * dhp <= sum(slopes_p .* qp_ne))
+    slopes_p = L*pipe_resistances .* qp_ne_ub.^(alpha - 1.0)
+    cp = JuMP.@constraint(wm.model, dhp <= sum(slopes_p .* qp_ne))
 
     dhn = var(wm, n, :dhn, a)
     qn_ne = var(wm, n, :qn_ne, a)
     qn_ne_ub = JuMP.upper_bound.(qn_ne)
-    slopes_n = pipe_resistances .* qn_ne_ub.^(alpha - 1.0)
-    cn = JuMP.@constraint(wm.model, inv(L) * dhn <= sum(slopes_n .* qn_ne))
+    slopes_n = L*pipe_resistances .* qn_ne_ub.^(alpha - 1.0)
+    cn = JuMP.@constraint(wm.model, dhn <= sum(slopes_n .* qn_ne))
 
     append!(con(wm, n, :head_loss)[a], [cp, cn])
 end
@@ -249,7 +249,7 @@ function constraint_resistance_selection_ne(wm::AbstractDirectedFlowModel, n::In
     c = JuMP.@constraint(wm.model, sum(var(wm, n, :x_res, a)) == 1.0)
     append!(con(wm, n, :head_loss)[a], [c])
 
-    for r_id in 1:length(pipe_resistances)
+    for (r_id, r) in enumerate(pipe_resistances)
         x_res = var(wm, n, :x_res, a)[r_id]
 
         qp_ne = var(wm, n, :qp_ne, a)[r_id]

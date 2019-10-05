@@ -126,6 +126,14 @@ function variable_fixed_speed_pump_threshold(wm::AbstractWaterModel, n::Int=wm.c
         start=get_start(ref(wm, n, :pump), a, "x_thrs_bt_start", 1.0))
 end
 
+function variable_pump_operation(wm::AbstractWaterModel, n::Int=wm.cnw)
+    variable_fixed_speed_pump_operation(wm, n)
+end
+
+function variable_pump_control(wm::AbstractWaterModel, n::Int=wm.cnw)
+    variable_fixed_speed_pump_threshold(wm, n)
+end
+
 function variable_resistance(wm::AbstractWaterModel, n::Int=wm.cnw)
     link_ids = ids(wm, n, :link_ne)
     var(wm, n)[:x_res] = Dict{Int, Array{JuMP.VariableRef}}(a => [] for a in link_ids)

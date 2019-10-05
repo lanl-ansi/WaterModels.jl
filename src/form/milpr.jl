@@ -1,12 +1,5 @@
 # Define MILPR (mixed-integer linear, relaxed program) implementations of water distribution models.
 
-# Define MILPR (non-convex nonlinear programming) implementations of water distribution models.
-function variable_pump(wm::AbstractMILPRModel, n::Int=wm.cnw) 
-    variable_fixed_speed_pump_operation(wm, n)
-    # TODO: The below need not be created in the OWF.
-    variable_fixed_speed_pump_threshold(wm, n) 
-end
-
 function get_linear_outer_approximation(q::JuMP.VariableRef, q_hat::Float64, alpha::Float64)
     return q_hat^alpha + alpha * q_hat^(alpha - 1.0) * (q - q_hat)
 end
