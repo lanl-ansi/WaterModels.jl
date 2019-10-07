@@ -23,12 +23,12 @@ function variable_head_difference_bounded(wm::AbstractWaterModel, n::Int=wm.cnw)
 
     # Initialize variables associated with positive head differences.
     var(wm, n)[:dhp] = JuMP.@variable(wm.model, [a in ids(wm, n, :link)],
-        lower_bound=0.0, upper_bound=abs(dh_ub[a]), base_name="dhp[$(n)]",
+        lower_bound=0.0, upper_bound=max(0.0, dh_ub[a]), base_name="dhp[$(n)]",
         start=get_start(ref(wm, n, :link), a, "dhp_start", 0.0))
 
     # Initialize variables associated with negative head differences.
     var(wm, n)[:dhn] = JuMP.@variable(wm.model, [a in ids(wm, n, :link)],
-        lower_bound=0.0, upper_bound=abs(dh_lb[a]), base_name="dhn[$(n)]",
+        lower_bound=0.0, upper_bound=max(0.0, -dh_lb[a]), base_name="dhn[$(n)]",
         start=get_start(ref(wm, n, :link), a, "dhn_start", 0.0))
 end
 

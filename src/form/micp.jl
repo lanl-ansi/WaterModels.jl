@@ -4,11 +4,11 @@ function constraint_head_loss_pipe_ne(wm::AbstractMICPModel, n::Int, a::Int, alp
     for (r_id, r) in enumerate(pipe_resistances)
         dhp = var(wm, n, :dhp, a)
         qp_ne = var(wm, n, :qp_ne, a)[r_id]
-        cp = JuMP.@NLconstraint(wm.model, L*r * head_loss(qp_ne) <= dhp)
+        cp = JuMP.@NLconstraint(wm.model, r * head_loss(qp_ne) <= inv(L) * dhp)
 
         dhn = var(wm, n, :dhn, a)
         qn_ne = var(wm, n, :qn_ne, a)[r_id]
-        cn = JuMP.@NLconstraint(wm.model, L*r * head_loss(qn_ne) <= dhn)
+        cn = JuMP.@NLconstraint(wm.model, r * head_loss(qn_ne) <= inv(L) * dhn)
 
         append!(con(wm, n, :head_loss, a), [cp, cn])
     end
