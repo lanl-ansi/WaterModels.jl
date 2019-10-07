@@ -205,7 +205,13 @@ end
 
 function set_start_head!(data)
     for (i, node) in data["node"]
-        node["h_start"] = node["h"]
+        node["h_start"] = round(node["h"], digits=7)
+    end
+end
+
+function set_start_reservoir!(data)
+    for (i, reservoir) in data["reservoir"]
+        reservoir["qr_start"] = reservoir["qr"]
     end
 end
 
@@ -223,8 +229,8 @@ function set_start_directed_flow_rate!(data::Dict{String, <:Any})
 end
 
 function set_start_directed_head_difference!(data::Dict{String, <:Any})
-    head_loss_type = data["option"]["headloss"]
-    alpha = head_loss_type == "H-W" ? 1.852 : 2.0
+    head_loss_type = data["option"]["hydraulic"]["headloss"]
+    alpha = uppercase(head_loss_type) == "H-W" ? 1.852 : 2.0
 
     for (a, pipe) in data["pipe"]
         dh_abs = pipe["length"] * pipe["r"] * abs(pipe["q"])^(alpha)
@@ -279,4 +285,14 @@ function set_start_flow_direction!(data::Dict{String, <:Any})
     for (a, pipe) in data["pipe"]
         pipe["x_dir_start"] = pipe["q"] >= 0.0 ? 1.0 : 0.0
     end
+end
+
+function set_start_all!(data::Dict{String, <:Any})
+    set_start_flow_direction!(data)
+    set_start_head!(data)
+    set_start_directed_head_difference!(data)
+    set_start_reservoir!(data)
+    set_start_resistance_ne!(data)
+    set_start_directed_flow_rate_ne!(data)
+    set_start_undirected_flow_rate_ne!(data)
 end

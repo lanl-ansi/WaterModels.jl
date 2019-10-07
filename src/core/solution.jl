@@ -2,6 +2,7 @@
 function build_solution(wm::AbstractWaterModel, solve_time; solution_builder=solution_owf!)
     sol = init_solution(wm)
     data = Dict{String, Any}("name" => wm.data["name"])
+    valid_statuses = [_MOI.FEASIBLE_POINT, _MOI.NEARLY_FEASIBLE_POINT]
 
     if InfrastructureModels.ismultinetwork(wm.data)
         sol["multinetwork"] = true
@@ -11,13 +12,20 @@ function build_solution(wm::AbstractWaterModel, solve_time; solution_builder=sol
         for (n, nw_data) in wm.data["nw"]
             sol_nw = sol_nws[n] = Dict{String,Any}()
             wm.cnw = parse(Int, n)
-            solution_builder(wm, sol_nw)
+
+            if JuMP.primal_status(wm.model) in valid_statuses
+                solution_builder(wm, sol_nw)
+            end
+
             data_nws[n] = Dict("name" => get(nw_data, "name", "anonymous"),
                                "link_count" => length(ref(wm, :link)),
                                "node_count" => length(ref(wm, :node)))
         end
     else
-        solution_builder(wm, sol)
+        if JuMP.primal_status(wm.model) in valid_statuses
+            solution_builder(wm, sol)
+        end
+
         data["link_count"] = length(ref(wm, :link))
         data["node_count"] = length(ref(wm, :node))
     end

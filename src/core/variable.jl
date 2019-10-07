@@ -140,8 +140,8 @@ function variable_resistance(wm::AbstractWaterModel, n::Int=wm.cnw)
 
     for a in ids(wm, n, :link_ne)
         n_r = length(ref(wm, n, :resistance, a)) # Number of resistances.
-        var(wm, n, :x_res)[a] = JuMP.@variable(wm.model, [r in 1:n_r], binary=true,
-            lower_bound=0.0, upper_bound=1.0, base_name="x_res[$(n)][$(a)]",
+        var(wm, n, :x_res)[a] = JuMP.@variable(wm.model, [r in 1:n_r],
+            binary=true, base_name="x_res[$(n)][$(a)]",
             start=get_start(ref(wm, n, :link_ne), a, r, "x_res_start", 0.0))
     end
 end
