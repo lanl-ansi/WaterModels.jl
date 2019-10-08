@@ -199,32 +199,34 @@ function constraint_head_difference(wm::AbstractDirectedFlowModel, n::Int, a::In
     x_dir = var(wm, n, :x_dir, a)
 
     dhp = var(wm, n, :dhp, a)
-    dhp_ub = JuMP.has_upper_bound(dhp) ? JuMP.upper_bound(dhp) : 1.0e6
+    dhp_ub = JuMP.has_upper_bound(dhp) ? JuMP.upper_bound(dhp) : 1.0e3
     cp = JuMP.@constraint(wm.model, dhp <= dhp_ub * x_dir)
 
     dhn = var(wm, n, :dhn, a)
-    dhn_ub = JuMP.has_upper_bound(dhn) ? JuMP.upper_bound(dhn) : 1.0e6
+    dhn_ub = JuMP.has_upper_bound(dhn) ? JuMP.upper_bound(dhn) : 1.0e3
     cn = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - x_dir))
 
-    h_i = head_fr == nothing ? head_fr = var(wm, n, :h, node_fr) : head_fr
-    h_j = head_to == nothing ? head_to = var(wm, n, :h, node_to) : head_to
-    ce = JuMP.@constraint(wm.model, h_i - h_j == dhp - dhn)
+    h_i = head_fr == nothing ? var(wm, n, :h, node_fr) : head_fr
+    h_j = head_to == nothing ? var(wm, n, :h, node_to) : head_to
 
-    append!(con(wm, n, :head_loss)[a], [cp, cn, ce])
+    # If this is not the form of this constraint, hot starts don't work!
+    ce_1 = JuMP.@constraint(wm.model, h_i - h_j <= dhp - dhn)
+    ce_2 = JuMP.@constraint(wm.model, h_i - h_j >= dhp - dhn)
+    append!(con(wm, n, :head_loss)[a], [cp, cn, ce_1, ce_2])
 end
 
 function constraint_head_loss_ub_pipe(wm::AbstractDirectedFlowModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64)
     qp = var(wm, n, :qp, a)
     dhp = var(wm, n, :dhp, a)
     qp_ub = JuMP.has_upper_bound(qp) ? JuMP.upper_bound(qp) : 10.0
-    rhs_p = L*r * qp_ub^(alpha - 1.0) * qp
-    cp = JuMP.@constraint(wm.model, dhp <= rhs_p)
+    rhs_p = r * qp_ub^(alpha - 1.0) * qp
+    cp = JuMP.@constraint(wm.model, inv(L) * dhp <= rhs_p)
 
     qn = var(wm, n, :qn, a)
     dhn = var(wm, n, :dhn, a)
     qn_ub = JuMP.has_upper_bound(qn) ? JuMP.upper_bound(qn) : 10.0
-    rhs_n = L*r * qn_ub^(alpha - 1.0) * qn
-    cn = JuMP.@constraint(wm.model, dhn <= rhs_n)
+    rhs_n = r * qn_ub^(alpha - 1.0) * qn
+    cn = JuMP.@constraint(wm.model, inv(L) * dhn <= rhs_n)
 
     append!(con(wm, n, :head_loss)[a], [cp, cn])
 end
@@ -233,14 +235,14 @@ function constraint_head_loss_ub_pipe_ne(wm::AbstractDirectedFlowModel, n::Int, 
     dhp = var(wm, n, :dhp, a)
     qp_ne = var(wm, n, :qp_ne, a)
     qp_ne_ub = JuMP.upper_bound.(qp_ne)
-    slopes_p = L*pipe_resistances .* qp_ne_ub.^(alpha - 1.0)
-    cp = JuMP.@constraint(wm.model, dhp <= sum(slopes_p .* qp_ne))
+    slopes_p = pipe_resistances .* qp_ne_ub.^(alpha - 1.0)
+    cp = JuMP.@constraint(wm.model, inv(L) * dhp <= sum(slopes_p .* qp_ne))
 
     dhn = var(wm, n, :dhn, a)
     qn_ne = var(wm, n, :qn_ne, a)
     qn_ne_ub = JuMP.upper_bound.(qn_ne)
-    slopes_n = L*pipe_resistances .* qn_ne_ub.^(alpha - 1.0)
-    cn = JuMP.@constraint(wm.model, dhn <= sum(slopes_n .* qn_ne))
+    slopes_n = pipe_resistances .* qn_ne_ub.^(alpha - 1.0)
+    cn = JuMP.@constraint(wm.model, inv(L) * dhn <= sum(slopes_n .* qn_ne))
 
     append!(con(wm, n, :head_loss)[a], [cp, cn])
 end

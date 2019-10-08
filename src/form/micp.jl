@@ -47,11 +47,11 @@ end
 function constraint_head_loss_pipe(wm::AbstractMICPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     qp = var(wm, n, :qp, a)
     dhp = var(wm, n, :dhp, a)
-    cp = JuMP.@NLconstraint(wm.model, L*r * head_loss(qp) <= dhp)
+    cp = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= inv(L) * dhp)
 
     qn = var(wm, n, :qn, a)
     dhn = var(wm, n, :dhn, a)
-    cn = JuMP.@NLconstraint(wm.model, L*r * head_loss(qn) <= dhn)
+    cn = JuMP.@NLconstraint(wm.model, r * head_loss(qn) <= inv(L) * dhn)
 
     append!(con(wm, n, :head_loss)[a], [cp, cn])
 end

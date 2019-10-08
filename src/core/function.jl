@@ -60,14 +60,6 @@ function f_alpha(alpha::Float64; convex::Bool=false)
     else
         return function(x::Float64)
             return sign(x) * (x*x)^(0.5 + 0.5*alpha)
-
-            #g = g_alpha(alpha, 1.0e-3)
-
-            #if abs(x) > 1.0e-3
-            #    return sign(x) * (x*x)^(0.5 + 0.5*alpha)
-            #else
-            #    return g(x)
-            #end
         end
     end
 end
@@ -80,14 +72,6 @@ function df_alpha(alpha::Float64; convex::Bool=false)
     else
         return function(x::Float64)
             return (1.0 + alpha) * (x*x)^(0.5*alpha)
-
-            #dg = dg_alpha(alpha, 1.0e-3)
-
-            #if abs(x) > 1.0e-3
-            #    return (1.0 + alpha) * (x*x)^(0.5*alpha)
-            #else
-            #    return dg(x)
-            #end
         end
     end
 end
@@ -100,14 +84,6 @@ function d2f_alpha(alpha::Float64; convex::Bool=false)
     else
         return function(x::Float64)
             return sign(x) * alpha * (1.0 + alpha) * (x*x)^(0.5*alpha - 0.5)
-
-            #d2g = d2g_alpha(alpha, 1.0e-3)
-
-            #if abs(x) > 1.0e-3
-            #    return sign(x) * alpha * (1.0 + alpha) * (x*x)^(0.5*alpha - 0.5)
-            #else
-            #    return d2g(x)
-            #end
         end
     end
 end

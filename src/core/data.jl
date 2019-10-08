@@ -205,7 +205,7 @@ end
 
 function set_start_head!(data)
     for (i, node) in data["node"]
-        node["h_start"] = round(node["h"], digits=7)
+        node["h_start"] = node["h"]
     end
 end
 
@@ -234,8 +234,8 @@ function set_start_directed_head_difference!(data::Dict{String, <:Any})
 
     for (a, pipe) in data["pipe"]
         dh_abs = pipe["length"] * pipe["r"] * abs(pipe["q"])^(alpha)
-        pipe["dhn_start"] = pipe["q"] < 0.0 ? dh_abs : 0.0
         pipe["dhp_start"] = pipe["q"] >= 0.0 ? dh_abs : 0.0
+        pipe["dhn_start"] = pipe["q"] < 0.0 ? dh_abs : 0.0
     end
 end
 
