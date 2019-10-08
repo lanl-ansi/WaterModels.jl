@@ -154,12 +154,14 @@ function variable_flow_unbounded_ne(wm::AbstractDirectedFlowModel, n::Int=wm.cnw
 
     for a in ids(wm, n, :link_ne)
         n_r = length(ref(wm, n, :resistance, a)) # Number of resistances.
+
         var(wm, n, :qp_ne)[a] = JuMP.@variable(wm.model, [r in 1:n_r],
             lower_bound=0.0, base_name="qp_ne[$(n)][$(a)]",
-            start=get_start(ref(wm, n, :link_ne), a, "qp_ne_start", 1.0e-6))
+            start=get_start(ref(wm, n, :link_ne), a, r, "qp_ne_start", 1.0e-6))
+
         var(wm, n, :qn_ne)[a] = JuMP.@variable(wm.model, [r in 1:n_r],
             lower_bound=0.0, base_name="qn_ne[$(n)][$(a)]",
-            start=get_start(ref(wm, n, :link_ne), a, "qn_ne_start", 1.0e-6))
+            start=get_start(ref(wm, n, :link_ne), a, r, "qn_ne_start", 1.0e-6))
     end
 end
 
@@ -210,9 +212,12 @@ function constraint_head_difference(wm::AbstractDirectedFlowModel, n::Int, a::In
     h_j = head_to == nothing ? var(wm, n, :h, node_to) : head_to
 
     # If this is not the form of this constraint, hot starts don't work!
-    ce_1 = JuMP.@constraint(wm.model, h_i - h_j <= dhp - dhn)
-    ce_2 = JuMP.@constraint(wm.model, h_i - h_j >= dhp - dhn)
-    append!(con(wm, n, :head_loss)[a], [cp, cn, ce_1, ce_2])
+    #ce_1 = JuMP.@constraint(wm.model, h_i - h_j <= dhp - dhn)
+    #ce_2 = JuMP.@constraint(wm.model, h_i - h_j >= dhp - dhn)
+    #append!(con(wm, n, :head_loss)[a], [cp, cn, ce_1, ce_2])
+
+    ce = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
+    append!(con(wm, n, :head_loss)[a], [cp, cn, ce])
 end
 
 function constraint_head_loss_ub_pipe(wm::AbstractDirectedFlowModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64)

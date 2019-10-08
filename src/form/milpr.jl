@@ -40,7 +40,7 @@ function constraint_head_loss_pipe_ne(wm::AbstractMILPRModel, n::Int, a::Int, al
 
     for (r_id, r) in enumerate(resistances)
         qp_ne = var(wm, n, :qp_ne, a)[r_id]
-        qp_ne_ub = JuMP.upper_bound(qp_ne)
+        qp_ne_ub = JuMP.has_upper_bound(qp_ne) ? JuMP.upper_bound(qp_ne) : 10.0
         dhp = var(wm, n, :dhp, a)
 
         if qp_ne_ub > 0.0 && num_breakpoints > 0
@@ -48,12 +48,12 @@ function constraint_head_loss_pipe_ne(wm::AbstractMILPRModel, n::Int, a::Int, al
 
             for q_hat in breakpoints[2:num_breakpoints+1]
                 cut_lhs = r * get_linear_outer_approximation(qp_ne, q_hat, alpha)
-                con_p = JuMP.@constraint(wm.model, cut_lhs - inv(L) * dhp <= 0.0)
+                con_p = JuMP.@constraint(wm.model, cut_lhs <= inv(L) * dhp)
             end
         end
 
         qn_ne = var(wm, n, :qn_ne, a)[r_id]
-        qn_ne_ub = JuMP.upper_bound(qn_ne)
+        qn_ne_ub = JuMP.has_upper_bound(qn_ne) ? JuMP.upper_bound(qn_ne) : 10.0
         dhn = var(wm, n, :dhn, a)
 
         if qn_ne_ub > 0.0 && num_breakpoints > 0
@@ -61,7 +61,7 @@ function constraint_head_loss_pipe_ne(wm::AbstractMILPRModel, n::Int, a::Int, al
 
             for q_hat in breakpoints[2:num_breakpoints+1]
                 cut_lhs = r * get_linear_outer_approximation(qn_ne, q_hat, alpha)
-                con_n = JuMP.@constraint(wm.model, cut_lhs - inv(L) * dhn <= 0.0)
+                con_n = JuMP.@constraint(wm.model, cut_lhs <= inv(L) * dhn)
             end
         end
     end

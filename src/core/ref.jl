@@ -167,10 +167,10 @@ function calc_directed_flow_upper_bounds(wm::AbstractWaterModel, alpha::Float64,
         ub_p[a] = zeros(Float64, (length(R_a),))
 
         for r in 1:length(R_a)
-            ub_n[a][r] = abs(dh_lb[a] * inv((L * R_a[r]))^(1.0 / alpha))
+            ub_n[a][r] = abs(dh_lb[a] * inv(L * R_a[r]))^(1.0 / alpha)
             ub_n[a][r] = min(ub_n[a][r], sum_demand)
 
-            ub_p[a][r] = abs(dh_ub[a] * inv((L * R_a[r]))^(1.0 / alpha))
+            ub_p[a][r] = abs(dh_ub[a] * inv(L * R_a[r]))^(1.0 / alpha)
             ub_p[a][r] = min(ub_p[a][r], sum_demand)
 
             if link["flow_direction"] == POSITIVE || dh_lb[a] >= 0.0
