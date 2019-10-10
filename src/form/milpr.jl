@@ -80,7 +80,7 @@ function constraint_head_loss_pipe(wm::AbstractMILPRModel, n::Int, a::Int, alpha
 
         for q_hat in breakpoints[2:num_breakpoints+1]
             cut_lhs = r * get_linear_outer_approximation(qn, q_hat, alpha)
-            con_n = JuMP.@constraint(wm.model, cut_lhs - inv(L) * dhn <= 0.0)
+            con_n = JuMP.@constraint(wm.model, cut_lhs <= inv(L) * dhn)
         end
     end
 
@@ -93,7 +93,7 @@ function constraint_head_loss_pipe(wm::AbstractMILPRModel, n::Int, a::Int, alpha
 
         for q_hat in breakpoints[2:num_breakpoints+1]
             cut_lhs = r * get_linear_outer_approximation(qp, q_hat, alpha)
-            con_p = JuMP.@constraint(wm.model, cut_lhs - inv(L) * dhp <= 0.0)
+            con_p = JuMP.@constraint(wm.model, cut_lhs <= inv(L) * dhp)
         end
     end
 end

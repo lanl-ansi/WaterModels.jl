@@ -168,7 +168,7 @@ function add_setpoint!(
         sol[dict_name] = sol_dict
     end
 
-    for (i,item) in data_dict
+    for (i, item) in data_dict
         idx = Int(item[index_name])
         sol_item = sol_dict[i] = get(sol_dict, i, Dict{String,Any}())
         sol_item[param_name] = default_value(item)

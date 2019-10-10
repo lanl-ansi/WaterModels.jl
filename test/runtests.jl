@@ -15,7 +15,7 @@ import JSON
 using Test
 
 # Default MIP and NLP optimizers.
-cbc = JuMP.with_optimizer(Cbc.Optimizer, logLevel=0)
+cbc = JuMP.with_optimizer(Cbc.Optimizer, logLevel=1)
 ipopt = JuMP.with_optimizer(Ipopt.Optimizer, tol=1.0e-9, acceptable_tol=1.0e-9, max_iter=9999, print_level=0)
 ipopt_ws = JuMP.with_optimizer(Ipopt.Optimizer, tol=1.0e-9, acceptable_tol=1.0e-9, max_iter=9999, mu_init=1.0e-9, start_with_resto="yes", print_level=0)
 
@@ -23,19 +23,19 @@ include("common.jl")
 
 @testset "WaterModels" begin
 
-    #include("base.jl")
+    include("base.jl")
 
-    #include("data.jl")
+    include("data.jl")
 
-    #include("multinetwork.jl")
+    include("multinetwork.jl")
 
-    #include("io.jl")
+    include("io.jl")
 
-    #include("wf.jl")
+    include("wf.jl")
 
-    #include("cwf.jl")
+    include("cwf.jl")
 
-    include("ne.jl")
+    #include("ne.jl")
 
     #include("owf.jl")
 

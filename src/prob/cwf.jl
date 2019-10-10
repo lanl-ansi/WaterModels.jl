@@ -81,7 +81,8 @@ function post_mn_cwf(wm::AbstractWaterModel)
 
         # Component-specific variables.
         variable_check_valve(wm, n)
-        variable_pump(wm, n)
+        variable_pump_operation(wm, n)
+        variable_pump_control(wm, n)
         variable_reservoir(wm, n)
         variable_tank(wm, n)
 
@@ -108,6 +109,13 @@ function post_mn_cwf(wm::AbstractWaterModel)
         for (i, reservoir) in ref(wm, :reservoir, nw=n)
             constraint_source_head(wm, i, nw=n)
             constraint_source_flow(wm, i, nw=n)
+        end
+
+        for (i, junction) in ref(wm, :junction, nw=n)
+            # TODO: The conditional may be redundant, here.
+            if junction["demand"] > 0.0
+                constraint_sink_flow(wm, i, nw=n)
+            end
         end
 
         # Link tank volume variables with tank head variables.
