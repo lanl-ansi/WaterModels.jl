@@ -19,6 +19,9 @@ function post_ne(wm::AbstractWaterModel)
     variable_reservoir(wm)
     variable_tank(wm)
 
+    # Add the network expansion objective.
+    objective_ne(wm)
+
     for (a, pipe) in ref(wm, :pipe_fixed)
         # TODO: Call this something other than status.
         if pipe["status"] == "CV"
@@ -63,6 +66,4 @@ function post_ne(wm::AbstractWaterModel)
         # Set the initial tank volume.
         constraint_tank_state(wm, i)
     end
-
-    objective_ne(wm)
 end
