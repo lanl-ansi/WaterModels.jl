@@ -127,6 +127,16 @@ function constraint_head_loss_pipe_ne(wm::AbstractMILPModel, n::Int, a::Int, alp
             q_ne_lhs = sum(breakpoints[k] * lambda[a, r_id, k] for k in 1:n_b)
             c_5 = JuMP.@constraint(wm.model, q_ne_lhs == q_ne)
             append!(con(wm, n, :head_loss, a), [c_5])
+
+            # TODO: Address this hack for initializing piecewise binary variables.
+            for k in 1:n_b-1
+                q_ne_start = JuMP.start_value(q_ne)
+                if q_ne_start > 0.0
+                    if q_ne_start >= breakpoints[k] && q_ne_start <= breakpoints[k+1]
+                        JuMP.set_start_value(x_pw, 1.0)
+                    end
+                end
+            end
         end
 
         c_6 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == 1.0)
