@@ -8,10 +8,10 @@ WaterModels.jl is a Julia/JuMP package for steady state water network optimizati
 <br>
 
 **Core Problem Specifications**
-* Water Flow (wf)
-* Constrained Water Flow (cwf)
-* Optimal Water Flow (owf)
-* Network Expansion (ne)
+* Water Flow (wf) - obtain flows using substantial physical relaxations
+* Constrained Water Flow (cwf) - obtain flows using more accurate physical constraints
+* Optimal Water Flow (owf) - minimize the energy required for network operation
+* Network Expansion (ne) - minimize the cost of expansion (or design) while satisfying demand
 
 **Core Network Formulations**
 * CNLP (convex nonlinear program used for determining network flow rates)
