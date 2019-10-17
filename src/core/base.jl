@@ -110,6 +110,10 @@ con(wm::AbstractWaterModel, key::Symbol, idx; nw::Int=wm.cnw) = wm.con[:nw][nw][
 fun(wm::AbstractWaterModel) = wm.fun
 fun(wm::AbstractWaterModel, key::Symbol) = wm.fun[key]
 
+""
+ext(wm::AbstractWaterModel) = wm.ext
+ext(wm::AbstractWaterModel, key::Symbol) = wm.ext[key]
+
 function JuMP.optimize!(wm::AbstractWaterModel, optimizer::JuMP.OptimizerFactory)
     if wm.model.moi_backend.state == _MOI.Utilities.NO_OPTIMIZER
         _, solve_time, solve_bytes_alloc, sec_in_gc = @timed JuMP.optimize!(wm.model, optimizer)

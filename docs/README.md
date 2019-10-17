@@ -7,7 +7,7 @@ We rely on [Documenter.jl](https://github.com/JuliaDocs/Documenter.jl). To insta
 Pkg.add("Documenter")
 ```
 
-## Building the documentation.
+## Building the Docs
 To preview the html output of the documents, run the following command:
 
 ```julia

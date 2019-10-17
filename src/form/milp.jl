@@ -2,7 +2,7 @@
 
 function variable_flow_piecewise_weights(wm::AbstractMILPModel, n::Int=wm.cnw)
     # Set the number of breakpoints used in each outer-approximation.
-    num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 1
+    num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 2
 
     var(wm, n)[:lambda] = JuMP.@variable(wm.model, [a in ids(wm, n, :link_fixed),
         k in 1:num_breakpoints], base_name="lambda[$(n)]", lower_bound=0.0,
@@ -11,7 +11,7 @@ end
 
 function variable_flow_piecewise_weights_ne(wm::AbstractMILPModel, n::Int=wm.cnw)
     # Set the number of breakpoints used in each outer-approximation.
-    num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 1
+    num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 2
     n_r = Dict(a => length(ref(wm, n, :resistance, a)) for a in ids(wm, n, :link_ne))
 
     var(wm, n)[:lambda] = JuMP.@variable(wm.model, [a in ids(wm, n, :link_ne),
@@ -22,7 +22,7 @@ end
 
 function variable_flow_piecewise_adjacency(wm::AbstractMILPModel, n::Int=wm.cnw)
     # Set the number of breakpoints used in each outer-approximation.
-    num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 1
+    num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 2
     var(wm, n)[:x_pw] = JuMP.@variable(wm.model, [a in ids(wm, n, :link_fixed),
         k in 1:num_breakpoints-1], base_name="x_pw[$(n)]", binary=true,
         start=get_start(ref(wm, n, :link_fixed), a, "x_pw_start", 0.0))
@@ -30,7 +30,7 @@ end
 
 function variable_flow_piecewise_adjacency_ne(wm::AbstractMILPModel, n::Int=wm.cnw)
     # Set the number of breakpoints used in each outer-approximation.
-    num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 1
+    num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 2
     var(wm, n)[:x_pw] = JuMP.@variable(wm.model, [a in ids(wm, n, :link_ne),
         k in 1:num_breakpoints-1], base_name="x_pw[$(n)]", binary=true,
         start=get_start(ref(wm, n, :link_ne), a, "x_pw_start", 0.0))
@@ -93,7 +93,7 @@ end
 
 function constraint_head_loss_pipe_ne(wm::AbstractMILPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, resistances)
     # Set the number of breakpoints used in each outer-approximation.
-    n_b = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 1
+    n_b = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 2
 
     if n_b > 0
         h_i = var(wm, n, :h, node_fr)
@@ -157,7 +157,7 @@ end
 
 function constraint_head_loss_pipe(wm::AbstractMILPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # Set the number of breakpoints used in each outer-approximation.
-    num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 1
+    num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 2
 
     if num_breakpoints > 0
         q = var(wm, n, :q, a)

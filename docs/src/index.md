@@ -1,30 +1,27 @@
 # WaterModels.jl Documentation
+
 ```@meta
 CurrentModule = WaterModels
 ```
 
 ## Overview
-WaterModels.jl is a Julia package for steady state water network optimization.
+WaterModels.jl is a Julia/JuMP package for steady state water network optimization.
 It is designed to enable computational evaluation of historical and emerging water network formulations and algorithms using a common platform.
-The software is engineered to decouple problem specifications (e.g., feasibility, network expansion) from water network optimization formulations (e.g., mixed-integer linear, mixed-integer nonlinear).
+The code is engineered to decouple [Problem Specifications](@ref) (e.g., water flow, optimal water flow, network expansion) from [Network Formulations](@ref) (e.g., mixed-integer linear, mixed-integer nonlinear).
 This decoupling enables the definition of a wide variety of water network optimization formulations and their comparison on common problem specifications.
 
 ## Installation
-The latest stable release of WaterModels can be installed using the Julia package manager using
-
+The latest stable release of WaterModels can be installed using the Julia package manager with
 ```julia
-using Pkg
-Pkg.add("WaterModels")
+] add WaterModels
 ```
 
-For the current development version, "check out" this package using
+For the current development version, install the package using
 ```julia
-using Pkg
-Pkg.checkout("WaterModels")
+] add WaterModels#master
 ```
 
-Finally, you can test that the package works by running
+Test that the package works by executing
 ```julia
-using Pkg
-Pkg.test("WaterModels")
+] test WaterModels
 ```
