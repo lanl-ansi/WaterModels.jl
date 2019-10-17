@@ -12,11 +12,11 @@ WaterModels.jl is a Julia/JuMP package for steady state water network optimizati
 * Network Expansion (ne) - minimize the cost of expansion (or design) while satisfying demand
 
 **Core Network Formulations**
-* CNLP (convex nonlinear program used for determining network flow rates)
-* MICP (relaxation-based mixed-integer convex program)
-* MILP (mixed-integer linear program using piecewise linear approximations)
-* MILP-R (relaxation-based mixed-integer linear program)
-* NCNLP (non-convex nonlinear program)
+* CNLP - convex nonlinear program used for determining network flow rates
+* MICP - relaxation-based mixed-integer convex program
+* MILP - mixed-integer linear program using piecewise linear approximations
+* MILP-R - relaxation-based mixed-integer linear program
+* NCNLP - non-convex nonlinear program
 
 ## Usage at a Glance
 To solve a relaxed version of the network design problem, execute the following (using the `shamir` network as an example):
