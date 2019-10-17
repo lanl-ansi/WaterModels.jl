@@ -5,8 +5,6 @@
 
 WaterModels.jl is a Julia/JuMP package for steady state water network optimization. It is designed to enable computational evaluation of historical and emerging water network formulations and algorithms using a common platform. The code is engineered to decouple problem specifications (e.g., water flow, optimal water flow, network expansion) from water network optimization formulations (e.g., mixed-integer linear, mixed-integer nonlinear). This decoupling enables the definition of a wide variety of water network optimization formulations and their comparison on common problem specifications.
 
-<br>
-
 **Core Problem Specifications**
 * Water Flow (wf) - obtain flows using substantial physical relaxations
 * Constrained Water Flow (cwf) - obtain flows using more accurate physical constraints
