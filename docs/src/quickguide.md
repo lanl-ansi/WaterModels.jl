@@ -124,10 +124,6 @@ run_ne(data, MICPWaterModel, knitro)
 ## Modifying Network Data
 The following example demonstrates one way to perform multiple WaterModels solves while modifing network data in Julia.
 ```julia
-data = parse_file("shamir.inp")
-modifications = parse_file("shamir.json")
-InfrastructureModels.update_data!(data, modifications)
-cbc = JuMP.with_optimizer(Cbc.Optimizer)
 run_ne(data, MILPRWaterModel, cbc, ext=Dict(:num_breakpoints=>5))
 
 data["junction"]["3"]["demand"] *= 2.0
@@ -143,9 +139,6 @@ For additional details about the network data, see the [WaterModels Network Data
 The following example demonstrates how to break a `run_ne` call into separate model building and solving steps.
 This allows inspection of the JuMP model created by WaterModels for the problem.
 ```julia
-data = parse_file("shamir.inp")
-modifications = parse_file("shamir.json")
-InfrastructureModels.update_data!(data, modifications)
 wm = build_model(data, MILPRWaterModel, WaterModels.post_ne)
 
 print(wm.model)
