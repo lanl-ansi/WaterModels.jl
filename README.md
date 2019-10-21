@@ -19,7 +19,7 @@ WaterModels.jl is a Julia/JuMP package for steady state water network optimizati
 * NCNLP - non-convex nonlinear program
 
 ## Documentation
-The package [documentation](https://lanl-ansi.github.io/WaterModels.jl/latest/) includes a [quick-start guide](https://lanl-ansi.github.io/WaterModels.jl/latest/quickguide/).
+The package [documentation](https://lanl-ansi.github.io/WaterModels.jl/latest/) includes a [quick-start guide](https://lanl-ansi.github.io/WaterModels.jl/latest/quickguide.html).
 
 ## Development
 Community-driven development and enhancement of WaterModels is welcomed and encouraged.
