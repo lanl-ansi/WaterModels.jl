@@ -1,28 +1,37 @@
-function run_wf(network, model_constructor, optimizer; kwargs...)
-    return run_model(network, model_constructor, optimizer, post_wf; kwargs...)
+function run_cwf(network, model_constructor, optimizer; kwargs...)
+    return run_model(network, model_constructor, optimizer, post_cwf; kwargs...)
 end
 
-function post_wf(wm::AbstractWaterModel)
+function post_cwf(wm::AbstractWaterModel)
     # Create head loss functions, if necessary.
     function_head_loss(wm)
 
     # Physical variables.
-    variable_head(wm, bounded=false)
-    variable_flow(wm, bounded=false)
-    variable_volume(wm, bounded=false)
+    variable_head(wm)
+    variable_head_gain(wm)
+    variable_flow(wm)
+    variable_volume(wm)
 
     # Component-specific variables.
+    variable_check_valve(wm)
+    variable_pump_operation(wm)
+    variable_pump_control(wm)
     variable_reservoir(wm)
     variable_tank(wm)
 
-    # Head loss at pipes.
     for (a, pipe) in ref(wm, :pipe)
-        constraint_head_loss_pipe(wm, a)
+        # TODO: Call this something other than status.
+        if pipe["status"] == "CV"
+            constraint_check_valve(wm, a)
+            constraint_head_loss_check_valve(wm, a)
+        else
+            constraint_head_loss_pipe(wm, a)
+        end
     end
 
-    # Head gain along pumps (forced to be on).
-    for (a, pump) in ref(wm, :pump)
-        constraint_head_gain_pump(wm, a, force_on=true)
+    for a in ids(wm, :pump)
+        constraint_head_gain_pump(wm, a)
+        constraint_pump_control(wm, a)
     end
 
     # Flow conservation at all nodes.
@@ -52,35 +61,43 @@ function post_wf(wm::AbstractWaterModel)
     end
 
     # Add the objective.
-    objective_wf(wm)
+    objective_cwf(wm)
 end
 
-function run_mn_wf(file, model_constructor, optimizer; kwargs...)
-    return run_model(file, model_constructor, optimizer, post_mn_wf; multinetwork=true, kwargs...)
+function run_mn_cwf(file, model_constructor, optimizer; kwargs...)
+    return run_model(file, model_constructor, optimizer, post_mn_cwf; multinetwork=true, kwargs...)
 end
 
-function post_mn_wf(wm::AbstractWaterModel)
+function post_mn_cwf(wm::AbstractWaterModel)
     # Create head loss functions, if necessary.
     function_head_loss(wm)
 
     for (n, network) in nws(wm)
         # Physical variables.
-        variable_head(wm, n, bounded=false)
-        variable_flow(wm, n, bounded=false)
-        variable_volume(wm, n, bounded=false)
+        variable_head(wm, n)
+        variable_head_gain(wm, n)
+        variable_flow(wm, n)
+        variable_volume(wm, n)
 
         # Component-specific variables.
+        variable_check_valve(wm, n)
+        variable_pump_operation(wm, n)
+        variable_pump_control(wm, n)
         variable_reservoir(wm, n)
         variable_tank(wm, n)
 
-        # Head loss along pipes.
         for (a, pipe) in ref(wm, :pipe, nw=n)
-            constraint_head_loss_pipe(wm, a, nw=n)
+            # TODO: Call this something other than status.
+            if pipe["status"] == "CV"
+                constraint_check_valve(wm, a, nw=n)
+                constraint_head_loss_check_valve(wm, a, nw=n)
+            else
+                constraint_head_loss_pipe(wm, a, nw=n)
+            end
         end
 
-        # Head gain along pumps (forced to be on).
-        for (a, pump) in ref(wm, :pump, nw=n)
-            constraint_head_gain_pump(wm, a, force_on=true, nw=n)
+        for a in ids(wm, :pump, nw=n)
+            constraint_head_gain_pump(wm, a, nw=n)
         end
 
         # Flow conservation at all nodes.
@@ -91,6 +108,14 @@ function post_mn_wf(wm::AbstractWaterModel)
         # Set source node hydraulic heads.
         for (i, reservoir) in ref(wm, :reservoir, nw=n)
             constraint_source_head(wm, i, nw=n)
+            constraint_source_flow(wm, i, nw=n)
+        end
+
+        for (i, junction) in ref(wm, :junction, nw=n)
+            # TODO: The conditional may be redundant, here.
+            if junction["demand"] > 0.0
+                constraint_sink_flow(wm, i, nw=n)
+            end
         end
 
         # Link tank volume variables with tank head variables.
@@ -105,20 +130,30 @@ function post_mn_wf(wm::AbstractWaterModel)
     # Start with the first network, representing the initial time step.
     n_1 = network_ids[1]
 
+    # Set initial conditions of pumps.
+    for a in ids(wm, :pump, nw=n_1)
+        constraint_pump_control(wm, a, nw=n_1)
+    end
+
     # Set initial conditions of tanks.
     for i in ids(wm, :tank, nw=n_1)
         constraint_tank_state(wm, i, nw=n_1)
     end
 
-    # Set tank states after the initial time step.
     for n_2 in network_ids[2:end]
+        # Set tank states after the initial time step.
         for i in ids(wm, :tank, nw=n_2)
             constraint_tank_state(wm, i, n_1, n_2)
+        end
+
+        # Set pump states after the initial time step.
+        for a in ids(wm, :pump, nw=n_2)
+            constraint_pump_control(wm, a, n_1, n_2)
         end
 
         n_1 = n_2
     end
 
     # Add the objective.
-    objective_wf(wm)
+    objective_cwf(wm)
 end

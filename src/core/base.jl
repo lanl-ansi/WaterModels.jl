@@ -110,6 +110,10 @@ con(wm::AbstractWaterModel, key::Symbol, idx; nw::Int=wm.cnw) = wm.con[:nw][nw][
 fun(wm::AbstractWaterModel) = wm.fun
 fun(wm::AbstractWaterModel, key::Symbol) = wm.fun[key]
 
+""
+ext(wm::AbstractWaterModel) = wm.ext
+ext(wm::AbstractWaterModel, key::Symbol) = wm.ext[key]
+
 function JuMP.optimize!(wm::AbstractWaterModel, optimizer::JuMP.OptimizerFactory)
     if wm.model.moi_backend.state == _MOI.Utilities.NO_OPTIMIZER
         _, solve_time, solve_bytes_alloc, sec_in_gc = @timed JuMP.optimize!(wm.model, optimizer)
@@ -166,9 +170,11 @@ function build_model(data::Dict{String,<:Any}, model_type::Type, post_method; re
 
     start_time = time()
     ref_add_core!(wm)
+
     for ref_ext in ref_extensions
         ref_ext(wm)
     end
+
     Memento.debug(_LOGGER, "wm build ref time: $(time() - start_time)")
 
     start_time = time()
@@ -217,81 +223,83 @@ components, and storing system-wide values that need to be computed globally.
 
 Some of the common keys include:
 
-* `:pipes` -- the set of pipes in the network,
-* `:pumps` -- the set of pumps in the network,
-* `:valves` -- the set of valves in the network,
-* `:links` -- the set of all links in the network,
-* `:links_ne` -- the set of all network expansion links in the network,
-* `:junctions` -- the set of junctions in the network,
-* `:reservoirs` -- the set of reservoirs in the network,
-* `:tanks` -- the set of tanks in the network,
-* `:emitters` -- the set of emitters in the network,
-* `:nodes` -- the set of all nodes in the network
+* `:pipe` -- the set of pipes in the network,
+* `:pump` -- the set of pumps in the network,
+* `:valve` -- the set of valves in the network,
+* `:link` -- the set of all links in the network,
+* `:link_ne` -- the set of all network expansion links in the network,
+* `:junction` -- the set of junctions in the network,
+* `:reservoir` -- the set of reservoirs in the network,
+* `:tank` -- the set of tanks in the network,
+* `:emitter` -- the set of emitters in the network,
+* `:node` -- the set of all nodes in the network
 """
 function _ref_add_core!(nw_refs::Dict)
     for (nw, ref) in nw_refs
-        ref[:links] = merge(ref[:pipes], ref[:valves], ref[:pumps])
-        ref[:pipes_ne] = filter(is_ne_link, ref[:pipes])
-        ref[:links_ne] = filter(is_ne_link, ref[:links])
-        ref[:check_valves] = filter(has_check_valve, ref[:pipes])
+        ref[:link] = merge(ref[:pipe], ref[:valve], ref[:pump])
+        ref[:check_valve] = filter(has_check_valve, ref[:pipe])
+        ref[:link_ne] = filter(is_ne_link, ref[:link])
+        ref[:pipe_ne] = filter(is_ne_link, ref[:pipe])
+        ref[:link_fixed] = filter(!is_ne_link, ref[:link])
+        ref[:pipe_fixed] = filter(!is_ne_link, ref[:pipe])
 
         # Set up arcs from existing links.
-        ref[:arcs_fr] = [(i, comp["node_fr"], comp["node_to"]) for (i, comp) in ref[:links]]
+        ref[:arc_fr] = [(i, comp["node_fr"], comp["node_to"]) for (i, comp) in ref[:link]]
 
         # Set up dictionaries mapping "from" links for a node.
-        node_arcs_fr = Dict((i, Tuple{Int, Int, Int}[]) for (i, node) in ref[:nodes])
+        node_arcs_fr = Dict((i, Tuple{Int, Int, Int}[]) for (i, node) in ref[:node])
 
-        for (l, i, j) in ref[:arcs_fr]
+        for (l, i, j) in ref[:arc_fr]
             push!(node_arcs_fr[i], (l, i, j))
         end
 
-        ref[:node_arcs_fr] = node_arcs_fr
+        ref[:node_arc_fr] = node_arcs_fr
 
         # Set up dictionaries mapping "to" links for a node.
-        node_arcs_to = Dict((i, Tuple{Int, Int, Int}[]) for (i, node) in ref[:nodes])
+        node_arcs_to = Dict((i, Tuple{Int, Int, Int}[]) for (i, node) in ref[:node])
 
-        for (l, i, j) in ref[:arcs_fr]
+        for (l, i, j) in ref[:arc_fr]
             push!(node_arcs_to[j], (l, i, j))
         end
 
-        ref[:node_arcs_to] = node_arcs_to
+        ref[:node_arc_to] = node_arcs_to
 
         # Set up dictionaries mapping nodes to attached junctions.
-        node_junctions = Dict((i, Int[]) for (i,node) in ref[:nodes])
+        node_junctions = Dict((i, Int[]) for (i,node) in ref[:node])
 
-        for (i, junction) in ref[:junctions]
-            push!(node_junctions[junction["junctions_node"]], i)
+        for (i, junction) in ref[:junction]
+            push!(node_junctions[junction["junction_node"]], i)
         end
 
-        ref[:node_junctions] = node_junctions
+        ref[:node_junction] = node_junctions
 
         # Set up dictionaries mapping nodes to attached tanks.
-        node_tanks = Dict((i, Int[]) for (i,node) in ref[:nodes])
+        node_tanks = Dict((i, Int[]) for (i,node) in ref[:node])
 
-        for (i,tank) in ref[:tanks]
-            push!(node_tanks[tank["tanks_node"]], i)
+        for (i,tank) in ref[:tank]
+            push!(node_tanks[tank["tank_node"]], i)
         end
 
-        ref[:node_tanks] = node_tanks
+        ref[:node_tank] = node_tanks
 
         # Set up dictionaries mapping nodes to attached reservoirs.
-        node_reservoirs = Dict((i, Int[]) for (i,node) in ref[:nodes])
+        node_reservoirs = Dict((i, Int[]) for (i,node) in ref[:node])
 
-        for (i,reservoir) in ref[:reservoirs]
-            push!(node_reservoirs[reservoir["reservoirs_node"]], i)
+        for (i,reservoir) in ref[:reservoir]
+            push!(node_reservoirs[reservoir["reservoir_node"]], i)
         end
 
-        ref[:node_reservoirs] = node_reservoirs
+        ref[:node_reservoir] = node_reservoirs
 
         # TODO: Fix these when feeling ambitious about more carefully handling directions.
-        #ref[:links_known_direction] = filter(has_known_flow_direction, ref[:links])
-        #ref[:links_unknown_direction] = filter(!has_known_flow_direction, ref[:links])
+        #ref[:link_known_direction] = filter(has_known_flow_direction, ref[:link])
+        #ref[:link_unknown_direction] = filter(!has_known_flow_direction, ref[:link])
 
         # Set the resistances based on the head loss type.
-        headloss = ref[:options]["hydraulic"]["headloss"]
-        viscosity = ref[:options]["hydraulic"]["viscosity"]
-        ref[:resistance] = calc_resistances(ref[:pipes], viscosity, headloss)
-        ref[:resistance_cost] = calc_resistance_costs(ref[:pipes], viscosity, headloss)
+        headloss = ref[:option]["hydraulic"]["headloss"]
+        viscosity = ref[:option]["hydraulic"]["viscosity"]
+        ref[:resistance] = calc_resistances(ref[:pipe], viscosity, headloss)
+        ref[:resistance_cost] = calc_resistance_costs(ref[:pipe], viscosity, headloss)
 
         # Set alpha, that is, the exponent used for head loss relationships.
         ref[:alpha] = uppercase(headloss) == "H-W" ? 1.852 : 2.0

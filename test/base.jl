@@ -1,6 +1,5 @@
 @testset "src/core/base.jl" begin
-    network_path = "../test/data/epanet/shamir.inp"
-    wm = build_model(network_path, CNLPWaterModel, WaterModels.post_wf)
+    wm = build_model("../test/data/epanet/shamir.inp", CNLPWaterModel, WaterModels.post_wf)
 
     @testset "silence" begin
         # This should silence everything except error messages.
@@ -28,18 +27,18 @@
     end
 
     @testset "ids" begin
-        @test all(ids(wm, 0, :reservoirs) .== [1])
-        @test all(ids(wm, :reservoirs) .== [1])
+        @test all(ids(wm, 0, :reservoir) .== [1])
+        @test all(ids(wm, :reservoir) .== [1])
     end
 
     @testset "ref" begin
         @test ref(wm) == wm.ref[:nw][0]
         @test ref(wm, 0) == wm.ref[:nw][0]
-        @test ref(wm, :reservoirs) == wm.ref[:nw][0][:reservoirs]
-        @test ref(wm, 0, :reservoirs) == wm.ref[:nw][0][:reservoirs]
-        @test ref(wm, :reservoirs, 1) == wm.ref[:nw][0][:reservoirs][1]
-        @test ref(wm, 0, :reservoirs, 1) == wm.ref[:nw][0][:reservoirs][1]
-        @test ref(wm, 0, :reservoirs, 1, "head") == 210.0
+        @test ref(wm, :reservoir) == wm.ref[:nw][0][:reservoir]
+        @test ref(wm, 0, :reservoir) == wm.ref[:nw][0][:reservoir]
+        @test ref(wm, :reservoir, 1) == wm.ref[:nw][0][:reservoir][1]
+        @test ref(wm, 0, :reservoir, 1) == wm.ref[:nw][0][:reservoir][1]
+        @test ref(wm, 0, :reservoir, 1, "head") == 210.0
     end
 
     @testset "var" begin

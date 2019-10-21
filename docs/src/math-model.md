@@ -11,16 +11,16 @@ Finally, many network design problems are concerned with selecting from among a 
 
 In summary, the following sets are commonly used when defining a WaterModels problem formulation:
 
-| Notation                                 | WaterModels Translation            | Description                              |
-| :--------------------------------------  | :-----------------------------     | :-------------------------               |
-| $\mathcal{N}$                            | `wm.ref[:nw][n][:nodes]`           | nodes                                    |
-| $\mathcal{J} \subset \mathcal{N}$        | `wm.ref[:nw][n][:junctions]`       | junctions                                |
-| $\mathcal{S} \subset \mathcal{N}$        | `wm.ref[:nw][n][:reservoirs]`      | reservoirs                               |
-| $\mathcal{A}$                            | `wm.ref[:nw][n][:arcs]`            | arcs                                     |
-| $\mathcal{P} \subset \mathcal{A}$        | `wm.ref[:nw][n][:pipes]`           | pipes                                    |
-| $\mathcal{A^{-}(i)} \subset \mathcal{A}$ | `wm.ref[:nw][n][:arcs_to][i]`      | arcs "to" node $i$                       |
-| $\mathcal{A^{+}(i)} \subset \mathcal{A}$ | `wm.ref[:nw][n][:arcs_from][i]`    | arcs "from" node $i$                     |
-| $\mathcal{R}(i, j)$                      | `wm.ref[:nw][n][:resistances][ij]` | resistances for $(i, j) \in \mathcal{P}$ |
+| Notation                                 | WaterModels Translation           | Description                              |
+| :--------------------------------------  | :-----------------------------    | :-------------------------               |
+| $\mathcal{N}$                            | `wm.ref[:nw][n][:node]`           | nodes                                    |
+| $\mathcal{J} \subset \mathcal{N}$        | `wm.ref[:nw][n][:junction]`       | junctions                                |
+| $\mathcal{S} \subset \mathcal{N}$        | `wm.ref[:nw][n][:reservoir]`      | reservoirs                               |
+| $\mathcal{A}$                            | `wm.ref[:nw][n][:arc]`            | arcs                                     |
+| $\mathcal{P} \subset \mathcal{A}$        | `wm.ref[:nw][n][:pipe]`           | pipes                                    |
+| $\mathcal{A^{-}(i)} \subset \mathcal{A}$ | `wm.ref[:nw][n][:arc_to][i]`      | arcs "to" node $i$                       |
+| $\mathcal{A^{+}(i)} \subset \mathcal{A}$ | `wm.ref[:nw][n][:arc_from][i]`    | arcs "from" node $i$                     |
+| $\mathcal{R}(i, j)$                      | `wm.ref[:nw][n][:resistance][ij]` | resistances for $(i, j) \in \mathcal{P}$ |
 
 ## Physical Feasibility
 ### Satisfaction of Flow Bounds

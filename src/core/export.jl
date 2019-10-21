@@ -10,7 +10,7 @@ const _EXCLUDE_SYMBOLS = [Symbol(@__MODULE__), :eval, :include]
 
 for sym in names(@__MODULE__, all=true)
     sym_string = string(sym)
-    if sym in _EXCLUDE_SYMBOLS || startswith(sym_string, "_")
+    if sym in _EXCLUDE_SYMBOLS || startswith(sym_string, "_") || startswith(sym_string, "@_")
         continue
     end
     if !(Base.isidentifier(sym) || (startswith(sym_string, "@") &&
@@ -22,7 +22,7 @@ for sym in names(@__MODULE__, all=true)
 end
 
 
-# the follow items are also exported for user-friendlyness when calling
+# the follow items are also exported for user-friendliness when calling
 # `using WaterModels`
 
 # so that users do not need to import JuMP to use a solver with WaterModels
@@ -41,4 +41,3 @@ for status_code_enum in [TerminationStatusCode, ResultStatusCode]
         @eval export $(Symbol(status_code))
     end
 end
-

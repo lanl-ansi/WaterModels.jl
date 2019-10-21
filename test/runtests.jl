@@ -27,15 +27,15 @@ include("common.jl")
 
     include("data.jl")
 
-    include("multinetwork.jl")
-
     include("io.jl")
 
     include("wf.jl")
 
-    include("ne.jl")
+    include("cwf.jl")
 
     include("owf.jl")
+
+    include("ne.jl")
 
     include("warm_start.jl")
 
