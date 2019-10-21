@@ -33,10 +33,10 @@ include("common.jl")
 
     include("cwf.jl")
 
-    #include("ne.jl")
+    include("owf.jl")
 
-    #include("owf.jl")
+    include("ne.jl")
 
-    #include("warm_start.jl")
+    include("warm_start.jl")
 
 end
