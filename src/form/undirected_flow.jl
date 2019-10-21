@@ -94,6 +94,26 @@ function constraint_resistance_selection_ne(wm::AbstractUndirectedFlowModel, n::
     end
 end
 
+function constraint_check_valve(wm::AbstractUndirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int)
+    q = var(wm, n, :q, a)
+    h_i = var(wm, n, :h, node_fr)
+    h_j = var(wm, n, :h, node_to)
+    x_cv = var(wm, n, :x_cv, a)
+    q_ub = JuMP.has_upper_bound(q) ? JuMP.upper_bound(q) : 10.0
+
+    # If the check valve is open, flow must be appreciably nonnegative.
+    c_1 = JuMP.@constraint(wm.model, q <= q_ub * x_cv)
+    c_2 = JuMP.@constraint(wm.model, q >= 1.0e-6 * x_cv)
+
+    # TODO: These constraints seem to result in infeasibility in multiperiod Richmond case.
+    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
+    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
+    c_3 = JuMP.@constraint(wm.model, h_i - h_j >= (1.0 - x_cv) * dh_lb)
+    c_4 = JuMP.@constraint(wm.model, h_i - h_j <= x_cv * dh_ub)
+
+    append!(con(wm, n, :check_valve)[a], [c_1, c_2, c_3, c_4])
+end
+
 function constraint_flow_direction_selection(wm::AbstractUndirectedFlowModel, n::Int, a::Int) end
 function constraint_flow_direction_selection_ne(wm::AbstractUndirectedFlowModel, n::Int, a::Int, pipe_resistances) end
 function constraint_head_difference(wm::AbstractUndirectedFlowModel, n::Int, a::Int, node_fr, node_to, head_fr, head_to)  end

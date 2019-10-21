@@ -99,10 +99,10 @@ end
 to one, the flow direction is from i to j. If it is equal to zero, the flow
 direction is from j to i."
 function variable_flow_direction(wm::AbstractDirectedFlowModel, n::Int=wm.cnw)
-    ids_bd = keys(filter(!has_check_valve, ref(wm, n, :pipe)))
-    var(wm, n)[:x_dir] = JuMP.@variable(wm.model, [a in ids_bd],
+    #ids_bd = keys(filter(!has_check_valve, ref(wm, n, :link)))
+    var(wm, n)[:x_dir] = JuMP.@variable(wm.model, [a in ids(wm, n, :link)],
         base_name="x_dir[$(n)]", binary=true, lower_bound=0, upper_bound=1,
-        start=get_start(ref(wm, n, :pipe), a, "x_dir_start", 1))
+        start=get_start(ref(wm, n, :link), a, "x_dir_start", 1))
 end
 
 "Create network expansion flow variables for directed flow formulations."
@@ -165,6 +165,30 @@ function variable_flow_unbounded_ne(wm::AbstractDirectedFlowModel, n::Int=wm.cnw
     end
 end
 
+function constraint_check_valve(wm::AbstractDirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int)
+    # Fix negative flow variable to zero.
+    JuMP.fix(var(wm, n, :qn, a), 0.0, force=true)
+
+    # Gather common variables.
+    qp = var(wm, n, :qp, a)
+    h_i = var(wm, n, :h, node_fr)
+    h_j = var(wm, n, :h, node_to)
+    x_cv = var(wm, n, :x_cv, a)
+
+    # If the check valve is open, flow must be appreciably nonnegative.
+    qp_ub = JuMP.has_upper_bound(qp) ? JuMP.upper_bound(qp) : 10.0
+    c_1 = JuMP.@constraint(wm.model, qp <= qp_ub * x_cv)
+    c_2 = JuMP.@constraint(wm.model, qp >= 1.0e-6 * x_cv)
+
+    # TODO: These constraints seem to result in infeasibility in multiperiod Richmond case.
+    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
+    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
+    c_3 = JuMP.@constraint(wm.model, h_i - h_j >= (1.0 - x_cv) * dh_lb)
+    c_4 = JuMP.@constraint(wm.model, h_i - h_j <= x_cv * dh_ub)
+
+    append!(con(wm, n, :check_valve)[a], [c_1, c_2, c_3, c_4])
+end
+
 "Create constraints for directed flow variables, based on flow direction
 variables."
 function constraint_flow_direction_selection(wm::AbstractDirectedFlowModel, n::Int, a::Int)
@@ -210,11 +234,6 @@ function constraint_head_difference(wm::AbstractDirectedFlowModel, n::Int, a::In
 
     h_i = head_fr == nothing ? var(wm, n, :h, node_fr) : head_fr
     h_j = head_to == nothing ? var(wm, n, :h, node_to) : head_to
-
-    # If this is not the form of this constraint, hot starts don't work!
-    #ce_1 = JuMP.@constraint(wm.model, h_i - h_j <= dhp - dhn)
-    #ce_2 = JuMP.@constraint(wm.model, h_i - h_j >= dhp - dhn)
-    #append!(con(wm, n, :head_loss)[a], [cp, cn, ce_1, ce_2])
 
     ce = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
     append!(con(wm, n, :head_loss)[a], [cp, cn, ce])

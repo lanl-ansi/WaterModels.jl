@@ -98,7 +98,7 @@ function _correct_status!(data::Dict{String, <:Any})
 
                 if init_level >= gt
                     pump["initial_status"] = "Closed"
-                else
+                elseif init_level <= lt
                     pump["initial_status"] = "Open"
                 end
             end

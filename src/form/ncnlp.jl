@@ -6,13 +6,14 @@ function constraint_head_loss_check_valve(wm::AbstractNCNLPModel, n::Int, a::Int
     h_j = var(wm, n, :h, node_to)
     x_cv = var(wm, n, :x_cv, a)
 
-    ## TODO: Possible formulation below (expand out...)?
+    # TODO: Possible formulation below (expand out...)?
     #c = JuMP.@NLconstraint(wm.model, x_cv * r * head_loss(q) == inv(L) * x_cv * (h_i - h_j))
     #c = JuMP.@NLconstraint(wm.model, (1 - x_cv) * h_j >= (1 - x_cv) * h_i)
+    #q_abs_ub = JuMP.has_upper_bound(q) ? abs(JuMP.upper_bound(q)) : 10.0
 
     lhs = JuMP.@NLexpression(wm.model, r * head_loss(q) - inv(L) * (h_i - h_j))
-    c_1 = JuMP.@NLconstraint(wm.model, lhs <= 1.0e6 * (1.0 - x_cv))
-    c_2 = JuMP.@NLconstraint(wm.model, lhs >= -1.0e6 * (1.0 - x_cv))
+    c_1 = JuMP.@NLconstraint(wm.model, lhs <= 1.0e3 * (1.0 - x_cv))
+    c_2 = JuMP.@NLconstraint(wm.model, lhs >= -1.0e3 * (1.0 - x_cv))
     append!(con(wm, n, :head_loss)[a], [c_1, c_2])
 end
 
@@ -32,6 +33,7 @@ function constraint_head_loss_pipe_ne(wm::AbstractNCNLPModel, n::Int, a::Int, al
 
     lhs = JuMP.@NLexpression(wm.model, sum(r * head_loss(q_ne[r_id]) for
         (r_id, r) in enumerate(pipe_resistances)))
+
     c = JuMP.@NLconstraint(wm.model, lhs == inv(L) * (h_i - h_j))
     append!(con(wm, n, :head_loss)[a], [c])
 end
@@ -47,11 +49,15 @@ function constraint_head_gain_pump(wm::AbstractNCNLPModel, n::Int, a::Int, node_
     q_ub = JuMP.has_upper_bound(q) ? JuMP.upper_bound(q) : 10.0
 
     # Define the head gain caused by the pump.
-    c_1 = JuMP.@NLconstraint(wm.model, curve_fun[1]*q^2 + curve_fun[2]*q + curve_fun[3]*x_pump == g)
+    c_1 = JuMP.@NLconstraint(wm.model, curve_fun[1]*q*q + curve_fun[2]*q + curve_fun[3]*x_pump == g)
+
+    # Get head difference lower bounds.
+    lb = JuMP.lower_bound(h_j) - JuMP.upper_bound(h_i)
+    ub = JuMP.upper_bound(h_j) - JuMP.lower_bound(h_i)
 
     # If the pump is off, decouple the head difference relationship.
-    c_2 = JuMP.@constraint(wm.model, (h_j - h_i) - g <= 1.0e6 * (1.0 - x_pump))
-    c_3 = JuMP.@constraint(wm.model, (h_j - h_i) - g >= -1.0e6 * (1.0 - x_pump))
+    c_2 = JuMP.@constraint(wm.model, (h_j - h_i) - g <= ub * (1.0 - x_pump))
+    c_3 = JuMP.@constraint(wm.model, (h_j - h_i) - g >= lb * (1.0 - x_pump))
 
     # If the pump is off, the flow along the pump must be zero.
     c_4 = JuMP.@constraint(wm.model, q <= q_ub * x_pump)

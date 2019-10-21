@@ -1,4 +1,4 @@
-# Define MICP (mixed-integer convex program) implementations of water distribution models.
+# Define MICP (mixed-integer convex program) implementations of water distribution constraints.
 
 function constraint_head_loss_pipe_ne(wm::AbstractMICPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances) 
     for (r_id, r) in enumerate(pipe_resistances)
@@ -17,8 +17,7 @@ end
 "Pump head gain constraint when the pump status is ambiguous."
 function constraint_head_gain_pump(wm::AbstractMICPModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64})
     # Fix reverse flow variable to zero (since this is a pump).
-    qn = var(wm, n, :qn, a)
-    JuMP.fix(qn, 0.0, force=true)
+    JuMP.fix(var(wm, n, :qn, a), 0.0, force=true)
 
     # Gather common variables.
     qp = var(wm, n, :qp, a)
@@ -42,6 +41,37 @@ function constraint_head_gain_pump(wm::AbstractMICPModel, n::Int, a::Int, node_f
 
     # Append the constraint array.
     con(wm, n, :head_gain)[a] = [con_1, con_2, con_3, con_4, con_5]
+end
+
+"Pump head gain constraint when the pump is forced to be on."
+function constraint_head_gain_pump_on(wm::AbstractMICPModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64})
+    # Fix reverse flow variable to zero (since this is a pump).
+    JuMP.fix(var(wm, n, :qn, a), 0.0, force=true)
+
+    # Gather common variables.
+    qp = var(wm, n, :qp, a)
+    h_i = var(wm, n, :h, node_fr)
+    h_j = var(wm, n, :h, node_to)
+
+    # Define the head difference relationship when the pump is on (h_j >= h_i).
+    c = JuMP.@NLconstraint(wm.model, curve_fun[1]*qp^2 + curve_fun[2]*qp + curve_fun[3] <= (h_j - h_i))
+    con(wm, n, :head_gain)[a] = [c]
+end
+
+function constraint_head_loss_check_valve(wm::AbstractMICPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64) 
+    # Gather common variables.
+    qp = var(wm, n, :qp, a)
+    qn = var(wm, n, :qn, a)
+    h_i = var(wm, n, :h, node_fr)
+    h_j = var(wm, n, :h, node_to)
+    x_cv = var(wm, n, :x_cv, a)
+
+    lhs_p = JuMP.@NLexpression(wm.model, r * head_loss(qp) - inv(L) * (h_i - h_j))
+    c_p = JuMP.@NLconstraint(wm.model, lhs_p <= 1.0e3 * (1.0 - x_cv))
+    lhs_n = JuMP.@NLexpression(wm.model, r * head_loss(qn) - inv(L) * (h_j - h_i))
+    c_n = JuMP.@NLconstraint(wm.model, lhs_n <= 1.0e3 * x_cv)
+
+    append!(con(wm, n, :head_loss)[a], [c_p, c_n])
 end
 
 function constraint_head_loss_pipe(wm::AbstractMICPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, r::Float64)

@@ -58,6 +58,7 @@ function solution_owf!(wm::AbstractWaterModel, sol::Dict{String,<:Any})
     add_setpoint_pipe_resistance!(sol, wm)
     add_setpoint_pump_flow!(sol, wm)
     add_setpoint_pump_status!(sol, wm)
+    add_setpoint_pump_gain!(sol, wm)
     add_setpoint_reservoir!(sol, wm)
     add_setpoint_tank!(sol, wm)
 end
@@ -112,6 +113,11 @@ function add_setpoint_pipe_resistance!(sol, wm::AbstractWaterModel)
             sol_item["r"] = ref(wm, :resistance, a)[r_id]
         end
     end
+end
+
+""
+function add_setpoint_pump_gain!(sol, wm::AbstractWaterModel)
+    add_setpoint!(sol, wm, "pump", "g", :g)
 end
 
 ""
