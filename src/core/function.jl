@@ -2,50 +2,6 @@
 # This file defines the nonlinear head loss functions for water systems models.
 ###############################################################################
 
-function get_g_constants(alpha::Float64, delta::Float64)
-    p::Float64 = alpha + 1.0
-
-    a::Float64 = 15.0 * inv(8.0) * delta^(p - 1.0) +
-        inv(8.0) * (p - 1.0) * p * delta^(p - 1.0) -
-        7.0 * inv(8.0) * p * delta^(p - 1.0)
-
-    b::Float64 = -5.0 * inv(4.0) * delta^(p - 3.0) -
-        inv(4.0) * (p - 1.0) * p * delta^(p - 3.0) +
-        5.0 * inv(4.0) * p * delta^(p - 3.0)
-
-    c::Float64 = 3.0 * inv(8.0) * delta^(p - 5.0) +
-        inv(8.0) * (p - 1.0) * p * delta^(p - 5.0) -
-        3.0 * inv(8.0) * p * delta^(p - 5.0)
-
-    return a, b, c
-end
-
-function g_alpha(alpha::Float64, delta::Float64)
-    a, b, c = get_g_constants(alpha, delta)
-
-    return function(x::Float64)
-        return c*x*x*x*x*x + b*x*x*x + a*x
-    end
-end
-
-function dg_alpha(alpha::Float64, delta::Float64)
-    p::Float64 = alpha + 1.0
-    a, b, c = get_g_constants(alpha, delta)
-
-    return function(x::Float64)
-        5.0*c * x*x*x*x + 3.0*b * x*x + a
-    end
-end
-
-function d2g_alpha(alpha::Float64, delta::Float64)
-    p::Float64 = alpha + 1.0
-    a, b, c = get_g_constants(alpha, delta)
-
-    return function(x::Float64)
-        20.0*c * x*x*x + 6.0*b * x
-    end
-end
-
 function if_alpha(alpha::Float64; convex::Bool=false)
     return function(x::Float64)
         return inv(2.0 + alpha) * (x*x)^(1.0 + 0.5*alpha)
@@ -98,9 +54,8 @@ function get_alpha_min_1(wm::AbstractWaterModel)
     end
 end
 
-function function_head_loss(wm::AbstractWaterModel)
-    # By default, head loss is not defined using nonlinear registered functions.
-end
+# By default, head loss is not defined by nonlinear registered functions.
+function function_head_loss(wm::AbstractWaterModel) end
 
 function function_head_loss(wm::AbstractCNLPModel)
     alpha = get_alpha_min_1(wm)
