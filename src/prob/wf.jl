@@ -65,13 +65,13 @@ function post_mn_wf(wm::AbstractWaterModel)
 
     for (n, network) in nws(wm)
         # Physical variables.
-        variable_head(wm, n, bounded=false)
-        variable_flow(wm, n, bounded=false)
-        variable_volume(wm, n, bounded=false)
+        variable_head(wm, nw=n, bounded=false)
+        variable_flow(wm, nw=n, bounded=false)
+        variable_volume(wm, nw=n, bounded=false)
 
         # Component-specific variables.
-        variable_reservoir(wm, n)
-        variable_tank(wm, n)
+        variable_reservoir(wm, nw=n)
+        variable_tank(wm, nw=n)
 
         # Head loss along pipes.
         for (a, pipe) in ref(wm, :pipe, nw=n)

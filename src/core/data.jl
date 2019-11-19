@@ -1,6 +1,6 @@
 # Functions for working with the WaterModels data format.
 function calc_resistance_hw(diameter::Float64, roughness::Float64)
-    return 10.67 * inv(roughness^1.852 * diameter^4.87)
+    return 7.8828 * inv(0.849^1.852 * roughness^1.852 * diameter^4.8704)
 end
 
 function calc_resistances_hw(links::Dict{<:Any, <:Any})

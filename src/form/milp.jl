@@ -36,30 +36,32 @@ function variable_flow_piecewise_adjacency_ne(wm::AbstractMILPModel, n::Int=wm.c
         start=get_start(ref(wm, n, :link_ne), a, "x_pw_start", 0.0))
 end
 
-function variable_flow(wm::AbstractMILPModel, n::Int=wm.cnw; bounded::Bool=true)
+function variable_flow(wm::AbstractMILPModel; nw::Int=wm.cnw, bounded::Bool=true)
     # Create undirected flow variables (i.e., q).
-    bounded ? variable_flow_bounded(wm, n) : variable_flow_unbounded(wm, n)
+    bounded ? variable_flow_bounded(wm, nw=nw) :
+        variable_flow_unbounded(wm, nw=nw)
 
     # Create variables required for convex combination piecewise approximation.
-    variable_flow_piecewise_weights(wm, n)
-    variable_flow_piecewise_adjacency(wm, n)
+    variable_flow_piecewise_weights(wm, nw)
+    variable_flow_piecewise_adjacency(wm, nw)
 end
 
 "Create network expansion flow variables for undirected flow formulations."
-function variable_flow_ne(wm::AbstractMILPModel, n::Int=wm.cnw; bounded::Bool=true)
+function variable_flow_ne(wm::AbstractMILPModel; nw::Int=wm.cnw, bounded::Bool=true)
     # Create undirected flow variables (i.e., q).
-    bounded ? variable_flow_bounded_ne(wm, n) : variable_flow_unbounded_ne(wm, n)
+    bounded ? variable_flow_bounded_ne(wm, nw=nw) :
+        variable_flow_unbounded_ne(wm, nw=nw)
 
     # Create expressions capturing the relationships among q, and q_ne.
-    var(wm, n)[:q] = JuMP.@expression(wm.model, [a in ids(wm, n, :link_ne)],
-        sum(var(wm, n, :q_ne, a)))
+    var(wm, nw)[:q] = JuMP.@expression(wm.model, [a in ids(wm, nw, :link_ne)],
+        sum(var(wm, nw, :q_ne, a)))
 
     # Create resistance binary variables.
-    variable_resistance(wm, n)
+    variable_resistance(wm, nw=nw)
 
     # Create variables required for convex combination piecewise approximation.
-    variable_flow_piecewise_weights_ne(wm, n)
-    variable_flow_piecewise_adjacency_ne(wm, n)
+    variable_flow_piecewise_weights_ne(wm, nw)
+    variable_flow_piecewise_adjacency_ne(wm, nw)
 end
 
 "Pump head gain constraint when the pump status is ambiguous."

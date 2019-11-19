@@ -65,16 +65,16 @@ function post_mn_owf(wm::AbstractWaterModel)
 
     for (n, network) in nws(wm)
         # Physical variables.
-        variable_head(wm, n)
-        variable_head_gain(wm, n)
-        variable_flow(wm, n)
-        variable_volume(wm, n)
+        variable_head(wm, nw=n)
+        variable_head_gain(wm, nw=n)
+        variable_flow(wm, nw=n)
+        variable_volume(wm, nw=n)
 
         # Component-specific variables.
-        variable_check_valve(wm, n)
-        variable_pump_operation(wm, n)
-        variable_reservoir(wm, n)
-        variable_tank(wm, n)
+        variable_check_valve(wm, nw=n)
+        variable_pump_operation(wm, nw=n)
+        variable_reservoir(wm, nw=n)
+        variable_tank(wm, nw=n)
 
         for (a, pipe) in ref(wm, :pipe, nw=n)
             # TODO: Call this something other than status.

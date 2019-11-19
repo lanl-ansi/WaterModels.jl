@@ -1,17 +1,17 @@
 # Define CNLP (convex nonlinear programming) implementations of water network models.
 
 "Head variables do not exist within the CNLP model."
-function variable_head(wm::AbstractCNLPModel, n::Int=wm.cnw; bounded::Bool=true)
-    if length(ids(wm, n, :tank)) >= 1
+function variable_head(wm::AbstractCNLPModel; nw::Int=wm.cnw, bounded::Bool=true)
+    if length(ids(wm, nw, :tank)) >= 1
         Memento.error(_LOGGER, "AbstractCNLPModel does not support tank components.")
     end
 end
 
 "Pump control variables do not exist within the CNLP model."
-function variable_pump_control(wm::AbstractCNLPModel, n::Int=wm.cnw) end
+function variable_pump_control(wm::AbstractCNLPModel; nw::Int=wm.cnw) end
 
 "Pump operation variables do not exist within the CNLP model."
-function variable_pump_operation(wm::AbstractCNLPModel, n::Int=wm.cnw) end
+function variable_pump_operation(wm::AbstractCNLPModel; nw::Int=wm.cnw) end
 
 "The source head constraint does not exist within the CNLP model."
 function constraint_source_head(wm::AbstractCNLPModel, n::Int, i::Int, h_src::Float64) end

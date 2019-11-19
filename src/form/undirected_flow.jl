@@ -4,75 +4,77 @@
 # negative, flow is assumed to travel from j to i.
 
 "Create flow variables for undirected flow formulations."
-function variable_flow(wm::AbstractUndirectedFlowModel, n::Int=wm.cnw; bounded::Bool=true)
+function variable_flow(wm::AbstractUndirectedFlowModel; nw::Int=wm.cnw, bounded::Bool=true)
     # Create undirected flow variables (i.e., q).
-    bounded ? variable_flow_bounded(wm, n) : variable_flow_unbounded(wm, n)
+    bounded ? variable_flow_bounded(wm, nw=nw) :
+        variable_flow_unbounded(wm, nw=nw)
 end
 
 "Create network expansion flow variables for undirected flow formulations."
-function variable_flow_ne(wm::AbstractUndirectedFlowModel, n::Int=wm.cnw; bounded::Bool=true)
+function variable_flow_ne(wm::AbstractUndirectedFlowModel; nw::Int=wm.cnw, bounded::Bool=true)
     # Create undirected flow variables (i.e., q).
-    bounded ? variable_flow_bounded_ne(wm, n) : variable_flow_unbounded_ne(wm, n)
+    bounded ? variable_flow_bounded_ne(wm, nw=nw) :
+        variable_flow_unbounded_ne(wm, nw=nw)
 
     # Create expressions capturing the relationships among q, and q_ne.
-    var(wm, n)[:q] = JuMP.@expression(wm.model, [a in ids(wm, n, :link_ne)],
-        sum(var(wm, n, :q_ne, a)))
+    var(wm, nw)[:q] = JuMP.@expression(wm.model, [a in ids(wm, nw, :link_ne)],
+        sum(var(wm, nw, :q_ne, a)))
 
     # Create resistance binary variables.
-    variable_resistance(wm, n)
+    variable_resistance(wm, nw=nw)
 end
 
 "Create bounded flow variables for undirected flow formulations."
-function variable_flow_bounded(wm::AbstractUndirectedFlowModel, n::Int=wm.cnw)
-    q_lb, q_ub = calc_flow_rate_bounds(wm, n)
+function variable_flow_bounded(wm::AbstractUndirectedFlowModel; nw::Int=wm.cnw)
+    q_lb, q_ub = calc_flow_rate_bounds(wm, nw)
 
-    var(wm, n)[:q] = JuMP.@variable(wm.model, [a in ids(wm, n, :link_fixed)],
+    var(wm, nw)[:q] = JuMP.@variable(wm.model, [a in ids(wm, nw, :link_fixed)],
         lower_bound=minimum(q_lb[a]), upper_bound=maximum(q_ub[a]),
-        base_name="q[$(n)]",
-        start=get_start(ref(wm, n, :link_fixed), a, "q_start", 1.0e-6))
+        base_name="q[$(nw)]",
+        start=get_start(ref(wm, nw, :link_fixed), a, "q_start", 1.0e-6))
 
     # Check valves and pumps are unidirectional, so flow should be nonnegative.
-    lb_ids = [collect(ids(wm, n, :check_valve)); collect(ids(wm, n, :pump))]
-    JuMP.set_lower_bound.([var(wm, n, :q, a) for a in lb_ids], 0.0)
+    lb_ids = [collect(ids(wm, nw, :check_valve)); collect(ids(wm, nw, :pump))]
+    JuMP.set_lower_bound.([var(wm, nw, :q, a) for a in lb_ids], 0.0)
 end
 
 "Create bounded network expansion flow variables for undirected flow formulations."
-function variable_flow_bounded_ne(wm::AbstractUndirectedFlowModel, n::Int=wm.cnw)
-    alpha = ref(wm, n, :alpha)
-    q_lb, q_ub = calc_flow_rate_bounds(wm, n)
-    link_ids = ids(wm, n, :link_ne)
-    var(wm, n)[:q_ne] = Dict{Int,Array{JuMP.VariableRef}}(a => [] for a in link_ids)
+function variable_flow_bounded_ne(wm::AbstractUndirectedFlowModel; nw::Int=wm.cnw)
+    alpha = ref(wm, nw, :alpha)
+    q_lb, q_ub = calc_flow_rate_bounds(wm, nw)
+    link_ids = ids(wm, nw, :link_ne)
+    var(wm, nw)[:q_ne] = Dict{Int,Array{JuMP.VariableRef}}(a => [] for a in link_ids)
 
     for a in link_ids
-        n_r = length(ref(wm, n, :resistance, a)) # Number of resistances.
-        var(wm, n, :q_ne)[a] = JuMP.@variable(wm.model, [r in 1:n_r],
-            lower_bound=q_lb[a][r], upper_bound=q_ub[a][r], base_name="q_ne[$(n)][$(a)]",
-            start=get_start(ref(wm, n, :link_ne), a, r, "q_ne_start", 1.0e-6))
+        n_r = length(ref(wm, nw, :resistance, a)) # Number of resistances.
+        var(wm, nw, :q_ne)[a] = JuMP.@variable(wm.model, [r in 1:n_r],
+            lower_bound=q_lb[a][r], upper_bound=q_ub[a][r], base_name="q_ne[$(nw)][$(a)]",
+            start=get_start(ref(wm, nw, :link_ne), a, r, "q_ne_start", 1.0e-6))
     end
 end
 
 "Create unbounded flow variables for undirected flow formulations."
-function variable_flow_unbounded(wm::AbstractUndirectedFlowModel, n::Int=wm.cnw)
-    var(wm, n)[:q] = JuMP.@variable(wm.model, [a in ids(wm, n, :link_fixed)],
-        base_name="q[$(n)]",
-        start=get_start(ref(wm, n, :link_fixed), a, "q_start", 1.0e-6))
+function variable_flow_unbounded(wm::AbstractUndirectedFlowModel; nw::Int=wm.cnw)
+    var(wm, nw)[:q] = JuMP.@variable(wm.model, [a in ids(wm, nw, :link_fixed)],
+        base_name="q[$(nw)]",
+        start=get_start(ref(wm, nw, :link_fixed), a, "q_start", 1.0e-6))
 
     # Check valves and pumps are unidirectional, so flow should be nonnegative.
-    lb_ids = [collect(ids(wm, n, :check_valve)); collect(ids(wm, n, :pump))]
-    JuMP.set_lower_bound.([var(wm, n, :q, a) for a in lb_ids], 0.0)
+    lb_ids = [collect(ids(wm, nw, :check_valve)); collect(ids(wm, nw, :pump))]
+    JuMP.set_lower_bound.([var(wm, nw, :q, a) for a in lb_ids], 0.0)
 end
 
 "Create unbounded network expansion flow variables for undirected flow formulations."
-function variable_flow_unbounded_ne(wm::AbstractUndirectedFlowModel, n::Int=wm.cnw)
-    alpha = ref(wm, n, :alpha)
-    link_ids = ids(wm, n, :link_ne)
-    var(wm, n)[:q_ne] = Dict{Int,Array{JuMP.VariableRef}}(a => [] for a in link_ids)
+function variable_flow_unbounded_ne(wm::AbstractUndirectedFlowModel; nw::Int=wm.cnw)
+    alpha = ref(wm, nw, :alpha)
+    link_ids = ids(wm, nw, :link_ne)
+    var(wm, nw)[:q_ne] = Dict{Int,Array{JuMP.VariableRef}}(a => [] for a in link_ids)
 
     for a in link_ids
-        n_r = length(ref(wm, n, :resistance, a)) # Number of resistances.
-        var(wm, n, :q_ne)[a] = JuMP.@variable(wm.model, [r in 1:n_r],
-            base_name="q_ne[$(n)][$(a)]",
-            start=get_start(ref(wm, n, :link_ne), a, r, "q_ne_start", 1.0e-6))
+        n_r = length(ref(wm, nw, :resistance, a)) # Number of resistances.
+        var(wm, nw, :q_ne)[a] = JuMP.@variable(wm.model, [r in 1:n_r],
+            base_name="q_ne[$(nw)][$(a)]",
+            start=get_start(ref(wm, nw, :link_ne), a, r, "q_ne_start", 1.0e-6))
     end
 end
 

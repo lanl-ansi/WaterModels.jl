@@ -6,162 +6,167 @@
 "Create head-related variables for formulations that use binary direction
 variables. These head variables include total hydraulic head variables as well
 as positive (i to j) and negative (j to i) head difference variables."
-function variable_head(wm::AbstractIntegerDirectedFlowForms, n::Int=wm.cnw; bounded::Bool=true)
+function variable_head(wm::AbstractIntegerDirectedFlowForms; nw::Int=wm.cnw, bounded::Bool=true)
     # Create variables for the total hydraulic head.
-    bounded ? variable_head_bounded(wm, n) : variable_head_unbounded(wm, n)
+    bounded ? variable_head_bounded(wm, nw=nw) :
+        variable_head_unbounded(wm, nw=nw)
 
     # Create variables for positive and negative hydraulic head differences.
-    bounded ? variable_head_difference_bounded(wm, n) : variable_head_difference_unbounded(wm, n)
+    bounded ? variable_head_difference_bounded(wm, nw=nw) :
+        variable_head_difference_unbounded(wm, nw=nw)
 end
 
 "Create bounded head difference variables for formulations with binary
 direction variables. These include positive (i to j) and negative (j to i) head
 difference variables, which coincide with the direction of flow."
-function variable_head_difference_bounded(wm::AbstractWaterModel, n::Int=wm.cnw)
+function variable_head_difference_bounded(wm::AbstractWaterModel; nw::Int=wm.cnw)
     # Get the bounds for the head difference variables.
-    dh_lb, dh_ub = calc_head_difference_bounds(wm, n)
+    dh_lb, dh_ub = calc_head_difference_bounds(wm, nw)
 
     # Initialize variables associated with positive head differences.
-    var(wm, n)[:dhp] = JuMP.@variable(wm.model, [a in ids(wm, n, :link)],
-        lower_bound=0.0, upper_bound=max(0.0, dh_ub[a]), base_name="dhp[$(n)]",
-        start=get_start(ref(wm, n, :link), a, "dhp_start", 0.0))
+    var(wm, nw)[:dhp] = JuMP.@variable(wm.model, [a in ids(wm, nw, :link)],
+        lower_bound=0.0, upper_bound=max(0.0, dh_ub[a]), base_name="dhp[$(nw)]",
+        start=get_start(ref(wm, nw, :link), a, "dhp_start", 0.0))
 
     # Initialize variables associated with negative head differences.
-    var(wm, n)[:dhn] = JuMP.@variable(wm.model, [a in ids(wm, n, :link)],
-        lower_bound=0.0, upper_bound=max(0.0, -dh_lb[a]), base_name="dhn[$(n)]",
-        start=get_start(ref(wm, n, :link), a, "dhn_start", 0.0))
+    var(wm, nw)[:dhn] = JuMP.@variable(wm.model, [a in ids(wm, nw, :link)],
+        lower_bound=0.0, upper_bound=max(0.0, -dh_lb[a]), base_name="dhn[$(nw)]",
+        start=get_start(ref(wm, nw, :link), a, "dhn_start", 0.0))
 end
 
 "Create unbounded head difference variables for formulations with binary
 direction variables. These include positive (i to j) and negative (j to i) head
 difference variables, which coincide with the direction of flow."
-function variable_head_difference_unbounded(wm::AbstractWaterModel, n::Int=wm.cnw)
+function variable_head_difference_unbounded(wm::AbstractWaterModel; nw::Int=wm.cnw)
     # Note that the variables created below are still (very highly) bounded.
     # Initialize variables associated with positive head differences.
-    var(wm, n)[:dhp] = JuMP.@variable(wm.model, [a in ids(wm, n, :link)],
-        lower_bound=0.0, base_name="dhp[$(n)]",
-        start=get_start(ref(wm, n, :link), a, "dhp_start", 0.0))
+    var(wm, nw)[:dhp] = JuMP.@variable(wm.model, [a in ids(wm, nw, :link)],
+        lower_bound=0.0, base_name="dhp[$(nw)]",
+        start=get_start(ref(wm, nw, :link), a, "dhp_start", 0.0))
 
     # Initialize variables associated with negative head differences.
-    var(wm, n)[:dhn] = JuMP.@variable(wm.model, [a in ids(wm, n, :link)],
-        lower_bound=0.0, base_name="dhn[$(n)]",
-        start=get_start(ref(wm, n, :link), a, "dhn_start", 0.0))
+    var(wm, nw)[:dhn] = JuMP.@variable(wm.model, [a in ids(wm, nw, :link)],
+        lower_bound=0.0, base_name="dhn[$(nw)]",
+        start=get_start(ref(wm, nw, :link), a, "dhn_start", 0.0))
 end
 
 "Create flow variables for CNLP model."
-function variable_flow(wm::AbstractContinuousDirectedFlowForms, n::Int=wm.cnw; bounded::Bool=true)
-    variable_flow_common(wm, n, bounded=bounded)
+function variable_flow(wm::AbstractContinuousDirectedFlowForms; nw::Int=wm.cnw, bounded::Bool=true)
+    variable_flow_common(wm, nw=nw, bounded=bounded)
 end
 
 "Create flow variables for formulations with binary direction variables."
-function variable_flow(wm::AbstractIntegerDirectedFlowForms, n::Int=wm.cnw; bounded::Bool=true)
-    variable_flow_common(wm, n, bounded=bounded)
-    variable_flow_direction(wm, n)
+function variable_flow(wm::AbstractIntegerDirectedFlowForms; nw::Int=wm.cnw, bounded::Bool=true)
+    variable_flow_common(wm, nw=nw, bounded=bounded)
+    variable_flow_direction(wm, nw=nw)
 end
 
 "Create flow variables that are common to all directed flow models."
-function variable_flow_common(wm::AbstractDirectedFlowModel, n::Int=wm.cnw; bounded::Bool=true)
+function variable_flow_common(wm::AbstractDirectedFlowModel; nw::Int=wm.cnw, bounded::Bool=true)
     # Create directed qp and qn variables.
-    bounded ? variable_flow_bounded(wm, n) : variable_flow_unbounded(wm, n)
+    bounded ? variable_flow_bounded(wm, nw=nw) :
+        variable_flow_unbounded(wm, nw=nw)
 
     # Create expressions capturing the relationships among q, qp, and qn.
-    var(wm, n)[:q] = JuMP.@expression(wm.model, [a in ids(wm, n, :link_fixed)],
-        var(wm, n, :qp, a) - var(wm, n, :qn, a))
+    var(wm, nw)[:q] = JuMP.@expression(wm.model,
+        [a in ids(wm, nw, :link_fixed)],
+        var(wm, nw, :qp, a) - var(wm, nw, :qn, a))
 end
 
 "Create bounded flow variables for directed flow models."
-function variable_flow_bounded(wm::AbstractDirectedFlowModel, n::Int=wm.cnw)
-    alpha = ref(wm, n, :alpha)
-    qn_ub, qp_ub = calc_directed_flow_upper_bounds(wm, alpha, n)
+function variable_flow_bounded(wm::AbstractDirectedFlowModel; nw::Int=wm.cnw)
+    alpha = ref(wm, nw, :alpha)
+    qn_ub, qp_ub = calc_directed_flow_upper_bounds(wm, alpha, nw)
 
-    var(wm, n)[:qp] = JuMP.@variable(wm.model, [a in ids(wm, n, :link_fixed)],
-        lower_bound=0.0, upper_bound=maximum(qp_ub[a]), base_name="qp[$(n)]",
-        start=get_start(ref(wm, n, :link_fixed), a, "qp_start", 1.0e-6))
+    var(wm, nw)[:qp] = JuMP.@variable(wm.model, [a in ids(wm, nw, :link_fixed)],
+        lower_bound=0.0, upper_bound=maximum(qp_ub[a]), base_name="qp[$(nw)]",
+        start=get_start(ref(wm, nw, :link_fixed), a, "qp_start", 1.0e-6))
 
-    var(wm, n)[:qn] = JuMP.@variable(wm.model, [a in ids(wm, n, :link_fixed)],
-        lower_bound=0.0, upper_bound=maximum(qn_ub[a]), base_name="qn[$(n)]",
-        start=get_start(ref(wm, n, :link_fixed), a, "qn_start", 1.0e-6))
+    var(wm, nw)[:qn] = JuMP.@variable(wm.model, [a in ids(wm, nw, :link_fixed)],
+        lower_bound=0.0, upper_bound=maximum(qn_ub[a]), base_name="qn[$(nw)]",
+        start=get_start(ref(wm, nw, :link_fixed), a, "qn_start", 1.0e-6))
 end
 
 "Create unbounded flow variables for directed flow models."
-function variable_flow_unbounded(wm::AbstractDirectedFlowModel, n::Int=wm.cnw)
+function variable_flow_unbounded(wm::AbstractDirectedFlowModel; nw::Int=wm.cnw)
     # Note that the variables created below are still bounded below by zero.
-    var(wm, n)[:qp] = JuMP.@variable(wm.model, [a in ids(wm, n, :link_fixed)],
-        lower_bound=0.0, base_name="qp[$(n)]",
-        start=get_start(ref(wm, n, :link_fixed), a, "qp_start", 1.0e-6))
+    var(wm, nw)[:qp] = JuMP.@variable(wm.model, [a in ids(wm, nw, :link_fixed)],
+        lower_bound=0.0, base_name="qp[$(nw)]",
+        start=get_start(ref(wm, nw, :link_fixed), a, "qp_start", 1.0e-6))
 
-    var(wm, n)[:qn] = JuMP.@variable(wm.model, [a in ids(wm, n, :link_fixed)],
-        lower_bound=0.0, base_name="qn[$(n)]",
-        start=get_start(ref(wm, n, :link_fixed), a, "qn_start", 1.0e-6))
+    var(wm, nw)[:qn] = JuMP.@variable(wm.model, [a in ids(wm, nw, :link_fixed)],
+        lower_bound=0.0, base_name="qn[$(nw)]",
+        start=get_start(ref(wm, nw, :link_fixed), a, "qn_start", 1.0e-6))
 end
 
 "Initialize variables associated with flow direction. If this variable is equal
 to one, the flow direction is from i to j. If it is equal to zero, the flow
 direction is from j to i."
-function variable_flow_direction(wm::AbstractDirectedFlowModel, n::Int=wm.cnw)
-    #ids_bd = keys(filter(!has_check_valve, ref(wm, n, :link)))
-    var(wm, n)[:x_dir] = JuMP.@variable(wm.model, [a in ids(wm, n, :link)],
-        base_name="x_dir[$(n)]", binary=true, lower_bound=0, upper_bound=1,
-        start=get_start(ref(wm, n, :link), a, "x_dir_start", 1))
+function variable_flow_direction(wm::AbstractDirectedFlowModel; nw::Int=wm.cnw)
+    #ids_bd = keys(filter(!has_check_valve, ref(wm, nw, :link)))
+    var(wm, nw)[:x_dir] = JuMP.@variable(wm.model, [a in ids(wm, nw, :link)],
+        base_name="x_dir[$(nw)]", binary=true, lower_bound=0, upper_bound=1,
+        start=get_start(ref(wm, nw, :link), a, "x_dir_start", 1))
 end
 
 "Create network expansion flow variables for directed flow formulations."
-function variable_flow_ne(wm::AbstractIntegerDirectedFlowForms, n::Int=wm.cnw; bounded::Bool=true)
+function variable_flow_ne(wm::AbstractIntegerDirectedFlowForms; nw::Int=wm.cnw, bounded::Bool=true)
     # Create directed qp_ne and qn_ne variables.
-    bounded ? variable_flow_bounded_ne(wm, n) : variable_flow_unbounded_ne(wm, n)
+    bounded ? variable_flow_bounded_ne(wm, nw=nw) :
+        variable_flow_unbounded_ne(wm, nw=nw)
 
     # Create expressions capturing the relationships among q, qp, and qn.
-    var(wm, n)[:q] = JuMP.@expression(wm.model, [a in ids(wm, n, :link_ne)],
-        sum(var(wm, n, :qp_ne, a)) - sum(var(wm, n, :qn_ne, a)))
+    var(wm, nw)[:q] = JuMP.@expression(wm.model, [a in ids(wm, nw, :link_ne)],
+        sum(var(wm, nw, :qp_ne, a)) - sum(var(wm, nw, :qn_ne, a)))
 
     # Create resistance binary variables.
-    variable_resistance(wm, n)
+    variable_resistance(wm, nw=nw)
 end
 
 "Create network expansion flow variables for the CNLP formulation."
-function variable_flow_ne(wm::AbstractContinuousDirectedFlowForms, n::Int=wm.cnw; bounded::Bool=true)
-    if length(ref(wm, n, :link_ne)) > 0
+function variable_flow_ne(wm::AbstractContinuousDirectedFlowForms; nw::Int=wm.cnw, bounded::Bool=true)
+    if length(ref(wm, nw, :link_ne)) > 0
         Memento.error(_LOGGER, "AbstractCNLPModel does not support network expansion formulations.")
     end
 end
 
 "Create network expansion bounded flow variables for directed flow formulations."
-function variable_flow_bounded_ne(wm::AbstractDirectedFlowModel, n::Int=wm.cnw)
-    alpha = ref(wm, n, :alpha)
-    qn_ub, qp_ub = calc_directed_flow_upper_bounds(wm, alpha, n)
-    link_ids = ids(wm, n, :link_ne)
+function variable_flow_bounded_ne(wm::AbstractDirectedFlowModel; nw::Int=wm.cnw)
+    alpha = ref(wm, nw, :alpha)
+    qn_ub, qp_ub = calc_directed_flow_upper_bounds(wm, alpha, nw)
+    link_ids = ids(wm, nw, :link_ne)
 
-    var(wm, n)[:qp_ne] = Dict{Int,Array{JuMP.VariableRef}}(a => [] for a in link_ids)
-    var(wm, n)[:qn_ne] = Dict{Int,Array{JuMP.VariableRef}}(a => [] for a in link_ids)
+    var(wm, nw)[:qp_ne] = Dict{Int,Array{JuMP.VariableRef}}(a => [] for a in link_ids)
+    var(wm, nw)[:qn_ne] = Dict{Int,Array{JuMP.VariableRef}}(a => [] for a in link_ids)
 
     for a in link_ids
-        n_r = length(ref(wm, n, :resistance, a)) # Number of resistances.
+        n_r = length(ref(wm, nw, :resistance, a)) # Number of resistances.
 
-        var(wm, n, :qp_ne)[a] = JuMP.@variable(wm.model, [r in 1:n_r],
-            lower_bound=0.0, upper_bound=qp_ub[a][r], base_name="qp_ne[$(n)][$(a)]",
-            start=get_start(ref(wm, n, :link_ne), a, r, "qp_ne_start", 1.0e-6))
+        var(wm, nw, :qp_ne)[a] = JuMP.@variable(wm.model, [r in 1:n_r],
+            lower_bound=0.0, upper_bound=qp_ub[a][r], base_name="qp_ne[$(nw)][$(a)]",
+            start=get_start(ref(wm, nw, :link_ne), a, r, "qp_ne_start", 1.0e-6))
 
-        var(wm, n, :qn_ne)[a] = JuMP.@variable(wm.model, [r in 1:n_r],
-            lower_bound=0.0, upper_bound=qn_ub[a][r], base_name="qn_ne[$(n)][$(a)]",
-            start=get_start(ref(wm, n, :link_ne), a, r, "qn_ne_start", 1.0e-6))
+        var(wm, nw, :qn_ne)[a] = JuMP.@variable(wm.model, [r in 1:n_r],
+            lower_bound=0.0, upper_bound=qn_ub[a][r], base_name="qn_ne[$(nw)][$(a)]",
+            start=get_start(ref(wm, nw, :link_ne), a, r, "qn_ne_start", 1.0e-6))
     end
 end
 
 "Create network expansion unbounded flow variables for directed flow formulations."
-function variable_flow_unbounded_ne(wm::AbstractDirectedFlowModel, n::Int=wm.cnw)
-    var(wm, n)[:qp_ne] = Dict{Int,Array{JuMP.VariableRef}}(a => [] for a in ids(wm, n, :link_ne))
-    var(wm, n)[:qn_ne] = Dict{Int,Array{JuMP.VariableRef}}(a => [] for a in ids(wm, n, :link_ne))
+function variable_flow_unbounded_ne(wm::AbstractDirectedFlowModel; nw::Int=wm.cnw)
+    var(wm, nw)[:qp_ne] = Dict{Int,Array{JuMP.VariableRef}}(a => [] for a in ids(wm, nw, :link_ne))
+    var(wm, nw)[:qn_ne] = Dict{Int,Array{JuMP.VariableRef}}(a => [] for a in ids(wm, nw, :link_ne))
 
-    for a in ids(wm, n, :link_ne)
-        n_r = length(ref(wm, n, :resistance, a)) # Number of resistances.
+    for a in ids(wm, nw, :link_ne)
+        n_r = length(ref(wm, nw, :resistance, a)) # Number of resistances.
 
-        var(wm, n, :qp_ne)[a] = JuMP.@variable(wm.model, [r in 1:n_r],
-            lower_bound=0.0, base_name="qp_ne[$(n)][$(a)]",
-            start=get_start(ref(wm, n, :link_ne), a, r, "qp_ne_start", 1.0e-6))
+        var(wm, nw, :qp_ne)[a] = JuMP.@variable(wm.model, [r in 1:n_r],
+            lower_bound=0.0, base_name="qp_ne[$(nw)][$(a)]",
+            start=get_start(ref(wm, nw, :link_ne), a, r, "qp_ne_start", 1.0e-6))
 
-        var(wm, n, :qn_ne)[a] = JuMP.@variable(wm.model, [r in 1:n_r],
-            lower_bound=0.0, base_name="qn_ne[$(n)][$(a)]",
-            start=get_start(ref(wm, n, :link_ne), a, r, "qn_ne_start", 1.0e-6))
+        var(wm, nw, :qn_ne)[a] = JuMP.@variable(wm.model, [r in 1:n_r],
+            lower_bound=0.0, base_name="qn_ne[$(nw)][$(a)]",
+            start=get_start(ref(wm, nw, :link_ne), a, r, "qn_ne_start", 1.0e-6))
     end
 end
 
