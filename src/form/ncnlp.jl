@@ -5,15 +5,11 @@ function constraint_head_loss_check_valve(wm::AbstractNCNLPModel, n::Int, a::Int
     h_i = var(wm, n, :h, node_fr)
     h_j = var(wm, n, :h, node_to)
     x_cv = var(wm, n, :x_cv, a)
+    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
 
-    # TODO: Possible formulation below (expand out...)?
-    #c = JuMP.@NLconstraint(wm.model, x_cv * r * head_loss(q) == inv(L) * x_cv * (h_i - h_j))
-    #c = JuMP.@NLconstraint(wm.model, (1 - x_cv) * h_j >= (1 - x_cv) * h_i)
-    #q_abs_ub = JuMP.has_upper_bound(q) ? abs(JuMP.upper_bound(q)) : 10.0
-
-    lhs = JuMP.@NLexpression(wm.model, r * head_loss(q) - inv(L) * (h_i - h_j))
-    c_1 = JuMP.@NLconstraint(wm.model, lhs <= 1.0e3 * (1.0 - x_cv))
-    c_2 = JuMP.@NLconstraint(wm.model, lhs >= -1.0e3 * (1.0 - x_cv))
+    lhs = JuMP.@NLexpression(wm.model, inv(L) * (h_i - h_j) - r * head_loss(q))
+    c_1 = JuMP.@NLconstraint(wm.model, lhs <= 0.0)
+    c_2 = JuMP.@NLconstraint(wm.model, lhs >= inv(L) * (1.0 - x_cv) * dh_lb)
     append!(con(wm, n, :head_loss)[a], [c_1, c_2])
 end
 
@@ -38,6 +34,14 @@ function constraint_head_loss_pipe_ne(wm::AbstractNCNLPModel, n::Int, a::Int, al
     append!(con(wm, n, :head_loss)[a], [c])
 end
 
+function get_curve_cut(curve_fun::Array{Float64}, q::JuMP.VariableRef, x::JuMP.VariableRef, q_min::Float64, q_max::Float64)
+    g_1 = curve_fun[1]*q_min*q_min + curve_fun[2]*q_min + curve_fun[3]
+    g_2 = curve_fun[1]*q_max*q_max + curve_fun[2]*q_max + curve_fun[3]
+    m = (g_2 - g_1) / (q_max - q_min)
+    b = g_1 - m*q_min
+    return m * q + b * x
+end
+
 "Pump head gain constraint when the pump status is ambiguous."
 function constraint_head_gain_pump(wm::AbstractNCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64})
     # Gather common variables.
@@ -49,22 +53,32 @@ function constraint_head_gain_pump(wm::AbstractNCNLPModel, n::Int, a::Int, node_
     q_ub = JuMP.has_upper_bound(q) ? JuMP.upper_bound(q) : 10.0
 
     # Define the head gain caused by the pump.
-    c_1 = JuMP.@NLconstraint(wm.model, curve_fun[1]*q*q + curve_fun[2]*q + curve_fun[3]*x_pump == g)
+    q_min = 1.0e-4
+    q_max = (-curve_fun[2] + sqrt(curve_fun[2]^2 - 4.0*curve_fun[1]*curve_fun[3])) / (2.0*curve_fun[1])
+    q_max = max(q_max, (-curve_fun[2] - sqrt(curve_fun[2]^2 - 4.0*curve_fun[1]*curve_fun[3])) / (2.0*curve_fun[1]))
+    q_max = min(q_max, JuMP.upper_bound(q))
+
+    # TODO: Move this upper bound calculation somewhere else.
+    JuMP.set_upper_bound(q, q_max)
+
+    # Add relaxation constraints.
+    c_1 = JuMP.@constraint(wm.model, g <= curve_fun[1]*q*q + curve_fun[2]*q + curve_fun[3]*x_pump)
+    c_2 = JuMP.@constraint(wm.model, g >= get_curve_cut(curve_fun, q, x_pump, q_min, q_max))
 
     # Get head difference lower bounds.
-    lb = JuMP.lower_bound(h_j) - JuMP.upper_bound(h_i)
-    ub = JuMP.upper_bound(h_j) - JuMP.lower_bound(h_i)
+    dh_lb = JuMP.lower_bound(h_j) - JuMP.upper_bound(h_i)
+    dh_ub = JuMP.upper_bound(h_j) - JuMP.lower_bound(h_i)
 
     # If the pump is off, decouple the head difference relationship.
-    c_2 = JuMP.@constraint(wm.model, (h_j - h_i) - g <= ub * (1.0 - x_pump))
-    c_3 = JuMP.@constraint(wm.model, (h_j - h_i) - g >= lb * (1.0 - x_pump))
+    c_3 = JuMP.@constraint(wm.model, (h_j - h_i) - g >= dh_lb * (1.0 - x_pump))
+    c_4 = JuMP.@constraint(wm.model, (h_j - h_i) - g <= dh_ub * (1.0 - x_pump))
 
     # If the pump is off, the flow along the pump must be zero.
-    c_4 = JuMP.@constraint(wm.model, q <= q_ub * x_pump)
-    c_5 = JuMP.@constraint(wm.model, q >= 1.0e-6 * x_pump)
+    c_5 = JuMP.@constraint(wm.model, q <= q_ub * x_pump)
+    c_6 = JuMP.@constraint(wm.model, q >= 1.0e-4 * x_pump)
 
     # Append the constraint array.
-    append!(con(wm, n, :head_gain)[a], [c_1, c_2, c_3, c_4, c_5])
+    #append!(con(wm, n, :head_gain)[a], [c_1, c_2, c_3, c_4])
 end
 
 "Pump head gain constraint when the pump is forced to be on."
@@ -85,21 +99,22 @@ function objective_owf(wm::AbstractNCNLPModel)
     for (n, nw_ref) in nws(wm)
         pump_ids = ids(wm, n, :pump)
         costs = JuMP.@variable(wm.model, [a in pump_ids], base_name="costs[$(n)]",
+                               lower_bound=0.0,
                                start=get_start(ref(wm, n, :pump), a, "costs", 0.0))
 
         efficiency = 0.85 # TODO: Change this after discussion. 0.85 follows Fooladivanda.
-        rho = 1000.0 # Water density.
-        g = 9.80665 # Gravitational acceleration.
+        rho = 1000.0 # Water density (kilogram per cubic meter).
+        gravity = 9.80665 # Gravitational acceleration (meter per second squared).
 
         time_step = nw_ref[:option]["time"]["hydraulic_timestep"]
-        constant = rho * g * time_step * inv(efficiency)
+        constant = rho * gravity * time_step * inv(efficiency)
 
         for (a, pump) in nw_ref[:pump]
             if haskey(pump, "energy_price")
+                energy_price = pump["energy_price"]
                 g = var(wm, n)[:g][a]
                 q = var(wm, n)[:q][a]
 
-                energy_price = pump["energy_price"]
                 pump_cost = JuMP.@NLexpression(wm.model, constant * energy_price * g * q)
                 con = JuMP.@NLconstraint(wm.model, pump_cost <= costs[a])
             else

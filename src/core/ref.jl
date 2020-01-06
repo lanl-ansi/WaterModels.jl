@@ -23,14 +23,11 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     tanks = ref(wm, n, :tank)
     reservoirs = ref(wm, n, :reservoir)
 
-    if length(tanks) > 0 && length(reservoirs) > 0
-        max_tank_elev = maximum(nodes[i]["elevation"] + tank["max_level"] for (i, tank) in tanks)
-        max_reservoir_elev = maximum(res["elevation"] for (i, res) in reservoirs)
-        max_elev = max_tank_elev + max_reservoir_elev
-    elseif length(tanks) > 0 && length(reservoirs) == 0
-        max_elev = maximum(nodes[i]["elevation"] + tank["max_level"] for (i, tank) in tanks)
-    elseif length(tanks) == 0 && length(reservoirs) > 0
-        max_elev = maximum(res["elevation"] for (i, res) in reservoirs)
+    if length(tanks) > 0
+        max_elev = maximum(node["elevation"] for (i, node) in nodes)
+        max_elev += maximum(tank["max_level"] for (i, tank) in tanks)
+    else
+        max_elev = maximum(node["elevation"] for (i, node) in nodes)
     end
 
     # Initialize the dictionaries for minimum and maximum heads.
@@ -45,9 +42,9 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
             head_min[i] = node["elevation"]
         end
 
-        # The maximum head at junctions must be below the max reservoir height.
+        # The maximum head at junctions must be below the max elevation.
         if haskey(node, "maximumHead")
-            head_max[i] = max(max_elev, node["maximumHead"])
+            head_max[i] = min(max_elev, node["maximumHead"])
         else
             # TODO: Is there a better general bound, here?
             head_max[i] = max_elev
@@ -57,6 +54,7 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     for (i, reservoir) in ref(wm, n, :reservoir)
         # Head values at reservoirs are fixed.
         node_id = reservoir["reservoir_node"]
+
         # TODO: Elevation should be a node attribute only.
         node = ref(wm, n, :reservoir, node_id)
         head_min[node_id] = node["elevation"]
@@ -66,6 +64,7 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     for (i, tank) in ref(wm, n, :tank)
         node_id = tank["tank_node"]
         node = ref(wm, n, :node, node_id)
+
         head_min[node_id] = node["elevation"] + tank["min_level"]
         head_max[node_id] = node["elevation"] + tank["max_level"]
     end
@@ -73,10 +72,13 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     for (a, pump) in ref(wm, n, :pump)
         i = pump["node_fr"]
         j = pump["node_to"]
+
         pump_curve = ref(wm, n, :pump, a)["pump_curve"]
         c = _get_function_from_pump_curve(pump_curve)
-        g_max = c[3] - c[2]*c[2] / (4.0*c[1])
-        head_max[j] = head_max[i] + g_max
+        g_max = c[3] - 0.25 * c[2]*c[2] * inv(c[1])
+
+        #head_min[i] = min(head_min[j] - g_max, head_min[i])
+        head_max[j] = min(head_max[i] + g_max, head_max[j])
     end
 
     # Return the dictionaries of lower and upper bounds.
@@ -108,7 +110,7 @@ function calc_flow_rate_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     alpha = ref(wm, n, :alpha)
 
     junctions = values(ref(wm, n, :junction))
-    sum_demand = sum(junction["demand"] for junction in junctions)
+    sum_demand = sum(abs(junction["demand"]) for junction in junctions)
 
     time_step_int = ref(wm, n, :option, "time")["hydraulic_timestep"]
     time_step = convert(Float64, time_step_int)
@@ -123,14 +125,14 @@ function calc_flow_rate_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
         resistances = ref(wm, n, :resistance, a)
         num_resistances = length(resistances)
 
-        lb[a] = -10.0 * ones(Float64, (num_resistances,))
-        ub[a] = 10.0 * ones(Float64, (num_resistances,))
+        lb[a] = -ones(Float64, (num_resistances,))
+        ub[a] = ones(Float64, (num_resistances,))
 
         for (r_id, r) in enumerate(resistances)
-            lb[a][r_id] = sign(dh_lb[a]) * (abs(dh_lb[a]) / (L * r))^inv(alpha)
+            lb[a][r_id] = sign(dh_lb[a]) * (abs(dh_lb[a]) * inv(L * r))^inv(alpha)
             lb[a][r_id] = max(lb[a][r_id], -sum_demand)
 
-            ub[a][r_id] = sign(dh_ub[a]) * (abs(dh_ub[a]) / (L * r))^inv(alpha)
+            ub[a][r_id] = sign(dh_ub[a]) * (abs(dh_ub[a]) * inv(L * r))^inv(alpha)
             ub[a][r_id] = min(ub[a][r_id], sum_demand)
 
             if pipe["flow_direction"] == POSITIVE || has_check_valve(pipe)
@@ -150,9 +152,12 @@ function calc_flow_rate_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     end
 
     for (a, pump) in ref(wm, n, :pump)
-        # TODO: Need better bounds, here.
+        pump_curve = ref(wm, n, :pump, a)["pump_curve"]
+        c = _get_function_from_pump_curve(pump_curve)
+        q_max = (-c[2] + sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1])
+        q_max = max(q_max, (-c[2] - sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1]))
+        ub[a] = [q_max]
         lb[a] = [0.0]
-        ub[a] = [10.0]
     end
 
     return lb, ub
@@ -167,12 +172,12 @@ function calc_directed_flow_upper_bounds(wm::AbstractWaterModel, alpha::Float64,
     ub_p = Dict([(a, Float64[]) for a in keys(links)])
 
     junctions = values(ref(wm, n, :junction))
-    sum_demand = sum(junction["demand"] for junction in junctions)
+    sum_demand = sum(abs(junction["demand"]) for junction in junctions)
 
     time_step_int = ref(wm, n, :option, "time")["hydraulic_timestep"]
     time_step = convert(Float64, time_step_int)
     V_lb, V_ub = calc_tank_volume_bounds(wm, n)
-    sum_demand += sum([(V_ub[i] - V_lb[i]) / time_step for i in ids(wm, n, :tank)])
+    sum_demand += sum([(V_ub[i] - V_lb[i]) * inv(time_step) for i in ids(wm, n, :tank)])
 
     for (a, pipe) in ref(wm, n, :pipe)
         L = pipe["length"]
@@ -182,11 +187,11 @@ function calc_directed_flow_upper_bounds(wm::AbstractWaterModel, alpha::Float64,
         ub_p[a] = zeros(Float64, (length(R_a),))
 
         for r in 1:length(R_a)
-            ub_n[a][r] = abs(dh_lb[a] * inv(L * R_a[r]))^(1.0 / alpha)
-            ub_n[a][r] = min(ub_n[a][r], sum_demand)
+            ub_n[a][r] = abs(dh_lb[a] * inv(L * R_a[r]))^inv(alpha)
+            #ub_n[a][r] = min(ub_n[a][r], sum_demand)
 
-            ub_p[a][r] = abs(dh_ub[a] * inv(L * R_a[r]))^(1.0 / alpha)
-            ub_p[a][r] = min(ub_p[a][r], sum_demand)
+            ub_p[a][r] = abs(dh_ub[a] * inv(L * R_a[r]))^inv(alpha)
+            #ub_p[a][r] = min(ub_p[a][r], sum_demand)
 
             if (pipe["flow_direction"] == POSITIVE || dh_lb[a] >= 0.0) || has_check_valve(pipe)
                 ub_n[a][r] = 0.0
@@ -206,9 +211,12 @@ function calc_directed_flow_upper_bounds(wm::AbstractWaterModel, alpha::Float64,
     end
 
     for (a, pump) in ref(wm, n, :pump)
-        # TODO: Need better bounds, here.
+        pump_curve = ref(wm, n, :pump, a)["pump_curve"]
+        c = _get_function_from_pump_curve(pump_curve)
+        q_max = (-c[2] + sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1])
+        q_max = max(q_max, (-c[2] - sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1]))
+        ub_p[a] = [q_max]
         ub_n[a] = [0.0]
-        ub_p[a] = [10.0]
     end
 
     return ub_n, ub_p
@@ -221,7 +229,7 @@ function calc_tank_volume_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     for (i, tank) in ref(wm, n, :tank)
         if !("curve_name" in keys(tank))
             surface_area = 0.25 * pi * tank["diameter"]^2
-            lb[i] = min(tank["min_vol"], surface_area * tank["min_level"])
+            lb[i] = max(tank["min_vol"], surface_area * tank["min_level"])
             ub[i] = surface_area * tank["max_level"]
         else
             Memento.error(_LOGGER, "Only cylindrical tanks are currently supported.")

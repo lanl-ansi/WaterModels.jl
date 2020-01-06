@@ -763,6 +763,19 @@ function _read_energy!(data::Dict{String, <:Any})
     end
 
     for (pump_id, pump) in data["pump"]
+        if !("energy_pattern_name" in keys(pump))
+            if "global_pattern" in keys(data["option"]["energy"])
+                pump["energy_pattern_name"] = data["option"]["energy"]["global_pattern"]
+            else
+                pump["energy_pattern_name"] = data["option"]["hydraulic"]["pattern"]
+            end
+        end
+
+        if !("energy_price" in keys(pump))
+            # Calculate the price per Joule.
+            pump["energy_price"] = data["option"]["energy"]["global_price"] * 2.778e-7
+        end
+
         if "energy_pattern_name" in keys(pump) && "energy_price" in keys(pump)
             base_price = pump["energy_price"]
             pattern_name = pump["energy_pattern_name"]

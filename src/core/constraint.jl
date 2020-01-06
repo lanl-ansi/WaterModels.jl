@@ -9,13 +9,13 @@ end
 
 function constraint_flow_conservation(wm::AbstractWaterModel, n::Int, i::Int,
     a_fr::Array{Tuple{Int,Int,Int}}, a_to::Array{Tuple{Int,Int,Int}},
-    reservoirs::Array{Int}, tanks::Array{Int}, demands::Dict{Int, Float64})
+    reservoirs::Array{Int}, tanks::Array{Int}, demands::Dict{Int,Float64})
     q = var(wm, n, :q)
     qr = var(wm, n, :qr)
     qt = var(wm, n, :qt)
 
-    c = JuMP.@constraint(wm.model, -sum(q[a] for (a, f, t) in a_fr) +
-        sum(q[a] for (a, f, t) in a_to) == -sum(qr[id] for id in reservoirs) -
+    c = JuMP.@constraint(wm.model, sum(q[a] for (a, f, t) in a_to) -
+        sum(q[a] for (a, f, t) in a_fr) == -sum(qr[id] for id in reservoirs) -
         sum(qt[id] for id in tanks) + sum(demand for (id, demand) in demands))
 
     con(wm, n, :flow_conservation)[i] = c
@@ -82,22 +82,24 @@ end
 #end
 
 function constraint_check_valve(wm::AbstractWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int)
+    # Collect variables.
     q = var(wm, n, :q, a)
     h_i = var(wm, n, :h, node_fr)
     h_j = var(wm, n, :h, node_to)
     x_cv = var(wm, n, :x_cv, a)
 
     # If the check valve is open, flow must be appreciably nonnegative.
+    q_ub = JuMP.has_upper_bound(q) ? JuMP.upper_bound(q) : 10.0
     c_1 = JuMP.@constraint(wm.model, q <= q_ub * x_cv)
-    c_2 = JuMP.@constraint(wm.model, q >= 1.0e-6 * x_cv)
+    c_2 = JuMP.@constraint(wm.model, q >= 6.31465679e-6 * x_cv)
 
     # TODO: These constraints seem to result in infeasibility in multiperiod Richmond case.
     dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
     dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
     c_3 = JuMP.@constraint(wm.model, h_i - h_j >= (1.0 - x_cv) * dh_lb)
-    c_4 = JuMP.@constraint(wm.model, h_i - h_j <= x_cv * dh_ub)
+    c_4 = JuMP.@constraint(wm.model, h_i - h_j <= 0.0)
 
-    append!(con(wm, n, :check_valve)[a], [c_1, c_2, c_3])
+    append!(con(wm, n, :check_valve)[a], [c_1, c_2, c_3, c_4])
 end
 
 # do nothing by default

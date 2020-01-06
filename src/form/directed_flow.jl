@@ -105,8 +105,8 @@ direction is from j to i."
 function variable_flow_direction(wm::AbstractDirectedFlowModel; nw::Int=wm.cnw)
     #ids_bd = keys(filter(!has_check_valve, ref(wm, nw, :link)))
     var(wm, nw)[:x_dir] = JuMP.@variable(wm.model, [a in ids(wm, nw, :link)],
-        base_name="x_dir[$(nw)]", binary=true, lower_bound=0, upper_bound=1,
-        start=get_start(ref(wm, nw, :link), a, "x_dir_start", 1))
+        base_name="x_dir[$(nw)]", binary=true, lower_bound=0.0, upper_bound=1.0,
+        start=get_start(ref(wm, nw, :link), a, "x_dir_start", 1.0))
 end
 
 "Create network expansion flow variables for directed flow formulations."
@@ -175,21 +175,31 @@ function constraint_check_valve(wm::AbstractDirectedFlowModel, n::Int, a::Int, n
     JuMP.fix(var(wm, n, :qn, a), 0.0, force=true)
 
     # Gather common variables.
-    qp = var(wm, n, :qp, a)
+    x_cv = var(wm, n, :x_cv, a)
     h_i = var(wm, n, :h, node_fr)
     h_j = var(wm, n, :h, node_to)
-    x_cv = var(wm, n, :x_cv, a)
 
     # If the check valve is open, flow must be appreciably nonnegative.
+    qp = var(wm, n, :qp, a)
     qp_ub = JuMP.has_upper_bound(qp) ? JuMP.upper_bound(qp) : 10.0
     c_1 = JuMP.@constraint(wm.model, qp <= qp_ub * x_cv)
-    c_2 = JuMP.@constraint(wm.model, qp >= 1.0e-6 * x_cv)
+    c_2 = JuMP.@constraint(wm.model, qp >= 6.31465679e-6 * x_cv)
+
+    dhp = var(wm, n, :dhp, a)
+    dhp_ub = JuMP.upper_bound(dhp)
+    c_3 = JuMP.@constraint(wm.model, dhp <= x_cv * dhp_ub)
+
+    dhn = var(wm, n, :dhn, a)
+    dhn_ub = JuMP.upper_bound(dhn)
+    c_4 = JuMP.@constraint(wm.model, dhn <= (1.0 - x_cv) * dhn_ub)
+
+    ce = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
 
     # TODO: These constraints seem to result in infeasibility in multiperiod Richmond case.
-    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
-    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
-    c_3 = JuMP.@constraint(wm.model, h_i - h_j >= (1.0 - x_cv) * dh_lb)
-    c_4 = JuMP.@constraint(wm.model, h_i - h_j <= x_cv * dh_ub)
+    #dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
+    #dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
+    #c_3 = JuMP.@constraint(wm.model, h_i - h_j >= (1.0 - x_cv) * dh_lb)
+    #c_4 = JuMP.@constraint(wm.model, h_i - h_j <= x_cv * dh_ub)
 
     append!(con(wm, n, :check_valve)[a], [c_1, c_2, c_3, c_4])
 end
@@ -313,7 +323,6 @@ end
 function constraint_sink_flow(wm::AbstractIntegerDirectedFlowForms, n::Int, i::Int, links)
     # Collect the required variables.
     x_dir = var(wm, n, :x_dir)
-
     out_arcs = filter(a -> i == a.second["node_fr"], links)
     out = Array{JuMP.VariableRef}([x_dir[a] for a in keys(out_arcs)])
     in_arcs = filter(a -> i == a.second["node_to"], links)

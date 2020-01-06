@@ -1,0 +1,128 @@
+[TITLE]
+Tasseff Network for WaterModels Integration Testing
+
+[JUNCTIONS]
+;ID              Elev            Demand          Pattern
+ 2               0.0             100.0                  ;
+ 3               0.0             -50.0                  ;
+ 4               5.0             0.0                    ;
+ 5               2.5             50.0                   ;
+ 6               2.5             50.0                   ;
+ 7               -5.0            0.0                    ;
+
+[RESERVOIRS]
+;ID              Head            Pattern
+ 1R              10.0                                   ;
+
+[TANKS]
+;ID              Elevation       InitLevel       MinLevel         MaxLevel         Diameter         MinVol           VolCurve
+
+[PIPES]
+;ID               Node1          Node2           Length           Diameter         Roughness        MinorLoss        Status
+ 1                1R             2               1000.0           125.0            130.0            0.0              Open  ;
+ 2                1R             3               1000.0           1000.0           140.0            0.0              Open  ;
+ 3                2              3               1500.0           750.0            150.0            0.0              Open  ;
+ 4                2              4               1000.0           500.0            130.0            0.0              Open  ;
+ 5                3              4               1000.0           500.0            140.0            0.0              Open  ;
+ 6                4              5               1000.0           250.0            150.0            0.0              Open  ;
+ 7                4              6               1000.0           250.0            130.0            0.0              Open  ;
+ 8                6              5               1500.0           187.5            140.0            0.0              Open  ;
+ 9                5              7               1000.0           125.0            150.0            0.0              Open  ;
+ 10               6              7               1000.0           125.0            130.0            0.0              Open  ;
+
+[PUMPS]
+;ID               Node1          Node2           Parameters
+
+[VALVES]
+;ID               Node1          Node2           Diameter         Type             Setting          MinorLoss   
+
+[TAGS]
+
+[DEMANDS]
+;Junction         Demand         Pattern         Category
+
+[STATUS]
+;ID               Status/Setting
+
+[PATTERNS]
+;ID               Multipliers
+
+[CURVES]
+;ID               X-Value        Y-Value
+
+[CONTROLS]
+
+[RULES]
+
+[ENERGY]
+
+[EMITTERS]
+;Junction         Coefficient
+
+[QUALITY]
+;Node             InitQual
+
+[SOURCES]
+;Node             Type           Quality         Pattern
+
+[REACTIONS]
+;Type             Pipe/Tank      Coefficient
+
+[REACTIONS]
+
+[MIXING]
+;Tank             Model
+
+[TIMES]
+ Duration               0:00
+ Hydraulic Timestep     1:00 
+ Quality Timestep       0:05 
+ Pattern Timestep       2:00 
+ Pattern Start          0:00 
+ Report Timestep        1:00 
+ Report Start           0:00 
+ Start ClockTime        12 am
+ Statistic              NONE
+
+[REPORT]
+ Status                 Yes
+ Summary                No
+ Page                   0
+
+[OPTIONS]
+ Units                  LPS
+ Headloss               H-W
+ Specific Gravity       1.0
+ Viscosity              1.0
+ Trials                 40
+ Accuracy               0.00000001
+ Unbalanced             Continue 10
+ Pattern                1
+ Demand Multiplier      1.0
+ Emitter Exponent       0.5
+ Diffusivity            1.0
+ Tolerance              0.01
+
+[COORDINATES]
+;Node             X-Coord        Y-Coord
+ 1R               0.0            2500.0
+ 2                1414.21        1085.79
+ 3                1414.21        3914.21
+ 4                3000.0         2500.0
+ 5                4500.0         5000.0
+ 6                4500.0         0.0
+ 7                6000.0         2500.0
+
+[VERTICES]
+;Link             X-Coord        Y-Coord
+
+[LABELS]
+;X-Coord          Y-Coord        Label & Anchor Node
+
+[BACKDROP]
+ DIMENSIONS       980.00         980.00          5000.00          5000.00         
+ UNITS            None
+ FILE
+ OFFSET           0.00           0.00
+
+[END]

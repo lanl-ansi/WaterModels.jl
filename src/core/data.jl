@@ -98,7 +98,7 @@ function calc_resistance_costs_hw(links::Dict{Int, <:Any})
                 costs[a] = vcat(costs[a], entry["costPerUnitLength"])
             end
 
-            sort_indices = sortperm(resistances, rev = true)
+            sort_indices = sortperm(resistances, rev=true)
             costs[a] = costs[a][sort_indices]
         else
             costs[a] = vcat(costs[a], 0.0)

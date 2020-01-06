@@ -102,9 +102,10 @@ function post_mn_owf(wm::AbstractWaterModel)
         end
 
         for (i, junction) in ref(wm, :junction, nw=n)
-            # TODO: The conditional may be redundant, here.
             if junction["demand"] > 0.0
                 constraint_sink_flow(wm, i, nw=n)
+            elseif junction["demand"] < 0.0
+                constraint_source_flow(wm, i, nw=n)
             end
         end
 

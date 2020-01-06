@@ -104,7 +104,7 @@ function constraint_head_difference(wm::AbstractWaterModel, a::Int; nw::Int=wm.c
 
     for rid in ref(wm, nw, :node_reservoir, node_fr)
         # TODO: This is a good place to check these are consistent.
-        head_fr = ref(wm, nw, :reservoir, rid)["head"]
+        head_fr = ref(wm, nw, :reservoir, rid)["elevation"]
     end
 
     node_to = ref(wm, nw, :link, a)["node_to"]
@@ -112,7 +112,7 @@ function constraint_head_difference(wm::AbstractWaterModel, a::Int; nw::Int=wm.c
 
     for rid in ref(wm, nw, :node_reservoir, node_to)
         # TODO: This is a good place to check these are consistent
-        head_to = ref(wm, nw, :reservoir, rid)["head"]
+        head_to = ref(wm, nw, :reservoir, rid)["elevation"]
     end
 
     constraint_head_difference(wm, nw, a, node_fr, node_to, head_fr, head_to)

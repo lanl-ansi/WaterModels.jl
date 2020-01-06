@@ -1,4 +1,14 @@
 @testset "Constrained Water Flow Problems" begin
+    #@testset "Tasseff network, CNLP formulation." begin
+    #    #solution = run_cwf("../test/data/epanet/tasseff.inp", CNLPWaterModel, ipopt)
+    #    #@test solution["termination_status"] == LOCALLY_SOLVED
+    #    #@test isapprox(solution["solution"]["pipe"]["2"]["q"], 0.093565, rtol=1.0e-4)
+    #    #@test isapprox(solution["solution"]["pipe"]["6"]["q"], 0.055710, rtol=1.0e-4)
+    #    #@test isapprox(solution["solution"]["node"]["2"]["h"], 203.247650, rtol=1.0e-3)
+    #    #@test isapprox(solution["solution"]["node"]["6"]["h"], 195.445953, rtol=1.0e-3)
+    #    #@test isapprox(solution["solution"]["reservoir"]["1"]["qr"], 0.31109, rtol=1.0e-4)
+    #end
+ 
     @testset "Balerma network, CNLP formulation." begin
         network = WaterModels.parse_file("../test/data/epanet/balerma.inp")
         modifications = WaterModels.parse_file("../test/data/json/balerma.json")
