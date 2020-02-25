@@ -1,6 +1,9 @@
 WaterModels.jl Change Log
 =========================
 
+### v0.2.1
+- Add upper bounds on package dependences.
+
 ### v0.2.0
 - Change to a singular naming convention.
 - Update to use JuMP/MOI status values.
