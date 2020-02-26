@@ -114,23 +114,6 @@ fun(wm::AbstractWaterModel, key::Symbol) = wm.fun[key]
 ext(wm::AbstractWaterModel) = wm.ext
 ext(wm::AbstractWaterModel, key::Symbol) = wm.ext[key]
 
-function JuMP.optimize!(wm::AbstractWaterModel, optimizer::JuMP.OptimizerFactory)
-    if wm.model.moi_backend.state == _MOI.Utilities.NO_OPTIMIZER
-        _, solve_time, solve_bytes_alloc, sec_in_gc = @timed JuMP.optimize!(wm.model, optimizer)
-    else
-        Memento.warn(_LOGGER, "Model already contains optimizer factory, cannot use optimizer specified in `solve_generic_model`")
-        _, solve_time, solve_bytes_alloc, sec_in_gc = @timed JuMP.optimize!(wm.model)
-    end
-
-    try
-        solve_time = _MOI.get(wm.model, _MOI.SolveTime())
-    catch
-        Memento.warn(_LOGGER, "the given optimizer does not provide the SolveTime() attribute, falling back on @timed.  This is not a rigorous timing value.");
-    end
-
-    return solve_time
-end
-
 ""
 function run_model(file::String, model_type::Type, optimizer, post_method; kwargs...)
     data = WaterModels.parse_file(file)
@@ -184,21 +167,37 @@ function build_model(data::Dict{String,<:Any}, model_type::Type, post_method; re
     return wm
 end
 
-""
-function optimize_model!(wm::AbstractWaterModel, optimizer::JuMP.OptimizerFactory; solution_builder = solution_owf!)
+function optimize_model!(wm::AbstractWaterModel, optimizer=nothing; solution_builder = solution_owf!)
     start_time = time()
-    solve_time = JuMP.optimize!(wm, optimizer)
+
+    if optimizer != nothing
+        if wm.model.moi_backend.state == _MOI.Utilities.NO_OPTIMIZER
+            JuMP.set_optimizer(wm.model, optimizer)
+        else
+            Memento.warn(_LOGGER, "Model already contains optimizer, cannot use optimizer specified in `optimize_model!`")
+        end
+    end
+
+    if wm.model.moi_backend.state == _MOI.Utilities.NO_OPTIMIZER
+        Memento.error(_LOGGER, "no optimizer specified in `optimize_model!` or the given JuMP model.")
+    end
+
+    _, solve_time, solve_bytes_alloc, sec_in_gc = @timed JuMP.optimize!(wm.model)
+
+    try
+        solve_time = _MOI.get(wm.model, _MOI.SolveTime())
+    catch
+        Memento.warn(_LOGGER, "the given optimizer does not provide the SolveTime() attribute, falling back on @timed.  This is not a rigorous timing value.");
+    end
+
     Memento.debug(_LOGGER, "JuMP model optimize time: $(time() - start_time)")
-
     start_time = time()
-    result = build_solution(wm, solve_time; solution_builder = solution_builder)
+    result = build_solution(wm, solve_time; solution_builder=solution_builder)
     Memento.debug(_LOGGER, "WaterModels solution build time: $(time() - start_time)")
-
     wm.solution = result["solution"]
 
     return result
 end
-
 
 "used for building ref without the need to build a initialize an AbstractWaterModel"
 function build_ref(data::Dict{String,<:Any}; ref_extensions=[])
