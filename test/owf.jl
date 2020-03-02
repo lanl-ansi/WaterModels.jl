@@ -4,7 +4,7 @@
         mn_data = WaterModels.make_multinetwork(network_data)
         wm = build_model(mn_data, NCNLPWaterModel, WaterModels.post_mn_owf, multinetwork=true)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
-        juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
+        juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         solution = WaterModels.optimize_model!(wm, juniper) # Currently infeasible.
     end
 end

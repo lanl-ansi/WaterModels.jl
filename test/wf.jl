@@ -82,7 +82,7 @@
         InfrastructureModels.update_data!(data, modifications)
         wm = build_model(data, MICPWaterModel, WaterModels.post_wf)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
-        juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
+        juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
 
         # TODO: The below takes too long to execute.
         #solution = WaterModels.optimize_model!(wm, juniper)
@@ -93,7 +93,7 @@
         data = WaterModels.parse_file("../test/data/epanet/example_1-sp.inp")
         wm = build_model(data, MICPWaterModel, WaterModels.post_wf)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
-        juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
+        juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         solution = WaterModels.optimize_model!(wm, juniper)
         @test solution["termination_status"] == LOCALLY_SOLVED
     end
@@ -103,7 +103,7 @@
         mn_data = WaterModels.make_multinetwork(data)
         wm = build_model(mn_data, MICPWaterModel, WaterModels.post_mn_wf, multinetwork=true)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
-        juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
+        juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         solution = WaterModels.optimize_model!(wm, juniper)
         @test solution["termination_status"] == LOCALLY_SOLVED
     end
@@ -112,7 +112,7 @@
         data = WaterModels.parse_file("../test/data/epanet/richmond-skeleton-sp.inp")
         wm = build_model(data, MICPWaterModel, WaterModels.post_wf)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
-        juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
+        juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         # TODO: The below takes too long to execute.
         #solution = WaterModels.optimize_model!(wm, juniper)
         #@test solution["termination_status"] == LOCALLY_SOLVED
@@ -123,7 +123,7 @@
         mn_data = WaterModels.make_multinetwork(data)
         wm = build_model(mn_data, MICPWaterModel, WaterModels.post_mn_wf, multinetwork=true)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
-        juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
+        juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         # TODO: The below takes too long to execute.
         #solution = WaterModels.optimize_model!(wm, juniper)
         #@test solution["termination_status"] == LOCALLY_SOLVED
@@ -133,7 +133,7 @@
         data = WaterModels.parse_file("../test/data/epanet/shamir.inp")
         wm = build_model(data, MICPWaterModel, WaterModels.post_wf)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
-        juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
+        juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         solution = WaterModels.optimize_model!(wm, juniper)
         @test solution["termination_status"] == LOCALLY_SOLVED
     end
@@ -143,7 +143,7 @@
         mn_data = WaterModels.make_multinetwork(data)
         wm = build_model(mn_data, MICPWaterModel, WaterModels.post_mn_wf, multinetwork=true)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
-        juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
+        juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         solution = WaterModels.optimize_model!(wm, juniper)
         @test solution["termination_status"] == LOCALLY_SOLVED
     end
@@ -153,7 +153,7 @@
         mn_data = WaterModels.make_multinetwork(data)
         wm = build_model(mn_data, MICPWaterModel, WaterModels.post_mn_wf, multinetwork=true)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
-        juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
+        juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         solution = WaterModels.optimize_model!(wm, juniper)
         @test solution["termination_status"] == LOCALLY_SOLVED
     end
@@ -274,7 +274,7 @@
         mn_data = WaterModels.make_multinetwork(data)
         wm = build_model(mn_data, NCNLPWaterModel, WaterModels.post_mn_wf, multinetwork=true)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
-        juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
+        juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         solution = WaterModels.optimize_model!(wm, juniper)
 
         @test solution["termination_status"] == LOCALLY_SOLVED
@@ -296,7 +296,7 @@
         data = WaterModels.parse_file("../test/data/epanet/richmond-skeleton-sp.inp")
         wm = build_model(data, NCNLPWaterModel, WaterModels.post_wf)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
-        juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
+        juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         solution = WaterModels.optimize_model!(wm, juniper)
         @test solution["termination_status"] == LOCALLY_INFEASIBLE
     end
@@ -306,7 +306,7 @@
         mn_data = WaterModels.make_multinetwork(data)
         wm = build_model(mn_data, NCNLPWaterModel, WaterModels.post_mn_wf, multinetwork=true)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
-        juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
+        juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
 
         # TODO: The below takes too long to execute.
         # solution = WaterModels.optimize_model!(wm, juniper)

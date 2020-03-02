@@ -12,7 +12,7 @@
         InfrastructureModels.update_data!(data, modifications)
         wm = build_model(data, MICPWaterModel, WaterModels.post_ne)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
-        juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
+        juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         solution = WaterModels.optimize_model!(wm, juniper)
         @test solution["termination_status"] == LOCALLY_SOLVED
         @test isapprox(solution["objective"], 1.36e6, rtol=1.0e-4)
@@ -44,7 +44,7 @@
         InfrastructureModels.update_data!(data, modifications)
         wm = build_model(data, NCNLPWaterModel, WaterModels.post_ne)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
-        juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
+        juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         solution = WaterModels.optimize_model!(wm, juniper)
         @test solution["termination_status"] == LOCALLY_SOLVED
         @test isapprox(solution["objective"], 1.36e6, rtol=1.0e-4)
