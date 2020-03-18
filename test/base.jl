@@ -1,5 +1,5 @@
 @testset "src/core/base.jl" begin
-    wm = build_model("../test/data/epanet/shamir.inp", CNLPWaterModel, WaterModels.post_wf)
+    wm = instantiate_model("../test/data/epanet/shamir.inp", CNLPWaterModel, WaterModels.post_wf)
 
     @testset "silence" begin
         # This should silence everything except error messages.

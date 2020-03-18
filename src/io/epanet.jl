@@ -212,9 +212,12 @@ function _add_node_ids!(data::Dict{String, <:Any})
         reservoir["status"] = 1
     end
 
+    # Remove junctions with zero demand.
     for (i, junction) in data["junction"]
         if isapprox(junction["demand"], 0.0, atol=1.0e-7)
             Memento.info(_LOGGER, "Dropping junction $(i) due to zero demand.")
+            source_id = data["junction"][i]["source_id"][2]
+            delete!(data["time_series"]["junction"], source_id)
             delete!(data["junction"], i)
         end
     end
@@ -814,7 +817,7 @@ function _read_junction!(data::Dict{String, <:Any})
             else
                 junction["demand_pattern_name"] = data["option"]["hydraulic"]["pattern"]
                 # TODO: What should the below be?
-                #junction["pattern"] = data["pattern"]["default_pattern"]
+                # junction["pattern"] = data["pattern"]["default_pattern"]
             end
 
             junction["demand"] = 0.0
@@ -977,6 +980,18 @@ function _read_pattern!(data::Dict{String, <:Any})
                 pattern = [pattern[div(i, factor)+1] for i=0:factor*length(pattern)-1]
                 data["pattern"][pattern_name] = pattern
             end
+        end
+    end
+
+    # Get the number of steps that should exist in each pattern.
+    duration = data["option"]["time"]["duration"]
+    time_step = data["option"]["time"]["hydraulic_timestep"]
+    num_steps = convert(Int64, floor(duration / time_step))
+
+    # Ensure patterns of length one are equal to the real pattern length.
+    for (pattern_name, pattern) in data["pattern"]
+        if length(pattern) == 1 && num_steps != 1
+            data["pattern"][pattern_name] = ones(num_steps) * pattern[1]
         end
     end
 

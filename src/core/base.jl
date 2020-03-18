@@ -1,13 +1,17 @@
+# Functions commonly used in the construction of all water models.
+
 "Root of the water formulation type hierarchy."
 abstract type AbstractWaterModel end
 
 """
 A macro for adding the base WaterModels fields to a type definition, where
 * `data` is the original data, usually from reading in a `.inp` file,
-* `setting` usually looks something like `Dict("output" => Dict("flows" => true))`, and
-* `ref` is a place to store commonly-used precomputed data from the data dictionary,
-  primarily for converting datatypes, filtering deactivated components, and storing
-  system-wide values that need to be computed globally. See `build_ref(data)` for further details.
+* `setting` usually looks something like `Dict("output"=>Dict("flows"=>true))`,
+* `solution` is a dictionary to store model solutions with `data` conventions,
+* `ref` is a dictionary to store commonly-used, precomputed data from the data
+  dictionary, primarily for converting datatypes, filtering deactivated
+  components, and storing system-wide values that need to be computed globally.
+  See `build_ref(data)` for further details.
 Methods on `AbstractWaterModel` for defining variables and adding constraints should
 * work with the `ref` dict, rather than the original `data` dict,
 * add them to `model::JuMP.AbstractModel`, and
@@ -24,6 +28,10 @@ InfrastructureModels.@def wm_fields begin
     var::Dict{Symbol,<:Any}
     con::Dict{Symbol,<:Any}
     fun::Dict{Symbol,<:Any}
+
+    sol::Dict{Symbol,<:Any}
+    sol_proc::Dict{Symbol,<:Any}
+
     cnw::Int
 
     # Extensions should define a type to hold information particular to
@@ -32,46 +40,59 @@ InfrastructureModels.@def wm_fields begin
     ext::Dict{Symbol,<:Any}
 end
 
+"Default constructor for AbstractWaterModel types."
 function InitializeWaterModel(WaterModel::Type, data::Dict{String,<:Any};
     ext=Dict{Symbol,Any}(), setting=Dict{String,Any}(),
     jump_model::JuMP.AbstractModel=JuMP.Model(), kwargs...)
     @assert WaterModel <: AbstractWaterModel
 
     ref = InfrastructureModels.ref_initialize(data, _wm_global_keys)
+    var = Dict{Symbol, Any}(:nw=>Dict{Int,Any}())
+    con = Dict{Symbol, Any}(:nw=>Dict{Int,Any}())
+    fun = Dict{Symbol, Any}() # User-defined nonlinear functions.
 
-    var = Dict{Symbol, Any}(:nw => Dict{Int, Any}())
-    con = Dict{Symbol, Any}(:nw => Dict{Int, Any}())
-    fun = Dict{Symbol, Any}()
+    sol = Dict{Symbol,Any}(:nw=>Dict{Int,Any}())
+    sol_proc = Dict{Symbol,Any}(:nw=>Dict{Int,Any}())
 
     for nw_id in keys(ref[:nw])
-        var[:nw][nw_id] = Dict{Symbol, Any}()
-        con[:nw][nw_id] = Dict{Symbol, Any}()
+        nw_var = var[:nw][nw_id] = Dict{Symbol,Any}()
+        nw_con = con[:nw][nw_id] = Dict{Symbol,Any}()
+        nw_sol = sol[:nw][nw_id] = Dict{Symbol,Any}()
+        nw_sol_proc = sol_proc[:nw][nw_id] = Dict{Symbol,Any}()
     end
 
     cnw = minimum([k for k in keys(var[:nw])])
 
-    return WaterModel(
+    wm = WaterModel(
         jump_model,
         data,
         setting,
-        Dict{String, Any}(), # Solution.
+        Dict{String,Any}(), # solution
         ref,
         var,
         con,
         fun,
+        sol,
+        sol_proc,
         cnw,
         ext
     )
+
+    return wm
 end
 
+report_duals(wm::AbstractWaterModel) = haskey(wm.setting, "output") &&
+    haskey(wm.setting["output"], "duals") &&
+    wm.setting["output"]["duals"] == true
+
 # Helper functions for working with multinetworks.
-""
+"Returns whether or not the model is over a multinetwork."
 ismultinetwork(wm::AbstractWaterModel) = (length(wm.ref[:nw]) > 1)
 
-""
+"Returns the network identifiers for multinetworks."
 nw_ids(wm::AbstractWaterModel) = keys(wm.ref[:nw])
 
-""
+"Returns all multinetworks."
 nws(wm::AbstractWaterModel) = wm.ref[:nw]
 
 ""
@@ -87,7 +108,7 @@ ref(wm::AbstractWaterModel, nw::Int, key::Symbol, idx, param::String) = wm.ref[:
 ref(wm::AbstractWaterModel; nw::Int=wm.cnw) = wm.ref[:nw][nw]
 ref(wm::AbstractWaterModel, key::Symbol; nw::Int=wm.cnw) = wm.ref[:nw][nw][key]
 ref(wm::AbstractWaterModel, key::Symbol, idx; nw::Int=wm.cnw) = wm.ref[:nw][nw][key][idx]
-
+ref(wm::AbstractWaterModel, key::Symbol, idx, param::String; nw::Int=wm.cnw) = wm.ref[:nw][nw][key][idx][param]
 
 var(wm::AbstractWaterModel, nw::Int) = wm.var[:nw][nw]
 var(wm::AbstractWaterModel, nw::Int, key::Symbol) = wm.var[:nw][nw][key]
@@ -110,59 +131,42 @@ con(wm::AbstractWaterModel, key::Symbol, idx; nw::Int=wm.cnw) = wm.con[:nw][nw][
 fun(wm::AbstractWaterModel) = wm.fun
 fun(wm::AbstractWaterModel, key::Symbol) = wm.fun[key]
 
-""
-ext(wm::AbstractWaterModel) = wm.ext
-ext(wm::AbstractWaterModel, key::Symbol) = wm.ext[key]
 
-function JuMP.optimize!(wm::AbstractWaterModel, optimizer::JuMP.OptimizerFactory)
-    if wm.model.moi_backend.state == _MOI.Utilities.NO_OPTIMIZER
-        _, solve_time, solve_bytes_alloc, sec_in_gc = @timed JuMP.optimize!(wm.model, optimizer)
-    else
-        Memento.warn(_LOGGER, "Model already contains optimizer factory, cannot use optimizer specified in `solve_generic_model`")
-        _, solve_time, solve_bytes_alloc, sec_in_gc = @timed JuMP.optimize!(wm.model)
+""
+sol(wm::AbstractWaterModel, nw::Int, args...) = _sol(wm.sol[:nw][nw], args...)
+sol(wm::AbstractWaterModel, args...; nw::Int=wm.cnw) = _sol(wm.sol[:nw][nw], args...)
+
+function _sol(sol::Dict, args...)
+    for arg in args
+        sol = haskey(sol, arg) ? sol[arg] : sol[arg] = Dict()
     end
 
-    try
-        solve_time = _MOI.get(wm.model, _MOI.SolveTime())
-    catch
-        Memento.warn(_LOGGER, "the given optimizer does not provide the SolveTime() attribute, falling back on @timed.  This is not a rigorous timing value.");
-    end
-
-    return solve_time
+    return sol
 end
 
 ""
-function run_model(file::String, model_type::Type, optimizer, post_method; kwargs...)
+function run_model(file::String, model_type::Type, optimizer, build_method; kwargs...)
     data = WaterModels.parse_file(file)
-    return run_model(data, model_type, optimizer, post_method; kwargs...)
+    return run_model(data, model_type, optimizer, build_method; kwargs...)
 end
 
 ""
-function run_model(data::Dict{String,<:Any}, model_type::Type, optimizer, post_method; ref_extensions=[], solution_builder=solution_owf!, kwargs...)
-    #start_time = time()
-    wm = build_model(data, model_type, post_method; ref_extensions=ref_extensions, kwargs...)
-    #Memento.debug(_LOGGER, "wm model build time: $(time() - start_time)")
-
-    #start_time = time()
-    result = optimize_model!(wm, optimizer; solution_builder=solution_builder)
-    #Memento.debug(_LOGGER, "wm model solve and solution time: $(time() - start_time)")
-
-    return result
+function run_model(data::Dict{String,<:Any}, model_type::Type, optimizer,
+    build_method; ref_extensions=[], solution_processors=[], kwargs...)
+    wm = instantiate_model(data, model_type, build_method; ref_extensions=ref_extensions, kwargs...)
+    return optimize_model!(wm, optimizer=optimizer, solution_processors=solution_processors)
 end
 
 ""
-function build_model(file::String, model_type::Type, post_method; kwargs...)
+function instantiate_model(file::String, model_type::Type, build_method; kwargs...)
     data = WaterModels.parse_file(file)
-    return build_model(data, model_type, post_method; kwargs...)
+    return instantiate_model(data, model_type, build_method; kwargs...)
 end
 
 ""
-function build_model(data::Dict{String,<:Any}, model_type::Type, post_method; ref_extensions=[], multinetwork=false, kwargs...)
-    # NOTE, this model constructor will build the ref dict using the latest info from the data
-
-    #start_time = time()
+function instantiate_model(data::Dict{String,<:Any}, model_type::Type,
+    build_method; ref_extensions=[], multinetwork=false, kwargs...)
     wm = InitializeWaterModel(model_type, data; kwargs...)
-    #Memento.info(LOGGER, "wm model_type time: $(time() - start_time)")
 
     if !multinetwork && ismultinetwork(wm)
         Memento.error(_LOGGER, "attempted to build a single-network model with multi-network data")
@@ -176,29 +180,48 @@ function build_model(data::Dict{String,<:Any}, model_type::Type, post_method; re
     end
 
     Memento.debug(_LOGGER, "wm build ref time: $(time() - start_time)")
-
     start_time = time()
-    post_method(wm)
-    Memento.debug(_LOGGER, "wm post_method time: $(time() - start_time)")
+    build_method(wm)
+    Memento.debug(_LOGGER, "wm build_method time: $(time() - start_time)")
 
     return wm
 end
 
 ""
-function optimize_model!(wm::AbstractWaterModel, optimizer::JuMP.OptimizerFactory; solution_builder = solution_owf!)
+function optimize_model!(wm::AbstractWaterModel; optimizer=nothing, solution_processors=[])
     start_time = time()
-    solve_time = JuMP.optimize!(wm, optimizer)
-    Memento.debug(_LOGGER, "JuMP model optimize time: $(time() - start_time)")
 
+    if optimizer != nothing
+        if wm.model.moi_backend.state == _MOI.Utilities.NO_OPTIMIZER
+            JuMP.set_optimizer(wm.model, optimizer)
+        else
+            Memento.warn(_LOGGER, "Model already contains optimizer, cannot "
+                * "use optimizer specified in `optimize_model!`")
+        end
+    end
+
+    if wm.model.moi_backend.state == _MOI.Utilities.NO_OPTIMIZER
+        Memento.error(_LOGGER, "No optimizer specified in `optimize_model!` or the given JuMP model.")
+    end
+
+    _, solve_time, solve_bytes_alloc, sec_in_gc = @timed JuMP.optimize!(wm.model)
+
+    try
+        solve_time = _MOI.get(wm.model, _MOI.SolveTime())
+    catch
+        Memento.warn(_LOGGER, "The given optimizer does not provide the "
+            * "SolveTime() attribute, falling back on @timed. This is not a "
+            * "rigorous timing value.");
+    end
+
+    Memento.debug(_LOGGER, "JuMP model optimize time: $(time() - start_time)")
     start_time = time()
-    result = build_solution(wm, solve_time; solution_builder = solution_builder)
+    result = build_result(wm, solve_time; solution_processors=solution_processors)
     Memento.debug(_LOGGER, "WaterModels solution build time: $(time() - start_time)")
 
     wm.solution = result["solution"]
-
     return result
 end
-
 
 "used for building ref without the need to build a initialize an AbstractWaterModel"
 function build_ref(data::Dict{String,<:Any}; ref_extensions=[])
@@ -210,10 +233,6 @@ function build_ref(data::Dict{String,<:Any}; ref_extensions=[])
     end
 
     return ref
-end
-
-function ref_add_core!(wm::AbstractWaterModel)
-    _ref_add_core!(wm.ref[:nw])
 end
 
 """
@@ -234,6 +253,10 @@ Some of the common keys include:
 * `:emitter` -- the set of emitters in the network,
 * `:node` -- the set of all nodes in the network
 """
+function ref_add_core!(wm::AbstractWaterModel)
+    _ref_add_core!(wm.ref[:nw])
+end
+
 function _ref_add_core!(nw_refs::Dict)
     for (nw, ref) in nw_refs
         ref[:link] = merge(ref[:pipe], ref[:valve], ref[:pump])
@@ -317,6 +340,8 @@ function _check_missing_keys(dict, keys, formulation_type)
     end
 
     if length(missing_keys) > 0
-        error(_LOGGER, "The formulation $(formulation_type) requires the variable(s) $(keys), but the $(missing_keys) variable(s) were not found in the model.")
+        error(_LOGGER, "The formulation $(formulation_type) requires the "
+            * "variable(s) $(keys), but the $(missing_keys) variable(s) were "
+            * "not found in the model.")
     end
 end

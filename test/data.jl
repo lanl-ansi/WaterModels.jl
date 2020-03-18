@@ -25,13 +25,13 @@
         @test haskey(network_data, "time_series")
 
         ts_length = network_data["time_series"]["num_steps"]
-
         mn_data = WaterModels.make_multinetwork(network_data)
         @test InfrastructureModels.ismultinetwork(mn_data)
         @test !haskey(mn_data, "time_series")
         @test length(mn_data["nw"]) == ts_length
 
         junction_ids = keys(network_data["time_series"]["junction"])
+
         for step_index in 1:ts_length
             ts_demand = sum(network_data["time_series"]["junction"][jid]["demand"][step_index] for jid in junction_ids)
             mn_demand = sum(mn_data["nw"]["$(step_index)"]["junction"][jid]["demand"] for jid in junction_ids)
@@ -45,8 +45,8 @@
         @test haskey(network_data, "time_series")
 
         ts_length = network_data["time_series"]["num_steps"]
-
         junction_ids = keys(network_data["time_series"]["junction"])
+
         for step_index in 1:ts_length
             InfrastructureModels.load_timepoint!(network_data, step_index)
             ts_demand = sum(network_data["time_series"]["junction"][jid]["demand"][step_index] for jid in junction_ids)
@@ -54,5 +54,4 @@
             @test isapprox(ts_demand, demand)
         end
     end
-
 end

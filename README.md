@@ -3,7 +3,10 @@
 
 <a href="https://lanl-ansi.github.io/WaterModels.jl/latest/"><img align="top" src="https://img.shields.io/badge/docs-latest-blue.svg" alt="Latest Documentation Status"></a> <a href="https://travis-ci.org/lanl-ansi/WaterModels.jl"><img src="https://travis-ci.org/lanl-ansi/WaterModels.jl.svg?branch=master" align="top" alt="Development Build Status"></a> <a href="https://codecov.io/gh/lanl-ansi/WaterModels.jl"><img align="top" src="https://codecov.io/gh/lanl-ansi/WaterModels.jl/branch/master/graph/badge.svg" alt="Code Coverage Status"></a>
 
-WaterModels.jl is a Julia/JuMP package for steady state water network optimization. It is designed to enable computational evaluation of historical and emerging water network formulations and algorithms using a common platform. The code is engineered to decouple problem specifications (e.g., water flow, optimal water flow, network expansion) from water network optimization formulations (e.g., mixed-integer linear, mixed-integer nonlinear). This decoupling enables the definition of a wide variety of water network optimization formulations and their comparison on common problem specifications.
+WaterModels.jl is a Julia/JuMP package for steady state water network optimization.
+It is designed to enable computational evaluation of historical and emerging water network formulations and algorithms using a common platform.
+The code is engineered to decouple problem specifications (e.g., water flow, optimal water flow, network expansion) from water network optimization formulations (e.g., mixed-integer linear, mixed-integer nonlinear).
+This decoupling enables the definition of a wide variety of water network optimization formulations and their comparison on common problem specifications.
 
 **Core Problem Specifications**
 * Water Flow (wf) - obtain flows using substantial physical relaxations
@@ -13,7 +16,8 @@ WaterModels.jl is a Julia/JuMP package for steady state water network optimizati
 
 **Core Network Formulations**
 * CNLP - convex nonlinear program used for determining network flow rates
-* MICP - relaxation-based mixed-integer convex program
+* MICP - exact mixed-integer convex programming reformulation
+* MICP-R - relaxation-based mixed-integer convex program
 * MILP - mixed-integer linear program using piecewise linear approximations
 * MILP-R - relaxation-based mixed-integer linear program
 * MIQP - MILP-R-based mixed-integer quadratic program (includes quadratic constraints and objective terms in the `owf` specification)
@@ -33,7 +37,6 @@ This code has been developed as part of the Advanced Network Science Initiative 
 The primary developer is [Byron Tasseff](https://github.com/tasseff) with support from the following contributors:
 - [Russell Bent](https://github.com/rb004f), Los Alamos National Laboratory
 - [Carleton Coffrin](https://github.com/ccoffrin), Los Alamos National Laboratory
-- Donatella Pasqualini, Los Alamos National Laboratory
 
 ## License
 This code is provided under a [modified BSD license](https://github.com/lanl-ansi/WaterModels.jl/blob/master/LICENSE.md) as part of the Multi-Infrastructure Control and Optimization Toolkit (MICOT), LA-CC-13-108.
