@@ -780,13 +780,15 @@ function _read_energy!(data::Dict{String, <:Any})
         end
 
         if "energy_pattern_name" in keys(pump) && "energy_price" in keys(pump)
-            base_price = pump["energy_price"]
-            pattern_name = pump["energy_pattern_name"]
-            pattern = data["pattern"][pattern_name]
-            price_pattern = base_price .* pattern
+            if pump["energy_pattern_name"] != nothing
+                base_price = pump["energy_price"]
+                pattern_name = pump["energy_pattern_name"]
+                pattern = data["pattern"][pattern_name]
+                price_pattern = base_price .* pattern
 
-            entry = Dict{String, Array{Float64}}("energy_price" => price_pattern)
-            data["time_series"]["pump"][pump_id] = entry
+                entry = Dict{String, Array{Float64}}("energy_price" => price_pattern)
+                data["time_series"]["pump"][pump_id] = entry
+            end
         end
     end
 end

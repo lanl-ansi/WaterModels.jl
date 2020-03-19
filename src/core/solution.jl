@@ -1,5 +1,5 @@
 ""
-function build_solution(wm::AbstractWaterModel, solve_time; solution_builder=solution_owf!)
+function build_result(wm::AbstractWaterModel, solve_time; solution_builder=solution_owf!)
     sol = init_solution(wm)
     data = Dict{String, Any}("name" => wm.data["name"])
     valid_statuses = [_MOI.FEASIBLE_POINT, _MOI.NEARLY_FEASIBLE_POINT]
