@@ -4,8 +4,10 @@ import DataStructures
 import InfrastructureModels
 import JSON
 import JuMP
+import LinearAlgebra
 import LsqFit
 import Memento
+import SparseArrays
 
 import MathOptInterface
 const _MOI = MathOptInterface
@@ -60,7 +62,6 @@ include("form/milpr.jl")
 include("form/ncnlp.jl")
 
 include("prob/wf.jl")
-include("prob/cwf.jl")
 include("prob/owf.jl")
 include("prob/ne.jl")
 

@@ -1,33 +1,42 @@
 ""
-function build_result(wm::AbstractWaterModel, solve_time; solution_builder=solution_owf!)
-    sol = init_solution(wm)
-    data = Dict{String, Any}("name" => wm.data["name"])
-    valid_statuses = [_MOI.FEASIBLE_POINT, _MOI.NEARLY_FEASIBLE_POINT]
+function build_result(wm::AbstractWaterModel, solve_time; solution_processors=[])
+    # TODO replace with JuMP.result_count(wm.model) after version v0.21
+    # try-catch is needed until solvers reliably support ResultCount()
+    result_count = 1
+
+    try
+        result_count = _MOI.get(wm.model, _MOI.ResultCount())
+    catch
+        Memento.warn(_LOGGER, "the given optimizer does not provide the "
+            * "ResultCount() attribute, assuming the solver returned a "
+            * "solution, which may be incorrect.")
+    end
+
+    sol = Dict{String,Any}()
+
+    if result_count > 0
+        sol = build_solution(wm, post_processors=solution_processors)
+    else
+        Memento.warn(_LOGGER, "model has no results, solution cannot be built.")
+    end
+
+    data = Dict{String,Any}("name" => wm.data["name"])
 
     if InfrastructureModels.ismultinetwork(wm.data)
-        sol["multinetwork"] = true
-        sol_nws = sol["nw"] = Dict{String,Any}()
         data_nws = data["nw"] = Dict{String,Any}()
 
         for (n, nw_data) in wm.data["nw"]
-            sol_nw = sol_nws[n] = Dict{String,Any}()
-            wm.cnw = parse(Int, n)
+            link_count = length(nw_data["pipe"]) + length(nw_data["pump"])
+            node_count = length(nw_data["node"])
 
-            if JuMP.primal_status(wm.model) in valid_statuses
-                solution_builder(wm, sol_nw)
-            end
-
-            data_nws[n] = Dict("name" => get(nw_data, "name", "anonymous"),
-                               "link_count" => length(ref(wm, :link)),
-                               "node_count" => length(ref(wm, :node)))
+            data_nws[n] = Dict(
+                "name" => get(nw_data, "name", "anonymous"),
+                "link_count" => link_count,
+                "node_count" => node_count)
         end
     else
-        if JuMP.primal_status(wm.model) in valid_statuses
-            solution_builder(wm, sol)
-        end
-
-        data["link_count"] = length(ref(wm, :link))
-        data["node_count"] = length(ref(wm, :node))
+        data["link_count"] = length(wm.data["pipe"]) + length(wm.data["pump"])
+        data["node_count"] = length(wm.data["node"])
     end
 
     solution = Dict{String,Any}(
@@ -46,292 +55,118 @@ function build_result(wm::AbstractWaterModel, solve_time; solution_builder=solut
     return solution
 end
 
-""
-function init_solution(wm::AbstractWaterModel)
-    data_keys = ["per_unit"]
-    return Dict{String,Any}(key => wm.data[key] for key in data_keys)
-end
-
-function solution_owf!(wm::AbstractWaterModel, sol::Dict{String,<:Any})
-    add_setpoint_node_head!(sol, wm)
-    add_setpoint_pipe_flow!(sol, wm)
-    add_setpoint_pipe_resistance!(sol, wm)
-    add_setpoint_pump_flow!(sol, wm)
-    add_setpoint_pump_status!(sol, wm)
-    add_setpoint_pump_gain!(sol, wm)
-    add_setpoint_reservoir!(sol, wm)
-    add_setpoint_tank!(sol, wm)
-end
 
 ""
-function add_setpoint_node_head!(sol, wm::AbstractWaterModel)
-    add_setpoint!(sol, wm, "node", "h", :h)
+function _guard_objective_value(model)
+    obj_val = NaN
+
+    try
+        obj_val = JuMP.objective_value(model)
+    catch
+    end
+
+    return obj_val
 end
 
-""
-function add_setpoint_node_head!(sol, wm::AbstractCNLPModel)
-    add_dual!(sol, wm, "node", "h", :flow_conservation, scale=(x, item) -> -x)
-end
 
 ""
-function add_setpoint_pipe_flow!(sol, wm::AbstractWaterModel)
-    add_setpoint!(sol, wm, "pipe", "q", :q)
+function _guard_objective_bound(model)
+    obj_lb = -Inf
+
+    try
+        obj_lb = JuMP.objective_bound(model)
+    catch
+    end
+
+    return obj_lb
 end
 
 ""
-function add_setpoint_pipe_resistance!(sol, wm::AbstractWaterModel)
-    if InfrastructureModels.ismultinetwork(wm.data)
-        data_dict = wm.data["nw"]["$(wm.cnw)"]["pipe"]
-    else
-        data_dict = wm.data["pipe"]
-    end
-
-    sol_dict = get(sol, "pipe", Dict{String, Any}())
-
-    if length(data_dict) > 0
-        sol["pipe"] = sol_dict
-    end
-
-    if :x_res in keys(var(wm))
-        for (i, link) in data_dict
-            a = link["index"]
-            sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
-
-            if a in keys(var(wm, :x_res))
-                x_res, r_id = findmax(JuMP.value.(var(wm, :x_res, a)))
-                sol_item["r"] = ref(wm, :resistance, a)[r_id]
-            else
-                x_res, r_id = findmin(ref(wm, :resistance, a))
-                sol_item["r"] = ref(wm, :resistance, a)[r_id]
-            end
-        end
-    else
-        for (i, link) in data_dict
-            a = link["index"]
-            sol_item = sol_dict[i] = get(sol_dict, i, Dict{String, Any}())
-            x_res, r_id = findmin(ref(wm, :resistance, a))
-            sol_item["r"] = ref(wm, :resistance, a)[r_id]
-        end
-    end
-end
-
-""
-function add_setpoint_pump_gain!(sol, wm::AbstractWaterModel)
-    add_setpoint!(sol, wm, "pump", "g", :g)
-end
-
-""
-function add_setpoint_pump_flow!(sol, wm::AbstractWaterModel)
-    add_setpoint!(sol, wm, "pump", "q", :q)
-end
-
-function add_setpoint_pump_status!(sol, wm::AbstractWaterModel)
-    add_setpoint!(sol, wm, "pump", "x_pump", :x_pump)
-end
-
-function add_setpoint_reservoir!(sol, wm::AbstractWaterModel)
-    add_setpoint!(sol, wm, "reservoir", "qr", :qr)
-end
-
-function add_setpoint_tank!(sol, wm::AbstractWaterModel)
-    add_setpoint!(sol, wm, "tank", "qt", :qt)
-end
-
-"Adds values based on JuMP variables."
-function add_setpoint!(
-    sol,
-    wm::AbstractWaterModel,
-    dict_name,
-    param_name,
-    variable_symbol;
-    index_name = "index",
-    default_value = (item) -> NaN,
-    scale = (x,item) -> x,
-    var_key = (idx,item) -> idx,
-    sol_dict = get(sol, dict_name, Dict{String,Any}()),
-    status_name = "status",
-    inactive_status_value = 0)
-
-    has_variable_symbol = haskey(var(wm, wm.cnw), variable_symbol)
-
-    variables = []
-    if has_variable_symbol
-        variables = var(wm, wm.cnw, variable_symbol)
-    end
-
-    if !has_variable_symbol || (!isa(variables, JuMP.VariableRef) && length(variables) == 0)
-        add_setpoint_fixed!(sol, wm, dict_name, param_name; index_name=index_name, default_value=default_value)
-        return
-    end
-
-    if InfrastructureModels.ismultinetwork(wm.data)
-        data_dict = wm.data["nw"]["$(wm.cnw)"][dict_name]
-    else
-        data_dict = wm.data[dict_name]
-    end
-
-    if length(data_dict) > 0
-        sol[dict_name] = sol_dict
-    end
-
-    for (i, item) in data_dict
-        idx = Int(item[index_name])
-        sol_item = sol_dict[i] = get(sol_dict, i, Dict{String,Any}())
-        sol_item[param_name] = default_value(item)
-
-        if item[status_name] != inactive_status_value
-            var_id = var_key(idx, item)
-            variables = var(wm, wm.cnw, variable_symbol)
-            sol_item[param_name] = scale(JuMP.value(variables[var_id]), item)
-        end
-    end
-end
-
-"""
-Adds setpoint values based on a given default_value function. This
-significantly improves performance in models where values are not defined
-"""
-function add_setpoint_fixed!(
-    sol,
-    wm::AbstractWaterModel,
-    dict_name,
-    param_name;
-    index_name = "index",
-    default_value = (item) -> NaN,
-    sol_dict = get(sol, dict_name, Dict{String,Any}()))
-
-    if InfrastructureModels.ismultinetwork(wm.data)
-        data_dict = wm.data["nw"]["$(wm.cnw)"][dict_name]
-    else
-        data_dict = wm.data[dict_name]
-    end
-
-    if length(data_dict) > 0
-        sol[dict_name] = sol_dict
-    end
-
-    for (i,item) in data_dict
-        idx = Int(item[index_name])
-        sol_item = sol_dict[i] = get(sol_dict, i, Dict{String,Any}())
-        sol_item[param_name] = default_value(item)
-    end
-end
-
-"""
-    function add_dual!(
-        sol::AbstractDict,
-        wm::AbstractWaterModel,
-        dict_name::AbstractString,
-        param_name::AbstractString,
-        con_symbol::Symbol;
-        index_name::AbstractString = "index",
-        default_value::Function = (item) -> NaN,
-        scale::Function = (x,item) -> x,
-        con_key::Function = (idx,item) -> idx,
-    )
-This function takes care of adding the values of dual variables to the solution Dict.
-# Arguments
-- `sol::AbstractDict`: The dict where the desired final details of the solution are stored;
-- `wm::AbstractWaterModel`: The WaterModel which has been considered;
-- `dict_name::AbstractString`: The particular class of items for the solution (e.g. branch, bus);
-- `param_name::AbstractString`: The name associated to the dual variable;
-- `con_symbol::Symbol`: the Symbol attached to the class of constraints;
-- `index_name::AbstractString = "index"`: ;
-- `default_value::Function = (item) -> NaN`: a function that assign to each item a default value, for missing data;
-- `scale::Function = (x,item) -> x`: a function to rescale the values of the dual variables, if needed;
-- `con_key::Function = (idx,item) -> idx`: a method to extract the actual dual variables.
-- `status_name::AbstractString: the status field of the given component type`
-- `inactive_status_value::Any: the value of the status field indicating an inactive component`
-"""
-function add_dual!(
-    sol::AbstractDict,
-    wm::AbstractWaterModel,
-    dict_name::AbstractString,
-    param_name::AbstractString,
-    con_symbol::Symbol;
-    index_name::AbstractString = "index",
-    default_value::Function = (item) -> NaN,
-    scale::Function = (x, item) -> x,
-    con_key::Function = (idx, item) -> idx,
-    status_name = "status",
-    inactive_status_value = 0)
-    sol_dict = get(sol, dict_name, Dict{String,Any}())
-    constraints = []
-    has_con_symbol = haskey(con(wm, wm.cnw), con_symbol)
-
-    if has_con_symbol
-        constraints = con(wm, wm.cnw, con_symbol)
-    end
-
-    if !has_con_symbol || (!isa(constraints, JuMP.ConstraintRef) && length(constraints) == 0)
-        add_dual_fixed!(sol, wm, dict_name, param_name; index_name=index_name, default_value=default_value)
-        return
-    end
+function build_solution(wm::AbstractWaterModel; post_processors=[])
+    # TODO @assert that the model is solved
+    sol = _build_solution_values(wm.sol)
+    sol["per_unit"] = wm.data["per_unit"]
 
     if ismultinetwork(wm)
-        data_dict = wm.data["nw"]["$(wm.cnw)"][dict_name]
+        sol["multinetwork"] = true
     else
-        data_dict = wm.data[dict_name]
-    end
-
-    if length(data_dict) > 0
-        sol[dict_name] = sol_dict
-    end
-
-    for (i, item) in data_dict
-        idx = Int(item[index_name])
-        sol_item = sol_dict[i] = get(sol_dict, i, Dict{String,Any}())
-        sol_item[param_name] = default_value(item)
-
-        if item[status_name] != inactive_status_value
-            con_id = con_key(idx, item)
-            constraints = con(wm, wm.cnw, con_symbol)
-            sol_item[param_name] = scale(JuMP.dual(constraints[con_id]), item)
+        for (k,v) in sol["nw"]["$(wm.cnw)"]
+            sol[k] = v
         end
+
+        delete!(sol, "nw")
     end
+
+    for post_processor in post_processors
+        post_processor(wm, sol)
+    end
+
+    return sol
 end
-
-function add_dual_fixed!(
-    sol::AbstractDict,
-    wm::AbstractWaterModel,
-    dict_name::AbstractString,
-    param_name::AbstractString;
-    index_name::AbstractString = "index",
-    default_value::Function = (item) -> NaN)
-    sol_dict = get(sol, dict_name, Dict{String,Any}())
-    if ismultinetwork(wm)
-        data_dict = wm.data["nw"]["$(wm.cnw)"][dict_name]
-    else
-        data_dict = wm.data[dict_name]
-    end
-
-    if length(data_dict) > 0
-        sol[dict_name] = sol_dict
-    end
-
-    for (i,item) in data_dict
-        idx = Int(item[index_name])
-        sol_item = sol_dict[i] = get(sol_dict, i, Dict{String,Any}())
-        sol_item[param_name] = default_value(item)
-        sol_item[param_name] = sol_item[param_name][1]
-    end
-end
-
-"Returns an objective value."
-function _guard_objective_value(model::JuMP.AbstractModel)
-    try
-        return JuMP.objective_value(model)
-    catch
-        return JuMP.objective_sense(model) == _MOI.MAX_SENSE ? -Inf : Inf
-    end
-end
-
 
 ""
-function _guard_objective_bound(model::JuMP.AbstractModel)
-    try
-        return JuMP.objective_bound(model)
-    catch
-        return JuMP.objective_sense(model) == _MOI.MAX_SENSE ? Inf : -Inf
+function _build_solution_values(var::Dict)
+    sol = Dict{String,Any}()
+
+    for (key, val) in var
+        sol[string(key)] = _build_solution_values(val)
     end
+
+    return sol
+end
+
+""
+function _build_solution_values(var::Array{<:Any,1})
+    return [_build_solution_values(val) for val in var]
+end
+
+""
+function _build_solution_values(var::Array{<:Any,2})
+    return [_build_solution_values(var[i,j]) for i in 1:size(var,1), j in 1:size(var,2)]
+end
+
+"Solution building support for symmetric JuMP matrix variables."
+function _build_solution_values(var::LinearAlgebra.Symmetric{T,Array{T,2}}) where T
+    return [_build_solution_values(var[i,j]) for i in 1:size(var,1), j in 1:size(var,2)]
+end
+
+""
+function _build_solution_values(var::Number)
+    return var
+end
+
+""
+function _build_solution_values(var::JuMP.VariableRef)
+    return JuMP.value(var)
+end
+
+""
+function _build_solution_values(var::JuMP.GenericAffExpr)
+    return JuMP.value(var)
+end
+
+""
+function _build_solution_values(var::JuMP.GenericQuadExpr)
+    return JuMP.value(var)
+end
+
+""
+function _build_solution_values(var::JuMP.NonlinearExpression)
+    return JuMP.value(var)
+end
+
+""
+function _build_solution_values(var::JuMP.ConstraintRef)
+    return -JuMP.dual(var)
+end
+
+""
+function _build_solution_values(var::Any)
+    Memento.warn(_LOGGER, "_build_solution_values found unknown type $(typeof(var))")
+    return var
+end
+
+"Converts the solution data into the data model's standard space, polar voltages and rectangular power"
+function sol_data_model!(wm::AbstractWaterModel, solution::Dict)
+    Memento.warn(_LOGGER, "sol_data_model! not defined for power model of type $(typeof(wm))")
 end

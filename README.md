@@ -10,8 +10,7 @@ This decoupling enables the definition of a wide variety of water network optimi
 
 **Core Problem Specifications**
 * Water Flow (wf) - obtain flows using substantial physical relaxations
-* Constrained Water Flow (cwf) - obtain flows using more accurate physical constraints
-* Optimal Water Flow (owf) - minimize the energy required for network operation
+* Optimal Water Flow (owf) - minimize the cost required for network operation
 * Network Expansion (ne) - minimize the cost of expansion (or design) while satisfying demand
 
 **Core Network Formulations**

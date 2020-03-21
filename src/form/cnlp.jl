@@ -1,9 +1,27 @@
 # Define CNLP (convex nonlinear programming) implementations of water network models.
 
 "Head variables do not exist within the CNLP model."
-function variable_head(wm::AbstractCNLPModel; nw::Int=wm.cnw, bounded::Bool=true)
+function variable_head(wm::AbstractCNLPModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
     if length(ids(wm, nw, :tank)) >= 1
         Memento.error(_LOGGER, "AbstractCNLPModel does not support tank components.")
+    end
+end
+
+function constraint_flow_conservation(wm::AbstractCNLPModel, n::Int, i::Int,
+    a_fr::Array{Tuple{Int,Int,Int}}, a_to::Array{Tuple{Int,Int,Int}},
+    reservoirs::Array{Int}, tanks::Array{Int}, demands::Dict{Int,Float64})
+    q = var(wm, n, :q)
+    qr = var(wm, n, :qr)
+    qt = var(wm, n, :qt)
+
+    c = JuMP.@constraint(wm.model, sum(q[a] for (a, f, t) in a_to) -
+        sum(q[a] for (a, f, t) in a_fr) == -sum(qr[id] for id in reservoirs) -
+        sum(qt[id] for id in tanks) + sum(demand for (id, demand) in demands))
+
+    con(wm, n, :flow_conservation)[i] = c
+
+    if report_duals(wm)
+        sol(wm, n, :node, i)[:h] = con(wm, n, :flow_conservation, i)
     end
 end
 

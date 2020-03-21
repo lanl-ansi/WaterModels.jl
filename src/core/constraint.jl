@@ -49,7 +49,6 @@ end
 #    con(wm, n, :directed_head_loss_ub_pipe_n)[a] = con_n
 #end
 
-
 #function constraint_link_flow_ne(wm::AbstractUndirectedFlowModel, n::Int, a::Int)
 #    if !haskey(con(wm, n), :link_undirected_flow_ne)
 #        con(wm, n)[:link_undirected_flow_ne] = Dict{Int, JuMP.ConstraintRef}()
@@ -89,15 +88,14 @@ function constraint_check_valve(wm::AbstractWaterModel, n::Int, a::Int, node_fr:
     x_cv = var(wm, n, :x_cv, a)
 
     # If the check valve is open, flow must be appreciably nonnegative.
-    q_ub = JuMP.has_upper_bound(q) ? JuMP.upper_bound(q) : 10.0
-    c_1 = JuMP.@constraint(wm.model, q <= q_ub * x_cv)
+    c_1 = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * x_cv)
     c_2 = JuMP.@constraint(wm.model, q >= 6.31465679e-6 * x_cv)
 
-    # TODO: These constraints seem to result in infeasibility in multiperiod Richmond case.
-    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
-    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
-    c_3 = JuMP.@constraint(wm.model, h_i - h_j >= (1.0 - x_cv) * dh_lb)
-    c_4 = JuMP.@constraint(wm.model, h_i - h_j <= 0.0)
+    ## TODO: These constraints seem to result in infeasibility in multiperiod Richmond case.
+    #dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
+    #dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
+    #c_3 = JuMP.@constraint(wm.model, h_i - h_j >= (1.0 - x_cv) * dh_lb)
+    #c_4 = JuMP.@constraint(wm.model, h_i - h_j <= 0.0)
 
     append!(con(wm, n, :check_valve)[a], [c_1, c_2, c_3, c_4])
 end
@@ -115,7 +113,8 @@ function constraint_head_gain_pump(wm::AbstractWaterModel, n::Int, a::Int) end
 #function constraint_head_gain_pump_quadratic_fit(wm::AbstractWaterModel, n::Int, i::Int)
 #end
 
-function constraint_pump_control_tank(wm::AbstractWaterModel, n_1::Int, n_2::Int, a::Int, i::Int, lt::Float64, gt::Float64, elevation::Float64)
+function constraint_pump_control_tank(wm::AbstractWaterModel, n_1::Int,
+    n_2::Int, a::Int, i::Int, lt::Float64, gt::Float64, elevation::Float64)
     h = var(wm, n_2, :h, i)
     x_p = var(wm, n_2, :x_pump, a)
     x_lt = var(wm, n_2, :x_thrs_lt, a)

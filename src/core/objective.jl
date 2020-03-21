@@ -13,16 +13,6 @@ function objective_wf(wm::AbstractWaterModel)
 end
 
 """
-    objective_cwf(wm::AbstractWaterModel)
-
-Sets the objective function for constrained water flow (cwf) problem
-specifications. By default, only feasibility must be satisfied.
-"""
-function objective_cwf(wm::AbstractWaterModel)
-    JuMP.set_objective_sense(wm.model, _MOI.FEASIBILITY_SENSE)
-end
-
-"""
     objective_owf(wm::AbstractWaterModel)
 
 Sets the objective function for optimal water flow (owf) problem

@@ -2,130 +2,144 @@
 # This file defines commonly-used variables for water systems models.
 ########################################################################
 
-function get_start(set, item_key, value_key, default)
-    return get(get(set, item_key, Dict()), value_key, default)
+"Sets the start value for a given variable."
+function comp_start_value(comp::Dict{String,<:Any}, key::String, default=0.0)
+    return get(comp, key, default)
 end
 
-function get_start(set, item_key, first_value_key, second_value_key, default)
-    return get(get(get(set, item_key, Dict()), second_value_key, Dict()), first_value_key, default)
+"Given a constant value, builds the standard componentwise solution structure."
+function sol_component_fixed(wm::AbstractWaterModel, n::Int, comp_name::Symbol, field_name::Symbol, comp_ids, constant)
+    for i in comp_ids
+        @assert !haskey(sol(wm, n, comp_name, i), field_name)
+        sol(wm, n, comp_name, i)[field_name] = constant
+    end
+end
+
+"Given a variable that is indexed by component IDs, builds the standard solution structure."
+function sol_component_value(wm::AbstractWaterModel, n::Int, comp_name::Symbol, field_name::Symbol, comp_ids, variables)
+    for i in comp_ids
+        @assert !haskey(sol(wm, n, comp_name, i), field_name)
+        sol(wm, n, comp_name, i)[field_name] = variables[i]
+    end
+end
+
+"Maps asymmetric edge variables into components."
+function sol_component_value_edge(wm::AbstractWaterModel, n::Int, comp_name::Symbol, field_name_fr::Symbol, field_name_to::Symbol, comp_ids_fr, comp_ids_to, variables)
+    for (l, i, j) in comp_ids_fr
+        @assert !haskey(sol(wm, n, comp_name, l), field_name_fr)
+        sol(wm, n, comp_name, l)[field_name_fr] = variables[(l, i, j)]
+    end
+
+    for (l, i, j) in comp_ids_to
+        @assert !haskey(sol(wm, n, comp_name, l), field_name_to)
+        sol(wm, n, comp_name, l)[field_name_to] = variables[(l, i, j)]
+    end
 end
 
 ### Variables related to nodal components. ###
-"Creates bounded (by default) or unbounded total hydraulic head variables for
-all nodes in the network, i.e., `h[i]` for `i` in `node`."
-function variable_head(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=true)
-    bounded ? variable_head_bounded(wm, nw=nw) :
-        variable_head_unbounded(wm, nw=nw)
-end
+"Creates bounded (by default) or unbounded total hydraulic head (or head)
+variables for all nodes in the network, i.e., `h[i]` for `i` in `node`."
+function variable_head(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+    h = var(wm, nw)[:h] = JuMP.@variable(wm.model,
+        [i in ids(wm, nw, :node)], base_name="$(nw)_h",
+        start=comp_start_value(ref(wm, nw, :node, i), "h_start"))
+       
+    if bounded
+        h_lb, h_ub = calc_head_bounds(wm, nw)
 
-"Creates bounded total hydraulic head variables for all nodes in the network,
-i.e., `h[i]` for `i` in `node`."
-function variable_head_bounded(wm::AbstractWaterModel; nw::Int=wm.cnw)
-    h_lb, h_ub = calc_head_bounds(wm, nw)
-    var(wm, nw)[:h] = JuMP.@variable(wm.model, [i in ids(wm, nw, :node)],
-        base_name="h[$(nw)]", lower_bound=h_lb[i], upper_bound=h_ub[i],
-        start=get_start(ref(wm, nw, :node), i, "h_start", h_ub[i]))
+        for (i, node) in ref(wm, nw, :node)
+            JuMP.set_lower_bound(h[i], h_lb[i])
+            JuMP.set_upper_bound(h[i], h_ub[i])
+        end
+    end
+
+    report && sol_component_value(wm, nw, :node, :h, ids(wm, nw, :node), h)
 end
 
 "Creates head gain variables corresponding to all pumps in the network, i.e.,
 `g[a]` for `a` in `pump`. These denote head gains between nodes i and j."
-function variable_head_gain(wm::AbstractWaterModel; nw::Int=wm.cnw)
-    var(wm, nw)[:g] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
-        base_name="g[$(nw)]", lower_bound=0.0,
-        start=get_start(ref(wm, nw, :pump), a, "g", 0.0))
-end
+function variable_head_gain(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
+    g = var(wm, nw)[:g] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
+        base_name="$(nw)_g", lower_bound=0.0, # Pump flow is nonnegative.
+        start=comp_start_value(ref(wm, nw, :pump, a), "g_start"))
 
-"Creates unbounded total hydraulic head variables for all nodes in the network,
-i.e., `h[i]` for `i` in `node`. Note that head variables corresponding to
-reservoir and tank component types are also unbounded, here."
-function variable_head_unbounded(wm::AbstractWaterModel; nw::Int=wm.cnw)
-    var(wm, nw)[:h] = JuMP.@variable(wm.model, [i in ids(wm, nw, :node)],
-        base_name="h[$(nw)]",
-        start=get_start(ref(wm, nw, :node), i, "h_start", 0.0))
-end
-
-"Creates variables denoting absolute constraint violations with respect to head
-bounds for all nodes in the network, i.e., `h_viol[i]` for `i` in `node`."
-function variable_head_violation(wm::AbstractWaterModel; nw::Int=wm.cnw)
-    var(wm, nw)[:h_viol] = JuMP.@variable(wm.model, [i in ids(wm, nw, :node)],
-        base_name="h_viol[$(nw)]", lower_bound=0.0,
-        start=get_start(ref(wm, nw, :node), i, "h_viol_start", 0.0))
+    report && sol_component_value(wm, nw, :pump, :g, ids(wm, nw, :pump), g)
 end
 
 "Creates outgoing flow variables for all reservoirs in the network, i.e.,
 `qr[i]` for `i` in `reservoir`. Note that these variables are always
 nonnegative, as there is never incoming flow to a reservoir."
-function variable_reservoir(wm::AbstractWaterModel; nw::Int=wm.cnw)
-    var(wm, nw)[:qr] = JuMP.@variable(wm.model, [i in ids(wm, nw, :reservoir)],
-        base_name="qr[$(nw)]", lower_bound=0.0,
-        start=get_start(ref(wm, nw, :reservoir), i, "qr_start", 0.0))
+function variable_reservoir(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
+    qr = var(wm, nw)[:qr] = JuMP.@variable(wm.model,
+        [i in ids(wm, nw, :reservoir)], lower_bound=0.0, base_name="$(nw)_qr",
+        start=comp_start_value(ref(wm, nw, :reservoir, i), "qr_start"))
+
+    report && sol_component_value(wm, nw, :reservoir, :qr, ids(wm, nw, :reservoir), qr)
 end
 
 "Creates outgoing flow variables for all tanks in the network, i.e., `qt[i]`
 for `i` in `tank`. Note that, unlike reservoirs, tanks can have inflow."
-function variable_tank(wm::AbstractWaterModel; nw::Int=wm.cnw)
-    var(wm, nw)[:qt] = JuMP.@variable(wm.model, [i in ids(wm, nw, :tank)],
-        base_name="qt[$(nw)]",
-        start=get_start(ref(wm, nw, :node), i, "qt_start", 0.0))
+function variable_tank(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
+    qt = var(wm, nw)[:qt] = JuMP.@variable(wm.model, [i in ids(wm, nw, :tank)],
+        base_name="$(nw)_qt",
+        start=comp_start_value(ref(wm, nw, :tank, i), "qt_start"))
+
+    report && sol_component_value(wm, nw, :tank, :qt, ids(wm, nw, :tank), qt)
 end
 
 "Creates bounded (by default) or unbounded (but still nonnegative) volume
 variables for all tanks in the network, i.e., `V[i]` for `i` in `tank`."
-function variable_volume(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=true)
-    bounded ? variable_volume_bounded(wm, nw=nw) :
-        variable_volume_unbounded(wm, nw=nw)
-end
+function variable_volume(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+    V = var(wm, nw)[:V] = JuMP.@variable(wm.model,
+        [i in ids(wm, nw, :tank)], base_name="$(nw)_V", lower_bound=0.0,
+        start=comp_start_value(ref(wm, nw, :tank, i), "V_start"))
+       
+    if bounded
+        V_lb, V_ub = calc_tank_volume_bounds(wm, nw)
 
-"Creates bounded volume variables for all tanks in the network, i.e., `V[i]`
-for `i` in `tank`. Bounds are related to minimum and maximum tank levels."
-function variable_volume_bounded(wm::AbstractWaterModel; nw::Int=wm.cnw)
-    V_lb, V_ub = calc_tank_volume_bounds(wm, nw)
-    var(wm, nw)[:V] = JuMP.@variable(wm.model, [i in ids(wm, nw, :tank)],
-        base_name="V[$(nw)]", lower_bound=V_lb[i], upper_bound=V_ub[i],
-        start=get_start(ref(wm, nw, :tank), i, "V_start", V_ub[i]))
-end
+        for (i, tank) in ref(wm, nw, :tank)
+            JuMP.set_lower_bound(V[i], V_lb[i])
+            JuMP.set_upper_bound(V[i], V_ub[i])
+        end
+    end
 
-"Creates unbounded volume variables for all tanks in the network, i.e., `V[i]`
-for `i` in `tank`. Note that since volume is inherently a nonnegative quantity,
-however, these volume variables still contain lower bounds of zero."
-function variable_volume_unbounded(wm::AbstractWaterModel; nw::Int=wm.cnw)
-    var(wm, nw)[:V] = JuMP.@variable(wm.model, [i in ids(wm, nw, :tank)],
-        base_name="V[$(nw)]", lower_bound=0.0,
-        start=get_start(ref(wm, nw, :tank), i, "V_start", 0.0))
+    report && sol_component_value(wm, nw, :tank, :V, ids(wm, nw, :tank), V)
 end
 
 ### Link variables. ###
-function variable_check_valve(wm::AbstractWaterModel; nw::Int=wm.cnw)
-    # Create variables for the statuses of check valves (one is open).
-    var(wm, nw)[:x_cv] = JuMP.@variable(wm.model,
-        [i in ids(wm, nw, :check_valve)], base_name="x_cv[$(nw)]", binary=true,
-        start=get_start(ref(wm, nw, :link), i, "x_cv_start", 0))
+"Creates binary variables for all check valves in the network, i.e., `x_cv[a]`
+for `a` in `check_valve`, where one denotes that the check valve is open."
+function variable_check_valve(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
+    x_cv = var(wm, nw)[:x_cv] = JuMP.@variable(wm.model,
+        [a in ids(wm, nw, :check_valve)], base_name="x_cv[$(nw)]", binary=true,
+        start=comp_start_value(ref(wm, nw, :check_valve, a), "x_cv_start"))
+
+    report && sol_component_value(wm, nw, :check_valve, :x_cv,
+        ids(wm, nw, :check_valve), x_cv)
 end
 
-function variable_flow_violation(wm::AbstractWaterModel; nw::Int=wm.cnw)
-    # Initialize directed flow variables. The variables qp correspond to flow
-    # from i to j, and the variables qn correspond to flow from j to i.
-    var(wm, nw)[:Delta_e] = JuMP.@variable(wm.model, [a in ids(wm, nw, :link)],
-        base_name="Delta_e[$(nw)]", lower_bound=0.0,
-        start=get_start(ref(wm, nw, :link), a, "Delta_e_start", 0.0))
+"Creates binary variables for all pumps in the network, i.e., `x_pump[a]`
+for `a` in `pump`, where one denotes that the pump is currently on."
+function variable_fixed_speed_pump_operation(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
+    x_pump = var(wm, nw)[:x_pump] = JuMP.@variable(wm.model,
+        [a in ids(wm, nw, :pump)], base_name="x_pump[$(nw)]", binary=true,
+        start=comp_start_value(ref(wm, nw, :pump, a), "x_pump_start"))
+
+    report && sol_component_value(wm, nw, :pump, :x_pump, ids(wm, nw, :pump), x_pump)
 end
 
-function variable_fixed_speed_pump_operation(wm::AbstractWaterModel; nw::Int=wm.cnw)
-    var(wm, nw)[:x_pump] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
-        base_name="x_pump[$(nw)]", binary=true,
-        start=get_start(ref(wm, nw, :pump), a, "x_pump_start", 1.0))
-end
-
+"Creates binary variables for all pumps in the network, i.e., `x_pump[a]`
+for `a` in `pump`, where one denotes that the pump is currently on."
 function variable_fixed_speed_pump_threshold(wm::AbstractWaterModel; nw::Int=wm.cnw)
     var(wm, nw)[:x_thrs_gt] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
         base_name="x_thrs_gt[$(nw)]", binary=true,
-        start=get_start(ref(wm, nw, :pump), a, "x_thrs_gt_start", 0.0))
+        start=comp_start_value(ref(wm, nw, :pump, a), "x_thrs_gt_start"))
     var(wm, nw)[:x_thrs_lt] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
         base_name="x_thrs_lt[$(nw)]", binary=true,
-        start=get_start(ref(wm, nw, :pump), a, "x_thrs_lt_start", 0.0))
+        start=comp_start_value(ref(wm, nw, :pump, a), "x_thrs_lt_start"))
     var(wm, nw)[:x_thrs_bt] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
         base_name="x_thrs_bt[$(nw)]", binary=true,
-        start=get_start(ref(wm, nw, :pump), a, "x_thrs_bt_start", 1.0))
+        start=comp_start_value(ref(wm, nw, :pump, a), "x_thrs_bt_start"))
 end
 
 function variable_pump_operation(wm::AbstractWaterModel; nw::Int=wm.cnw)
@@ -136,9 +150,12 @@ function variable_pump_control(wm::AbstractWaterModel; nw::Int=wm.cnw)
     variable_fixed_speed_pump_threshold(wm, nw=nw)
 end
 
+"Creates binary variables for all network expansion or design resistances in
+the network, i.e., `x_res[a]` for `a` in `pipe`, for `r` in `resistance[a]`,
+where one denotes that the given resistance is active in the design."
 function variable_resistance(wm::AbstractWaterModel; nw::Int=wm.cnw)
-    link_ids = ids(wm, nw, :link_ne)
-    var(wm, nw)[:x_res] = Dict{Int, Array{JuMP.VariableRef}}(a => [] for a in link_ids)
+    pipe_ids = ids(wm, nw, :pipe_ne)
+    var(wm, nw)[:x_res] = Dict{Int, Array{JuMP.VariableRef}}(a => [] for a in pipe_ids)
 
     for a in ids(wm, nw, :link_ne)
         n_r = length(ref(wm, nw, :resistance, a)) # Number of resistances.

@@ -4,11 +4,13 @@ function get_objective_values(breakpoints::Array{Float64}, curve_fun::Array{Floa
     return [curve_fun[1]*x^3 + curve_fun[2]*x^2 + curve_fun[3]*x for x in breakpoints]
 end
 
-function get_cubic_outer_approximation(q::JuMP.VariableRef, x_pump::JuMP.VariableRef, q_hat::Float64, curve_fun::Array{Float64})
+function get_cubic_outer_approximation(q::JuMP.VariableRef,
+    x_pump::JuMP.VariableRef, q_hat::Float64, curve_fun::Array{Float64})
     return curve_fun[1]*q_hat^3*x_pump + 3.0*curve_fun[1] * q_hat^2 * (q - q_hat)*x_pump
 end
 
-function get_obj_linear_outer_approximation(q::JuMP.VariableRef, x_pump::JuMP.VariableRef, q_hat::Float64, curve_fun::Array{Float64})
+function get_obj_linear_outer_approximation(q::JuMP.VariableRef,
+    x_pump::JuMP.VariableRef, q_hat::Float64, curve_fun::Array{Float64})
     f_a = curve_fun[1]*q_hat^3 + curve_fun[2]*q_hat^2 + curve_fun[3]*q_hat
     return f_a + 3.0*curve_fun[1] * (q - q_hat)^2 + 2.0*curve_fun[2] * (q - q_hat) + curve_fun[3]
 end
@@ -17,7 +19,8 @@ function get_linear_outer_approximation(q::JuMP.VariableRef, q_hat::Float64, alp
     return q_hat^alpha + alpha * q_hat^(alpha - 1.0) * (q - q_hat)
 end
 
-function get_linear_outer_approximation_pump(q::JuMP.VariableRef, x_pump::JuMP.VariableRef, q_hat::Float64, a::Float64, b::Float64, c::Float64)
+function get_linear_outer_approximation_pump(q::JuMP.VariableRef,
+    x_pump::JuMP.VariableRef, q_hat::Float64, a::Float64, b::Float64, c::Float64)
     return a*q_hat^2 + b*q_hat + c + 2.0*a*(q - q_hat) + b
 end
 
@@ -55,31 +58,40 @@ function variable_flow(wm::AbstractMILPRModel; nw::Int=wm.cnw, bounded::Bool=tru
 end
 
 "Pump head gain constraint when the pump status is ambiguous."
-function constraint_head_gain_pump(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64})
-    # Gather common variables.
-    q = var(wm, n, :qp, a)
-    dhp = var(wm, n, :dhp, a)
-    dhn = var(wm, n, :dhn, a)
+function constraint_head_gain_pump(wm::AbstractMILPRModel, n::Int, a::Int,
+    node_fr::Int, node_to::Int, curve_fun::Array{Float64})
+    # Gather flow-related variables and data.
+    qp = var(wm, n, :qp, a)
+    qp_ub = JuMP.upper_bound(qp)
+
+    # Gather pump-related variables.
+    g = var(wm, n, :g, a)
+    x_p = var(wm, n, :x_pump, a)
+
+    # Gather head variables.
     h_i = var(wm, n, :h, node_fr)
     h_j = var(wm, n, :h, node_to)
-    x_pump = var(wm, n, :x_pump, a)
-    q_ub = JuMP.has_upper_bound(q) ? JuMP.upper_bound(q) : 10.0
 
-    # Get head difference lower bounds.
-    dh_lb = JuMP.lower_bound(h_j) - JuMP.upper_bound(h_i)
-    dh_ub = JuMP.upper_bound(h_j) - JuMP.lower_bound(h_i)
+    # Gather head difference-related variables and data.
+    dhp = var(wm, n, :dhp, a)
+    dhp_ub = JuMP.upper_bound(dhp)
+    dhn = var(wm, n, :dhn, a)
+    dhn_ub = JuMP.upper_bound(dhn)
+
+    # Define the (relaxed) head gain caused by the pump.
+    g_expr = curve_fun[1]*qp^2 + curve_fun[2]*qp + curve_fun[3]*x_p
+    c_1 = JuMP.@constraint(wm.model, g_expr <= g) # Convexified.
 
     # If the pump is off, decouple the head difference relationship.
-    g = curve_fun[1]*q*q + curve_fun[2]*q + curve_fun[3]*x_pump
-    c_1 = JuMP.@constraint(wm.model, (h_j - h_i) - g >= dh_lb * (1.0 - x_pump))
-    c_2 = JuMP.@constraint(wm.model, (h_j - h_i) - g <= dh_ub * (1.0 - x_pump))
+    c_2 = JuMP.@constraint(wm.model, dhn <= g + dhn_ub * (1.0 - x_p))
+    c_3 = JuMP.@constraint(wm.model, dhp <= dhp_ub * (1.0 - x_p))
 
     # If the pump is off, the flow along the pump must be zero.
-    c_3 = JuMP.@constraint(wm.model, q <= q_ub * x_pump)
-    c_4 = JuMP.@constraint(wm.model, q >= 6.31465679e-6 * x_pump)
+    c_4 = JuMP.@constraint(wm.model, qp <= qp_ub * x_p)
+    c_5 = JuMP.@constraint(wm.model, qp >= 6.31465679e-6 * x_p)
 
     # Append the constraint array.
-    append!(con(wm, n, :head_gain)[a], [c_1, c_2, c_3, c_4])
+    con(wm, n, :head_gain)[a] = [c_1, c_2, c_3, c_4, c_5]
 end
 
 "Pump head gain constraint when the pump is forced to be on."
@@ -104,7 +116,8 @@ function constraint_head_gain_pump_on(wm::AbstractMILPRModel, n::Int, a::Int, no
     end
 end
 
-function constraint_head_loss_pipe_ne(wm::AbstractMILPRModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, resistances)
+function constraint_head_loss_pipe_ne(wm::AbstractMILPRModel, n::Int, a::Int,
+    alpha::Float64, node_fr::Int, node_to::Int, L::Float64, resistances)
     # Set the number of breakpoints used in each outer-approximation.
     num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 1
 
@@ -137,7 +150,8 @@ function constraint_head_loss_pipe_ne(wm::AbstractMILPRModel, n::Int, a::Int, al
     end
 end
 
-function constraint_head_loss_pipe(wm::AbstractMILPRModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, r::Float64)
+function constraint_head_loss_pipe(wm::AbstractMILPRModel, n::Int, a::Int,
+    alpha::Float64, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # Set the number of breakpoints used in each outer-approximation.
     num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 1
 
@@ -164,7 +178,8 @@ function constraint_head_loss_pipe(wm::AbstractMILPRModel, n::Int, a::Int, alpha
     end
 end
 
-function constraint_head_loss_check_valve(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64) 
+function constraint_head_loss_check_valve(wm::AbstractMILPRModel, n::Int,
+    a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64) 
     # Set the number of breakpoints used in each outer-approximation.
     num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 1
     alpha = ref(wm, n, :alpha)

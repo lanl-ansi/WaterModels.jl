@@ -30,9 +30,16 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
         max_elev = maximum(node["elevation"] for (i, node) in nodes)
     end
 
+    # Add head gains from pumps in the network to max_elev.
+    for (a, pump) in ref(wm, n, :pump)
+        pump_curve = ref(wm, n, :pump, a)["pump_curve"]
+        c = _get_function_from_pump_curve(pump_curve)
+        max_elev += c[3] - 0.25 * c[2]*c[2] * inv(c[1])
+    end
+
     # Initialize the dictionaries for minimum and maximum heads.
     head_min = Dict((i, -Inf) for (i, node) in nodes)
-    head_max = Dict((i,  Inf) for (i, node) in nodes)
+    head_max = Dict((i, Inf) for (i, node) in nodes)
 
     for (i, node) in nodes
         # The minimum head at junctions must be above the initial elevation.
@@ -64,49 +71,17 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     for (i, tank) in ref(wm, n, :tank)
         node_id = tank["tank_node"]
         node = ref(wm, n, :node, node_id)
-
         head_min[node_id] = node["elevation"] + tank["min_level"]
         head_max[node_id] = node["elevation"] + tank["max_level"]
-    end
-
-    for (a, pump) in ref(wm, n, :pump)
-        i = pump["node_fr"]
-        j = pump["node_to"]
-
-        pump_curve = ref(wm, n, :pump, a)["pump_curve"]
-        c = _get_function_from_pump_curve(pump_curve)
-        g_max = c[3] - 0.25 * c[2]*c[2] * inv(c[1])
-
-        #head_min[i] = min(head_min[j] - g_max, head_min[i])
-        head_max[j] = min(head_max[i] + g_max, head_max[j])
     end
 
     # Return the dictionaries of lower and upper bounds.
     return head_min, head_max
 end
 
-function calc_head_difference_bounds(wm::AbstractWaterModel, n::Int = wm.cnw)
-    # Get placeholders for junctions and reservoirs.
+function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     links = ref(wm, n, :link)
-
-    # Initialize the dictionaries for minimum and maximum head differences.
-    head_lbs, head_ubs = calc_head_bounds(wm, n)
-    head_diff_min = Dict([(a, -Inf) for a in keys(links)])
-    head_diff_max = Dict([(a, Inf) for a in keys(links)])
-
-    # Compute the head difference bounds.
-    for (a, link) in links
-        head_diff_min[a] = head_lbs[link["node_fr"]] - head_ubs[link["node_to"]]
-        head_diff_max[a] = head_ubs[link["node_fr"]] - head_lbs[link["node_to"]]
-    end
-
-    # Return the head difference bound dictionaries.
-    return head_diff_min, head_diff_max
-end
-
-function calc_flow_rate_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
-    links = ref(wm, n, :link)
-    dh_lb, dh_ub = calc_head_difference_bounds(wm, n)
+    h_lb, h_ub = calc_head_bounds(wm, n)
     alpha = ref(wm, n, :alpha)
 
     junctions = values(ref(wm, n, :junction))
@@ -122,18 +97,20 @@ function calc_flow_rate_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
 
     for (a, pipe) in ref(wm, n, :pipe)
         L = pipe["length"]
+        i, j = [pipe["node_fr"], pipe["node_to"]]
+        dh_lb, dh_ub = [h_lb[i] - h_ub[j], h_ub[i] - h_lb[j]]
         resistances = ref(wm, n, :resistance, a)
         num_resistances = length(resistances)
 
-        lb[a] = -ones(Float64, (num_resistances,))
-        ub[a] = ones(Float64, (num_resistances,))
+        lb[a] = zeros(num_resistances)
+        ub[a] = zeros(num_resistances)
 
         for (r_id, r) in enumerate(resistances)
-            lb[a][r_id] = sign(dh_lb[a]) * (abs(dh_lb[a]) * inv(L * r))^inv(alpha)
-            lb[a][r_id] = max(lb[a][r_id], -sum_demand)
+            lb[a][r_id] = sign(dh_lb) * (abs(dh_lb) * inv(L*r))^inv(alpha)
+            #lb[a][r_id] = max(lb[a][r_id], -sum_demand)
 
-            ub[a][r_id] = sign(dh_ub[a]) * (abs(dh_ub[a]) * inv(L * r))^inv(alpha)
-            ub[a][r_id] = min(ub[a][r_id], sum_demand)
+            ub[a][r_id] = sign(dh_ub) * (abs(dh_ub) * inv(L*r))^inv(alpha)
+            #ub[a][r_id] = min(ub[a][r_id], sum_demand)
 
             if pipe["flow_direction"] == POSITIVE || has_check_valve(pipe)
                 lb[a][r_id] = max(lb[a][r_id], 0.0)
@@ -156,70 +133,10 @@ function calc_flow_rate_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
         c = _get_function_from_pump_curve(pump_curve)
         q_max = (-c[2] + sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1])
         q_max = max(q_max, (-c[2] - sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1]))
-        ub[a] = [q_max]
-        lb[a] = [0.0]
+        lb[a], ub[a] = [[0.0], [q_max]]
     end
 
     return lb, ub
-end
-
-function calc_directed_flow_upper_bounds(wm::AbstractWaterModel, alpha::Float64, n::Int=wm.cnw)
-    # Get a dictionary of resistance values.
-    dh_lb, dh_ub = calc_head_difference_bounds(wm, n)
-
-    links = ref(wm, n, :link)
-    ub_n = Dict([(a, Float64[]) for a in keys(links)])
-    ub_p = Dict([(a, Float64[]) for a in keys(links)])
-
-    junctions = values(ref(wm, n, :junction))
-    sum_demand = sum(abs(junction["demand"]) for junction in junctions)
-
-    time_step_int = ref(wm, n, :option, "time")["hydraulic_timestep"]
-    time_step = convert(Float64, time_step_int)
-    V_lb, V_ub = calc_tank_volume_bounds(wm, n)
-    sum_demand += sum([(V_ub[i] - V_lb[i]) * inv(time_step) for i in ids(wm, n, :tank)])
-
-    for (a, pipe) in ref(wm, n, :pipe)
-        L = pipe["length"]
-        R_a = ref(wm, n, :resistance, a)
-
-        ub_n[a] = zeros(Float64, (length(R_a),))
-        ub_p[a] = zeros(Float64, (length(R_a),))
-
-        for r in 1:length(R_a)
-            ub_n[a][r] = abs(dh_lb[a] * inv(L * R_a[r]))^inv(alpha)
-            #ub_n[a][r] = min(ub_n[a][r], sum_demand)
-
-            ub_p[a][r] = abs(dh_ub[a] * inv(L * R_a[r]))^inv(alpha)
-            #ub_p[a][r] = min(ub_p[a][r], sum_demand)
-
-            if (pipe["flow_direction"] == POSITIVE || dh_lb[a] >= 0.0) || has_check_valve(pipe)
-                ub_n[a][r] = 0.0
-            elseif pipe["flow_direction"] == NEGATIVE || dh_ub[a] <= 0.0
-                ub_p[a][r] = 0.0
-            end
-
-            if haskey(pipe, "diameters") && haskey(pipe, "maximumVelocity")
-                D_a = pipe["diameters"][r]["diameter"]
-                v_a = pipe["maximumVelocity"]
-                rate_bound = 0.25 * pi * v_a * D_a * D_a
-
-                ub_n[a][r] = min(ub_n[a][r], rate_bound)
-                ub_p[a][r] = min(ub_p[a][r], rate_bound)
-            end
-        end
-    end
-
-    for (a, pump) in ref(wm, n, :pump)
-        pump_curve = ref(wm, n, :pump, a)["pump_curve"]
-        c = _get_function_from_pump_curve(pump_curve)
-        q_max = (-c[2] + sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1])
-        q_max = max(q_max, (-c[2] - sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1]))
-        ub_p[a] = [q_max]
-        ub_n[a] = [0.0]
-    end
-
-    return ub_n, ub_p
 end
 
 function calc_tank_volume_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)

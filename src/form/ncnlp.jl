@@ -1,6 +1,8 @@
-# Define NCNLP (non-convex nonlinear programming) implementations of water distribution models.
+# Define NCNLP (nonconvex nonlinear programming) implementations of water
+# distribution feasibility and optimization problem specifications.
 
-function constraint_head_loss_check_valve(wm::AbstractNCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64) 
+function constraint_head_loss_check_valve(wm::AbstractNCNLPModel, n::Int,
+    a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64) 
     q = var(wm, n, :q, a)
     h_i = var(wm, n, :h, node_fr)
     h_j = var(wm, n, :h, node_to)
@@ -13,7 +15,8 @@ function constraint_head_loss_check_valve(wm::AbstractNCNLPModel, n::Int, a::Int
     append!(con(wm, n, :head_loss)[a], [c_1, c_2])
 end
 
-function constraint_head_loss_pipe(wm::AbstractNCNLPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, r::Float64) 
+function constraint_head_loss_pipe(wm::AbstractNCNLPModel, n::Int, a::Int,
+    alpha::Float64, node_fr::Int, node_to::Int, L::Float64, r::Float64) 
     h_i = var(wm, n, :h, node_fr)
     h_j = var(wm, n, :h, node_to)
     q = var(wm, n, :q, a)
@@ -22,7 +25,8 @@ function constraint_head_loss_pipe(wm::AbstractNCNLPModel, n::Int, a::Int, alpha
     append!(con(wm, n, :head_loss)[a], [c])
 end
 
-function constraint_head_loss_pipe_ne(wm::AbstractNCNLPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances)
+function constraint_head_loss_pipe_ne(wm::AbstractNCNLPModel, n::Int, a::Int,
+    alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances)
     h_i = var(wm, n, :h, node_fr)
     h_j = var(wm, n, :h, node_to)
     q_ne = var(wm, n, :q_ne, a)
@@ -34,7 +38,8 @@ function constraint_head_loss_pipe_ne(wm::AbstractNCNLPModel, n::Int, a::Int, al
     append!(con(wm, n, :head_loss)[a], [c])
 end
 
-function get_curve_cut(curve_fun::Array{Float64}, q::JuMP.VariableRef, x::JuMP.VariableRef, q_min::Float64, q_max::Float64)
+function get_curve_cut(curve_fun::Array{Float64}, q::JuMP.VariableRef,
+    x::JuMP.VariableRef, q_min::Float64, q_max::Float64)
     g_1 = curve_fun[1]*q_min*q_min + curve_fun[2]*q_min + curve_fun[3]
     g_2 = curve_fun[1]*q_max*q_max + curve_fun[2]*q_max + curve_fun[3]
     m = (g_2 - g_1) / (q_max - q_min)
@@ -43,7 +48,8 @@ function get_curve_cut(curve_fun::Array{Float64}, q::JuMP.VariableRef, x::JuMP.V
 end
 
 "Pump head gain constraint when the pump status is ambiguous."
-function constraint_head_gain_pump(wm::AbstractNCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64})
+function constraint_head_gain_pump(wm::AbstractNCNLPModel, n::Int, a::Int,
+    node_fr::Int, node_to::Int, curve_fun::Array{Float64})
     # Gather common variables.
     q = var(wm, n, :q, a)
     g = var(wm, n, :g, a)
@@ -58,12 +64,13 @@ function constraint_head_gain_pump(wm::AbstractNCNLPModel, n::Int, a::Int, node_
     q_max = max(q_max, (-curve_fun[2] - sqrt(curve_fun[2]^2 - 4.0*curve_fun[1]*curve_fun[3])) / (2.0*curve_fun[1]))
     q_max = min(q_max, JuMP.upper_bound(q))
 
-    # TODO: Move this upper bound calculation somewhere else.
-    JuMP.set_upper_bound(q, q_max)
+    ## TODO: Move this upper bound calculation somewhere else.
+    #JuMP.set_upper_bound(q, q_max)
 
     # Add relaxation constraints.
-    c_1 = JuMP.@constraint(wm.model, g <= curve_fun[1]*q*q + curve_fun[2]*q + curve_fun[3]*x_pump)
-    c_2 = JuMP.@constraint(wm.model, g >= get_curve_cut(curve_fun, q, x_pump, q_min, q_max))
+    c_1 = JuMP.@constraint(wm.model, curve_fun[1]*q*q + curve_fun[2]*q + curve_fun[3]*x_pump == g)
+    #c_1 = JuMP.@constraint(wm.model, g <= curve_fun[1]*q*q + curve_fun[2]*q + curve_fun[3]*x_pump)
+    #c_2 = JuMP.@constraint(wm.model, g >= get_curve_cut(curve_fun, q, x_pump, q_min, q_max))
 
     # Get head difference lower bounds.
     dh_lb = JuMP.lower_bound(h_j) - JuMP.upper_bound(h_i)
@@ -75,21 +82,23 @@ function constraint_head_gain_pump(wm::AbstractNCNLPModel, n::Int, a::Int, node_
 
     # If the pump is off, the flow along the pump must be zero.
     c_5 = JuMP.@constraint(wm.model, q <= q_ub * x_pump)
-    c_6 = JuMP.@constraint(wm.model, q >= 1.0e-4 * x_pump)
+    c_6 = JuMP.@constraint(wm.model, q >= 6.31465679e-6 * x_pump)
 
     # Append the constraint array.
-    #append!(con(wm, n, :head_gain)[a], [c_1, c_2, c_3, c_4])
+    append!(con(wm, n, :head_gain)[a], [c_1, c_3, c_4, c_5, c_6])
 end
 
 "Pump head gain constraint when the pump is forced to be on."
-function constraint_head_gain_pump_on(wm::AbstractNCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64})
+function constraint_head_gain_pump_on(wm::AbstractNCNLPModel, n::Int, a::Int,
+    node_fr::Int, node_to::Int, curve_fun::Array{Float64})
     # Gather common variables.
     q = var(wm, n, :q, a)
     h_i = var(wm, n, :h, node_fr)
     h_j = var(wm, n, :h, node_to)
 
     # Define the head difference relationship when the pump is on (h_j >= h_i).
-    c = JuMP.@NLconstraint(wm.model, curve_fun[1]*q^2 + curve_fun[2]*q + curve_fun[3] == (h_j - h_i))
+    lhs = curve_fun[1]*q*q + curve_fun[2]*q + curve_fun[3]
+    c = JuMP.@constraint(wm.model, lhs == h_j - h_i)
     con(wm, n, :head_gain)[a] = [c]
 end
 

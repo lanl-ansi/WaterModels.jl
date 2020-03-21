@@ -1,17 +1,18 @@
 using WaterModels
 
+import Cbc
+import JuMP
+import JSON
 import InfrastructureModels
+import Ipopt
+import Juniper
 import Memento
 
 # Suppress warnings during testing.
 Memento.setlevel!(Memento.getlogger(InfrastructureModels), "error")
+Memento.setlevel!(Memento.getlogger(Ipopt), "error")
+Memento.setlevel!(Memento.getlogger(Juniper), "error")
 WaterModels.logger_config!("error")
-
-import Cbc
-import Ipopt
-import JuMP
-import Juniper
-import JSON
 
 using Test
 
