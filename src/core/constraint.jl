@@ -2,9 +2,9 @@
 # This file defines commonly-used constraints for water systems models.
 ########################################################################
 
-function constraint_source_head(wm::AbstractWaterModel, n::Int, i::Int, h_src::Float64)
+function constraint_source_head(wm::AbstractWaterModel, n::Int, i::Int, h_s::Float64)
     h = var(wm, n, :h, i)
-    con(wm, n, :source_head)[i] = JuMP.@constraint(wm.model, h == h_src)
+    con(wm, n, :source_head)[i] = JuMP.@constraint(wm.model, h == h_s)
 end
 
 function constraint_flow_conservation(wm::AbstractWaterModel, n::Int, i::Int,

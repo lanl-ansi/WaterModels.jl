@@ -1,4 +1,4 @@
-# Functions commonly used in the construction of all water models.
+# Functions commonly used in the construction of water models.
 
 "Root of the water formulation type hierarchy."
 abstract type AbstractWaterModel <: _IM.AbstractInfrastructureModel end
@@ -31,7 +31,7 @@ function instantiate_model(data::Dict{String,<:Any}, model_type::Type, build_met
 end
 
 ""
-function build_ref(data::Dict{String,<:Any}; ref_extensions=[])
+function build_ref(data::Dict{String,<:Any}; ref_extensions=[], kwargs...)
     return _IM.build_ref(data, ref_add_core!, _wm_global_keys, ref_extensions=ref_extensions)
 end
 
