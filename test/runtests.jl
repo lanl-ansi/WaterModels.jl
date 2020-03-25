@@ -1,9 +1,11 @@
 using WaterModels
 
+import InfrastructureModels
+const _IM = InfrastructureModels
+
 import Cbc
 import JuMP
 import JSON
-import InfrastructureModels
 import Ipopt
 import Juniper
 import Memento
@@ -35,8 +37,6 @@ include("common.jl")
     include("io.jl")
 
     include("wf.jl")
-
-    #include("cwf.jl")
 
     #include("owf.jl")
 

@@ -20,7 +20,7 @@ function constraint_flow_conservation(wm::AbstractCNLPModel, n::Int, i::Int,
 
     con(wm, n, :flow_conservation)[i] = c
 
-    if report_duals(wm)
+    if _IM.report_duals(wm)
         sol(wm, n, :node, i)[:h] = con(wm, n, :flow_conservation, i)
     end
 end
@@ -106,4 +106,22 @@ function constraint_head_gain_pump_on(wm::AbstractCNLPModel, n::Int, a::Int, nod
     # Define the head difference relationship when the pump is on (h_j >= h_i).
     con_1 = JuMP.@NLconstraint(wm.model, curve_fun[1]*qp^2 + curve_fun[2]*qp + curve_fun[3] <= (h_j - h_i))
     con(wm, n, :head_gain)[a] = [con_1]
+end
+
+function sol_data_model!(wm::AbstractCNLPModel, solution::Dict)
+    if haskey(solution, "nw")
+        nws_data = solution["nw"]
+    else
+        nws_data = Dict("0" => solution)
+    end
+
+    for (n, nw_data) in nws_data
+        if haskey(nw_data, "node")
+            for (i, node) in nw_data["node"]
+                if haskey(node, "h")
+                    node["h"] *= -1.0
+                end
+            end
+        end
+    end
 end

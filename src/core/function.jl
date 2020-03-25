@@ -61,22 +61,22 @@ function function_head_loss(wm::AbstractCNLPModel)
     alpha = get_alpha_min_1(wm)
     f = JuMP.register(wm.model, :head_loss, 1, if_alpha(alpha, convex=true),
         f_alpha(alpha, convex=true), df_alpha(alpha, convex=true))
-    wm.fun[:head_loss] = (:head_loss, 1, if_alpha(alpha, convex=true),
-        f_alpha(alpha, convex=true), df_alpha(alpha, convex=true))
+    #wm.fun[:head_loss] = (:head_loss, 1, if_alpha(alpha, convex=true),
+    #    f_alpha(alpha, convex=true), df_alpha(alpha, convex=true))
 end
 
 function function_head_loss(wm::AbstractMICPModel)
     alpha = get_alpha_min_1(wm)
     f = JuMP.register(wm.model, :head_loss, 1, f_alpha(alpha, convex=true),
         df_alpha(alpha, convex=true), d2f_alpha(alpha, convex=true))
-    wm.fun[:head_loss] = (:head_loss, 1, f_alpha(alpha, convex=true),
-        df_alpha(alpha, convex=true), d2f_alpha(alpha, convex=true))
+    #wm.fun[:head_loss] = (:head_loss, 1, f_alpha(alpha, convex=true),
+    #    df_alpha(alpha, convex=true), d2f_alpha(alpha, convex=true))
 end
 
 function function_head_loss(wm::AbstractNCNLPModel)
     alpha = get_alpha_min_1(wm)
     f = JuMP.register(wm.model, :head_loss, 1, f_alpha(alpha, convex=false),
         df_alpha(alpha, convex=false), d2f_alpha(alpha, convex=false))
-    wm.fun[:head_loss] = (:head_loss, 1, f_alpha(alpha, convex=false),
-        df_alpha(alpha, convex=false), d2f_alpha(alpha, convex=false))
+    #wm.fun[:head_loss] = (:head_loss, 1, f_alpha(alpha, convex=false),
+    #    df_alpha(alpha, convex=false), d2f_alpha(alpha, convex=false))
 end
