@@ -3,16 +3,12 @@
 ########################################################################
 
 function constraint_source_head(wm::AbstractWaterModel, n::Int, i::Int, h_s::Float64)
-    h = var(wm, n, :h, i)
-    con(wm, n, :source_head)[i] = JuMP.@constraint(wm.model, h == h_s)
+    c = JuMP.@constraint(wm.model, var(wm, n, :h, i) == h_s)
+    con(wm, n, :source_head)[i] = c
 end
 
-function constraint_flow_conservation(wm::AbstractWaterModel, n::Int, i::Int,
-    a_fr::Array{Tuple{Int,Int,Int}}, a_to::Array{Tuple{Int,Int,Int}},
-    reservoirs::Array{Int}, tanks::Array{Int}, demands::Dict{Int,Float64})
-    q = var(wm, n, :q)
-    qr = var(wm, n, :qr)
-    qt = var(wm, n, :qt)
+function constraint_flow_conservation(wm::AbstractWaterModel, n::Int, i::Int, a_fr::Array{Tuple{Int,Int,Int}}, a_to::Array{Tuple{Int,Int,Int}}, reservoirs::Array{Int}, tanks::Array{Int}, demands::Dict{Int,Float64})
+    q, qr, qt = [var(wm, n, :q), var(wm, n, :qr), var(wm, n, :qt)]
 
     c = JuMP.@constraint(wm.model, sum(q[a] for (a, f, t) in a_to) -
         sum(q[a] for (a, f, t) in a_fr) == -sum(qr[id] for id in reservoirs) -
@@ -27,58 +23,6 @@ function constraint_link_volume(wm::AbstractWaterModel, n::Int, i::Int, elevatio
     c = JuMP.@constraint(wm.model, h - elevation == V * inv(surface_area))
     con(wm, n, :link_volume)[i] = c
 end
-
-#function constraint_head_loss_ub_pipe(wm::AbstractWaterModel, n::Int, a::Int, alpha, len, r_max)
-#    L = len
-#    r = r_max
-#
-#    dhp = var(wm, n, :dhp, a)
-#    qp = var(wm, n, :qp, a)
-#
-#    qp_ub = JuMP.upper_bound(qp)
-#    rhs_p = r * qp_ub^(alpha - 1.0) * qp
-#    con_p = JuMP.@constraint(wm.model, inv(L) * dhp - rhs_p <= 0.0)
-#    con(wm, n, :directed_head_loss_ub_pipe_p)[a] = con_p
-#
-#    dhn = var(wm, n, :dhn, a)
-#    qn = var(wm, n, :qn, a)
-#
-#    qn_ub = JuMP.upper_bound(qn)
-#    rhs_n = r * qn_ub^(alpha - 1.0) * qn
-#    con_n = JuMP.@constraint(wm.model, inv(L) * dhn - rhs_n <= 0.0)
-#    con(wm, n, :directed_head_loss_ub_pipe_n)[a] = con_n
-#end
-
-#function constraint_link_flow_ne(wm::AbstractUndirectedFlowModel, n::Int, a::Int)
-#    if !haskey(con(wm, n), :link_undirected_flow_ne)
-#        con(wm, n)[:link_undirected_flow_ne] = Dict{Int, JuMP.ConstraintRef}()
-#    end
-#
-#    qne = var(wm, n, :qne, a)
-#    q = var(wm, n, :q, a)
-#
-#    c = JuMP.@constraint(wm.model, sum(qne) == q)
-#    con(wm, n, :link_undirected_flow_ne)[a] = c
-#end
-#
-#function constraint_link_flow_ne(wm::AbstractDirectedFlowModel, n::Int, a::Int)
-#    if !haskey(con(wm, n), :link_directed_flow_n_ne)
-#        con(wm, n)[:link_directed_flow_p_ne] = Dict{Int, JuMP.ConstraintRef}()
-#        con(wm, n)[:link_directed_flow_n_ne] = Dict{Int, JuMP.ConstraintRef}()
-#    end
-#
-#    qp = var(wm, n, :qp, a)
-#    qn = var(wm, n, :qn, a)
-#
-#    qp_ne = var(wm, n, :qp_ne, a)
-#    qn_ne = var(wm, n, :qn_ne, a)
-#
-#    con_p = JuMP.@constraint(wm.model, sum(qp_ne) == qp)
-#    con(wm, n, :link_directed_flow_p_ne)[a] = con_p
-#
-#    con_n = JuMP.@constraint(wm.model, sum(qn_ne) == qn)
-#    con(wm, n, :link_directed_flow_n_ne)[a] = con_n
-#end
 
 function constraint_check_valve(wm::AbstractWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int)
     # Collect variables.
@@ -160,9 +104,7 @@ end
 
 function constraint_tank_state(wm::AbstractWaterModel, n_1::Int, n_2::Int, i::Int, time_step::Float64)
     qt = var(wm, n_1, :qt, i)
-    V_1 = var(wm, n_1, :V, i)
-    V_2 = var(wm, n_2, :V, i)
-
+    V_1, V_2 = [var(wm, n_1, :V, i), var(wm, n_2, :V, i)]
     c = JuMP.@constraint(wm.model, V_2 - V_1 + time_step * qt == 0.0)
     con(wm, n_2, :tank_state)[i] = c
 end

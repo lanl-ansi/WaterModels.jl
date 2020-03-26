@@ -3,6 +3,7 @@ Manifest.toml
 *.jl.cov
 *.jl.*.cov
 *.jl.mem
+*.html
 deps/deps.jl
 docs/build/
 docs/site/

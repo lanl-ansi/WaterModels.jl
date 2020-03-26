@@ -1,10 +1,11 @@
 @testset "Optimal Water Flow Problems" begin
     @testset "van Zyl network, multinetwork, NCNLP formulation." begin
-        network_data = WaterModels.parse_file("../test/data/epanet/van_zyl.inp")
-        mn_data = WaterModels.make_multinetwork(network_data)
-        wm = build_model(mn_data, NCNLPWaterModel, WaterModels.post_mn_owf, multinetwork=true)
-        f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
-        juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver=ipopt, registered_functions=[f], log_levels=[])
-        solution = WaterModels.optimize_model!(wm, juniper) # Currently infeasible.
+        data = parse_file("../test/data/epanet/van_zyl.inp")
+        mn_data = WaterModels.make_multinetwork(data)
+        wm = instantiate_model(mn_data, NCNLPWaterModel, WaterModels.post_mn_owf)
+        f = Juniper.register(head_loss_args(wm)..., autodiff=false)
+        juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
+            "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
+        solution = _IM.optimize_model!(wm, optimizer=juniper)
     end
 end

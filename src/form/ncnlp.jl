@@ -1,17 +1,16 @@
 # Define NCNLP (nonconvex nonlinear programming) implementations of water
 # distribution feasibility and optimization problem specifications.
 
-function constraint_head_loss_check_valve(wm::AbstractNCNLPModel, n::Int,
-    a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64) 
+function constraint_head_loss_check_valve(wm::AbstractNCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64) 
     q = var(wm, n, :q, a)
-    h_i = var(wm, n, :h, node_fr)
-    h_j = var(wm, n, :h, node_to)
     x_cv = var(wm, n, :x_cv, a)
+    h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
     dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
 
     lhs = JuMP.@NLexpression(wm.model, inv(L) * (h_i - h_j) - r * head_loss(q))
     c_1 = JuMP.@NLconstraint(wm.model, lhs <= 0.0)
     c_2 = JuMP.@NLconstraint(wm.model, lhs >= inv(L) * (1.0 - x_cv) * dh_lb)
+
     append!(con(wm, n, :head_loss)[a], [c_1, c_2])
 end
 
@@ -108,8 +107,8 @@ function objective_owf(wm::AbstractNCNLPModel)
     for (n, nw_ref) in nws(wm)
         pump_ids = ids(wm, n, :pump)
         costs = JuMP.@variable(wm.model, [a in pump_ids], base_name="costs[$(n)]",
-                               lower_bound=0.0,
-                               start=get_start(ref(wm, n, :pump), a, "costs", 0.0))
+                               lower_bound=0.0)
+                               #start=get_start(ref(wm, n, :pump), a, "costs", 0.0))
 
         efficiency = 0.85 # TODO: Change this after discussion. 0.85 follows Fooladivanda.
         rho = 1000.0 # Water density (kilogram per cubic meter).

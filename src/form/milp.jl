@@ -136,6 +136,7 @@ function constraint_head_loss_pipe_ne(wm::AbstractMILPModel, n::Int, a::Int, alp
     if n_b > 0
         h_i = var(wm, n, :h, node_fr)
         h_j = var(wm, n, :h, node_to)
+
         lambda = var(wm, n, :lambda)
         x_pw = var(wm, n, :x_pw)
         lhs = JuMP.AffExpr(0.0)

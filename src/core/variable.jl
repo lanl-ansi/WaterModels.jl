@@ -3,8 +3,13 @@
 ########################################################################
 
 "Sets the start value for a given variable."
-function comp_start_value(comp::Dict{String,<:Any}, key::String, default=0.0)
+function comp_start_value(comp::Dict{String,<:Any}, key::String, default::Float64=0.0)
     return get(comp, key, default)
+end
+
+"Sets the start value for a given variable."
+function comp_start_value(comp::Dict{String,<:Any}, key_1::String, key_2::Int64, default=0.0)
+    return key_1 in keys(comp) ? get(get(comp, key_1, default), key_2, default) : default
 end
 
 "Given a constant value, builds the standard componentwise solution structure."
@@ -153,14 +158,15 @@ end
 "Creates binary variables for all network expansion or design resistances in
 the network, i.e., `x_res[a]` for `a` in `pipe`, for `r` in `resistance[a]`,
 where one denotes that the given resistance is active in the design."
-function variable_resistance(wm::AbstractWaterModel; nw::Int=wm.cnw)
-    pipe_ids = ids(wm, nw, :pipe_ne)
-    var(wm, nw)[:x_res] = Dict{Int, Array{JuMP.VariableRef}}(a => [] for a in pipe_ids)
+function variable_resistance(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
+    x_res = var(wm, nw)[:x_res] = Dict{Int, Array{JuMP.VariableRef}}()
 
     for a in ids(wm, nw, :link_ne)
         n_r = length(ref(wm, nw, :resistance, a)) # Number of resistances.
         var(wm, nw, :x_res)[a] = JuMP.@variable(wm.model, [r in 1:n_r],
-            binary=true, base_name="x_res[$(nw)][$(a)]",
-            start=get_start(ref(wm, nw, :link_ne), a, r, "x_res_start", 0.0))
+            binary=true, base_name="$(nw)_x_res[$(a)]",
+            start=comp_start_value(ref(wm, nw, :link_ne, a), "x_res_start", r))
     end
+
+    report && sol_component_value(wm, nw, :pipe_ne, :x_res, ids(wm, nw, :pipe_ne), x_res)
 end

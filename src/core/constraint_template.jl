@@ -194,6 +194,14 @@ function constraint_head_gain_pump(wm::AbstractWaterModel, a::Int; nw::Int=wm.cn
         constraint_head_gain_pump(wm, nw, a, node_fr, node_to, curve_fun)
 end
 
+function constraint_energy_conservation(wm::AbstractWaterModel, nw::Int=wm.cnw)
+    alpha = ref(wm, nw, :alpha)
+    resistances = ref(wm, nw, :resistance)
+    lengths = Dict(a=>ref(wm, nw, :pipe, a)["length"] for a in ids(wm, nw, :pipe))
+    _initialize_con_dict(wm, :energy_conservation, nw=nw)
+    constraint_energy_conservation(wm, nw, resistances, lengths, alpha)
+end
+
 function constraint_pump_control(wm::AbstractWaterModel, a::Int, nw_1::Int, nw_2::Int)
     pump = ref(wm, nw_2, :pump, a)
 

@@ -13,20 +13,23 @@ function run_model(file::String, model_type::Type, optimizer, build_method; kwar
 end
 
 ""
-function run_model(data::Dict{String,<:Any}, model_type::Type, optimizer,
-    build_method; ref_extensions=[], solution_processors=[], kwargs...)
+function run_model(
+    data::Dict{String,<:Any}, model_type::Type, optimizer, build_method;
+    ref_extensions=[], solution_processors=[], kwargs...)
     wm = instantiate_model(data, model_type, build_method; ref_extensions=ref_extensions, kwargs...)
     return optimize_model!(wm, optimizer=optimizer, solution_processors=solution_processors)
 end
 
 ""
-function instantiate_model(file::String, model_type::Type, build_method; kwargs...)
+function instantiate_model(
+    file::String, model_type::Type, build_method; kwargs...)
     data = WaterModels.parse_file(file)
     return instantiate_model(data, model_type, build_method; kwargs...)
 end
 
 ""
-function instantiate_model(data::Dict{String,<:Any}, model_type::Type, build_method; kwargs...)
+function instantiate_model(
+    data::Dict{String,<:Any}, model_type::Type, build_method; kwargs...)
     return _IM.instantiate_model(data, model_type, build_method, ref_add_core!, _wm_global_keys; kwargs...)
 end
 

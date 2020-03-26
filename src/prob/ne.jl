@@ -66,4 +66,7 @@ function post_ne(wm::AbstractWaterModel)
         # Set the initial tank volume.
         constraint_tank_state(wm, i)
     end
+
+    # Add the energy conservation (primal-dual) constraint.
+    constraint_energy_conservation(wm)
 end
