@@ -2,32 +2,28 @@
 # distribution feasibility and optimization problem specifications.
 
 function constraint_head_loss_check_valve(wm::AbstractNCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64) 
+    # Gather common variables.
     q = var(wm, n, :q, a)
     x_cv = var(wm, n, :x_cv, a)
     h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
-    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
 
+    # Add the potentially-decoupled head loss constraints.
     lhs = JuMP.@NLexpression(wm.model, inv(L) * (h_i - h_j) - r * head_loss(q))
     c_1 = JuMP.@NLconstraint(wm.model, lhs <= 0.0)
+    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
     c_2 = JuMP.@NLconstraint(wm.model, lhs >= inv(L) * (1.0 - x_cv) * dh_lb)
-
     append!(con(wm, n, :head_loss)[a], [c_1, c_2])
 end
 
-function constraint_head_loss_pipe(wm::AbstractNCNLPModel, n::Int, a::Int,
-    alpha::Float64, node_fr::Int, node_to::Int, L::Float64, r::Float64) 
-    h_i = var(wm, n, :h, node_fr)
-    h_j = var(wm, n, :h, node_to)
+function constraint_head_loss_pipe(wm::AbstractNCNLPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     q = var(wm, n, :q, a)
-
+    h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
     c = JuMP.@NLconstraint(wm.model, r * head_loss(q) == inv(L) * (h_i - h_j))
     append!(con(wm, n, :head_loss)[a], [c])
 end
 
-function constraint_head_loss_pipe_ne(wm::AbstractNCNLPModel, n::Int, a::Int,
-    alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances)
-    h_i = var(wm, n, :h, node_fr)
-    h_j = var(wm, n, :h, node_to)
+function constraint_head_loss_pipe_ne(wm::AbstractNCNLPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances)
+    h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
     q_ne = var(wm, n, :q_ne, a)
 
     lhs = JuMP.@NLexpression(wm.model, sum(r * head_loss(q_ne[r_id]) for
@@ -37,50 +33,32 @@ function constraint_head_loss_pipe_ne(wm::AbstractNCNLPModel, n::Int, a::Int,
     append!(con(wm, n, :head_loss)[a], [c])
 end
 
-function get_curve_cut(curve_fun::Array{Float64}, q::JuMP.VariableRef,
-    x::JuMP.VariableRef, q_min::Float64, q_max::Float64)
+function get_curve_cut(curve_fun::Array{Float64}, q::JuMP.VariableRef, x::JuMP.VariableRef, q_min::Float64, q_max::Float64)
     g_1 = curve_fun[1]*q_min*q_min + curve_fun[2]*q_min + curve_fun[3]
     g_2 = curve_fun[1]*q_max*q_max + curve_fun[2]*q_max + curve_fun[3]
     m = (g_2 - g_1) / (q_max - q_min)
-    b = g_1 - m*q_min
-    return m * q + b * x
+    return m * q + (g_1 - m*q_min) * x
 end
 
 "Pump head gain constraint when the pump status is ambiguous."
-function constraint_head_gain_pump(wm::AbstractNCNLPModel, n::Int, a::Int,
-    node_fr::Int, node_to::Int, curve_fun::Array{Float64})
+function constraint_head_gain_pump(wm::AbstractNCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64})
     # Gather common variables.
-    q = var(wm, n, :q, a)
-    g = var(wm, n, :g, a)
-    h_i = var(wm, n, :h, node_fr)
-    h_j = var(wm, n, :h, node_to)
     x_pump = var(wm, n, :x_pump, a)
-    q_ub = JuMP.has_upper_bound(q) ? JuMP.upper_bound(q) : 10.0
+    q, g = [var(wm, n, :q, a), var(wm, n, :g, a)]
+    h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
 
-    # Define the head gain caused by the pump.
-    q_min = 1.0e-4
-    q_max = (-curve_fun[2] + sqrt(curve_fun[2]^2 - 4.0*curve_fun[1]*curve_fun[3])) / (2.0*curve_fun[1])
-    q_max = max(q_max, (-curve_fun[2] - sqrt(curve_fun[2]^2 - 4.0*curve_fun[1]*curve_fun[3])) / (2.0*curve_fun[1]))
-    q_max = min(q_max, JuMP.upper_bound(q))
-
-    ## TODO: Move this upper bound calculation somewhere else.
-    #JuMP.set_upper_bound(q, q_max)
-
-    # Add relaxation constraints.
-    c_1 = JuMP.@constraint(wm.model, curve_fun[1]*q*q + curve_fun[2]*q + curve_fun[3]*x_pump == g)
-    #c_1 = JuMP.@constraint(wm.model, g <= curve_fun[1]*q*q + curve_fun[2]*q + curve_fun[3]*x_pump)
-    #c_2 = JuMP.@constraint(wm.model, g >= get_curve_cut(curve_fun, q, x_pump, q_min, q_max))
-
-    # Get head difference lower bounds.
-    dh_lb = JuMP.lower_bound(h_j) - JuMP.upper_bound(h_i)
-    dh_ub = JuMP.upper_bound(h_j) - JuMP.lower_bound(h_i)
+    # Add constraint equating the head gain variable.
+    g_expr = curve_fun[1]*q*q + curve_fun[2]*q + curve_fun[3]*x_pump
+    c_1 = JuMP.@constraint(wm.model, g_expr == g)
 
     # If the pump is off, decouple the head difference relationship.
+    dh_lb = JuMP.lower_bound(h_j) - JuMP.upper_bound(h_i)
     c_3 = JuMP.@constraint(wm.model, (h_j - h_i) - g >= dh_lb * (1.0 - x_pump))
+    dh_ub = JuMP.upper_bound(h_j) - JuMP.lower_bound(h_i)
     c_4 = JuMP.@constraint(wm.model, (h_j - h_i) - g <= dh_ub * (1.0 - x_pump))
 
     # If the pump is off, the flow along the pump must be zero.
-    c_5 = JuMP.@constraint(wm.model, q <= q_ub * x_pump)
+    c_5 = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * x_pump)
     c_6 = JuMP.@constraint(wm.model, q >= 6.31465679e-6 * x_pump)
 
     # Append the constraint array.
@@ -88,12 +66,10 @@ function constraint_head_gain_pump(wm::AbstractNCNLPModel, n::Int, a::Int,
 end
 
 "Pump head gain constraint when the pump is forced to be on."
-function constraint_head_gain_pump_on(wm::AbstractNCNLPModel, n::Int, a::Int,
-    node_fr::Int, node_to::Int, curve_fun::Array{Float64})
+function constraint_head_gain_pump_on(wm::AbstractNCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64})
     # Gather common variables.
     q = var(wm, n, :q, a)
-    h_i = var(wm, n, :h, node_fr)
-    h_j = var(wm, n, :h, node_to)
+    h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
 
     # Define the head difference relationship when the pump is on (h_j >= h_i).
     lhs = curve_fun[1]*q*q + curve_fun[2]*q + curve_fun[3]
@@ -101,6 +77,7 @@ function constraint_head_gain_pump_on(wm::AbstractNCNLPModel, n::Int, a::Int,
     con(wm, n, :head_gain)[a] = [c]
 end
 
+"Objective for the nonconvex optimal water flow problem."
 function objective_owf(wm::AbstractNCNLPModel) 
     expr = JuMP.AffExpr(0.0)
 

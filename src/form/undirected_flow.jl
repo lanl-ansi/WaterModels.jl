@@ -76,26 +76,6 @@ function constraint_resistance_selection_ne(wm::AbstractUndirectedFlowModel, n::
     end
 end
 
-function constraint_check_valve(wm::AbstractUndirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int)
-    # Get common variables and data.
-    q = var(wm, n, :q, a)
-    x_cv = var(wm, n, :x_cv, a)
-    h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
-    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
-    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
-
-    # If the check valve is open, flow must be appreciably nonnegative.
-    c_1 = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * x_cv)
-    c_2 = JuMP.@constraint(wm.model, q >= 6.31465679e-6 * x_cv)
-
-    # If the check valve is open, the head difference must be nonnegative.
-    c_3 = JuMP.@constraint(wm.model, h_i - h_j >= (1.0 - x_cv) * dh_lb)
-    c_4 = JuMP.@constraint(wm.model, h_i - h_j <= x_cv * dh_ub)
-
-    # Append the above to the constraint dictionary.
-    append!(con(wm, n, :check_valve)[a], [c_1, c_2, c_3, c_4])
-end
-
 function constraint_flow_direction_selection(wm::AbstractUndirectedFlowModel, n::Int, a::Int) end
 function constraint_flow_direction_selection_ne(wm::AbstractUndirectedFlowModel, n::Int, a::Int, pipe_resistances) end
 function constraint_head_difference(wm::AbstractUndirectedFlowModel, n::Int, a::Int, node_fr, node_to, head_fr, head_to)  end

@@ -1,0 +1,146 @@
+[TITLE]
+ Mini
+
+[JUNCTIONS]
+;ID    Elev     Demand       Pattern
+ n1     10      0                     ;
+ n2     10      0                     ;
+ n3     75      0                     ;
+ n6     30      100           pattern3;
+ n5     30      50            pattern3;
+ n12    10      0                     ;
+ n13    10      0                     ;
+ n10    10      0                     ;
+ n11    10      0                     ;
+ n361   100     0                     ;
+ n365   100     0                     ;
+ n362   100     0                     ;
+ n364   100     0                     ;
+
+[RESERVOIRS]
+;ID     Head     Pattern
+ O      20              ;
+
+[TANKS]
+;ID     Elevation     InitLevel     MinLevel     MaxLevel     Diameter     MinVol
+ A      80            4.5           0            5            25           0
+ B      85            9.5           0            10           20           0
+
+[PIPES]
+;ID     Node1     Node2     Length     Diam   Roughness   MinorLoss   Status
+ p1     O         n1        1          1000   100         0           Open  ;
+ p2     n2        n3        2600       450    100         0           Open  ;
+ p3     n3        A         1000       350    100         0           Open  ;
+ p4     n365      B         2000       350    100         0           Open  ;
+ p6     B         n6        1100       300    100         0           Open  ;
+ p5     A         n5        500        300    100         0           Open  ;
+ p7     n6        n5        1          200    100         0           Open  ;
+ p12    n1        n12       1          1000   100         0           Open  ;
+ p10    n1        n10       1          1000   100         0           Open  ;
+ p11    n11       n2        1          1000   100         0           Open  ;
+ p13    n13       n2        1          1000   100         0           Open  ;
+ p361   n361      n362      1          1000   100         0           Open  ;
+ p364   n364      n365      1          1000   100         0           Open  ;
+ p18    n3        n361      1          1000   100         0           Open  ;
+ p19    n361      n365      1          1000   100         0           CV    ;
+
+[PUMPS]
+;ID     Node1     Node2     Parameters
+ 1A     n10       n11       HEAD 1    ;
+ 2B     n12       n13       HEAD 1    ;
+ 3B     n362      n364      HEAD 6    ;
+
+[STATUS]
+;ID     Status/Setting
+ 2B     Closed
+ 3B     Closed
+
+[PATTERNS]
+;ID           Multipliers
+;
+ pattern3     0.620000 0.620000 0.670000
+;
+ pumptariff   0.024400 0.024400 0.024400
+
+[CURVES]
+;ID     X-Value     Y-Value
+;PUMP:   
+ 1      0          100
+ 1      120        90
+ 1      150        83
+;PUMP:   
+ 6      0          120
+ 6      90         75
+ 6      150        0
+;PUMP:   
+ 1eff   50         78
+ 1eff   107        80
+ 1eff   151        68
+ 1eff   200        60
+
+[CONTROLS]
+
+[ENERGY]
+ Global Efficiency      85.0
+ Global Price           0.0
+ Demand Charge          0.0
+ Pump   1A              Efficiency  1eff
+ Pump   1A              Price       1.0
+ Pump   1A              Pattern     pumptariff
+ Pump   2B              Efficiency  1eff
+ Pump   2B              Price       1.0
+ Pump   2B              Pattern     pumptariff
+ Pump   3B              Efficiency  1eff
+ Pump   3B              Price       1.0
+ Pump   3B              Pattern     pumptariff
+
+[TIMES]
+ Duration             3:00
+ Hydraulic Timestep   1:00
+ Pattern Timestep     1:00
+ Pattern Start        7:00
+ Report Timestep      1:00
+ Report Start         0:00
+ Start ClockTime      12 am
+ Statistic            NONE
+
+[REPORT]
+ Status   Full
+ Summary  No
+ Page     0
+
+[OPTIONS]
+ Units                 LPS
+ Headloss              H-W
+ Specific Gravity      1
+ Viscosity             1
+ Trials                40
+ Accuracy              0.00001
+ Unbalanced            Continue 10
+ Pattern               pattern3
+ Demand Multiplier     1.0
+ Emitter Exponent      0.5
+ Quality               None mg/L
+ Diffusivity           1
+ Tolerance             0.01
+
+[COORDINATES]
+;Node     X-Coord     Y-Coord
+ n1       11.74       55.48
+ n2       20.58       55.65
+ n3       40.84       68.19
+ n6       67.71       77.08
+ n5       67.58       75.67
+ n12      13.91       56.57
+ n13      18.08       56.57
+ n10      13.91       53.98
+ n11      18.24       53.98
+ n361     43.27       71.21
+ n365     45.94       74.71
+ n362     41.43       72.87
+ n364     43.93       76.54
+ O        7.74        55.48
+ A        57.55       69.27
+ B        56.78       88.32
+
+[END]

@@ -27,16 +27,6 @@ function calc_resistances_hw(links::Dict{<:Any, <:Any})
     return resistances
 end
 
-function get_num_resistances(link::Dict{String, <:Any})
-    if haskey(link, "resistances")
-        return length(link["resistances"])
-    elseif haskey(link, "diameters")
-        return length(link["diameters"])
-    else
-        return 1
-    end
-end
-
 function calc_resistance_dw(diameter::Float64, roughness::Float64, viscosity::Float64, speed::Float64, density::Float64)
     # Compute Reynold's number.
     reynolds_number = density * speed * diameter * inv(viscosity)
@@ -172,30 +162,6 @@ end
 
 function is_ne_link(link::Pair{String, <:Any})
     return any([x in ["diameters", "resistances"] for x in keys(link.second)])
-end
-
-function is_out_node(i::Int)
-    return function (link::Pair{Int, <:Any})
-        return link.second["node_fr"] == i
-    end
-end
-
-function is_in_node(i::Int)
-    return function (link::Pair{Int, <:Any})
-        return link.second["node_to"] == i
-    end
-end
-
-
-"""
-Turns in given single network data in multinetwork data with a `count`
-replicate of the given network. Note that this function performs a deepcopy of
-the network data. Significant multinetwork space savings can often be achieved
-by building application specific methods of building multinetwork with minimal
-data replication.
-"""
-function replicate(data::Dict{String, <:Any}, count::Int; global_keys::Set{String}=Set{String}())
-    return InfrastructureModels.replicate(data, count, union(global_keys, _wm_global_keys))
 end
 
 "turns a single network and a time_series data block into a multi-network"

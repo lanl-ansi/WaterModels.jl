@@ -22,15 +22,14 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     nodes = ref(wm, n, :node)
     tanks = ref(wm, n, :tank)
     reservoirs = ref(wm, n, :reservoir)
+    max_elev = maximum(node["elevation"] for (i, node) in nodes)
 
-    if length(tanks) > 0
-        max_elev = maximum(node["elevation"] for (i, node) in nodes)
-        max_elev += maximum(tank["max_level"] for (i, tank) in tanks)
-    else
-        max_elev = maximum(node["elevation"] for (i, node) in nodes)
+    # Add potential contributions from tanks to max_elev.
+    for (i, tank) in ref(wm, n, :tank)
+        max_elev += tank["max_level"] - tank["min_level"]
     end
 
-    # Add head gains from pumps in the network to max_elev.
+    # Add potential gains from pumps in the network to max_elev.
     for (a, pump) in ref(wm, n, :pump)
         pump_curve = ref(wm, n, :pump, a)["pump_curve"]
         c = _get_function_from_pump_curve(pump_curve)
@@ -47,6 +46,15 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
             head_min[i] = max(node["elevation"], node["minimumHead"])
         else
             head_min[i] = node["elevation"]
+
+            num_junctions = length(ref(wm, n, :node_junction, i))
+            num_reservoirs = length(ref(wm, n, :node_reservoir, i))
+            num_tanks = length(ref(wm, n, :node_tank, i))
+
+            # If the node has zero demand, pressures can be negative.
+            if num_junctions + num_reservoirs + num_tanks == 0
+                head_min[i] -= 100.0
+            end
         end
 
         # The maximum head at junctions must be below the max elevation.
@@ -98,19 +106,19 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     for (a, pipe) in ref(wm, n, :pipe)
         L = pipe["length"]
         i, j = [pipe["node_fr"], pipe["node_to"]]
-        dh_lb, dh_ub = [h_lb[i] - h_ub[j], h_ub[i] - h_lb[j]]
+
         resistances = ref(wm, n, :resistance, a)
         num_resistances = length(resistances)
 
-        lb[a] = zeros(num_resistances)
-        ub[a] = zeros(num_resistances)
+        dh_lb, dh_ub = [h_lb[i] - h_ub[j], h_ub[i] - h_lb[j]]
+        lb[a], ub[a] = [zeros(num_resistances), zeros(num_resistances)]
 
         for (r_id, r) in enumerate(resistances)
             lb[a][r_id] = sign(dh_lb) * (abs(dh_lb) * inv(L*r))^inv(alpha)
-            #lb[a][r_id] = max(lb[a][r_id], -sum_demand)
+            lb[a][r_id] = max(lb[a][r_id], -sum_demand)
 
             ub[a][r_id] = sign(dh_ub) * (abs(dh_ub) * inv(L*r))^inv(alpha)
-            #ub[a][r_id] = min(ub[a][r_id], sum_demand)
+            ub[a][r_id] = min(ub[a][r_id], sum_demand)
 
             if pipe["flow_direction"] == POSITIVE || has_check_valve(pipe)
                 lb[a][r_id] = max(lb[a][r_id], 0.0)
@@ -120,8 +128,7 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
 
             if haskey(pipe, "diameters") && haskey(pipe, "maximumVelocity")
                 D_a = pipe["diameters"][r_id]["diameter"]
-                v_a = pipe["maximumVelocity"]
-                rate_bound = 0.25 * pi * v_a * D_a * D_a
+                rate_bound = 0.25 * pi * pipe["maximumVelocity"] * D_a * D_a
                 lb[a][r_id] = max(lb[a][r_id], -rate_bound)
                 ub[a][r_id] = min(ub[a][r_id], rate_bound)
             end

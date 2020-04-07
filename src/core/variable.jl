@@ -12,32 +12,11 @@ function comp_start_value(comp::Dict{String,<:Any}, key_1::String, key_2::Int64,
     return key_1 in keys(comp) ? get(get(comp, key_1, default), key_2, default) : default
 end
 
-"Given a constant value, builds the standard componentwise solution structure."
-function sol_component_fixed(wm::AbstractWaterModel, n::Int, comp_name::Symbol, field_name::Symbol, comp_ids, constant)
-    for i in comp_ids
-        @assert !haskey(sol(wm, n, comp_name, i), field_name)
-        sol(wm, n, comp_name, i)[field_name] = constant
-    end
-end
-
 "Given a variable that is indexed by component IDs, builds the standard solution structure."
 function sol_component_value(wm::AbstractWaterModel, n::Int, comp_name::Symbol, field_name::Symbol, comp_ids, variables)
     for i in comp_ids
         @assert !haskey(sol(wm, n, comp_name, i), field_name)
         sol(wm, n, comp_name, i)[field_name] = variables[i]
-    end
-end
-
-"Maps asymmetric edge variables into components."
-function sol_component_value_edge(wm::AbstractWaterModel, n::Int, comp_name::Symbol, field_name_fr::Symbol, field_name_to::Symbol, comp_ids_fr, comp_ids_to, variables)
-    for (l, i, j) in comp_ids_fr
-        @assert !haskey(sol(wm, n, comp_name, l), field_name_fr)
-        sol(wm, n, comp_name, l)[field_name_fr] = variables[(l, i, j)]
-    end
-
-    for (l, i, j) in comp_ids_to
-        @assert !haskey(sol(wm, n, comp_name, l), field_name_to)
-        sol(wm, n, comp_name, l)[field_name_to] = variables[(l, i, j)]
     end
 end
 
@@ -59,6 +38,13 @@ function variable_head(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=tru
     end
 
     report && sol_component_value(wm, nw, :node, :h, ids(wm, nw, :node), h)
+
+    # Create expressions that calculate pressures.
+    p = var(wm, nw)[:p] = JuMP.@expression(wm.model,
+        [i in ids(wm, nw, :node)],
+        var(wm, nw, :h, i) - ref(wm, nw, :node, i)["elevation"])
+
+    report && sol_component_value(wm, nw, :node, :p, ids(wm, nw, :node), p)
 end
 
 "Creates head gain variables corresponding to all pumps in the network, i.e.,
@@ -85,8 +71,8 @@ end
 "Creates outgoing flow variables for all tanks in the network, i.e., `qt[i]`
 for `i` in `tank`. Note that, unlike reservoirs, tanks can have inflow."
 function variable_tank(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
-    qt = var(wm, nw)[:qt] = JuMP.@variable(wm.model, [i in ids(wm, nw, :tank)],
-        base_name="$(nw)_qt",
+    qt = var(wm, nw)[:qt] = JuMP.@variable(wm.model,
+        [i in ids(wm, nw, :tank)], base_name="$(nw)_qt",
         start=comp_start_value(ref(wm, nw, :tank, i), "qt_start"))
 
     report && sol_component_value(wm, nw, :tank, :qt, ids(wm, nw, :tank), qt)
@@ -105,6 +91,14 @@ function variable_volume(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=t
         for (i, tank) in ref(wm, nw, :tank)
             JuMP.set_lower_bound(V[i], V_lb[i])
             JuMP.set_upper_bound(V[i], V_ub[i])
+
+            # Ensure the start value resides within these bounds.
+            start = JuMP.start_value(V[i])
+
+            if !(start >= V_lb[i] && start <= V_ub[i])
+                start = V_lb[i] + 0.5 * (V_ub[i] - V_lb[i])
+                JuMP.set_start_value(V[i], start)
+            end
         end
     end
 

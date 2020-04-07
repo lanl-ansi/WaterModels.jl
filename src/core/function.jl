@@ -39,7 +39,7 @@ function d2f_alpha(alpha::Float64; convex::Bool=false)
         end
     else
         return function(x::Float64)
-            return sign(x) * alpha * (1.0 + alpha) * (x*x)^(0.5*alpha - 0.5)
+            return x != 0.0 ? sign(x) * alpha * (1.0 + alpha) * (x*x)^(0.5*alpha - 0.5) : prevfloat(Inf)
         end
     end
 end
@@ -119,7 +119,8 @@ function dual_energy_args(wm::AbstractMICPModel)
 end
 
 # By default, head loss is not defined by nonlinear registered functions.
-function function_head_loss(wm::AbstractWaterModel) end
+function function_head_loss(wm::AbstractWaterModel)
+end
 
 function function_head_loss(wm::AbstractNonlinearForms)
     JuMP.register(wm.model, head_loss_args(wm)...)

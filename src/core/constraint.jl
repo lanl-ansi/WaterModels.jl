@@ -10,16 +10,15 @@ end
 function constraint_flow_conservation(wm::AbstractWaterModel, n::Int, i::Int, a_fr::Array{Tuple{Int,Int,Int}}, a_to::Array{Tuple{Int,Int,Int}}, reservoirs::Array{Int}, tanks::Array{Int}, demands::Dict{Int,Float64})
     q, qr, qt = [var(wm, n, :q), var(wm, n, :qr), var(wm, n, :qt)]
 
-    c = JuMP.@constraint(wm.model, sum(q[a] for (a, f, t) in a_to) -
-        sum(q[a] for (a, f, t) in a_fr) == -sum(qr[id] for id in reservoirs) -
-        sum(qt[id] for id in tanks) + sum(demand for (id, demand) in demands))
+    c = JuMP.@constraint(wm.model, sum(q[a] for (a, f, t) in a_to)
+        - sum(q[a] for (a, f, t) in a_fr) == -sum(qr[id] for id in reservoirs)
+        - sum(qt[id] for id in tanks) + sum(demand for (id, demand) in demands))
 
     con(wm, n, :flow_conservation)[i] = c
 end
 
 function constraint_link_volume(wm::AbstractWaterModel, n::Int, i::Int, elevation::Float64, surface_area::Float64)
-    h = var(wm, n, :h, i)
-    V = var(wm, n, :V, i)
+    h, V = [var(wm, n, :h, i), var(wm, n, :V, i)]
     c = JuMP.@constraint(wm.model, h - elevation == V * inv(surface_area))
     con(wm, n, :link_volume)[i] = c
 end
@@ -27,19 +26,18 @@ end
 function constraint_check_valve(wm::AbstractWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int)
     # Collect variables.
     q = var(wm, n, :q, a)
-    h_i = var(wm, n, :h, node_fr)
-    h_j = var(wm, n, :h, node_to)
+    h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
     x_cv = var(wm, n, :x_cv, a)
 
     # If the check valve is open, flow must be appreciably nonnegative.
     c_1 = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * x_cv)
     c_2 = JuMP.@constraint(wm.model, q >= 6.31465679e-6 * x_cv)
 
-    ## TODO: These constraints seem to result in infeasibility in multiperiod Richmond case.
-    #dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
-    #dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
-    #c_3 = JuMP.@constraint(wm.model, h_i - h_j >= (1.0 - x_cv) * dh_lb)
-    #c_4 = JuMP.@constraint(wm.model, h_i - h_j <= 0.0)
+    # TODO: These constraints seem to result in infeasibility in multiperiod Richmond case.
+    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
+    c_3 = JuMP.@constraint(wm.model, h_i - h_j >= (1.0 - x_cv) * dh_lb)
+    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
+    c_4 = JuMP.@constraint(wm.model, h_i - h_j <= x_cv * dh_ub)
 
     append!(con(wm, n, :check_valve)[a], [c_1, c_2, c_3, c_4])
 end
@@ -53,12 +51,7 @@ function constraint_source_flow(wm::AbstractWaterModel, n::Int, i::Int, links) e
 # no generic implementation available
 function constraint_head_gain_pump(wm::AbstractWaterModel, n::Int, a::Int) end
 
-# no generic implementation available
-#function constraint_head_gain_pump_quadratic_fit(wm::AbstractWaterModel, n::Int, i::Int)
-#end
-
-function constraint_pump_control_tank(wm::AbstractWaterModel, n_1::Int,
-    n_2::Int, a::Int, i::Int, lt::Float64, gt::Float64, elevation::Float64)
+function constraint_pump_control_tank(wm::AbstractWaterModel, n_1::Int, n_2::Int, a::Int, i::Int, lt::Float64, gt::Float64, elevation::Float64)
     h = var(wm, n_2, :h, i)
     x_p = var(wm, n_2, :x_pump, a)
     x_lt = var(wm, n_2, :x_thrs_lt, a)
@@ -103,8 +96,15 @@ function constraint_tank_state_initial(wm::AbstractWaterModel, n::Int, i::Int, V
 end
 
 function constraint_tank_state(wm::AbstractWaterModel, n_1::Int, n_2::Int, i::Int, time_step::Float64)
-    qt = var(wm, n_1, :qt, i)
+    qt = var(wm, n_1, :qt, i) # Tank outflow.
     V_1, V_2 = [var(wm, n_1, :V, i), var(wm, n_2, :V, i)]
-    c = JuMP.@constraint(wm.model, V_2 - V_1 + time_step * qt == 0.0)
+    c = JuMP.@constraint(wm.model, V_1 - time_step * qt == V_2)
     con(wm, n_2, :tank_state)[i] = c
+end
+
+function constraint_recover_volume(wm::AbstractWaterModel, i::Int, n_1::Int, n_f::Int)
+    _initialize_con_dict(wm, :recover_volume, nw=n_f)
+    V_1, V_f = [var(wm, n_1, :V, i), var(wm, n_f, :V, i)]
+    c = JuMP.@constraint(wm.model, V_f >= V_1)
+    con(wm, n_f, :recover_volume)[i] = c
 end

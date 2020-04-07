@@ -33,11 +33,6 @@ function instantiate_model(
     return _IM.instantiate_model(data, model_type, build_method, ref_add_core!, _wm_global_keys; kwargs...)
 end
 
-""
-function build_ref(data::Dict{String,<:Any}; ref_extensions=[], kwargs...)
-    return _IM.build_ref(data, ref_add_core!, _wm_global_keys, ref_extensions=ref_extensions)
-end
-
 """
 Returns a dict that stores commonly-used, precomputed data from of the data
 dictionary, primarily for converting data types, filtering out deactivated
