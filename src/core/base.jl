@@ -13,9 +13,7 @@ function run_model(file::String, model_type::Type, optimizer, build_method; kwar
 end
 
 ""
-function run_model(
-    data::Dict{String,<:Any}, model_type::Type, optimizer, build_method;
-    ref_extensions=[], solution_processors=[], kwargs...)
+function run_model(data::Dict{String,<:Any}, model_type::Type, optimizer, build_method; ref_extensions=[], solution_processors=[], kwargs...)
     wm = instantiate_model(data, model_type, build_method; ref_extensions=ref_extensions, kwargs...)
     return optimize_model!(wm, optimizer=optimizer, solution_processors=solution_processors)
 end

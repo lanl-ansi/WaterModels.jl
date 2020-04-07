@@ -3,8 +3,8 @@
 # When q is nonnegative, flow is assumed to travel from i to j. When q is
 # negative, flow is assumed to travel from j to i.
 
-"Create flow variables for undirected flow formulations."
-function variable_flow(wm::AbstractUndirectedFlowModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+"Create common flow variables for undirected flow formulations."
+function variable_flow_common(wm::AbstractUndirectedFlowModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
     # Initialize the variables. (The default start value of 1.0e-6 is crucial.)
     q = var(wm, nw)[:q] = JuMP.@variable(wm.model,
         [a in ids(wm, nw, :link_fixed)], base_name="$(nw)_q",
@@ -21,6 +21,11 @@ function variable_flow(wm::AbstractUndirectedFlowModel; nw::Int=wm.cnw, bounded:
 
     # Initialize the solution reporting data structures.
     report && sol_component_value(wm, nw, :link, :q, ids(wm, nw, :link_fixed), q)
+end
+
+"Default implementation for creating flow variables for undirected flow formulations."
+function variable_flow(wm::AbstractUndirectedFlowModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+    variable_flow_common(wm, nw=nw, bounded=bounded, report=report)
 end
 
 "Create network expansion flow variables for undirected flow formulations."
