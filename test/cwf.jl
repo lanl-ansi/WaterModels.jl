@@ -34,7 +34,7 @@
         mn_data = WaterModels.make_multinetwork(data)
 
         # The CNLP formulation does not support tanks, so an error is thrown.
-        @test_throws ErrorException build_model(mn_data, CNLPWaterModel, WaterModels.post_mn_cwf, multinetwork=true)
+        @test_throws ErrorException build_model(mn_data, CNLPWaterModel, WaterModels.build_mn_cwf, multinetwork=true)
     end
 
     @testset "Richmond (single time) network, CNLP formulation." begin
@@ -47,7 +47,7 @@
         mn_data = WaterModels.make_multinetwork(data)
 
         # The CNLP formulation does not support tanks, so an error is thrown.
-        @test_throws ErrorException build_model(mn_data, CNLPWaterModel, WaterModels.post_mn_cwf, multinetwork=true)
+        @test_throws ErrorException build_model(mn_data, CNLPWaterModel, WaterModels.build_mn_cwf, multinetwork=true)
     end
 
     @testset "Shamir network, CNLP formulation." begin
@@ -63,7 +63,7 @@
     @testset "Shamir network, multinetwork CNLP formulation." begin
         data = WaterModels.parse_file("../test/data/epanet/shamir-ts.inp")
         mn_data = WaterModels.make_multinetwork(data)
-        wm = build_model(mn_data, CNLPWaterModel, WaterModels.post_mn_cwf, multinetwork=true)
+        wm = build_model(mn_data, CNLPWaterModel, WaterModels.build_mn_cwf, multinetwork=true)
         solution = optimize_model!(wm, ipopt)
 
         @test solution["termination_status"] == LOCALLY_SOLVED
@@ -82,7 +82,7 @@
         data = WaterModels.parse_file("../test/data/epanet/balerma.inp")
         modifications = WaterModels.parse_file("../test/data/json/balerma.json")
         InfrastructureModels.update_data!(data, modifications)
-        wm = build_model(data, MICPWaterModel, WaterModels.post_cwf)
+        wm = build_model(data, MICPWaterModel, WaterModels.build_cwf)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
 
@@ -93,7 +93,7 @@
 
     @testset "Example 1 network (with tanks and pumps), MICP formulation." begin
         data = WaterModels.parse_file("../test/data/epanet/example_1-sp.inp")
-        wm = build_model(data, MICPWaterModel, WaterModels.post_cwf)
+        wm = build_model(data, MICPWaterModel, WaterModels.build_cwf)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         solution = WaterModels.optimize_model!(wm, juniper)
@@ -103,7 +103,7 @@
     @testset "Example 1 network (with tanks and pumps), multinetwork MICP formulation." begin
         data = WaterModels.parse_file("../test/data/epanet/example_1.inp")
         mn_data = WaterModels.make_multinetwork(data)
-        wm = build_model(mn_data, MICPWaterModel, WaterModels.post_mn_cwf, multinetwork=true)
+        wm = build_model(mn_data, MICPWaterModel, WaterModels.build_mn_cwf, multinetwork=true)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         solution = WaterModels.optimize_model!(wm, juniper)
@@ -112,7 +112,7 @@
 
     @testset "Richmond (single time) network, MICP formulation." begin
         data = WaterModels.parse_file("../test/data/epanet/richmond-skeleton-sp.inp")
-        wm = build_model(data, MICPWaterModel, WaterModels.post_cwf)
+        wm = build_model(data, MICPWaterModel, WaterModels.build_cwf)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         # TODO: The below takes too long to execute.
@@ -123,7 +123,7 @@
     @testset "Richmond network, multinetwork MICP formulation." begin
         data = WaterModels.parse_file("../test/data/epanet/richmond-skeleton.inp")
         mn_data = WaterModels.make_multinetwork(data)
-        wm = build_model(mn_data, MICPWaterModel, WaterModels.post_mn_cwf, multinetwork=true)
+        wm = build_model(mn_data, MICPWaterModel, WaterModels.build_mn_cwf, multinetwork=true)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         # TODO: The below takes too long to execute.
@@ -133,7 +133,7 @@
 
     @testset "Shamir network, MICP formulation." begin
         data = WaterModels.parse_file("../test/data/epanet/shamir.inp")
-        wm = build_model(data, MICPWaterModel, WaterModels.post_cwf)
+        wm = build_model(data, MICPWaterModel, WaterModels.build_cwf)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         solution = WaterModels.optimize_model!(wm, juniper)
@@ -143,7 +143,7 @@
     @testset "Shamir network, multinetwork MICP formulation." begin
         data = WaterModels.parse_file("../test/data/epanet/shamir-ts.inp")
         mn_data = WaterModels.make_multinetwork(data)
-        wm = build_model(mn_data, MICPWaterModel, WaterModels.post_mn_cwf, multinetwork=true)
+        wm = build_model(mn_data, MICPWaterModel, WaterModels.build_mn_cwf, multinetwork=true)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         solution = WaterModels.optimize_model!(wm, juniper)
@@ -153,7 +153,7 @@
     @testset "Shamir network (with tank), multinetwork MICP formulation." begin
         data = WaterModels.parse_file("../test/data/epanet/shamir-ts-tank.inp")
         mn_data = WaterModels.make_multinetwork(data)
-        wm = build_model(mn_data, MICPWaterModel, WaterModels.post_mn_cwf, multinetwork=true)
+        wm = build_model(mn_data, MICPWaterModel, WaterModels.build_mn_cwf, multinetwork=true)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         solution = WaterModels.optimize_model!(wm, juniper)
@@ -165,7 +165,7 @@
         modifications = WaterModels.parse_file("../test/data/json/balerma.json")
         InfrastructureModels.update_data!(data, modifications)
         ext = Dict(:num_breakpoints => 5)
-        wm = build_model(data, MILPRWaterModel, WaterModels.post_cwf, ext=ext)
+        wm = build_model(data, MILPRWaterModel, WaterModels.build_cwf, ext=ext)
         solution = WaterModels.optimize_model!(wm, cbc)
         @test solution["termination_status"] == OPTIMAL
     end
@@ -180,7 +180,7 @@
         data = WaterModels.parse_file("../test/data/epanet/example_1.inp")
         mn_data = WaterModels.make_multinetwork(data)
         ext = Dict(:num_breakpoints => 5)
-        wm = build_model(mn_data, MILPRWaterModel, WaterModels.post_mn_cwf, multinetwork=true, ext=ext)
+        wm = build_model(mn_data, MILPRWaterModel, WaterModels.build_mn_cwf, multinetwork=true, ext=ext)
         solution = WaterModels.optimize_model!(wm, cbc)
         @test solution["termination_status"] == OPTIMAL
     end
@@ -195,7 +195,7 @@
     #    data = WaterModels.parse_file("../test/data/epanet/richmond-skeleton.inp")
     #    mn_data = WaterModels.make_multinetwork(data)
     #    ext = Dict(:num_breakpoints => 5)
-    #    wm = build_model(mn_data, MILPRWaterModel, WaterModels.post_mn_cwf, multinetwork=true, ext=ext)
+    #    wm = build_model(mn_data, MILPRWaterModel, WaterModels.build_mn_cwf, multinetwork=true, ext=ext)
     #    solution = WaterModels.optimize_model!(wm, cbc)
     #    @test solution["termination_status"] == OPTIMAL
     #end
@@ -210,7 +210,7 @@
         data = WaterModels.parse_file("../test/data/epanet/shamir-ts.inp")
         mn_data = WaterModels.make_multinetwork(data)
         ext = Dict(:num_breakpoints => 5)
-        wm = build_model(mn_data, MILPRWaterModel, WaterModels.post_mn_cwf, multinetwork=true, ext=ext)
+        wm = build_model(mn_data, MILPRWaterModel, WaterModels.build_mn_cwf, multinetwork=true, ext=ext)
         solution = WaterModels.optimize_model!(wm, cbc)
         @test solution["termination_status"] == OPTIMAL
     end
@@ -219,7 +219,7 @@
         data = WaterModels.parse_file("../test/data/epanet/shamir-ts-tank.inp")
         mn_data = WaterModels.make_multinetwork(data)
         ext = Dict(:num_breakpoints => 5)
-        wm = build_model(mn_data, MILPRWaterModel, WaterModels.post_mn_cwf, multinetwork=true, ext=ext)
+        wm = build_model(mn_data, MILPRWaterModel, WaterModels.build_mn_cwf, multinetwork=true, ext=ext)
         solution = WaterModels.optimize_model!(wm, cbc)
         @test solution["termination_status"] == OPTIMAL
     end
@@ -241,7 +241,7 @@
 
     @testset "Example 1 network (with tanks and pumps), NCNLP formulation." begin
         data = WaterModels.parse_file("../test/data/epanet/example_1-sp.inp")
-        wm = build_model(data, NCNLPWaterModel, WaterModels.post_cwf)
+        wm = build_model(data, NCNLPWaterModel, WaterModels.build_cwf)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         solution = WaterModels.optimize_model!(wm, juniper)
@@ -258,7 +258,7 @@
     @testset "Example 1 network (with tanks and pumps), multinetwork NCNLP formulation." begin
         data = WaterModels.parse_file("../test/data/epanet/example_1.inp")
         mn_data = WaterModels.make_multinetwork(data)
-        wm = build_model(mn_data, NCNLPWaterModel, WaterModels.post_mn_cwf, multinetwork=true)
+        wm = build_model(mn_data, NCNLPWaterModel, WaterModels.build_mn_cwf, multinetwork=true)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         solution = WaterModels.optimize_model!(wm, juniper)
@@ -280,7 +280,7 @@
 
     @testset "Richmond (single time) network, NCNLP formulation." begin
         data = WaterModels.parse_file("../test/data/epanet/richmond-skeleton-sp.inp")
-        wm = build_model(data, NCNLPWaterModel, WaterModels.post_cwf)
+        wm = build_model(data, NCNLPWaterModel, WaterModels.build_cwf)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         solution = WaterModels.optimize_model!(wm, juniper)
@@ -297,7 +297,7 @@
     @testset "Richmond network, multinetwork NCNLP formulation." begin
         data = WaterModels.parse_file("../test/data/epanet/richmond-skeleton.inp")
         mn_data = WaterModels.make_multinetwork(data)
-        wm = build_model(mn_data, NCNLPWaterModel, WaterModels.post_mn_cwf, multinetwork=true)
+        wm = build_model(mn_data, NCNLPWaterModel, WaterModels.build_mn_cwf, multinetwork=true)
         f = Juniper.register(fun(wm, :head_loss)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         solution = WaterModels.optimize_model!(wm, juniper)
@@ -325,7 +325,7 @@
     @testset "Shamir network, multinetwork NCNLP formulation." begin
         data = WaterModels.parse_file("../test/data/epanet/shamir-ts.inp")
         mn_data = WaterModels.make_multinetwork(data)
-        wm = build_model(mn_data, NCNLPWaterModel, WaterModels.post_mn_cwf, multinetwork=true)
+        wm = build_model(mn_data, NCNLPWaterModel, WaterModels.build_mn_cwf, multinetwork=true)
         solution = optimize_model!(wm, ipopt)
 
         @test solution["termination_status"] == LOCALLY_SOLVED
@@ -343,7 +343,7 @@
     @testset "Shamir network (with tank), multinetwork NCNLP formulation." begin
         data = WaterModels.parse_file("../test/data/epanet/shamir-ts-tank.inp")
         mn_data = WaterModels.make_multinetwork(data)
-        wm = build_model(mn_data, NCNLPWaterModel, WaterModels.post_mn_cwf, multinetwork=true)
+        wm = build_model(mn_data, NCNLPWaterModel, WaterModels.build_mn_cwf, multinetwork=true)
         solution = optimize_model!(wm, ipopt)
 
         @test solution["termination_status"] == LOCALLY_SOLVED

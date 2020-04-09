@@ -1,8 +1,8 @@
 function run_owf(network, model_constructor, optimizer; kwargs...)
-    return run_model(network, model_constructor, optimizer, post_owf; kwargs...)
+    return run_model(network, model_constructor, optimizer, build_owf; kwargs...)
 end
 
-function post_owf(wm::AbstractWaterModel)
+function build_owf(wm::AbstractWaterModel)
     # Create head loss functions, if necessary.
     function_head_loss(wm)
 
@@ -56,10 +56,10 @@ function post_owf(wm::AbstractWaterModel)
 end
 
 function run_mn_owf(file, model_constructor, optimizer; kwargs...)
-    return run_model(file, model_constructor, optimizer, post_mn_owf; multinetwork=true, kwargs...)
+    return run_model(file, model_constructor, optimizer, build_mn_owf; multinetwork=true, kwargs...)
 end
 
-function post_mn_owf(wm::AbstractWaterModel)
+function build_mn_owf(wm::AbstractWaterModel)
     # Create head loss functions, if necessary.
     function_head_loss(wm)
 

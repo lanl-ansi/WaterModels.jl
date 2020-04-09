@@ -1,8 +1,8 @@
 function run_wf(network, model_constructor, optimizer; kwargs...)
-    return run_model(network, model_constructor, optimizer, post_wf; kwargs...)
+    return run_model(network, model_constructor, optimizer, build_wf; kwargs...)
 end
 
-function post_wf(wm::AbstractWaterModel)
+function build_wf(wm::AbstractWaterModel)
     # Create head loss functions, if necessary.
     function_head_loss(wm)
 
@@ -65,10 +65,10 @@ function post_wf(wm::AbstractWaterModel)
 end
 
 function run_mn_wf(file, model_constructor, optimizer; kwargs...)
-    return run_model(file, model_constructor, optimizer, post_mn_wf; multinetwork=true, kwargs...)
+    return run_model(file, model_constructor, optimizer, build_mn_wf; multinetwork=true, kwargs...)
 end
 
-function post_mn_wf(wm::AbstractWaterModel)
+function build_mn_wf(wm::AbstractWaterModel)
     # Create head loss functions, if necessary.
     function_head_loss(wm)
 

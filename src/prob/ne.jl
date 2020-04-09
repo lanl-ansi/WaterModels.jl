@@ -1,8 +1,8 @@
 function run_ne(network, model_constructor, optimizer; kwargs...)
-    return run_model(network, model_constructor, optimizer, post_ne; kwargs...)
+    return run_model(network, model_constructor, optimizer, build_ne; kwargs...)
 end
 
-function post_ne(wm::AbstractWaterModel)
+function build_ne(wm::AbstractWaterModel)
     # Create head loss functions, if necessary.
     function_head_loss(wm)
 

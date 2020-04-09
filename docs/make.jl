@@ -2,9 +2,9 @@ using Documenter, WaterModels
 
 makedocs(
     modules = [WaterModels],
-    format = Documenter.HTML(prettyurls = false),
+    format = Documenter.HTML(analytics = "UA-367975-10", mathengine = Documenter.MathJax()),
     sitename = "WaterModels",
-    authors = "Byron Tasseff, Russell Bent, Carleton Coffrin, Clayton Barrows, Sai Krishna Kanth Hari, and contributors.",
+    authors = "Byron Tasseff, Russell Bent, Carleton Coffrin, Donatella Pasqualini, Clayton Barrows, Sai Krishna Kanth Hari, and contributors.",
     pages = [
         "Home" => "index.md",
         "Manual" => [

@@ -1109,7 +1109,7 @@ function _read_pump!(data::Dict{String, <:Any})
             pump["base_speed"] = nothing
             pump["speed_pattern_name"] = nothing
 
-            for i in range(4, length(current), step=2)
+            for i in range(4, stop=length(current), step=2)
                 if uppercase(current[i]) == "HEAD"
                     pump["pump_type"] = "HEAD"
                     pump["pump_curve_name"] = current[i+1]
