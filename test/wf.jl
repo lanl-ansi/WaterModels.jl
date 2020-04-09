@@ -3,7 +3,7 @@
         network = WaterModels.parse_file("../test/data/epanet/balerma.inp")
         modifications = WaterModels.parse_file("../test/data/json/balerma.json")
         InfrastructureModels.update_data!(network, modifications)
-        solution = run_wf(network, CNLPWaterModel, ipopt,
+        solution = solve_wf(network, CNLPWaterModel, ipopt,
             setting=Dict("output"=>Dict("duals"=>true)),
             solution_processors=[sol_data_model!])
 
@@ -18,7 +18,7 @@
 
     @testset "Example 1 network (with tanks and pumps), CNLP formulation." begin
         # The CNLP formulation does not support tanks, so an error is thrown.
-        @test_throws ErrorException run_wf("../test/data/epanet/example_1-sp.inp", CNLPWaterModel, ipopt)
+        @test_throws ErrorException solve_wf("../test/data/epanet/example_1-sp.inp", CNLPWaterModel, ipopt)
     end
 
     @testset "Example 1 network (with tanks and pumps), multinetwork CNLP formulation." begin
@@ -31,7 +31,7 @@
 
     @testset "Richmond (single time) network, CNLP formulation." begin
         # The CNLP formulation does not support tanks, so an error is thrown.
-        @test_throws ErrorException run_wf("../test/data/epanet/richmond-skeleton-sp.inp", CNLPWaterModel, ipopt)
+        @test_throws ErrorException solve_wf("../test/data/epanet/richmond-skeleton-sp.inp", CNLPWaterModel, ipopt)
     end
 
     @testset "Richmond network, multinetwork CNLP formulation." begin
@@ -43,7 +43,7 @@
     end
 
     @testset "Shamir network, CNLP formulation." begin
-        solution = run_wf("../test/data/epanet/shamir.inp", CNLPWaterModel,
+        solution = solve_wf("../test/data/epanet/shamir.inp", CNLPWaterModel,
             ipopt, setting=Dict("output"=>Dict("duals"=>true)),
             solution_processors=[sol_data_model!])
         @test solution["termination_status"] == LOCALLY_SOLVED
@@ -260,7 +260,7 @@
 
     @testset "Shamir network, MILP formulation." begin
         ext = Dict(:num_breakpoints=>10)
-        solution = run_wf("../test/data/epanet/shamir.inp", MILPWaterModel, cbc, ext=ext)
+        solution = solve_wf("../test/data/epanet/shamir.inp", MILPWaterModel, cbc, ext=ext)
 
         @test solution["termination_status"] == OPTIMAL
         @test isapprox(solution["solution"]["link"]["2"]["q"], 0.093565, rtol=1.0e-2)
@@ -366,7 +366,7 @@
 
     @testset "Shamir network, MILPR formulation." begin
         ext = Dict(:num_breakpoints => 5)
-        solution = run_wf("../test/data/epanet/shamir.inp", MILPRWaterModel, cbc, ext=ext)
+        solution = solve_wf("../test/data/epanet/shamir.inp", MILPRWaterModel, cbc, ext=ext)
         @test solution["termination_status"] == OPTIMAL
     end
 
@@ -392,7 +392,7 @@
         network = WaterModels.parse_file("../test/data/epanet/balerma.inp")
         modifications = WaterModels.parse_file("../test/data/json/balerma.json")
         InfrastructureModels.update_data!(network, modifications)
-        solution = run_wf(network, NCNLPWaterModel, ipopt)
+        solution = solve_wf(network, NCNLPWaterModel, ipopt)
 
         @test solution["termination_status"] == LOCALLY_SOLVED
         @test isapprox(solution["solution"]["link"]["1"]["q"], -0.002498, rtol=1.0e-3)
@@ -481,7 +481,7 @@
     end
 
     @testset "Shamir network, NCNLP formulation." begin
-        solution = run_wf("../test/data/epanet/shamir.inp", NCNLPWaterModel, ipopt)
+        solution = solve_wf("../test/data/epanet/shamir.inp", NCNLPWaterModel, ipopt)
         @test solution["termination_status"] == LOCALLY_SOLVED
         @test isapprox(solution["solution"]["link"]["2"]["q"], 0.093565, rtol=1.0e-3)
         @test isapprox(solution["solution"]["link"]["6"]["q"], 0.055710, rtol=1.0e-3)

@@ -1,5 +1,5 @@
-function run_ne(network, model_constructor, optimizer; kwargs...)
-    return run_model(network, model_constructor, optimizer, build_ne; kwargs...)
+function solve_ne(network, model_constructor, optimizer; kwargs...)
+    return solve_model(network, model_constructor, optimizer, build_ne; kwargs...)
 end
 
 function build_ne(wm::AbstractWaterModel)

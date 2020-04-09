@@ -7,13 +7,13 @@ abstract type AbstractWaterModel <: _IM.AbstractInfrastructureModel end
 _IM.@def wm_fields begin WaterModels.@im_fields end
 
 ""
-function run_model(file::String, model_type::Type, optimizer, build_method; kwargs...)
+function solve_model(file::String, model_type::Type, optimizer, build_method; kwargs...)
     data = WaterModels.parse_file(file)
-    return run_model(data, model_type, optimizer, build_method; kwargs...)
+    return solve_model(data, model_type, optimizer, build_method; kwargs...)
 end
 
 ""
-function run_model(data::Dict{String,<:Any}, model_type::Type, optimizer, build_method; ref_extensions=[], solution_processors=[], kwargs...)
+function solve_model(data::Dict{String,<:Any}, model_type::Type, optimizer, build_method; ref_extensions=[], solution_processors=[], kwargs...)
     wm = instantiate_model(data, model_type, build_method; ref_extensions=ref_extensions, kwargs...)
     return optimize_model!(wm, optimizer=optimizer, solution_processors=solution_processors)
 end
