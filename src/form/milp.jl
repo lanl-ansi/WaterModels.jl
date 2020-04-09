@@ -272,15 +272,23 @@ function objective_wf(wm::AbstractMILPModel)
     JuMP.set_objective_sense(wm.model, _MOI.FEASIBILITY_SENSE)
 end
 
+function _get_cubic_flow_values(breakpoints::Array{Float64}, curve_fun::Array{Float64})
+    return [curve_fun[1]*x^3 + curve_fun[2]*x^2 + curve_fun[3]*x for x in breakpoints]
+end
+
 function objective_owf(wm::AbstractMILPModel) 
+    # If the number of breakpoints is not positive, no objective is added.
+    if wm.ext[:num_breakpoints] <= 0 return end
+
+    # Initialize the objective function.
     objective = JuMP.AffExpr(0.0)
 
     for (n, nw_ref) in nws(wm)
-        costs = JuMP.@variable(wm.model, [a in ids(wm, n, :pump)],
-            base_name="costs[$(n)]", lower_bound=0.0,
-            start=get_start(ref(wm, n, :pump), a, "costs", 0.0))
+        # Get common variables.
+        lambda = var(wm, n, :lambda)
 
-        efficiency = 0.85 # TODO: Change this after discussion. 0.85 follows Fooladivanda.
+        # Get common constant parameters.
+        efficiency = 1.00 # TODO: Change this after discussion. 0.85 follows Fooladivanda.
         rho = 1000.0 # Water density (kilogram per cubic meter).
         gravity = 9.80665 # Gravitational acceleration (meter per second squared).
         time_step = nw_ref[:option]["time"]["hydraulic_timestep"]
@@ -292,23 +300,21 @@ function objective_owf(wm::AbstractMILPModel)
                 pump_curve = ref(wm, n, :pump, a)["pump_curve"]
                 curve_fun = _get_function_from_pump_curve(pump_curve)
 
-                q = var(wm, n)[:q][a]
-                x_pump = var(wm, n)[:x_pump][a]
-                q_ub = JuMP.upper_bound(q)
+                q, x_pump = [var(wm, n)[:q][a], var(wm, n)[:x_pump][a]]
+                q_lb, q_ub = [JuMP.lower_bound(q), JuMP.upper_bound(q)]
 
-                num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 1
-                breakpoints = range(0.0, stop=q_ub, length=num_breakpoints)
+                # Generate a set of uniform flow and cubic function breakpoints.
+                breakpoints = range(q_lb, stop=q_ub, length=wm.ext[:num_breakpoints])
+                f = _get_pump_gain_values(collect(breakpoints), curve_fun)
 
-                for q_hat in breakpoints
-                    rhs = get_obj_linear_outer_approximation(q, x_pump, q_hat, curve_fun)
-                    JuMP.@constraint(wm.model, costs[a] >= constant*energy_price * rhs)
-                end
+                # Add the cost corresponding to the current pump's operation.
+                K = 1:wm.ext[:num_breakpoints]
+                cost = constant*energy_price*sum(f[k] * lambda[a, k] for k in K)
+                JuMP.add_to_expression!(objective, cost)
             else
                 Memento.error(_LOGGER, "No cost given for pump \"$(pump["name"])\"")
             end
         end
-
-        JuMP.add_to_expression!(objective, sum(costs))
     end
 
     return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
