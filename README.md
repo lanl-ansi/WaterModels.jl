@@ -32,7 +32,9 @@ That said, it is important to keep in mind the code quality requirements and sco
 See [CONTRIBUTING.md](https://github.com/lanl-ansi/WaterModels.jl/blob/master/CONTRIBUTING.md) for code contribution guidelines.
 
 ## Acknowledgments
-This code has been developed as part of the Advanced Network Science Initiative at Los Alamos National Laboratory.
+This work was conducted under the auspices of the National Nuclear Security Administration of the U.S. Department of Energy at Los Alamos National Laboratory under Contract No. 89233218CNA000001.
+Specifically, work is supported by the Laboratory Directed Research and Development program under the project "Adaptation Science for Complex Natural-engineered Systems" (20180033DR).
+It is also supported by the [Advanced Network Science Initiative](https://lanl-ansi.github.io) at Los Alamos National Laboratory.
 The primary developer is [Byron Tasseff](https://github.com/tasseff) with support from the following contributors:
 - [Russell Bent](https://github.com/rb004f), Los Alamos National Laboratory
 - [Carleton Coffrin](https://github.com/ccoffrin), Los Alamos National Laboratory

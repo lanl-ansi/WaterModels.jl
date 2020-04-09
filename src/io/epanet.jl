@@ -129,7 +129,7 @@ end
 
 function _add_node_ids!(data::Dict{String, <:Any})
     node_types = ["junction", "reservoir", "tank"]
-    node_id_field = Dict(t => t * "_node" for t in node_types)
+    node_id_field = Dict(t=>t * "_node" for t in node_types)
     node_names = vcat([collect(keys(data[t])) for t in node_types]...)
 
     if all([tryparse(Int64, x) != nothing for x in node_names])
@@ -539,6 +539,9 @@ function parse_epanet(filename::String)
     # Create consistent node "index" fields.
     _add_node_ids!(data)
 
+    ## Parse [COORDINATES] section.
+    #_read_coordinate!(data)
+
     # Parse [PIPES] section.
     _read_pipe!(data)
 
@@ -555,7 +558,7 @@ function parse_epanet(filename::String)
     _add_link_ids!(data)
 
     # Parse [COORDINATES] section.
-    #_read_coordinate!(data)
+    _read_coordinate!(data)
 
     # Parse [SOURCES] section.
     #_read_source!(data)
@@ -645,7 +648,7 @@ function _read_control!(data::Dict{String, <:Any})
             control_name = "control-" * string(control_count)
 
             # Create the control condition object.
-            condition = Dict{String, Any}()
+            condition = Dict{String,Any}()
 
             if !("TIME" in current) && !("CLOCKTIME" in current)
                 threshold = nothing
@@ -685,7 +688,22 @@ function _read_control!(data::Dict{String, <:Any})
     end
 end
 
-function _read_curve!(data::Dict{String, <:Any})
+function _read_coordinate!(data::Dict{String,<:Any})
+    for (line_number, line) in data["section"]["[COORDINATES]"]
+        line = split(line, ";")[1]
+        current = split(line)
+
+        if length(current) == 0
+            continue
+        else
+            node_id = data["node_map"][current[1]]
+            x, y = parse.(Float64, current[2:3])
+            data["node"][string(node_id)]["coordinates"] = (x, y)
+        end
+    end
+end
+
+function _read_curve!(data::Dict{String,<:Any})
     data["curve"] = Dict{String, Array{Tuple{Float64, Float64}}}()
 
     for (line_number, line) in data["section"]["[CURVES]"]
