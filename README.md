@@ -15,7 +15,6 @@ This decoupling enables the definition of a wide variety of water network optimi
 
 **Core Network Formulations**
 * CNLP - convex nonlinear program used for determining network flow rates
-* MICP-E - exact mixed-integer convex programming reformulation
 * MICP-R - relaxation-based mixed-integer convex program
 * MILP - mixed-integer linear program using piecewise linear approximations
 * MILP-R - relaxation-based mixed-integer linear program

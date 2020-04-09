@@ -58,10 +58,6 @@ function objective_wf(wm::AbstractCNLPModel, n::Int=wm.cnw)
         for n in nw_ids(wm)))
 end
 
-function objective_cwf(wm::AbstractCNLPModel, n::Int=wm.cnw)
-    return objective_wf(wm, n)
-end
-
 "Pump head gain constraint when the pump status is ambiguous."
 function constraint_head_gain_pump(wm::AbstractCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64})
     # Fix reverse flow variable to zero (since this is a pump).

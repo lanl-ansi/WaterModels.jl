@@ -1,11 +1,15 @@
 WaterModels.jl Change Log
 =========================
 
+### v0.3.0
+- Update to InfrastructureModels v0.4.3.
+- Remove the Constrained Water Flow (cwf) problem specification.
+
 ### v0.2.0
-- Update to JuMP v0.21 and InfrastructureModels v0.4
+- Update to JuMP v0.21 and InfrastructureModels v0.4.
 - Update to use JuMP/MOI status values.
 - Change to a singular naming convention.
-- Add upper bounds on package dependences.
+- Add upper bounds on package dependencies.
 - Add draft Optimal Water Flow problem.
 - Add draft MILP formulations.
 - Add draft MILP-R formulations.
