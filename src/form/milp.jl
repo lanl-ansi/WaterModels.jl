@@ -288,7 +288,7 @@ function objective_owf(wm::AbstractMILPModel)
         lambda = var(wm, n, :lambda)
 
         # Get common constant parameters.
-        efficiency = 1.00 # TODO: Change this after discussion. 0.85 follows Fooladivanda.
+        efficiency = 0.85 # TODO: Change this after discussion. 0.85 follows Fooladivanda.
         rho = 1000.0 # Water density (kilogram per cubic meter).
         gravity = 9.80665 # Gravitational acceleration (meter per second squared).
         time_step = nw_ref[:option]["time"]["hydraulic_timestep"]
