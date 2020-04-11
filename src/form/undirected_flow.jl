@@ -29,7 +29,7 @@ function variable_flow(wm::AbstractUndirectedFlowModel; nw::Int=wm.cnw, bounded:
 end
 
 "Create network design flow variables for undirected flow formulations."
-function variable_flow_des(wm::AbstractUndirectedFlowModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_flow_des_common(wm::AbstractUndirectedFlowModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
     # Create dictionary for undirected design flow variables (i.e., q_des).
     q_des = var(wm, nw)[:q_des] = Dict{Int,Array{JuMP.VariableRef}}()
 
@@ -60,6 +60,11 @@ function variable_flow_des(wm::AbstractUndirectedFlowModel; nw::Int=wm.cnw, boun
 
     # Create resistance binary variables.
     variable_resistance(wm, nw=nw)
+end
+
+"Default implementation for creating network design flow variables for undirected flow formulations."
+function variable_flow_des(wm::AbstractUndirectedFlowModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+    variable_flow_des_common(wm, nw=nw, bounded=bounded, report=report)
 end
 
 "Constrain flow variables, based on design selections, in undirected flow formulations."

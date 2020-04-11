@@ -1,3 +1,15 @@
+function _calc_head_loss_values(points::Array{Float64}, alpha::Float64)
+    return [sign(x) * abs(x)^alpha for x in points]
+end
+
+function _calc_pump_gain_values(points::Array{Float64}, curve_fun::Array{Float64})
+    return [curve_fun[1]*x*x + curve_fun[2]*x + curve_fun[3] for x in points]
+end
+
+function _calc_cubic_flow_values(points::Array{Float64}, curve_fun::Array{Float64})
+    return [curve_fun[1]*x^3 + curve_fun[2]*x^2 + curve_fun[3]*x for x in points]
+end
+
 function _get_function_from_pump_curve(pump_curve::Array{Tuple{Float64,Float64}})
     LsqFit.@. func(x, p) = p[1]*x*x + p[2]*x + p[3]
 

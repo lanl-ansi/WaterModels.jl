@@ -40,12 +40,13 @@
         @test isapprox(solution["objective"], 1.36e6, rtol=1.0e-4)
     end
 
-    @testset "Shamir network, MILP formulation." begin
+    @testset "Shamir network (reduced), MILP formulation." begin
         data = parse_file("../test/data/epanet/shamir.inp")
         modifications = parse_file("../test/data/json/shamir-reduced.json")
         InfrastructureModels.update_data!(data, modifications)
 
-        wm = instantiate_model(data, MILPRWaterModel, build_des, ext=Dict(:num_breakpoints => 5))
+        ext = Dict(:num_breakpoints=>5)
+        wm = instantiate_model(data, MILPWaterModel, build_des, ext=ext)
         solution = _IM.optimize_model!(wm, optimizer=cbc)
 
         @test solution["termination_status"] == OPTIMAL

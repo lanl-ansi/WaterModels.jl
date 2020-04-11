@@ -1,5 +1,5 @@
 # Define MILP (approximation-based mixed-integer linear programming)
-# implementations of water distribution models.
+# implementations of common water distribution model specifications.
 
 function variable_flow_piecewise_weights(wm::AbstractMILPModel; nw::Int=wm.cnw, report::Bool=false)
     lambda = var(wm, nw)[:lambda] = JuMP.@variable(wm.model,
@@ -11,36 +11,27 @@ function variable_flow_piecewise_weights(wm::AbstractMILPModel; nw::Int=wm.cnw, 
     report && sol_component_value(wm, nw, :link, :lambda, ids(wm, nw, :link_fixed), lambda)
 end
 
-function variable_flow_piecewise_weights_des(wm::AbstractMILPModel, n::Int=wm.cnw)
-    # Set the number of breakpoints used in each outer-approximation.
+function variable_flow_piecewise_weights_des(wm::AbstractMILPModel; nw::Int=wm.cnw, report::Bool=false)
     n_r = Dict(a=>length(ref(wm, nw, :resistance, a)) for a in ids(wm, nw, :link_des))
     K = 1:wm.ext[:num_breakpoints]
 
     lambda = var(wm, nw)[:lambda] = JuMP.@variable(wm.model,
         [a in ids(wm, nw, :link_des), r in 1:n_r[a], k in K],
-        base_name="lambda[$(n)]", lower_bound=0.0, upper_bound=1.0,
-        start=get_start(ref(wm, nw, :link), a, "lambda_start"))
+        base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
+        start=comp_start_value(ref(wm, nw, :link_des, a), "lambda_start", r))
 
     # Initialize the solution reporting data structures.
-    report && sol_component_value(wm, nw, :link, :lambda, ids(wm, nw, :link_fixed), lambda)
+    report && sol_component_value(wm, nw, :link, :lambda, ids(wm, nw, :link_des), lambda)
 end
 
 function variable_flow_piecewise_adjacency(wm::AbstractMILPModel; nw::Int=wm.cnw, report::Bool=false)
-    # Set the number of breakpoints used in each outer-approximation.
     x_pw = var(wm, nw)[:x_pw] = JuMP.@variable(wm.model,
-        [a in ids(wm, nw, :link_fixed), k in 1:wm.ext[:num_breakpoints]-1],
+        [a in ids(wm, nw, :link), k in 1:wm.ext[:num_breakpoints]-1],
         base_name="$(nw)_x_pw", binary=true,
-        start=comp_start_value(ref(wm, nw, :link_fixed, a), "x_pw_start"))
+        start=comp_start_value(ref(wm, nw, :link, a), "x_pw_start"))
 
     # Initialize the solution reporting data structures.
-    report && sol_component_value(wm, nw, :link, :x_pw, ids(wm, nw, :link_fixed), x_pw)
-end
-
-function variable_flow_piecewise_adjacency_des(wm::AbstractMILPModel, n::Int=wm.cnw)
-    # Set the number of breakpoints used in each outer-approximation.
-    var(wm, nw)[:x_pw] = JuMP.@variable(wm.model, [a in ids(wm, nw, :link_des),
-        k in 1:wm.ext[:num_breakpoints]-1], base_name="x_pw[$(n)]", binary=true,
-        start=get_start(ref(wm, nw, :link_des), a, "x_pw_start", 0.0))
+    report && sol_component_value(wm, nw, :link, :x_pw, ids(wm, nw, :link), x_pw)
 end
 
 function variable_flow(wm::AbstractMILPModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
@@ -53,25 +44,10 @@ function variable_flow(wm::AbstractMILPModel; nw::Int=wm.cnw, bounded::Bool=true
 end
 
 "Create network design flow variables for undirected flow formulations."
-function variable_flow_des(wm::AbstractMILPModel; nw::Int=wm.cnw, bounded::Bool=true)
-    # Create undirected flow variables (i.e., q).
-    bounded ? variable_flow_bounded_des(wm, nw=nw) :
-        variable_flow_unbounded_des(wm, nw=nw)
-
-    # Create expressions capturing the relationships among q, and q_des.
-    var(wm, nw)[:q] = JuMP.@expression(wm.model, [a in ids(wm, nw, :link_des)],
-        sum(var(wm, nw, :q_des, a)))
-
-    # Create resistance binary variables.
-    variable_resistance(wm, nw=nw)
-
-    # Create variables required for convex combination piecewise approximation.
-    variable_flow_piecewise_weights_des(wm, nw)
-    variable_flow_piecewise_adjacency_des(wm, nw)
-end
-
-function _get_pump_gain_values(breakpoints::Array{Float64}, curve_fun::Array{Float64})
-    return [curve_fun[1]*x*x + curve_fun[2]*x + curve_fun[3] for x in breakpoints]
+function variable_flow_des(wm::AbstractMILPModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+    # Create common flow variables.
+    variable_flow_des_common(wm, nw=nw, bounded=bounded, report=report)
+    variable_flow_piecewise_weights_des(wm, nw=nw)
 end
 
 "Pump head gain constraint when the pump status is ambiguous."
@@ -107,7 +83,7 @@ function constraint_head_gain_pump(wm::AbstractMILPModel, n::Int, a::Int, node_f
 
     # Generate a set of uniform flow and head loss breakpoints.
     breakpoints = range(q_lb, stop=q_ub, length=wm.ext[:num_breakpoints])
-    f = _get_pump_gain_values(collect(breakpoints), curve_fun)
+    f = _calc_pump_gain_values(collect(breakpoints), curve_fun)
 
     # Add a constraint for the flow piecewise approximation.
     K = 1:wm.ext[:num_breakpoints]
@@ -130,55 +106,57 @@ function constraint_head_gain_pump(wm::AbstractMILPModel, n::Int, a::Int, node_f
 end
 
 function constraint_head_loss_pipe_des(wm::AbstractMILPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, resistances)
-    # Set the number of breakpoints used in each outer-approximation.
-    n_b = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 2
+    # If the number of breakpoints is not positive, no constraints are added.
+    if wm.ext[:num_breakpoints] <= 0 return end
 
-    if n_b > 0
-        h_i = var(wm, n, :h, node_fr)
-        h_j = var(wm, n, :h, node_to)
+    # Get common variables and data.
+    n_b, K = [wm.ext[:num_breakpoints], 1:wm.ext[:num_breakpoints]]
+    lambda, x_pw = [var(wm, n, :lambda), var(wm, n, :x_pw)]
+    h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
 
-        lambda = var(wm, n, :lambda)
-        x_pw = var(wm, n, :x_pw)
-        lhs = JuMP.AffExpr(0.0)
+    # Initialize flow expression in the head loss relationship.
+    q_loss_expr = JuMP.AffExpr(0.0)
 
-        for (r_id, r) in enumerate(resistances)
-            x_res = var(wm, n, :x_res, a)[r_id]
-            q_des = var(wm, n, :q_des, a)[r_id]
+    for (r_id, r) in enumerate(resistances)
+        q, x_res = [var(wm, n, :q_des, a)[r_id], var(wm, n, :x_res, a)[r_id]]
+        q_lb, q_ub = [JuMP.lower_bound(q), JuMP.upper_bound(q)]
 
-            c_1 = JuMP.@constraint(wm.model, sum(lambda[a, r_id, k] for k in 1:n_b) == x_res)
-            c_2 = JuMP.@constraint(wm.model, lambda[a, r_id, 1] <= x_pw[a, 1])
-            c_3 = JuMP.@constraint(wm.model, lambda[a, r_id, n_b] <= x_pw[a, n_b-1])
-            append!(con(wm, n, :head_loss, a), [c_1, c_2, c_3])
+        # Add the first required SOS constraints.
+        lambda_sum = sum(lambda[a, r_id, k] for k in K)
+        c_1 = JuMP.@constraint(wm.model, lambda_sum == x_res)
+        c_2 = JuMP.@constraint(wm.model, lambda[a, r_id, 1] <= x_pw[a, 1])
+        c_3 = JuMP.@constraint(wm.model, lambda[a, r_id, n_b] <= x_pw[a, n_b-1])
 
-            for k in 2:n_b-1
-                c_4 = JuMP.@constraint(wm.model, lambda[a, r_id, k] <= x_pw[a, k-1] + x_pw[a, k])
-                append!(con(wm, n, :head_loss, a), [c_4])
-            end
+        # Generate a set of uniform flow and head loss breakpoints.
+        breakpoints = range(q_lb, stop=q_ub, length=n_b)
+        f = _calc_head_loss_values(collect(breakpoints), alpha)
 
-            q_des = var(wm, n, :q_des, a)[r_id]
-            q_des_lb = JuMP.has_lower_bound(q_des) ? JuMP.lower_bound(q_des) : -10.0
-            q_des_ub = JuMP.has_upper_bound(q_des) ? JuMP.upper_bound(q_des) : 10.0
+        # Add a constraint for the head loss piecewise approximation.
+        expr_r = r .* sum(f[k] .* lambda[a, r_id, k] for k in K)
+        JuMP.add_to_expression!(q_loss_expr, expr_r)
 
-            breakpoints = range(q_des_lb, stop=q_des_ub, length=n_b)
-            f = get_head_loss_values(collect(breakpoints), alpha)
-            JuMP.add_to_expression!(lhs, r * sum(f[k] * lambda[a, r_id, k] for k in 1:n_b))
+        # Add a constraint for the flow piecewise approximation.
+        q_lhs = sum(breakpoints[k] * lambda[a, r_id, k] for k in K)
+        c_4 = JuMP.@constraint(wm.model, q_lhs == q)
 
-            q_des_lhs = sum(breakpoints[k] * lambda[a, r_id, k] for k in 1:n_b)
-            c_5 = JuMP.@constraint(wm.model, q_des_lhs == q_des)
-            append!(con(wm, n, :head_loss, a), [c_5])
+        # Append the constraint array with the above-generated constraints.
+        append!(con(wm, n, :head_loss, a), [c_1, c_2, c_3, c_4])
+
+        # Add the adjacency constraints.
+        for k in 2:n_b-1
+            adjacency = x_pw[a, k-1] + x_pw[a, k]
+            c_5_k = JuMP.@constraint(wm.model, lambda[a, r_id, k] <= adjacency)
+            append!(con(wm, n, :head_loss, a), [c_5_k])
         end
-
-        c_6 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == 1.0)
-        c_7 = JuMP.@constraint(wm.model, lhs == inv(L) * (h_i - h_j))
-        append!(con(wm, n, :head_loss, a), [c_6, c_7])
     end
+
+    # Add the final SOS and approximation constraints.
+    c_6 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == 1.0)
+    c_7 = JuMP.@constraint(wm.model, q_loss_expr == inv(L) * (h_i - h_j))
+    append!(con(wm, n, :head_loss, a), [c_6, c_7])
 end
 
-function _get_head_loss_values(breakpoints::Array{Float64}, alpha::Float64)
-    return [sign(x) * abs(x)^alpha for x in breakpoints]
-end
-
-function constraint_head_loss_check_valve(wm::AbstractMILPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64) 
+function constraint_head_loss_check_valve(wm::AbstractMILPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # Gather common variables.
     q, x_cv = [var(wm, n, :q, a), var(wm, n, :x_cv, a)]
     lambda, x_pw = [var(wm, n, :lambda), var(wm, n, :x_pw)]
@@ -203,7 +181,7 @@ function constraint_head_loss_check_valve(wm::AbstractMILPModel, n::Int, a::Int,
 
     # Generate a set of uniform flow and head loss breakpoints.
     breakpoints = range(q_lb, stop=q_ub, length=wm.ext[:num_breakpoints])
-    f = _get_head_loss_values(collect(breakpoints), ref(wm, :alpha))
+    f = _calc_head_loss_values(collect(breakpoints), ref(wm, :alpha))
 
     # Add a constraint for the flow piecewise approximation.
     K = 1:wm.ext[:num_breakpoints]
@@ -246,7 +224,7 @@ function constraint_head_loss_pipe(wm::AbstractMILPModel, n::Int, a::Int, alpha:
     # Generate a set of uniform flow and head loss breakpoints.
     q_lb, q_ub = [JuMP.lower_bound(q), JuMP.upper_bound(q)]
     breakpoints = range(q_lb, stop=q_ub, length=wm.ext[:num_breakpoints])
-    f = _get_head_loss_values(collect(breakpoints), alpha)
+    f = _calc_head_loss_values(collect(breakpoints), alpha)
 
     # Add a constraint for the head loss piecewise approximation.
     lhs = r .* sum(f[k] .* lambda[a, k] for k in 1:wm.ext[:num_breakpoints])
@@ -266,14 +244,6 @@ function constraint_head_loss_pipe(wm::AbstractMILPModel, n::Int, a::Int, alpha:
         c_7_k = JuMP.@constraint(wm.model, lambda[a, k] <= adjacency)
         append!(con(wm, n, :head_loss, a), [c_7_k])
     end
-end
-
-function objective_wf(wm::AbstractMILPModel)
-    JuMP.set_objective_sense(wm.model, _MOI.FEASIBILITY_SENSE)
-end
-
-function _get_cubic_flow_values(breakpoints::Array{Float64}, curve_fun::Array{Float64})
-    return [curve_fun[1]*x^3 + curve_fun[2]*x^2 + curve_fun[3]*x for x in breakpoints]
 end
 
 function objective_owf(wm::AbstractMILPModel) 
@@ -305,7 +275,7 @@ function objective_owf(wm::AbstractMILPModel)
 
                 # Generate a set of uniform flow and cubic function breakpoints.
                 breakpoints = range(q_lb, stop=q_ub, length=wm.ext[:num_breakpoints])
-                f = _get_pump_gain_values(collect(breakpoints), curve_fun)
+                f = _calc_pump_gain_values(collect(breakpoints), curve_fun)
 
                 # Add the cost corresponding to the current pump's operation.
                 K = 1:wm.ext[:num_breakpoints]
