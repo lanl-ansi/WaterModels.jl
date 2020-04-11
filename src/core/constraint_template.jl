@@ -129,35 +129,35 @@ function constraint_head_loss_ub_pipe(wm::AbstractWaterModel, a::Int; nw::Int=wm
     constraint_head_loss_ub_pipe(wm, nw, a, alpha, L, r)
 end
 
-function constraint_head_loss_pipe_ne(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_head_loss_pipe_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     alpha = ref(wm, nw, :alpha)
     pipe = ref(wm, nw, :pipe, a)
     resistances = ref(wm, nw, :resistance, a)
 
     _initialize_con_dict(wm, :head_loss, nw=nw, is_array=true)
     con(wm, nw, :head_loss)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_flow_direction_selection_ne(wm, a; nw=nw, kwargs...)
+    constraint_flow_direction_selection_des(wm, a; nw=nw, kwargs...)
     constraint_head_difference(wm, a; nw=nw, kwargs...)
-    constraint_head_loss_pipe_ne(wm, nw, a, alpha, pipe["node_fr"], pipe["node_to"], pipe["length"], resistances)
-    constraint_head_loss_ub_pipe_ne(wm, a; nw=nw, kwargs...)
-    constraint_resistance_selection_ne(wm, a; nw=nw, kwargs...)
+    constraint_head_loss_pipe_des(wm, nw, a, alpha, pipe["node_fr"], pipe["node_to"], pipe["length"], resistances)
+    constraint_head_loss_ub_pipe_des(wm, a; nw=nw, kwargs...)
+    constraint_resistance_selection_des(wm, a; nw=nw, kwargs...)
 end
 
-function constraint_resistance_selection_ne(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_resistance_selection_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     pipe_resistances = ref(wm, nw, :resistance, a)
-    constraint_resistance_selection_ne(wm, nw, a, pipe_resistances; kwargs...)
+    constraint_resistance_selection_des(wm, nw, a, pipe_resistances; kwargs...)
 end
 
-function constraint_flow_direction_selection_ne(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
+function constraint_flow_direction_selection_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
     pipe_resistances = ref(wm, nw, :resistance, a)
-    constraint_flow_direction_selection_ne(wm, nw, a, pipe_resistances)
+    constraint_flow_direction_selection_des(wm, nw, a, pipe_resistances)
 end
 
-function constraint_head_loss_ub_pipe_ne(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
+function constraint_head_loss_ub_pipe_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
     alpha = ref(wm, nw, :alpha)
     L = ref(wm, nw, :pipe, a)["length"]
     pipe_resistances = ref(wm, nw, :resistance, a)
-    constraint_head_loss_ub_pipe_ne(wm, nw, a, alpha, L, pipe_resistances)
+    constraint_head_loss_ub_pipe_des(wm, nw, a, alpha, L, pipe_resistances)
 end
 
 ### Check Valve Constraints ###

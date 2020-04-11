@@ -42,7 +42,7 @@ Some of the common keys include:
 * `:pump` -- the set of pumps in the network,
 * `:valve` -- the set of valves in the network,
 * `:link` -- the set of all links in the network,
-* `:link_ne` -- the set of all network expansion links in the network,
+* `:link_des` -- the set of all network design links in the network,
 * `:junction` -- the set of junctions in the network,
 * `:reservoir` -- the set of reservoirs in the network,
 * `:tank` -- the set of tanks in the network,
@@ -57,10 +57,10 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any})
     for (nw, ref) in nw_refs
         ref[:link] = merge(ref[:pipe], ref[:valve], ref[:pump])
         ref[:check_valve] = filter(has_check_valve, ref[:pipe])
-        ref[:link_ne] = filter(is_ne_link, ref[:link])
-        ref[:pipe_ne] = filter(is_ne_link, ref[:pipe])
-        ref[:link_fixed] = filter(!is_ne_link, ref[:link])
-        ref[:pipe_fixed] = filter(!is_ne_link, ref[:pipe])
+        ref[:link_des] = filter(is_des_link, ref[:link])
+        ref[:pipe_des] = filter(is_des_link, ref[:pipe])
+        ref[:link_fixed] = filter(!is_des_link, ref[:link])
+        ref[:pipe_fixed] = filter(!is_des_link, ref[:pipe])
 
         # Set up arcs from existing links.
         ref[:arc_fr] = [(i, comp["node_fr"], comp["node_to"]) for (i, comp) in ref[:link]]

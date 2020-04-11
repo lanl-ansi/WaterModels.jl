@@ -156,11 +156,11 @@ function has_check_valve(pipe::Pair{Int64, <:Any})
     return pipe.second["status"] == "CV"
 end
 
-function is_ne_link(link::Pair{Int64, <:Any})
+function is_des_link(link::Pair{Int64, <:Any})
     return any([x in ["diameters", "resistances"] for x in keys(link.second)])
 end
 
-function is_ne_link(link::Pair{String, <:Any})
+function is_des_link(link::Pair{String, <:Any})
     return any([x in ["diameters", "resistances"] for x in keys(link.second)])
 end
 
@@ -203,12 +203,12 @@ function set_start_directed_head_difference!(data::Dict{String, <:Any})
     end
 end
 
-function set_start_resistance_ne!(data::Dict{String, <:Any})
+function set_start_resistance_des!(data::Dict{String, <:Any})
     viscosity = data["option"]["hydraulic"]["viscosity"]
     head_loss_type = data["option"]["hydraulic"]["headloss"]
     resistances = calc_resistances(data["pipe"], viscosity, head_loss_type)
 
-    for (a, pipe) in filter(is_ne_link, data["pipe"])
+    for (a, pipe) in filter(is_des_link, data["pipe"])
         num_resistances = length(resistances[a])
         pipe["x_res_start"] = zeros(Float64, num_resistances)
         r_id, val = findmax(pipe["x_res_start"])
@@ -216,32 +216,32 @@ function set_start_resistance_ne!(data::Dict{String, <:Any})
     end
 end
 
-function set_start_undirected_flow_rate_ne!(data::Dict{String, <:Any})
+function set_start_undirected_flow_rate_des!(data::Dict{String, <:Any})
     viscosity = data["option"]["hydraulic"]["viscosity"]
     head_loss_type = data["option"]["hydraulic"]["headloss"]
     resistances = calc_resistances(data["pipe"], viscosity, head_loss_type)
 
-    for (a, pipe) in filter(is_ne_link, data["pipe"])
+    for (a, pipe) in filter(is_des_link, data["pipe"])
         num_resistances = length(resistances[a])
-        pipe["q_ne_start"] = zeros(Float64, num_resistances)
+        pipe["q_des_start"] = zeros(Float64, num_resistances)
         r_id, val = findmax(pipe["x_res_start"])
-        pipe["q_ne_start"][r_id] = pipe["q"]
+        pipe["q_des_start"][r_id] = pipe["q"]
     end
 end
 
-function set_start_directed_flow_rate_ne!(data::Dict{String, <:Any})
+function set_start_directed_flow_rate_des!(data::Dict{String, <:Any})
     viscosity = data["option"]["hydraulic"]["viscosity"]
     head_loss_type = data["option"]["hydraulic"]["headloss"]
     resistances = calc_resistances(data["pipe"], viscosity, head_loss_type)
 
-    for (a, pipe) in filter(is_ne_link, data["pipe"])
+    for (a, pipe) in filter(is_des_link, data["pipe"])
         num_resistances = length(resistances[a])
-        pipe["qp_ne_start"] = zeros(Float64, num_resistances)
-        pipe["qn_ne_start"] = zeros(Float64, num_resistances)
+        pipe["qp_des_start"] = zeros(Float64, num_resistances)
+        pipe["qn_des_start"] = zeros(Float64, num_resistances)
 
         r_id = findfirst(r -> isapprox(r, pipe["r"], rtol=1.0e-4), resistances[a])
-        pipe["qp_ne_start"][r_id] = pipe["q"] >= 0.0 ? abs(pipe["q"]) : 0.0
-        pipe["qn_ne_start"][r_id] = pipe["q"] < 0.0 ? abs(pipe["q"]) : 0.0
+        pipe["qp_des_start"][r_id] = pipe["q"] >= 0.0 ? abs(pipe["q"]) : 0.0
+        pipe["qn_des_start"][r_id] = pipe["q"] < 0.0 ? abs(pipe["q"]) : 0.0
     end
 end
 
@@ -255,8 +255,8 @@ function set_start_all!(data::Dict{String, <:Any})
     set_start_head!(data)
     set_start_directed_head_difference!(data)
     set_start_reservoir!(data)
-    set_start_resistance_ne!(data)
-    set_start_directed_flow_rate_ne!(data)
-    set_start_undirected_flow_rate_ne!(data)
+    set_start_resistance_des!(data)
+    set_start_directed_flow_rate_des!(data)
+    set_start_undirected_flow_rate_des!(data)
     set_start_flow_direction!(data)
 end

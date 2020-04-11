@@ -1,25 +1,25 @@
-"Create network expansion flow variables for directed flow formulations."
+"Create network design flow variables for directed flow formulations."
 function variable_head(wm::MICPEWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
     # Initialize variables associated with heads.
     h = var(wm, nw)[:h] = JuMP.@variable(wm.model,
         [i in ids(wm, nw, :node)], base_name="$(nw)_h",
         start=comp_start_value(ref(wm, nw, :node, i), "h_start"))
 
-    # Create dictionary for undirected design flow variables (dhp_ne and dhn_ne).
-    dhp_ne = var(wm, nw)[:dhp_ne] = Dict{Int,Array{JuMP.VariableRef}}()
-    dhn_ne = var(wm, nw)[:dhn_ne] = Dict{Int,Array{JuMP.VariableRef}}()
+    # Create dictionary for undirected design flow variables (dhp_des and dhn_des).
+    dhp_des = var(wm, nw)[:dhp_des] = Dict{Int,Array{JuMP.VariableRef}}()
+    dhn_des = var(wm, nw)[:dhn_des] = Dict{Int,Array{JuMP.VariableRef}}()
 
     # Initialize the variables. (The default start value of 1.0e-6 is crucial.)
-    for a in ids(wm, nw, :link_ne)
-        dhp_ne[a] = var(wm, nw, :dhp_ne)[a] = JuMP.@variable(wm.model,
+    for a in ids(wm, nw, :link_des)
+        dhp_des[a] = var(wm, nw, :dhp_des)[a] = JuMP.@variable(wm.model,
             [r in 1:length(ref(wm, nw, :resistance, a))], lower_bound=0.0,
-            base_name="$(nw)_dhp_ne[$(a)]",
-            start=comp_start_value(ref(wm, nw, :link_ne, a), "dhp_ne_start", r, 1.0e-6))
+            base_name="$(nw)_dhp_des[$(a)]",
+            start=comp_start_value(ref(wm, nw, :link_des, a), "dhp_des_start", r, 1.0e-6))
 
-        dhn_ne[a] = var(wm, nw, :dhn_ne)[a] = JuMP.@variable(wm.model,
+        dhn_des[a] = var(wm, nw, :dhn_des)[a] = JuMP.@variable(wm.model,
             [r in 1:length(ref(wm, nw, :resistance, a))], lower_bound=0.0,
-            base_name="$(nw)_dhn_ne[$(a)]",
-            start=comp_start_value(ref(wm, nw, :link_ne, a), "dhn_ne_start", r, 1.0e-6))
+            base_name="$(nw)_dhn_des[$(a)]",
+            start=comp_start_value(ref(wm, nw, :link_des, a), "dhn_des_start", r, 1.0e-6))
     end
 
     if bounded # If the variables are bounded, apply the bounds.
@@ -35,17 +35,17 @@ function variable_head(wm::MICPEWaterModel; nw::Int=wm.cnw, bounded::Bool=true, 
         # Set lower and upper bounds on head differences.
         for (a, link) in ref(wm, nw, :link)
             i, j = [link["node_fr"], link["node_to"]]
-            JuMP.set_upper_bound.(dhp_ne[a], max(0.0, h_ub[i] - h_lb[j]))
-            JuMP.set_upper_bound.(dhn_ne[a], max(0.0, h_ub[j] - h_lb[i]))
+            JuMP.set_upper_bound.(dhp_des[a], max(0.0, h_ub[i] - h_lb[j]))
+            JuMP.set_upper_bound.(dhn_des[a], max(0.0, h_ub[j] - h_lb[i]))
         end
     end
 
-    # Create expressions capturing the relationships among q, dhp_ne, and dhn_ne.
+    # Create expressions capturing the relationships among q, dhp_des, and dhn_des.
     var(wm, nw)[:dhp] = JuMP.@expression(wm.model,
-        [a in ids(wm, nw, :link_ne)], sum(var(wm, nw, :dhp_ne, a)))
+        [a in ids(wm, nw, :link_des)], sum(var(wm, nw, :dhp_des, a)))
 
     var(wm, nw)[:dhn] = JuMP.@expression(wm.model,
-        [a in ids(wm, nw, :link_ne)], sum(var(wm, nw, :dhn_ne, a)))
+        [a in ids(wm, nw, :link_des)], sum(var(wm, nw, :dhn_des, a)))
 
     # Report back head values as part of the solution.
     report && sol_component_value(wm, nw, :node, :h, ids(wm, nw, :node), h)
@@ -56,7 +56,7 @@ function constraint_head_difference(wm::MICPEWaterModel, n::Int, a::Int, node_fr
 
     for (r_id, r) in enumerate(ref(wm, n, :resistance, a))
         x_res = var(wm, n, :x_res, a)[r_id]
-        dhp, dhn = [var(wm, n, :dhp_ne, a)[r_id], var(wm, n, :dhn_ne, a)[r_id]]
+        dhp, dhn = [var(wm, n, :dhp_des, a)[r_id], var(wm, n, :dhn_des, a)[r_id]]
         dhp_ub, dhn_ub = [JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)]
 
         c_p_r = JuMP.@constraint(wm.model, dhp <= dhp_ub * x_res)
@@ -75,11 +75,11 @@ function constraint_head_difference(wm::MICPEWaterModel, n::Int, a::Int, node_fr
     append!(con(wm, n, :head_loss)[a], [c_e])
 end
 
-function constraint_head_loss_pipe_ne(wm::MICPEWaterModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances) 
+function constraint_head_loss_pipe_des(wm::MICPEWaterModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances) 
     for (r_id, r) in enumerate(pipe_resistances)
         # Collect directed flow and head difference variables.
-        qp, qn = [var(wm, n, :qp_ne, a)[r_id], var(wm, n, :qn_ne, a)[r_id]]
-        dhp, dhn = [var(wm, n, :dhp_ne, a)[r_id], var(wm, n, :dhn_ne, a)[r_id]]
+        qp, qn = [var(wm, n, :qp_des, a)[r_id], var(wm, n, :qn_des, a)[r_id]]
+        dhp, dhn = [var(wm, n, :dhp_des, a)[r_id], var(wm, n, :dhn_des, a)[r_id]]
 
         # Add the relaxed head loss constraints.
         c_p = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= inv(L) * dhp)
@@ -92,13 +92,13 @@ end
 
 function constraint_energy_conservation(wm::MICPEWaterModel, n::Int, r, L, alpha)
     # Gather common variables.
-    qp, qn = [var(wm, n, :qp_ne), var(wm, n, :qn_ne)]
-    h, dhp, dhn = [var(wm, n, :h), var(wm, n, :dhp_ne), var(wm, n, :dhn_ne)]
+    qp, qn = [var(wm, n, :qp_des), var(wm, n, :qn_des)]
+    h, dhp, dhn = [var(wm, n, :h), var(wm, n, :dhp_des), var(wm, n, :dhn_des)]
 
     # Construct the sums used in the strong duality constraint.
     f_1 = JuMP.@NLexpression(wm.model, sum(L[a]*sum(r[a][r_id]
         * (primal_energy(qp[a][r_id]) + primal_energy(qn[a][r_id]))
-        for r_id in 1:length(r[a])) for a in ids(wm, n, :pipe_ne)))
+        for r_id in 1:length(r[a])) for a in ids(wm, n, :pipe_des)))
 
     f_2 = JuMP.@NLexpression(wm.model, sum(reservoir["head"]
         * sum(sum(qp[a][r_id] - qn[a][r_id] for r_id in
@@ -107,7 +107,7 @@ function constraint_energy_conservation(wm::MICPEWaterModel, n::Int, r, L, alpha
 
     f_3 = JuMP.@NLexpression(wm.model, sum(sum((L[a]*r[a][r_id])^-inv(alpha)
         * (dual_energy(dhp[a][r_id]) + dual_energy(dhn[a][r_id]))
-        for r_id in 1:length(r[a])) for a in ids(wm, n, :pipe_ne)))
+        for r_id in 1:length(r[a])) for a in ids(wm, n, :pipe_des)))
 
     f_4 = JuMP.@NLexpression(wm.model, sum(junction["demand"] * h[i]
         for (i, junction) in ref(wm, n, :junction)))
@@ -117,10 +117,10 @@ function constraint_energy_conservation(wm::MICPEWaterModel, n::Int, r, L, alpha
     con(wm, n)[:energy_conservation] = c
 end
 
-function constraint_head_loss_ub_pipe_ne(wm::MICPEWaterModel, n::Int, a::Int, alpha::Float64, L::Float64, pipe_resistances)
+function constraint_head_loss_ub_pipe_des(wm::MICPEWaterModel, n::Int, a::Int, alpha::Float64, L::Float64, pipe_resistances)
     for (r_id, r) in enumerate(pipe_resistances)
-        qp, qn = [var(wm, n, :qp_ne, a)[r_id], var(wm, n, :qn_ne, a)[r_id]]
-        dhp, dhn = [var(wm, n, :dhp_ne, a)[r_id], var(wm, n, :dhn_ne, a)[r_id]]
+        qp, qn = [var(wm, n, :qp_des, a)[r_id], var(wm, n, :qn_des, a)[r_id]]
+        dhp, dhn = [var(wm, n, :dhp_des, a)[r_id], var(wm, n, :dhn_des, a)[r_id]]
         qp_ub, qn_ub = [JuMP.upper_bound(qp), JuMP.upper_bound(qn)]
         slope_p, slope_n = r .* [qp_ub, qn_ub].^(alpha - 1.0)
 

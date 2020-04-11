@@ -11,13 +11,13 @@ function variable_flow_piecewise_weights(wm::AbstractMILPModel; nw::Int=wm.cnw, 
     report && sol_component_value(wm, nw, :link, :lambda, ids(wm, nw, :link_fixed), lambda)
 end
 
-function variable_flow_piecewise_weights_ne(wm::AbstractMILPModel, n::Int=wm.cnw)
+function variable_flow_piecewise_weights_des(wm::AbstractMILPModel, n::Int=wm.cnw)
     # Set the number of breakpoints used in each outer-approximation.
-    n_r = Dict(a=>length(ref(wm, nw, :resistance, a)) for a in ids(wm, nw, :link_ne))
+    n_r = Dict(a=>length(ref(wm, nw, :resistance, a)) for a in ids(wm, nw, :link_des))
     K = 1:wm.ext[:num_breakpoints]
 
     lambda = var(wm, nw)[:lambda] = JuMP.@variable(wm.model,
-        [a in ids(wm, nw, :link_ne), r in 1:n_r[a], k in K],
+        [a in ids(wm, nw, :link_des), r in 1:n_r[a], k in K],
         base_name="lambda[$(n)]", lower_bound=0.0, upper_bound=1.0,
         start=get_start(ref(wm, nw, :link), a, "lambda_start"))
 
@@ -36,11 +36,11 @@ function variable_flow_piecewise_adjacency(wm::AbstractMILPModel; nw::Int=wm.cnw
     report && sol_component_value(wm, nw, :link, :x_pw, ids(wm, nw, :link_fixed), x_pw)
 end
 
-function variable_flow_piecewise_adjacency_ne(wm::AbstractMILPModel, n::Int=wm.cnw)
+function variable_flow_piecewise_adjacency_des(wm::AbstractMILPModel, n::Int=wm.cnw)
     # Set the number of breakpoints used in each outer-approximation.
-    var(wm, nw)[:x_pw] = JuMP.@variable(wm.model, [a in ids(wm, nw, :link_ne),
+    var(wm, nw)[:x_pw] = JuMP.@variable(wm.model, [a in ids(wm, nw, :link_des),
         k in 1:wm.ext[:num_breakpoints]-1], base_name="x_pw[$(n)]", binary=true,
-        start=get_start(ref(wm, nw, :link_ne), a, "x_pw_start", 0.0))
+        start=get_start(ref(wm, nw, :link_des), a, "x_pw_start", 0.0))
 end
 
 function variable_flow(wm::AbstractMILPModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
@@ -52,22 +52,22 @@ function variable_flow(wm::AbstractMILPModel; nw::Int=wm.cnw, bounded::Bool=true
     variable_flow_piecewise_adjacency(wm, nw=nw)
 end
 
-"Create network expansion flow variables for undirected flow formulations."
-function variable_flow_ne(wm::AbstractMILPModel; nw::Int=wm.cnw, bounded::Bool=true)
+"Create network design flow variables for undirected flow formulations."
+function variable_flow_des(wm::AbstractMILPModel; nw::Int=wm.cnw, bounded::Bool=true)
     # Create undirected flow variables (i.e., q).
-    bounded ? variable_flow_bounded_ne(wm, nw=nw) :
-        variable_flow_unbounded_ne(wm, nw=nw)
+    bounded ? variable_flow_bounded_des(wm, nw=nw) :
+        variable_flow_unbounded_des(wm, nw=nw)
 
-    # Create expressions capturing the relationships among q, and q_ne.
-    var(wm, nw)[:q] = JuMP.@expression(wm.model, [a in ids(wm, nw, :link_ne)],
-        sum(var(wm, nw, :q_ne, a)))
+    # Create expressions capturing the relationships among q, and q_des.
+    var(wm, nw)[:q] = JuMP.@expression(wm.model, [a in ids(wm, nw, :link_des)],
+        sum(var(wm, nw, :q_des, a)))
 
     # Create resistance binary variables.
     variable_resistance(wm, nw=nw)
 
     # Create variables required for convex combination piecewise approximation.
-    variable_flow_piecewise_weights_ne(wm, nw)
-    variable_flow_piecewise_adjacency_ne(wm, nw)
+    variable_flow_piecewise_weights_des(wm, nw)
+    variable_flow_piecewise_adjacency_des(wm, nw)
 end
 
 function _get_pump_gain_values(breakpoints::Array{Float64}, curve_fun::Array{Float64})
@@ -129,7 +129,7 @@ function constraint_head_gain_pump(wm::AbstractMILPModel, n::Int, a::Int, node_f
     end
 end
 
-function constraint_head_loss_pipe_ne(wm::AbstractMILPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, resistances)
+function constraint_head_loss_pipe_des(wm::AbstractMILPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, resistances)
     # Set the number of breakpoints used in each outer-approximation.
     n_b = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 2
 
@@ -143,7 +143,7 @@ function constraint_head_loss_pipe_ne(wm::AbstractMILPModel, n::Int, a::Int, alp
 
         for (r_id, r) in enumerate(resistances)
             x_res = var(wm, n, :x_res, a)[r_id]
-            q_ne = var(wm, n, :q_ne, a)[r_id]
+            q_des = var(wm, n, :q_des, a)[r_id]
 
             c_1 = JuMP.@constraint(wm.model, sum(lambda[a, r_id, k] for k in 1:n_b) == x_res)
             c_2 = JuMP.@constraint(wm.model, lambda[a, r_id, 1] <= x_pw[a, 1])
@@ -155,16 +155,16 @@ function constraint_head_loss_pipe_ne(wm::AbstractMILPModel, n::Int, a::Int, alp
                 append!(con(wm, n, :head_loss, a), [c_4])
             end
 
-            q_ne = var(wm, n, :q_ne, a)[r_id]
-            q_ne_lb = JuMP.has_lower_bound(q_ne) ? JuMP.lower_bound(q_ne) : -10.0
-            q_ne_ub = JuMP.has_upper_bound(q_ne) ? JuMP.upper_bound(q_ne) : 10.0
+            q_des = var(wm, n, :q_des, a)[r_id]
+            q_des_lb = JuMP.has_lower_bound(q_des) ? JuMP.lower_bound(q_des) : -10.0
+            q_des_ub = JuMP.has_upper_bound(q_des) ? JuMP.upper_bound(q_des) : 10.0
 
-            breakpoints = range(q_ne_lb, stop=q_ne_ub, length=n_b)
+            breakpoints = range(q_des_lb, stop=q_des_ub, length=n_b)
             f = get_head_loss_values(collect(breakpoints), alpha)
             JuMP.add_to_expression!(lhs, r * sum(f[k] * lambda[a, r_id, k] for k in 1:n_b))
 
-            q_ne_lhs = sum(breakpoints[k] * lambda[a, r_id, k] for k in 1:n_b)
-            c_5 = JuMP.@constraint(wm.model, q_ne_lhs == q_ne)
+            q_des_lhs = sum(breakpoints[k] * lambda[a, r_id, k] for k in 1:n_b)
+            c_5 = JuMP.@constraint(wm.model, q_des_lhs == q_des)
             append!(con(wm, n, :head_loss, a), [c_5])
         end
 

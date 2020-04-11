@@ -95,51 +95,51 @@ function variable_flow_direction(wm::AbstractDirectedFlowModel; nw::Int=wm.cnw)
         start=comp_start_value(ref(wm, nw, :link, a), "x_dir_start"))
 end
 
-#"Create network expansion flow variables for the CNLP formulation."
-#function variable_flow_ne(wm::AbstractContinuousDirectedFlowForms; nw::Int=wm.cnw, bounded::Bool=true)
-#    if length(ref(wm, nw, :link_ne)) > 0
+#"Create network design flow variables for the CNLP formulation."
+#function variable_flow_des(wm::AbstractContinuousDirectedFlowForms; nw::Int=wm.cnw, bounded::Bool=true)
+#    if length(ref(wm, nw, :link_des)) > 0
 #        Memento.error(_LOGGER, "AbstractCNLPModel does not support network "
-#            * "expansion formulations.")
+#            * "design formulations.")
 #    end
 #end
 
-"Create network expansion flow variables for directed flow formulations."
-function variable_flow_ne(wm::AbstractDirectedFlowModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
-    # Create dictionary for undirected design flow variables (qp_ne and qn_ne).
-    qp_ne = var(wm, nw)[:qp_ne] = Dict{Int,Array{JuMP.VariableRef}}()
-    qn_ne = var(wm, nw)[:qn_ne] = Dict{Int,Array{JuMP.VariableRef}}()
+"Create network design flow variables for directed flow formulations."
+function variable_flow_des(wm::AbstractDirectedFlowModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+    # Create dictionary for undirected design flow variables (qp_des and qn_des).
+    qp_des = var(wm, nw)[:qp_des] = Dict{Int,Array{JuMP.VariableRef}}()
+    qn_des = var(wm, nw)[:qn_des] = Dict{Int,Array{JuMP.VariableRef}}()
 
     # Initialize the variables. (The default start value of 1.0e-6 is crucial.)
-    for a in ids(wm, nw, :link_ne)
-        var(wm, nw, :qp_ne)[a] = JuMP.@variable(wm.model,
+    for a in ids(wm, nw, :link_des)
+        var(wm, nw, :qp_des)[a] = JuMP.@variable(wm.model,
             [r in 1:length(ref(wm, nw, :resistance, a))], lower_bound=0.0,
-            base_name="$(nw)_qp_ne[$(a)]",
-            start=comp_start_value(ref(wm, nw, :link_ne, a), "qp_ne_start", r, 1.0e-6))
+            base_name="$(nw)_qp_des[$(a)]",
+            start=comp_start_value(ref(wm, nw, :link_des, a), "qp_des_start", r, 1.0e-6))
 
-        var(wm, nw, :qn_ne)[a] = JuMP.@variable(wm.model,
+        var(wm, nw, :qn_des)[a] = JuMP.@variable(wm.model,
             [r in 1:length(ref(wm, nw, :resistance, a))], lower_bound=0.0,
-            base_name="$(nw)_qn_ne[$(a)]",
-            start=comp_start_value(ref(wm, nw, :link_ne, a), "qn_ne_start", r, 1.0e-6))
+            base_name="$(nw)_qn_des[$(a)]",
+            start=comp_start_value(ref(wm, nw, :link_des, a), "qn_des_start", r, 1.0e-6))
     end
 
     if bounded # If the variables are bounded, apply the bounds.
         q_lb, q_ub = calc_flow_bounds(wm, nw)
 
-        for a in ids(wm, nw, :link_ne)
+        for a in ids(wm, nw, :link_des)
             for r in 1:length(ref(wm, nw, :resistance, a))
-                JuMP.set_upper_bound(qp_ne[a][r], max(0.0, q_ub[a][r]))
-                JuMP.set_upper_bound(qn_ne[a][r], max(0.0, -q_lb[a][r]))
+                JuMP.set_upper_bound(qp_des[a][r], max(0.0, q_ub[a][r]))
+                JuMP.set_upper_bound(qn_des[a][r], max(0.0, -q_lb[a][r]))
             end
         end
     end
 
-    # Create expressions capturing the relationships among q, qp_ne, and qn_ne.
+    # Create expressions capturing the relationships among q, qp_des, and qn_des.
     q = var(wm, nw)[:q] = JuMP.@expression(
-        wm.model, [a in ids(wm, nw, :link_ne)],
-        sum(var(wm, nw, :qp_ne, a)) - sum(var(wm, nw, :qn_ne, a)))
+        wm.model, [a in ids(wm, nw, :link_des)],
+        sum(var(wm, nw, :qp_des, a)) - sum(var(wm, nw, :qn_des, a)))
 
     # Initialize the solution reporting data structures.
-    report && sol_component_value(wm, nw, :link, :q, ids(wm, nw, :link_ne), q)
+    report && sol_component_value(wm, nw, :link, :q, ids(wm, nw, :link_des), q)
 
     # Create resistance binary variables.
     variable_resistance(wm, nw=nw)
@@ -193,17 +193,17 @@ function constraint_flow_direction_selection(wm::AbstractDirectedFlowModel, n::I
     append!(con(wm, n, :head_loss)[a], [cp, cn])
 end
 
-function constraint_flow_direction_selection_ne(wm::AbstractDirectedFlowModel, n::Int, a::Int, pipe_resistances)
+function constraint_flow_direction_selection_des(wm::AbstractDirectedFlowModel, n::Int, a::Int, pipe_resistances)
     x_dir = var(wm, n, :x_dir, a)
 
     for r_id in 1:length(pipe_resistances)
-        qp_ne = var(wm, n, :qp_ne, a)[r_id]
-        qp_ne_ub = JuMP.has_upper_bound(qp_ne) ? JuMP.upper_bound(qp_ne) : 10.0
-        cp = JuMP.@constraint(wm.model, qp_ne <= qp_ne_ub * x_dir)
+        qp_des = var(wm, n, :qp_des, a)[r_id]
+        qp_des_ub = JuMP.has_upper_bound(qp_des) ? JuMP.upper_bound(qp_des) : 10.0
+        cp = JuMP.@constraint(wm.model, qp_des <= qp_des_ub * x_dir)
 
-        qn_ne = var(wm, n, :qn_ne, a)[r_id]
-        qn_ne_ub = JuMP.has_upper_bound(qn_ne) ? JuMP.upper_bound(qn_ne) : 10.0
-        cn = JuMP.@constraint(wm.model, qn_ne <= qn_ne_ub * (1.0 - x_dir))
+        qn_des = var(wm, n, :qn_des, a)[r_id]
+        qn_des_ub = JuMP.has_upper_bound(qn_des) ? JuMP.upper_bound(qn_des) : 10.0
+        cn = JuMP.@constraint(wm.model, qn_des <= qn_des_ub * (1.0 - x_dir))
 
         append!(con(wm, n, :head_loss)[a], [cp, cn])
     end
@@ -241,36 +241,36 @@ function constraint_head_loss_ub_pipe(wm::AbstractDirectedFlowModel, n::Int, a::
     append!(con(wm, n, :head_loss)[a], [c_p, c_n])
 end
 
-function constraint_head_loss_ub_pipe_ne(wm::AbstractDirectedFlowModel, n::Int, a::Int, alpha::Float64, L::Float64, pipe_resistances)
+function constraint_head_loss_ub_pipe_des(wm::AbstractDirectedFlowModel, n::Int, a::Int, alpha::Float64, L::Float64, pipe_resistances)
     dhp = var(wm, n, :dhp, a)
-    qp_ne = var(wm, n, :qp_ne, a)
-    qp_ne_ub = JuMP.upper_bound.(qp_ne)
-    slopes_p = pipe_resistances .* qp_ne_ub.^(alpha - 1.0)
-    c_p = JuMP.@constraint(wm.model, inv(L)*dhp <= sum(slopes_p .* qp_ne))
+    qp_des = var(wm, n, :qp_des, a)
+    qp_des_ub = JuMP.upper_bound.(qp_des)
+    slopes_p = pipe_resistances .* qp_des_ub.^(alpha - 1.0)
+    c_p = JuMP.@constraint(wm.model, inv(L)*dhp <= sum(slopes_p .* qp_des))
 
     dhn = var(wm, n, :dhn, a)
-    qn_ne = var(wm, n, :qn_ne, a)
-    qn_ne_ub = JuMP.upper_bound.(qn_ne)
-    slopes_n = pipe_resistances .* qn_ne_ub.^(alpha - 1.0)
-    c_n = JuMP.@constraint(wm.model, inv(L)*dhn <= sum(slopes_n .* qn_ne))
+    qn_des = var(wm, n, :qn_des, a)
+    qn_des_ub = JuMP.upper_bound.(qn_des)
+    slopes_n = pipe_resistances .* qn_des_ub.^(alpha - 1.0)
+    c_n = JuMP.@constraint(wm.model, inv(L)*dhn <= sum(slopes_n .* qn_des))
 
     append!(con(wm, n, :head_loss)[a], [c_p, c_n])
 end
 
-function constraint_resistance_selection_ne(wm::AbstractDirectedFlowModel, n::Int, a::Int, pipe_resistances)
+function constraint_resistance_selection_des(wm::AbstractDirectedFlowModel, n::Int, a::Int, pipe_resistances)
     c = JuMP.@constraint(wm.model, sum(var(wm, n, :x_res, a)) == 1.0)
     append!(con(wm, n, :head_loss)[a], [c])
 
     for (r_id, r) in enumerate(pipe_resistances)
         x_res = var(wm, n, :x_res, a)[r_id]
 
-        qp_ne = var(wm, n, :qp_ne, a)[r_id]
-        qp_ub = JuMP.upper_bound(qp_ne)
-        c_p = JuMP.@constraint(wm.model, qp_ne <= qp_ub * x_res)
+        qp_des = var(wm, n, :qp_des, a)[r_id]
+        qp_ub = JuMP.upper_bound(qp_des)
+        c_p = JuMP.@constraint(wm.model, qp_des <= qp_ub * x_res)
 
-        qn_ne = var(wm, n, :qn_ne, a)[r_id]
-        qn_ub = JuMP.upper_bound(qn_ne)
-        c_n = JuMP.@constraint(wm.model, qn_ne <= qn_ub * x_res)
+        qn_des = var(wm, n, :qn_des, a)[r_id]
+        qn_ub = JuMP.upper_bound(qn_des)
+        c_n = JuMP.@constraint(wm.model, qn_des <= qn_ub * x_res)
 
         append!(con(wm, n, :head_loss)[a], [c_p, c_n])
     end

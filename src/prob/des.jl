@@ -1,8 +1,8 @@
-function solve_ne(network, model_constructor, optimizer; kwargs...)
-    return solve_model(network, model_constructor, optimizer, build_ne; kwargs...)
+function solve_des(network, model_constructor, optimizer; kwargs...)
+    return solve_model(network, model_constructor, optimizer, build_des; kwargs...)
 end
 
-function build_ne(wm::AbstractWaterModel)
+function build_des(wm::AbstractWaterModel)
     # Create head loss functions, if necessary.
     function_head_loss(wm)
 
@@ -10,7 +10,7 @@ function build_ne(wm::AbstractWaterModel)
     variable_head(wm)
     variable_head_gain(wm)
     variable_flow(wm)
-    variable_flow_ne(wm)
+    variable_flow_des(wm)
     variable_volume(wm)
 
     # Component-specific variables.
@@ -19,8 +19,8 @@ function build_ne(wm::AbstractWaterModel)
     variable_reservoir(wm)
     variable_tank(wm)
 
-    # Add the network expansion objective.
-    objective_ne(wm)
+    # Add the network design objective.
+    objective_des(wm)
 
     for (a, pipe) in ref(wm, :pipe_fixed)
         # TODO: Call this something other than status.
@@ -32,8 +32,8 @@ function build_ne(wm::AbstractWaterModel)
         end
     end
 
-    for (a, pipe) in ref(wm, :pipe_ne)
-        constraint_head_loss_pipe_ne(wm, a)
+    for (a, pipe) in ref(wm, :pipe_des)
+        constraint_head_loss_pipe_des(wm, a)
     end
 
     for a in ids(wm, :pump)

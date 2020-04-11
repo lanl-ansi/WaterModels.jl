@@ -116,34 +116,34 @@ function constraint_head_gain_pump_on(wm::AbstractMILPRModel, n::Int, a::Int, no
     end
 end
 
-function constraint_head_loss_pipe_ne(wm::AbstractMILPRModel, n::Int, a::Int,
+function constraint_head_loss_pipe_des(wm::AbstractMILPRModel, n::Int, a::Int,
     alpha::Float64, node_fr::Int, node_to::Int, L::Float64, resistances)
     # Set the number of breakpoints used in each outer-approximation.
     num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 1
 
     for (r_id, r) in enumerate(resistances)
-        qp_ne = var(wm, n, :qp_ne, a)[r_id]
-        qp_ne_ub = JuMP.has_upper_bound(qp_ne) ? JuMP.upper_bound(qp_ne) : 10.0
+        qp_des = var(wm, n, :qp_des, a)[r_id]
+        qp_des_ub = JuMP.has_upper_bound(qp_des) ? JuMP.upper_bound(qp_des) : 10.0
         dhp = var(wm, n, :dhp, a)
 
-        if qp_ne_ub > 0.0 && num_breakpoints > 0
-            breakpoints = range(0.0, stop=qp_ne_ub, length=num_breakpoints+2)
+        if qp_des_ub > 0.0 && num_breakpoints > 0
+            breakpoints = range(0.0, stop=qp_des_ub, length=num_breakpoints+2)
 
             for q_hat in breakpoints[2:num_breakpoints+1]
-                cut_lhs = r * get_linear_outer_approximation(qp_ne, q_hat, alpha)
+                cut_lhs = r * get_linear_outer_approximation(qp_des, q_hat, alpha)
                 con_p = JuMP.@constraint(wm.model, cut_lhs <= inv(L) * dhp)
             end
         end
 
-        qn_ne = var(wm, n, :qn_ne, a)[r_id]
-        qn_ne_ub = JuMP.has_upper_bound(qn_ne) ? JuMP.upper_bound(qn_ne) : 10.0
+        qn_des = var(wm, n, :qn_des, a)[r_id]
+        qn_des_ub = JuMP.has_upper_bound(qn_des) ? JuMP.upper_bound(qn_des) : 10.0
         dhn = var(wm, n, :dhn, a)
 
-        if qn_ne_ub > 0.0 && num_breakpoints > 0
-            breakpoints = range(0.0, stop=qn_ne_ub, length=num_breakpoints+2)
+        if qn_des_ub > 0.0 && num_breakpoints > 0
+            breakpoints = range(0.0, stop=qn_des_ub, length=num_breakpoints+2)
 
             for q_hat in breakpoints[2:num_breakpoints+1]
-                cut_lhs = r * get_linear_outer_approximation(qn_ne, q_hat, alpha)
+                cut_lhs = r * get_linear_outer_approximation(qn_des, q_hat, alpha)
                 con_n = JuMP.@constraint(wm.model, cut_lhs <= inv(L) * dhn)
             end
         end

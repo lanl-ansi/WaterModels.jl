@@ -104,11 +104,11 @@ function constraint_head_gain_pump_on(wm::AbstractCNLPModel, n::Int, a::Int, nod
     con(wm, n, :head_gain)[a] = [con_1]
 end
 
-"Create network expansion flow variables for the CNLP formulation."
-function variable_flow_ne(wm::AbstractCNLPModel; nw::Int=wm.cnw, bounded::Bool=true)
-    if length(ref(wm, nw, :link_ne)) > 0
+"Create network design flow variables for the CNLP formulation."
+function variable_flow_des(wm::AbstractCNLPModel; nw::Int=wm.cnw, bounded::Bool=true)
+    if length(ref(wm, nw, :link_des)) > 0
         Memento.error(_LOGGER, "AbstractCNLPModel does not support network "
-            * "expansion formulations.")
+            * "design formulations.")
     end
 end
 

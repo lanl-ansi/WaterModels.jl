@@ -3,14 +3,14 @@
         data = parse_file("../test/data/epanet/shamir.inp")
         modifications = parse_file("../test/data/json/shamir-reduced.json")
         InfrastructureModels.update_data!(data, modifications)
-        @test_throws ErrorException instantiate_model(data, CNLPWaterModel, build_ne)
+        @test_throws ErrorException instantiate_model(data, CNLPWaterModel, build_des)
     end
 
     @testset "Shamir network (reduced), MICP-E formulation." begin
         data = parse_file("../test/data/epanet/shamir.inp")
         modifications = parse_file("../test/data/json/shamir-reduced.json")
         InfrastructureModels.update_data!(data, modifications)
-        wm = instantiate_model(data, MICPEWaterModel, build_ne)
+        wm = instantiate_model(data, MICPEWaterModel, build_des)
 
         f_1 = Juniper.register(head_loss_args(wm)..., autodiff=false)
         f_2 = Juniper.register(primal_energy_args(wm)..., autodiff=false)
@@ -29,7 +29,7 @@
         data = parse_file("../test/data/epanet/shamir.inp")
         modifications = parse_file("../test/data/json/shamir-reduced.json")
         InfrastructureModels.update_data!(data, modifications)
-        wm = instantiate_model(data, MICPRWaterModel, build_ne)
+        wm = instantiate_model(data, MICPRWaterModel, build_des)
 
         f = Juniper.register(head_loss_args(wm)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
@@ -45,7 +45,7 @@
         modifications = parse_file("../test/data/json/shamir-reduced.json")
         InfrastructureModels.update_data!(data, modifications)
 
-        wm = instantiate_model(data, MILPRWaterModel, build_ne, ext=Dict(:num_breakpoints => 5))
+        wm = instantiate_model(data, MILPRWaterModel, build_des, ext=Dict(:num_breakpoints => 5))
         solution = _IM.optimize_model!(wm, optimizer=cbc)
 
         @test solution["termination_status"] == OPTIMAL
@@ -57,7 +57,7 @@
         modifications = parse_file("../test/data/json/shamir-reduced.json")
         InfrastructureModels.update_data!(data, modifications)
 
-        wm = instantiate_model(data, MILPRWaterModel, build_ne, ext=Dict(:num_breakpoints => 5))
+        wm = instantiate_model(data, MILPRWaterModel, build_des, ext=Dict(:num_breakpoints => 5))
         solution = _IM.optimize_model!(wm, optimizer=cbc)
 
         @test solution["termination_status"] == OPTIMAL
@@ -68,7 +68,7 @@
         data = parse_file("../test/data/epanet/shamir.inp")
         modifications = parse_file("../test/data/json/shamir-reduced.json")
         InfrastructureModels.update_data!(data, modifications)
-        wm = instantiate_model(data, NCNLPWaterModel, build_ne)
+        wm = instantiate_model(data, NCNLPWaterModel, build_des)
 
         f = Juniper.register(head_loss_args(wm)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,

@@ -1,13 +1,13 @@
 # Define common MICP (mixed-integer convex program) implementations of water
 # distribution constraints, which use directed flow variables.
 
-function constraint_head_loss_pipe_ne(wm::AbstractMICPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances) 
+function constraint_head_loss_pipe_des(wm::AbstractMICPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances) 
     # Collect head difference variables.
     dhp, dhn = [var(wm, n, :dhp, a), var(wm, n, :dhn, a)]
 
     for (r_id, r) in enumerate(pipe_resistances)
         # Collect directed flow variables.
-        qp, qn = [var(wm, n, :qp_ne, a)[r_id], var(wm, n, :qn_ne, a)[r_id]]
+        qp, qn = [var(wm, n, :qp_des, a)[r_id], var(wm, n, :qn_des, a)[r_id]]
 
         # Build the relaxed head loss constraints.
         c_p = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= inv(L) * dhp)

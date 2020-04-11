@@ -22,11 +22,11 @@ function constraint_head_loss_pipe(wm::AbstractNCNLPModel, n::Int, a::Int, alpha
     append!(con(wm, n, :head_loss)[a], [c])
 end
 
-function constraint_head_loss_pipe_ne(wm::AbstractNCNLPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances)
+function constraint_head_loss_pipe_des(wm::AbstractNCNLPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances)
     h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
-    q_ne = var(wm, n, :q_ne, a)
+    q_des = var(wm, n, :q_des, a)
 
-    lhs = JuMP.@NLexpression(wm.model, sum(r * head_loss(q_ne[r_id]) for
+    lhs = JuMP.@NLexpression(wm.model, sum(r * head_loss(q_des[r_id]) for
         (r_id, r) in enumerate(pipe_resistances)))
 
     c = JuMP.@NLconstraint(wm.model, lhs == inv(L) * (h_i - h_j))

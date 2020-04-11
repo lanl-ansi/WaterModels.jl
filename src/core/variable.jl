@@ -149,18 +149,18 @@ function variable_pump_control(wm::AbstractWaterModel; nw::Int=wm.cnw)
     variable_fixed_speed_pump_threshold(wm, nw=nw)
 end
 
-"Creates binary variables for all network expansion or design resistances in
+"Creates binary variables for all network design or design resistances in
 the network, i.e., `x_res[a]` for `a` in `pipe`, for `r` in `resistance[a]`,
 where one denotes that the given resistance is active in the design."
 function variable_resistance(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
     x_res = var(wm, nw)[:x_res] = Dict{Int, Array{JuMP.VariableRef}}()
 
-    for a in ids(wm, nw, :link_ne)
+    for a in ids(wm, nw, :link_des)
         n_r = length(ref(wm, nw, :resistance, a)) # Number of resistances.
         var(wm, nw, :x_res)[a] = JuMP.@variable(wm.model, [r in 1:n_r],
             binary=true, base_name="$(nw)_x_res[$(a)]",
-            start=comp_start_value(ref(wm, nw, :link_ne, a), "x_res_start", r))
+            start=comp_start_value(ref(wm, nw, :link_des, a), "x_res_start", r))
     end
 
-    report && sol_component_value(wm, nw, :pipe_ne, :x_res, ids(wm, nw, :pipe_ne), x_res)
+    report && sol_component_value(wm, nw, :pipe_des, :x_res, ids(wm, nw, :pipe_des), x_res)
 end

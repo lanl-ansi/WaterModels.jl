@@ -23,16 +23,16 @@ function objective_owf(wm::AbstractWaterModel)
 end
 
 """
-    objective_ne(wm::AbstractWaterModel)
+    objective_des(wm::AbstractWaterModel)
 
-Sets the objective function for network expansion (ne) problem specifications.
+Sets the objective function for network design (des) problem specifications.
 By default, the cost of selecting discrete network resistances is minimized.
 """
-function objective_ne(wm::AbstractWaterModel)
+function objective_des(wm::AbstractWaterModel)
     obj = JuMP.AffExpr(0.0)
 
     for n in nw_ids(wm)
-        for (a, link) in ref(wm, n, :link_ne)
+        for (a, link) in ref(wm, n, :link_des)
             costs = link["length"] .* ref(wm, n, :resistance_cost, a)
             JuMP.add_to_expression!(obj, sum(costs .* var(wm, n, :x_res, a)))
         end
