@@ -11,7 +11,7 @@ This decoupling enables the definition of a wide variety of water network optimi
 **Core Problem Specifications**
 * Water Flow (wf) - obtain flows using substantial physical relaxations
 * Optimal Water Flow (owf) - minimize the cost required for network operation
-* Network Expansion (ne) - minimize the cost of expansion (or design) while satisfying demand
+* Network Design (des) - minimize the cost of design (or expansion) while satisfying demand
 
 **Core Network Formulations**
 * CNLP - convex nonlinear program used for determining network flow rates
