@@ -9,16 +9,15 @@ The code is engineered to decouple problem specifications (e.g., water flow, opt
 This decoupling enables the definition of a wide variety of water network optimization formulations and their comparison on common problem specifications.
 
 **Core Problem Specifications**
-* Water Flow (wf) - obtain flows using substantial physical relaxations
+* Water Flow (wf) - obtain feasible flows for a fixed network
 * Optimal Water Flow (owf) - minimize the cost required for network operation
-* Network Design (des) - minimize the cost of design (or expansion) while satisfying demand
+* Network Design (des) - minimize the cost of design (or expansion)
 
 **Core Network Formulations**
 * CNLP - convex nonlinear program used for determining network flow rates
 * MICP-R - relaxation-based mixed-integer convex program
 * MILP - mixed-integer linear program using piecewise linear approximations
 * MILP-R - relaxation-based mixed-integer linear program
-* MIQP - MILP-R-based mixed-integer quadratic program (includes quadratic constraints and objective terms in the `owf` specification)
 * NCNLP - nonconvex nonlinear program
 
 ## Documentation
