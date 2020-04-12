@@ -21,7 +21,7 @@ This decoupling enables the definition of a wide variety of water network optimi
 * NCNLP - nonconvex nonlinear program
 
 ## Documentation
-The package [documentation](https://lanl-ansi.github.io/WaterModels.jl/latest/) includes a [quick-start guide](https://lanl-ansi.github.io/WaterModels.jl/latest/quickguide.html).
+The package [documentation](https://lanl-ansi.github.io/WaterModels.jl/latest/) includes a [quick start guide](https://lanl-ansi.github.io/WaterModels.jl/latest/quickguide).
 
 ## Development
 Community-driven development and enhancement of WaterModels is welcomed and encouraged.
