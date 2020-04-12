@@ -262,18 +262,19 @@ function objective_owf(wm::AbstractMILPModel)
         lambda = var(wm, n, :lambda)
 
         # Get common constant parameters.
-        efficiency = 0.85 # TODO: Change this after discussion. 0.85 follows Fooladivanda.
         rho = 1000.0 # Water density (kilogram per cubic meter).
         gravity = 9.80665 # Gravitational acceleration (meter per second squared).
         time_step = nw_ref[:option]["time"]["hydraulic_timestep"]
-        constant = rho * gravity * time_step * inv(efficiency)
+        constant = rho * gravity * time_step
 
         for (a, pump) in nw_ref[:pump]
             if haskey(pump, "energy_price")
-                energy_price = pump["energy_price"]
+                # Get price and pump curve data.
+                price = pump["energy_price"]
                 pump_curve = ref(wm, n, :pump, a)["pump_curve"]
                 curve_fun = _get_function_from_pump_curve(pump_curve)
 
+                # Get flow-related variables and data.
                 q, x_pump = [var(wm, n)[:q][a], var(wm, n)[:x_pump][a]]
                 q_lb, q_ub = [JuMP.lower_bound(q), JuMP.upper_bound(q)]
 
@@ -281,8 +282,17 @@ function objective_owf(wm::AbstractMILPModel)
                 breakpoints = range(q_lb, stop=q_ub, length=wm.ext[:num_breakpoints])
                 f = _calc_cubic_flow_values(collect(breakpoints), curve_fun)
 
+                # Get pump efficiency data.
+                if haskey(pump, "efficiency_curve")
+                    eff_curve = pump["efficiency_curve"]
+                    eff = _calc_efficiencies(collect(breakpoints), eff_curve)
+                else
+                    eff = ref(wm, n, :option)["energy"]["global_efficiency"]
+                end
+
                 # Add the cost corresponding to the current pump's operation.
-                cost = constant*energy_price*sum(f[k] * lambda[a, k] for k in K)
+                inner_expr = inv.(eff) .* f
+                cost = constant*price*sum(inner_expr[k]*lambda[a, k] for k in K)
                 JuMP.add_to_expression!(objective, cost)
             else
                 Memento.error(_LOGGER, "No cost given for pump \"$(pump["name"])\"")

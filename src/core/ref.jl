@@ -10,6 +10,12 @@ function _calc_cubic_flow_values(points::Array{Float64}, curve_fun::Array{Float6
     return [curve_fun[1]*x^3 + curve_fun[2]*x^2 + curve_fun[3]*x for x in points]
 end
 
+function _calc_efficiencies(points::Array{Float64}, curve::Array{Tuple{Float64,Float64}})
+    q, eff = [[x[1] for x in curve], [x[2] for x in curve]]
+    return Interpolations.LinearInterpolation(q, eff,
+        extrapolation_bc=Interpolations.Flat()).(points)
+end
+
 function _get_function_from_pump_curve(pump_curve::Array{Tuple{Float64,Float64}})
     LsqFit.@. func(x, p) = p[1]*x*x + p[2]*x + p[3]
 

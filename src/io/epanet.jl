@@ -741,7 +741,7 @@ function _read_energy!(data::Dict{String, <:Any})
                 elseif uppercase(current[2]) == "PATTERN"
                     data["option"]["energy"]["global_pattern"] = current[3]
                 elseif uppercase(current[2]) in ["EFFIC", "EFFICIENCY"]
-                    data["option"]["energy"]["global_efficiency"] = parse(Float64, current[3])
+                    data["option"]["energy"]["global_efficiency"] = 0.01 * parse(Float64, current[3])
                 else
                     Memento.warning(_LOGGER, "Unknown entry in ENERGY section: $(line)")
                 end

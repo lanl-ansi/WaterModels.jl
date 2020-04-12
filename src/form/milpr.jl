@@ -244,7 +244,6 @@ function objective_owf(wm::AbstractMILPRModel)
             JuMP.add_to_expression!(objective, constant*energy_price * (cubic_var + quad_terms))
 
             #f = get_objective_values(collect(breakpoints), curve_fun)
-            #println(curve_fun)
             #lhs = energy_price*constant * sum(f[k] .* lambda[a, k] for k in 1:num_breakpoints)
             #q_lhs = sum(breakpoints[k] * lambda[a, k] for k in 1:num_breakpoints)
             #c_6 = JuMP.@constraint(wm.model, q_lhs == qp)

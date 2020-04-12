@@ -4,6 +4,7 @@ module WaterModels
     const _IM = InfrastructureModels
 
     import DataStructures
+    import Interpolations
     import JSON
     import JuMP
     import LinearAlgebra
