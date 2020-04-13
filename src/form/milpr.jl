@@ -1,302 +1,208 @@
-# Define MILPR (mixed-integer linear, relaxed program) implementations of water distribution models.
+# Define MILP-R (relaxation-based mixed-integer linear programming)
+# implementations of common water distribution model specifications.
 
-function get_objective_values(breakpoints::Array{Float64}, curve_fun::Array{Float64})
-    return [curve_fun[1]*x^3 + curve_fun[2]*x^2 + curve_fun[3]*x for x in breakpoints]
+function _get_owf_oa(q::JuMP.VariableRef, x_pump::JuMP.VariableRef, q_hat::Float64, coeffs::Array{Float64})
+    f = coeffs[1]*q_hat^3 + coeffs[2]*q_hat^2 + coeffs[3]*q_hat
+    df = 3.0*coeffs[1]*q_hat^2 + 2.0*coeffs[2]*q_hat + coeffs[3]
+    return f*x_pump + df*(q - q_hat*x_pump)
 end
 
-function get_cubic_outer_approximation(q::JuMP.VariableRef,
-    x_pump::JuMP.VariableRef, q_hat::Float64, curve_fun::Array{Float64})
-    return curve_fun[1]*q_hat^3*x_pump + 3.0*curve_fun[1] * q_hat^2 * (q - q_hat)*x_pump
-end
-
-function get_obj_linear_outer_approximation(q::JuMP.VariableRef,
-    x_pump::JuMP.VariableRef, q_hat::Float64, curve_fun::Array{Float64})
-    f_a = curve_fun[1]*q_hat^3 + curve_fun[2]*q_hat^2 + curve_fun[3]*q_hat
-    return f_a + 3.0*curve_fun[1] * (q - q_hat)^2 + 2.0*curve_fun[2] * (q - q_hat) + curve_fun[3]
-end
-
-function get_linear_outer_approximation(q::JuMP.VariableRef, q_hat::Float64, alpha::Float64)
+function _get_head_loss_oa(q::JuMP.VariableRef, q_hat::Float64, alpha::Float64)
     return q_hat^alpha + alpha * q_hat^(alpha - 1.0) * (q - q_hat)
 end
 
-function get_linear_outer_approximation_pump(q::JuMP.VariableRef,
-    x_pump::JuMP.VariableRef, q_hat::Float64, a::Float64, b::Float64, c::Float64)
-    return a*q_hat^2 + b*q_hat + c + 2.0*a*(q - q_hat) + b
+function _get_head_loss_cv_oa(q::JuMP.VariableRef, x_cv::JuMP.VariableRef, q_hat::Float64, alpha::Float64)
+    return q_hat^alpha*x_cv + alpha * q_hat^(alpha - 1.0) * (q - q_hat*x_cv)
 end
 
-function get_linear_outer_approximation_pump_on(q::JuMP.VariableRef, q_hat::Float64, a::Float64, b::Float64, c::Float64)
-    return a*q_hat^2 + b*q_hat + c + 2.0*a*(q - q_hat) + b
-end
-
-function variable_flow_piecewise_weights(wm::AbstractMILPRModel, n::Int=wm.cnw)
-    # Set the number of breakpoints used in each outer-approximation.
-    num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 2
-
-    var(wm, n)[:lambda] = JuMP.@variable(wm.model, [a in ids(wm, n, :pump),
-        k in 1:num_breakpoints], base_name="lambda[$(n)]", lower_bound=0.0,
-        upper_bound=1.0, start=get_start(ref(wm, n, :link), a, "lambda_start", 0.0))
-end
-
-function variable_flow_piecewise_adjacency(wm::AbstractMILPRModel, n::Int=wm.cnw)
-    # Set the number of breakpoints used in each outer-approximation.
-    num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 2
-    var(wm, n)[:x_pw] = JuMP.@variable(wm.model, [a in ids(wm, n, :pump),
-        k in 1:num_breakpoints-1], base_name="x_pw[$(n)]", binary=true,
-        start=get_start(ref(wm, n, :link_fixed), a, "x_pw_start", 0.0))
+function _get_pump_gain_oa(q::JuMP.VariableRef, x_pump::JuMP.VariableRef, q_hat::Float64, curve_fun::Array{Float64})
+    f = curve_fun[1]*q_hat^2 + curve_fun[2]*q_hat + curve_fun[3]
+    df = 2.0 * curve_fun[1] * q_hat + curve_fun[2]
+    return f * x_pump + df * (q - q_hat * x_pump)
 end
 
 function variable_flow(wm::AbstractMILPRModel; nw::Int=wm.cnw, bounded::Bool=true)
     # Create directed flow variables (i.e., qp and qn).
-    variable_flow_common(wm, nw=nw, bounded=true)
+    variable_flow_common(wm, nw=nw, bounded=bounded)
 
     # Variables for direction.
     variable_flow_direction(wm, nw=nw)
+end
 
-    ## Create variables required for objective's piecewise approximation.
-    #variable_flow_piecewise_weights(wm, nw)
-    #variable_flow_piecewise_adjacency(wm, nw)
+function variable_pump_operation(wm::AbstractMILPRModel; nw::Int=wm.cnw, report::Bool=true)
+    # Create common pump variables.
+    variable_pump_common(wm, nw=nw, report=report)
+
+    # Create weights involved in convex combination constraints.
+    lambda = var(wm, nw)[:lambda] = JuMP.@variable(wm.model,
+        [a in ids(wm, nw, :pump), k in 1:wm.ext[:num_breakpoints]],
+        base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
+        start=comp_start_value(ref(wm, nw, :pump, a), "lambda_start"))
+
+    # Create binary variables involved in convex combination constraints.
+    x_pw = var(wm, nw)[:x_pw] = JuMP.@variable(wm.model,
+        [a in ids(wm, nw, :pump), k in 1:wm.ext[:num_breakpoints]-1],
+        base_name="$(nw)_x_pw", binary=true,
+        start=comp_start_value(ref(wm, nw, :pump, a), "x_pw_start"))
 end
 
 "Pump head gain constraint when the pump status is ambiguous."
-function constraint_head_gain_pump(wm::AbstractMILPRModel, n::Int, a::Int,
-    node_fr::Int, node_to::Int, curve_fun::Array{Float64})
-    # Gather flow-related variables and data.
-    qp = var(wm, n, :qp, a)
-    qp_ub = JuMP.upper_bound(qp)
+function constraint_head_gain_pump(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
+    # If the number of breakpoints is not positive, no constraints are added.
+    if wm.ext[:num_breakpoints] <= 0 return end
 
-    # Gather pump-related variables.
+    # Gather flow, head gain, and convex combination variables.
     g = var(wm, n, :g, a)
-    x_p = var(wm, n, :x_pump, a)
+    qp, x_pump = [var(wm, n, :qp, a), var(wm, n, :x_pump, a)]
+    lambda, x_pw = [var(wm, n, :lambda), var(wm, n, :x_pw)]
 
-    # Gather head variables.
-    h_i = var(wm, n, :h, node_fr)
-    h_j = var(wm, n, :h, node_to)
+    # Add the required SOS constraints.
+    c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == x_pump)
+    c_2 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == x_pump)
+    c_3 = JuMP.@constraint(wm.model, lambda[a, 1] <= x_pw[a, 1])
+    c_4 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
 
-    # Gather head difference-related variables and data.
-    dhp = var(wm, n, :dhp, a)
-    dhp_ub = JuMP.upper_bound(dhp)
-    dhn = var(wm, n, :dhn, a)
-    dhn_ub = JuMP.upper_bound(dhn)
+    # Add a constraint for the flow piecewise approximation.
+    qp_ub, K = [JuMP.upper_bound(qp), 1:wm.ext[:num_breakpoints]]
+    breakpoints = range(0.0, stop=qp_ub, length=wm.ext[:num_breakpoints])
+    qp_lhs = sum(breakpoints[k] * lambda[a, k] for k in K)
+    c_5 = JuMP.@constraint(wm.model, qp_lhs == qp)
 
-    # Define the (relaxed) head gain caused by the pump.
-    g_expr = curve_fun[1]*qp^2 + curve_fun[2]*qp + curve_fun[3]*x_p
-    c_1 = JuMP.@constraint(wm.model, g_expr <= g) # Convexified.
+    # Add a constraint for the head gain piecewise approximation.
+    f = _calc_pump_gain_values(collect(breakpoints), pc)
+    lhs = sum(f[k] * lambda[a, k] for k in K)
+    c_6 = JuMP.@constraint(wm.model, lhs == g)
 
-    # If the pump is off, decouple the head difference relationship.
-    c_2 = JuMP.@constraint(wm.model, dhn <= g + dhn_ub * (1.0 - x_p))
-    c_3 = JuMP.@constraint(wm.model, dhp <= dhp_ub * (1.0 - x_p))
+    # Append the constraint array with the above-generated constraints.
+    append!(con(wm, n, :head_gain, a), [c_1, c_2, c_3, c_4, c_5, c_6])
 
-    # If the pump is off, the flow along the pump must be zero.
-    c_4 = JuMP.@constraint(wm.model, qp <= qp_ub * x_p)
-    c_5 = JuMP.@constraint(wm.model, qp >= 6.31465679e-6 * x_p)
-
-    # Append the constraint array.
-    con(wm, n, :head_gain)[a] = [c_1, c_2, c_3, c_4, c_5]
-end
-
-"Pump head gain constraint when the pump is forced to be on."
-function constraint_head_gain_pump_on(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64})
-    # Fix reverse flow variable to zero (since this is a pump).
-    JuMP.fix(var(wm, n, :qn, a), 0.0, force=true)
-
-    # Gather common variables.
-    qp = var(wm, n, :qp, a)
-    h_i = var(wm, n, :h, node_fr)
-    h_j = var(wm, n, :h, node_to)
-
-    # Define the (relaxed) head gain caused by the pump.
-    qp_ub = JuMP.has_upper_bound(qp) ? JuMP.upper_bound(qp) : 10.0
-    num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 1
-    breakpoints = range(0.0, stop=qp_ub, length=num_breakpoints)
-
-    for q_hat in breakpoints
-        cut_lhs = get_linear_outer_approximation_pump_on(qp, q_hat, curve_fun[1], curve_fun[2], curve_fun[3])
-        c = JuMP.@constraint(wm.model, cut_lhs <= h_j - h_i)
-        append!(con(wm, n, :head_gain)[a], [c])
+    # Add the adjacency constraints.
+    for k in 2:wm.ext[:num_breakpoints]-1
+        adjacency = x_pw[a, k-1] + x_pw[a, k]
+        c_7_k = JuMP.@constraint(wm.model, lambda[a, k] <= adjacency)
+        append!(con(wm, n, :head_gain, a), [c_7_k])
     end
 end
 
-function constraint_head_loss_pipe_des(wm::AbstractMILPRModel, n::Int, a::Int,
-    alpha::Float64, node_fr::Int, node_to::Int, L::Float64, resistances)
-    # Set the number of breakpoints used in each outer-approximation.
-    num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 1
+function constraint_head_loss_pipe_des(wm::AbstractMILPRModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, resistances)
+    # If the number of breakpoints is not positive, no constraints are added.
+    if wm.ext[:num_breakpoints] <= 0 return end
 
     for (r_id, r) in enumerate(resistances)
-        qp_des = var(wm, n, :qp_des, a)[r_id]
-        qp_des_ub = JuMP.has_upper_bound(qp_des) ? JuMP.upper_bound(qp_des) : 10.0
-        dhp = var(wm, n, :dhp, a)
+        # Add constraints corresponding to positive outer-approximations.
+        qp, dhp = [var(wm, n, :qp_des, a)[r_id], var(wm, n, :dhp, a)]
+        qp_ub = JuMP.upper_bound(qp)
 
-        if qp_des_ub > 0.0 && num_breakpoints > 0
-            breakpoints = range(0.0, stop=qp_des_ub, length=num_breakpoints+2)
-
-            for q_hat in breakpoints[2:num_breakpoints+1]
-                cut_lhs = r * get_linear_outer_approximation(qp_des, q_hat, alpha)
-                con_p = JuMP.@constraint(wm.model, cut_lhs <= inv(L) * dhp)
-            end
+        for qp_hat in range(0.0, stop=qp_ub, length=wm.ext[:num_breakpoints])
+            lhs = r * _get_head_loss_oa(qp, qp_hat, alpha)
+            c_p = JuMP.@constraint(wm.model, lhs <= inv(L) * dhp)
+            append!(con(wm, n, :head_loss)[a], [c_p])
         end
 
-        qn_des = var(wm, n, :qn_des, a)[r_id]
-        qn_des_ub = JuMP.has_upper_bound(qn_des) ? JuMP.upper_bound(qn_des) : 10.0
-        dhn = var(wm, n, :dhn, a)
+        # Add constraints corresponding to negative outer-approximations.
+        qn, dhn = [var(wm, n, :qn_des, a)[r_id], var(wm, n, :dhn, a)]
+        qn_ub = JuMP.upper_bound(qn)
 
-        if qn_des_ub > 0.0 && num_breakpoints > 0
-            breakpoints = range(0.0, stop=qn_des_ub, length=num_breakpoints+2)
-
-            for q_hat in breakpoints[2:num_breakpoints+1]
-                cut_lhs = r * get_linear_outer_approximation(qn_des, q_hat, alpha)
-                con_n = JuMP.@constraint(wm.model, cut_lhs <= inv(L) * dhn)
-            end
+        for qn_hat in range(0.0, stop=qn_ub, length=wm.ext[:num_breakpoints])
+            lhs = r * _get_head_loss_oa(qn, qn_hat, alpha)
+            c_n = JuMP.@constraint(wm.model, lhs <= inv(L) * dhn)
+            append!(con(wm, n, :head_loss)[a], [c_n])
         end
     end
 end
 
-function constraint_head_loss_pipe(wm::AbstractMILPRModel, n::Int, a::Int,
-    alpha::Float64, node_fr::Int, node_to::Int, L::Float64, r::Float64)
-    # Set the number of breakpoints used in each outer-approximation.
-    num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 1
+function constraint_head_loss_pipe(wm::AbstractMILPRModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, r::Float64)
+    # If the number of breakpoints is not positive, no constraints are added.
+    if wm.ext[:num_breakpoints] <= 0 return end
 
-    qp = var(wm, n, :qp, a)
-    qp_ub = JuMP.has_upper_bound(qp) ? JuMP.upper_bound(qp) : 10.0
+    # Add constraints corresponding to positive outer-approximations.
+    qp, dhp = [var(wm, n, :qp, a), var(wm, n, :dhp, a)]
+    qp_ub = JuMP.upper_bound(qp)
+
+    for qp_hat in range(0.0, stop=qp_ub, length=wm.ext[:num_breakpoints])
+        lhs = r * _get_head_loss_oa(qp, qp_hat, alpha)
+        c_p = JuMP.@constraint(wm.model, lhs <= inv(L) * dhp)
+        append!(con(wm, n, :head_loss)[a], [c_p])
+    end
+
+    # Add constraints corresponding to positive outer-approximations.
+    qn, dhn = [var(wm, n, :qn, a), var(wm, n, :dhn, a)]
+    qn_ub = JuMP.upper_bound(qn)
+
+    for qn_hat in range(0.0, stop=qn_ub, length=wm.ext[:num_breakpoints])
+        lhs = r * _get_head_loss_oa(qn, qn_hat, alpha)
+        c_n = JuMP.@constraint(wm.model, lhs <= inv(L) * dhn)
+        append!(con(wm, n, :head_loss)[a], [c_n])
+    end
+end
+
+function constraint_head_loss_check_valve(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
+    # If the number of breakpoints is not positive, no constraints are added.
+    if wm.ext[:num_breakpoints] <= 0 return end
+
+    # Get common data for outer-approximation constraints.
+    qp, x_cv = [var(wm, n, :qp, a), var(wm, n, :x_cv, a)]
     dhp = var(wm, n, :dhp, a)
+    qp_ub = JuMP.upper_bound(qp)
 
-    if qp_ub > 0.0 && num_breakpoints > 0
-        for q_hat in range(0.0, stop=qp_ub, length=num_breakpoints)
-            cut_lhs = r * get_linear_outer_approximation(qp, q_hat, alpha)
-            con_p = JuMP.@constraint(wm.model, cut_lhs <= inv(L) * dhp)
-        end
+    # Add outer-approximation constraints.
+    for qp_hat in range(0.0, stop=qp_ub, length=wm.ext[:num_breakpoints])
+        lhs = _get_head_loss_cv_oa(qp, x_cv, qp_hat, ref(wm, n, :alpha))
+        c_p = JuMP.@constraint(wm.model, r * lhs <= inv(L) * dhp)
+        append!(con(wm, n, :head_loss)[a], [c_p])
     end
-
-    qn = var(wm, n, :qn, a)
-    qn_ub = JuMP.has_upper_bound(qn) ? JuMP.upper_bound(qn) : 10.0
-    dhn = var(wm, n, :dhn, a)
-
-    if qn_ub > 0.0 && num_breakpoints > 0
-        for q_hat in range(0.0, stop=qn_ub, length=num_breakpoints)
-            cut_lhs = r * get_linear_outer_approximation(qn, q_hat, alpha)
-            con_n = JuMP.@constraint(wm.model, cut_lhs <= inv(L) * dhn)
-        end
-    end
-end
-
-function constraint_head_loss_check_valve(wm::AbstractMILPRModel, n::Int,
-    a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64) 
-    # Set the number of breakpoints used in each outer-approximation.
-    num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 1
-    alpha = ref(wm, n, :alpha)
-    x_cv = var(wm, n, :x_cv, a)
-
-    qp = var(wm, n, :qp, a)
-    qp_ub = JuMP.has_upper_bound(qp) ? JuMP.upper_bound(qp) : 10.0
-    dhp = var(wm, n, :dhp, a)
-
-    if qp_ub > 0.0 && num_breakpoints > 0
-        for q_hat in range(0.0, stop=qp_ub, length=num_breakpoints)
-            cut_lhs = get_linear_outer_approximation(qp, q_hat, alpha)
-            con_p = JuMP.@constraint(wm.model, r * cut_lhs <= inv(L) * dhp)
-            append!(con(wm, n, :head_loss)[a], [con_p])
-        end
-    end
-
-    dhn = var(wm, n, :dhn, a)
-    dhn_ub = JuMP.upper_bound(dhn)
-    con_n = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - x_cv))
-end
-
-function objective_wf(wm::AbstractMILPRModel)
-    JuMP.set_objective_sense(wm.model, _MOI.FEASIBILITY_SENSE)
 end
 
 function objective_owf(wm::AbstractMILPRModel)
-    objective = JuMP.QuadExpr()
-    num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 2
+    # If the number of breakpoints is not positive, no objective is added.
+    if wm.ext[:num_breakpoints] <= 0 return end
+
+    # Initialize the objective function.
+    objective = JuMP.AffExpr(0.0)
+    K = 1:wm.ext[:num_breakpoints]
 
     for (n, nw_ref) in nws(wm)
-        efficiency = 0.85 # TODO: Change this after discussion. 0.85 follows Fooladivanda.
+        # Get common variables.
+        lambda = var(wm, n, :lambda)
+
+        # Get common constant parameters.
         rho = 1000.0 # Water density (kilogram per cubic meter).
-        g = 9.81 # Gravitational acceleration (meter per second squared).
+        gravity = 9.80665 # Gravitational acceleration (meter per second squared).
         time_step = nw_ref[:option]["time"]["hydraulic_timestep"]
-        constant = g*rho*time_step*inv(efficiency)
+        constant = rho * gravity * time_step
 
         for (a, pump) in nw_ref[:pump]
-            cubic_var = JuMP.@variable(wm.model)
-            qp = var(wm, n, :qp, a)
-            #lambda = var(wm, n, :lambda)
-            #x_pw = var(wm, n, :x_pw)
-            x_pump = var(wm, n, :x_pump, a)
+            if haskey(pump, "energy_price")
+                # Get price and pump curve data.
+                price = pump["energy_price"]
+                pump_curve = ref(wm, n, :pump, a)["pump_curve"]
+                curve_fun = _get_function_from_pump_curve(pump_curve)
 
-            #c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == x_pump)
-            #c_2 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == x_pump)
-            #c_3 = JuMP.@constraint(wm.model, lambda[a, 1] <= x_pw[a, 1])
-            #c_4 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
+                # Get flow-related variables and data.
+                qp, x_pump = [var(wm, n)[:qp][a], var(wm, n)[:x_pump][a]]
+                qp_ub = JuMP.upper_bound(qp)
 
-            pump_curve = ref(wm, n, :pump, a)["pump_curve"]
-            curve_fun = _get_function_from_pump_curve(pump_curve)
-            qp_ub = JuMP.has_upper_bound(qp) ? JuMP.upper_bound(qp) : 10.0
-            breakpoints = range(0.0, stop=qp_ub, length=num_breakpoints)
+                # Generate a set of uniform flow and cubic function breakpoints.
+                breakpoints = range(0.0, stop=qp_ub, length=wm.ext[:num_breakpoints])
+                f = _calc_cubic_flow_values(collect(breakpoints), curve_fun)
 
-            for q_hat in breakpoints
-                lhs = get_cubic_outer_approximation(qp, x_pump, q_hat, curve_fun)
-                JuMP.@constraint(wm.model, lhs <= cubic_var)
+                # Get pump efficiency data.
+                if haskey(pump, "efficiency_curve")
+                    eff_curve = pump["efficiency_curve"]
+                    eff = _calc_efficiencies(collect(breakpoints), eff_curve)
+                else
+                    eff = ref(wm, n, :option)["energy"]["global_efficiency"]
+                end
+
+                # Add the cost corresponding to the current pump's operation.
+                inner_expr = (constant*price) .* inv.(eff) .* f
+                cost = sum(inner_expr[k]*lambda[a, k] for k in K)
+                JuMP.add_to_expression!(objective, cost)
+            else
+                Memento.error(_LOGGER, "No cost given for pump \"$(pump["name"])\"")
             end
-
-            energy_price = 0.01 * pump["energy_price"]
-            quad_terms = curve_fun[2]*qp^2 + curve_fun[3]*qp
-            JuMP.add_to_expression!(objective, constant*energy_price * (cubic_var + quad_terms))
-
-            #f = get_objective_values(collect(breakpoints), curve_fun)
-            #lhs = energy_price*constant * sum(f[k] .* lambda[a, k] for k in 1:num_breakpoints)
-            #q_lhs = sum(breakpoints[k] * lambda[a, k] for k in 1:num_breakpoints)
-            #c_6 = JuMP.@constraint(wm.model, q_lhs == qp)
-
-            #for k in 2:num_breakpoints-1
-            #    c_7 = JuMP.@constraint(wm.model, lambda[a, k] <= x_pw[a, k-1] + x_pw[a, k])
-            #end
-
-            #JuMP.add_to_expression!(objective, lhs)
         end
     end
 
     return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
 end
-
-#function objective_owf(wm::AbstractMILPRModel) 
-#    objective = JuMP.AffExpr(0.0)
-#
-#    for (n, nw_ref) in nws(wm)
-#        costs = JuMP.@variable(wm.model, [a in ids(wm, n, :pump)],
-#            base_name="costs[$(n)]", lower_bound=0.0,
-#            start=get_start(ref(wm, n, :pump), a, "costs", 0.0))
-#
-#        efficiency = 0.85 # TODO: Change this after discussion. 0.85 follows Fooladivanda.
-#        rho = 1000.0 # Water density (kilogram per cubic meter).
-#        gravity = 9.80665 # Gravitational acceleration (meter per second squared).
-#        time_step = 1.0 #nw_ref[:option]["time"]["hydraulic_timestep"]
-#        constant = rho * gravity * time_step * inv(efficiency)
-#
-#        for (a, pump) in nw_ref[:pump]
-#            if haskey(pump, "energy_price")
-#                energy_price = pump["energy_price"]
-#                pump_curve = ref(wm, n, :pump, a)["pump_curve"]
-#                curve_fun = _get_function_from_pump_curve(pump_curve)
-#
-#                qp = var(wm, n)[:qp][a]
-#                x_pump = var(wm, n)[:x_pump][a]
-#                qp_ub = JuMP.upper_bound(qp)
-#
-#                num_breakpoints = :num_breakpoints in keys(wm.ext) ? wm.ext[:num_breakpoints] : 1
-#                breakpoints = range(0.0, stop=qp_ub, length=num_breakpoints)
-#
-#                for qp_hat in breakpoints
-#                    rhs = get_obj_linear_outer_approximation(qp, x_pump, qp_hat, curve_fun)
-#                    JuMP.@constraint(wm.model, costs[a] >= constant*energy_price * rhs)
-#                end
-#            else
-#                Memento.error(_LOGGER, "No cost given for pump \"$(pump["name"])\"")
-#            end
-#        end
-#
-#        JuMP.add_to_expression!(objective, sum(costs))
-#    end
-#
-#    return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
-#end

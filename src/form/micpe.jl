@@ -51,7 +51,7 @@ function variable_head(wm::MICPEWaterModel; nw::Int=wm.cnw, bounded::Bool=true, 
     report && sol_component_value(wm, nw, :node, :h, ids(wm, nw, :node), h)
 end
 
-function constraint_head_difference(wm::MICPEWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to)
+function constraint_head_difference_pipe(wm::MICPEWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to)
     x_dir = var(wm, n, :x_dir, a)
 
     for (r_id, r) in enumerate(ref(wm, n, :resistance, a))

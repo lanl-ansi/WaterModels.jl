@@ -119,7 +119,7 @@ end
 
 "Creates binary variables for all pumps in the network, i.e., `x_pump[a]`
 for `a` in `pump`, where one denotes that the pump is currently on."
-function variable_fixed_speed_pump_operation(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
+function variable_pump_common(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
     x_pump = var(wm, nw)[:x_pump] = JuMP.@variable(wm.model,
         [a in ids(wm, nw, :pump)], base_name="x_pump[$(nw)]", binary=true,
         start=comp_start_value(ref(wm, nw, :pump, a), "x_pump_start"))
@@ -141,8 +141,8 @@ function variable_fixed_speed_pump_threshold(wm::AbstractWaterModel; nw::Int=wm.
         start=comp_start_value(ref(wm, nw, :pump, a), "x_thrs_bt_start"))
 end
 
-function variable_pump_operation(wm::AbstractWaterModel; nw::Int=wm.cnw)
-    variable_fixed_speed_pump_operation(wm, nw=nw)
+function variable_pump_operation(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
+    variable_pump_common(wm, nw=nw, report=report)
 end
 
 function variable_pump_control(wm::AbstractWaterModel; nw::Int=wm.cnw)

@@ -22,15 +22,14 @@ function build_wf(wm::AbstractWaterModel)
     for (a, pipe) in ref(wm, :pipe)
         # TODO: Call this something other than status.
         if pipe["status"] == "CV"
-            constraint_check_valve(wm, a)
-            constraint_head_loss_check_valve(wm, a)
+            constraint_check_valve_head_loss(wm, a)
         else
-            constraint_head_loss_pipe(wm, a)
+            constraint_pipe_head_loss(wm, a)
         end
     end
 
     for a in ids(wm, :pump)
-        constraint_head_gain_pump(wm, a)
+        constraint_pump_head_gain(wm, a)
         constraint_pump_control(wm, a)
     end
 
@@ -89,15 +88,14 @@ function build_mn_wf(wm::AbstractWaterModel)
         for (a, pipe) in ref(wm, :pipe, nw=n)
             # TODO: Call this something other than status.
             if pipe["status"] == "CV"
-                constraint_check_valve(wm, a, nw=n)
-                constraint_head_loss_check_valve(wm, a, nw=n)
+                constraint_check_valve_head_loss(wm, a, nw=n)
             else
-                constraint_head_loss_pipe(wm, a, nw=n)
+                constraint_pipe_head_loss(wm, a, nw=n)
             end
         end
 
         for a in ids(wm, :pump, nw=n)
-            constraint_head_gain_pump(wm, a, nw=n)
+            constraint_pump_head_gain(wm, a, nw=n)
         end
 
         # Flow conservation at all nodes.

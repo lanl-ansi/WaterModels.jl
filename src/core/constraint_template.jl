@@ -14,13 +14,27 @@ function _initialize_con_dict(wm::AbstractWaterModel, key::Symbol; nw::Int=wm.cn
     end
 end
 
-### Node Constraints ###
-function constraint_source_head(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
-    h_src = ref(wm, nw, :reservoir, i)["elevation"]
-    _initialize_con_dict(wm, :source_head, nw=nw)
-    constraint_source_head(wm, nw, i, h_src)
+function _get_head_difference_data(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
+    node_fr = ref(wm, nw, :link, a)["node_fr"]
+    head_fr = nothing
+
+    for rid in ref(wm, nw, :node_reservoir, node_fr)
+        # TODO: This is a good place to check these are consistent.
+        head_fr = ref(wm, nw, :reservoir, rid)["elevation"]
+    end
+
+    node_to = ref(wm, nw, :link, a)["node_to"]
+    head_to = nothing
+
+    for rid in ref(wm, nw, :node_reservoir, node_to)
+        # TODO: This is a good place to check these are consistent
+        head_to = ref(wm, nw, :reservoir, rid)["elevation"]
+    end
+
+    return node_fr, node_to, head_fr, head_to
 end
 
+### Nodal Constraints ###
 function constraint_flow_conservation(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
     arcs_from = ref(wm, nw, :node_arc_fr, i)
     arcs_to = ref(wm, nw, :node_arc_to, i)
@@ -33,14 +47,26 @@ function constraint_flow_conservation(wm::AbstractWaterModel, i::Int; nw::Int=wm
     constraint_flow_conservation(wm, nw, i, arcs_from, arcs_to, reservoirs, tanks, demands)
 end
 
+### Junction Constraints ###
 function constraint_sink_flow(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
+    arcs_from = ref(wm, nw, :node_arc_fr, i)
+    arcs_to = ref(wm, nw, :node_arc_to, i)
     _initialize_con_dict(wm, :sink_flow, nw=nw)
-    constraint_sink_flow(wm, nw, i, ref(wm, nw, :link))
+    constraint_sink_flow(wm, nw, i, arcs_from, arcs_to)
+end
+
+### Reservoir Constraints ###
+function constraint_source_head(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
+    h_src = ref(wm, nw, :reservoir, i)["elevation"]
+    _initialize_con_dict(wm, :source_head, nw=nw)
+    constraint_source_head(wm, nw, i, h_src)
 end
 
 function constraint_source_flow(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
+    arcs_from = ref(wm, nw, :node_arc_fr, i)
+    arcs_to = ref(wm, nw, :node_arc_to, i)
     _initialize_con_dict(wm, :source_flow, nw=nw)
-    constraint_source_flow(wm, nw, i, ref(wm, nw, :link))
+    constraint_source_flow(wm, nw, i, arcs_from, arcs_to)
 end
 
 ### Tank Constraints ###
@@ -85,41 +111,22 @@ function constraint_tank_state(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2::
 end
 
 ### Pipe Constraints ###
-function constraint_head_loss_pipe(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_pipe_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     alpha = ref(wm, nw, :alpha)
     pipe = ref(wm, nw, :pipe, a)
     r = minimum(ref(wm, nw, :resistance, a))
 
     _initialize_con_dict(wm, :head_loss, nw=nw, is_array=true)
     con(wm, nw, :head_loss)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_flow_direction_selection(wm, a; nw=nw, kwargs...)
-    constraint_head_difference(wm, a; nw=nw, kwargs...)
+
+    # Add common constraints used to model pump behavior.
+    _initialize_con_dict(wm, :pipe, nw=nw, is_array=true)
+    con(wm, nw, :pipe)[a] = Array{JuMP.ConstraintRef}([])
+    node_fr, node_to, head_fr, head_to = _get_head_difference_data(wm, a, nw=nw)
+
+    constraint_pipe_common(wm, nw, a, node_fr, node_to, head_fr, head_to)
     constraint_head_loss_ub_pipe(wm, a; nw=nw, kwargs...)
     constraint_head_loss_pipe(wm, nw, a, alpha, pipe["node_fr"], pipe["node_to"], pipe["length"], r)
-end
-
-function constraint_head_difference(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
-    node_fr = ref(wm, nw, :link, a)["node_fr"]
-    head_fr = nothing
-
-    for rid in ref(wm, nw, :node_reservoir, node_fr)
-        # TODO: This is a good place to check these are consistent.
-        head_fr = ref(wm, nw, :reservoir, rid)["elevation"]
-    end
-
-    node_to = ref(wm, nw, :link, a)["node_to"]
-    head_to = nothing
-
-    for rid in ref(wm, nw, :node_reservoir, node_to)
-        # TODO: This is a good place to check these are consistent
-        head_to = ref(wm, nw, :reservoir, rid)["elevation"]
-    end
-
-    constraint_head_difference(wm, nw, a, node_fr, node_to, head_fr, head_to)
-end
-
-function constraint_flow_direction_selection(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
-    constraint_flow_direction_selection(wm, nw, a)
 end
 
 function constraint_head_loss_ub_pipe(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
@@ -129,7 +136,7 @@ function constraint_head_loss_ub_pipe(wm::AbstractWaterModel, a::Int; nw::Int=wm
     constraint_head_loss_ub_pipe(wm, nw, a, alpha, L, r)
 end
 
-function constraint_head_loss_pipe_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_pipe_des_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     alpha = ref(wm, nw, :alpha)
     pipe = ref(wm, nw, :pipe, a)
     resistances = ref(wm, nw, :resistance, a)
@@ -137,7 +144,6 @@ function constraint_head_loss_pipe_des(wm::AbstractWaterModel, a::Int; nw::Int=w
     _initialize_con_dict(wm, :head_loss, nw=nw, is_array=true)
     con(wm, nw, :head_loss)[a] = Array{JuMP.ConstraintRef}([])
     constraint_flow_direction_selection_des(wm, a; nw=nw, kwargs...)
-    constraint_head_difference(wm, a; nw=nw, kwargs...)
     constraint_head_loss_pipe_des(wm, nw, a, alpha, pipe["node_fr"], pipe["node_to"], pipe["length"], resistances)
     constraint_head_loss_ub_pipe_des(wm, a; nw=nw, kwargs...)
     constraint_resistance_selection_des(wm, a; nw=nw, kwargs...)
@@ -161,45 +167,51 @@ function constraint_head_loss_ub_pipe_des(wm::AbstractWaterModel, a::Int; nw::In
 end
 
 ### Check Valve Constraints ###
-function constraint_check_valve(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
-    node_fr = ref(wm, nw, :link, a)["node_fr"]
-    node_to = ref(wm, nw, :link, a)["node_to"]
+function constraint_check_valve_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    node_fr, node_to, head_fr, head_to = _get_head_difference_data(wm, a, nw=nw)
 
+    # Since check valves exist along pipes, add all common pipe contstraints.
+    _initialize_con_dict(wm, :pipe, nw=nw, is_array=true)
+    con(wm, nw, :pipe)[a] = Array{JuMP.ConstraintRef}([])
+    constraint_pipe_common(wm, nw, a, node_fr, node_to, head_fr, head_to)
+
+    # Add all common check valve constraints.
     _initialize_con_dict(wm, :check_valve, nw=nw, is_array=true)
     con(wm, nw, :check_valve)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_check_valve(wm, nw, a, node_fr, node_to)
-end
+    constraint_check_valve_common(wm, nw, a, node_fr, node_to, head_fr, head_to)
 
-function constraint_head_loss_check_valve(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
-    node_fr = ref(wm, nw, :link, a)["node_fr"]
-    node_to = ref(wm, nw, :link, a)["node_to"]
-    L = ref(wm, nw, :pipe, a)["length"]
-    r = minimum(ref(wm, nw, :resistance, a))
-
+    # Add constraints that describe head loss relationships.
     _initialize_con_dict(wm, :head_loss, nw=nw, is_array=true)
+    alpha, L = [ref(wm, nw, :alpha), ref(wm, nw, :pipe, a)["length"]]
+    r = minimum(ref(wm, nw, :resistance, a))
     con(wm, nw, :head_loss)[a] = Array{JuMP.ConstraintRef}([])
     constraint_head_loss_check_valve(wm, nw, a, node_fr, node_to, L, r)
+    constraint_head_loss_ub_cv(wm, nw, a, alpha, L, r)
 end
 
 ### Pump Constraints ###
-function constraint_head_gain_pump(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, force_on::Bool=false, kwargs...)
-    node_fr = ref(wm, nw, :pump, a)["node_fr"]
-    node_to = ref(wm, nw, :pump, a)["node_to"]
+function constraint_pump_head_gain(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, force_on::Bool=false, kwargs...)
+    # Get data common to all pump-related constraints.
+    node_fr, node_to, head_fr, head_to = _get_head_difference_data(wm, a, nw=nw)
     pump_curve = ref(wm, nw, :pump, a)["pump_curve"]
-    curve_fun = _get_function_from_pump_curve(pump_curve)
+    coeffs = _get_function_from_pump_curve(pump_curve)
 
+    # Add common constraints used to model pump behavior.
+    _initialize_con_dict(wm, :pump, nw=nw, is_array=true)
+    con(wm, nw, :pump)[a] = Array{JuMP.ConstraintRef}([])
+    constraint_pump_common(wm, nw, a, node_fr, node_to, head_fr, head_to, coeffs)
+
+    # Add constraints that define head gain across the pump.
     _initialize_con_dict(wm, :head_gain, nw=nw, is_array=true)
     con(wm, nw, :head_gain)[a] = Array{JuMP.ConstraintRef}([])
-    force_on ? constraint_head_gain_pump_on(wm, nw, a, node_fr, node_to, curve_fun) :
-        constraint_head_gain_pump(wm, nw, a, node_fr, node_to, curve_fun)
+    constraint_head_gain_pump(wm, nw, a, node_fr, node_to, coeffs)
 end
 
-function constraint_energy_conservation(wm::AbstractWaterModel, nw::Int=wm.cnw)
-    alpha = ref(wm, nw, :alpha)
-    resistances = ref(wm, nw, :resistance)
-    lengths = Dict(a=>ref(wm, nw, :pipe, a)["length"] for a in ids(wm, nw, :pipe))
-    _initialize_con_dict(wm, :energy_conservation, nw=nw)
-    constraint_energy_conservation(wm, nw, resistances, lengths, alpha)
+function constraint_head_difference_pump(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
+    _initialize_con_dict(wm, :head_difference, nw=nw, is_array=true)
+    con(wm, nw, :head_difference)[a] = Array{JuMP.ConstraintRef}([])
+    node_fr, node_to, head_fr, head_to = _get_head_difference_data(wm, a, nw=nw)
+    constraint_head_difference_pump(wm, nw, a, node_fr, node_to, head_fr, head_to)
 end
 
 function constraint_pump_control(wm::AbstractWaterModel, a::Int, nw_1::Int, nw_2::Int)
@@ -241,4 +253,13 @@ function constraint_pump_control(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
     else
         Memento.error(_LOGGER, "Initial status not found for pump.")
     end
+end
+
+### Global Constraints ###
+function constraint_energy_conservation(wm::AbstractWaterModel, nw::Int=wm.cnw)
+    alpha = ref(wm, nw, :alpha)
+    resistances = ref(wm, nw, :resistance)
+    lengths = Dict(a=>ref(wm, nw, :pipe, a)["length"] for a in ids(wm, nw, :pipe))
+    _initialize_con_dict(wm, :energy_conservation, nw=nw)
+    constraint_energy_conservation(wm, nw, resistances, lengths, alpha)
 end

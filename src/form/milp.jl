@@ -55,56 +55,42 @@ end
 
 "Pump head gain constraint when the pump status is ambiguous."
 function constraint_head_gain_pump(wm::AbstractMILPModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64})
+    # If the number of breakpoints is not positive, no constraints are added.
+    if wm.ext[:num_breakpoints] <= 0 return end
+
     # Gather common variables.
     x_pump = var(wm, n, :x_pump, a)
     q, g = [var(wm, n, :q, a), var(wm, n, :g, a)]
     lambda, x_pw = [var(wm, n, :lambda), var(wm, n, :x_pw)]
-    h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
-
-    # If the pump is off, the flow along the pump must be zero.
-    q_lb, q_ub = [JuMP.lower_bound(q), JuMP.upper_bound(q)]
-    c_1 = JuMP.@constraint(wm.model, q <= q_ub * x_pump)
-    c_2 = JuMP.@constraint(wm.model, q >= 6.31465679e-6 * x_pump)
-
-    # If the pump is off, decouple the head difference relationship.
-    dh_lb = JuMP.lower_bound(h_j) - JuMP.upper_bound(h_i)
-    c_3 = JuMP.@constraint(wm.model, h_j - h_i - g >= dh_lb * (1.0 - x_pump))
-    dh_ub = JuMP.upper_bound(h_j) - JuMP.lower_bound(h_i)
-    c_4 = JuMP.@constraint(wm.model, h_j - h_i - g <= dh_ub * (1.0 - x_pump))
-
-    # Append the constraint array.
-    append!(con(wm, n, :head_gain, a), [c_1, c_2, c_3, c_4])
-
-    # If the number of breakpoints is not positive, no constraints are added.
-    if wm.ext[:num_breakpoints] <= 0 return end
 
     # Add the required SOS constraints.
-    c_5 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == x_pump)
-    c_6 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == x_pump)
-    c_7 = JuMP.@constraint(wm.model, lambda[a, 1] <= x_pw[a, 1])
-    c_8 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
+    c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == x_pump)
+    c_2 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == x_pump)
+    c_3 = JuMP.@constraint(wm.model, lambda[a, 1] <= x_pw[a, 1])
+    c_4 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
 
     # Generate a set of uniform flow and head loss breakpoints.
+    q_lb, q_ub = [JuMP.lower_bound(q), JuMP.upper_bound(q)]
     breakpoints = range(q_lb, stop=q_ub, length=wm.ext[:num_breakpoints])
     f = _calc_pump_gain_values(collect(breakpoints), curve_fun)
 
     # Add a constraint for the flow piecewise approximation.
     K = 1:wm.ext[:num_breakpoints]
     q_lhs = sum(breakpoints[k] * lambda[a, k] for k in K)
-    c_9 = JuMP.@constraint(wm.model, q_lhs == q)
+    c_5 = JuMP.@constraint(wm.model, q_lhs == q)
 
     # Add a constraint for the head gain piecewise approximation.
     lhs = sum(f[k] * lambda[a, k] for k in K)
-    c_10 = JuMP.@constraint(wm.model, lhs == g)
+    c_6 = JuMP.@constraint(wm.model, lhs == g)
 
     # Append the constraint array with the above-generated constraints.
-    append!(con(wm, n, :head_gain, a), [c_5, c_6, c_7, c_8, c_9, c_10])
+    append!(con(wm, n, :head_gain, a), [c_1, c_2, c_3, c_4, c_5, c_6])
 
     # Add the adjacency constraints.
     for k in 2:wm.ext[:num_breakpoints]-1
         adjacency = x_pw[a, k-1] + x_pw[a, k]
-        c_11_k = JuMP.@constraint(wm.model, lambda[a, k] <= adjacency)
-        append!(con(wm, n, :head_gain, a), [c_11_k])
+        c_7_k = JuMP.@constraint(wm.model, lambda[a, k] <= adjacency)
+        append!(con(wm, n, :head_gain, a), [c_7_k])
     end
 end
 

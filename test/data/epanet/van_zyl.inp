@@ -143,7 +143,7 @@ van Zyl (2004) network, modified by Byron Tasseff
  Trials             	40
  Accuracy           	0.00001
  Unbalanced         	Continue 10
- Pattern             1
+ Pattern                1
  Demand Multiplier  	1.0
  Emitter Exponent   	0.5
  Quality            	None mg/L

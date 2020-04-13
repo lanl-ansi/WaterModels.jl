@@ -35,10 +35,13 @@ function variable_pump_operation(wm::AbstractCNLPModel; nw::Int=wm.cnw) end
 function constraint_source_head(wm::AbstractCNLPModel, n::Int, i::Int, h_src::Float64) end
 
 "The head loss constraint does not exist within the CNLP model."
+function constraint_pipe_common(wm::AbstractCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to) end
+function constraint_pump_common(wm::AbstractCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, pc::Array{Float64}) end
 function constraint_head_loss_pipe(wm::AbstractCNLPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, len::Float64, r::Float64) end
 
-"The head difference constraint does not exist within the CNLP model."
-function constraint_head_difference(wm::AbstractCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to) end
+"The head difference constraints do not exist within the CNLP model."
+function constraint_head_difference_pipe(wm::AbstractCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to) end
+function constraint_head_difference_pump(wm::AbstractCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to) end
 
 "The flow direction selection constraint does not exist within the CNLP model."
 function constraint_flow_direction_selection(wm::AbstractCNLPModel, n::Int, a::Int) end

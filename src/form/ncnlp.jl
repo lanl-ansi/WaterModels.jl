@@ -1,6 +1,16 @@
 # Define NCNLP (nonconvex nonlinear programming) implementations of water
 # distribution feasibility and optimization problem specifications.
 
+"Implementation for creating flow variables for NCNLP formulations."
+function variable_flow(wm::AbstractNCNLPModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+    variable_flow_common(wm, nw=nw, bounded=bounded, report=report)
+end
+
+"Implementation for creating network design flow variables for NCNLP formulations."
+function variable_flow_des(wm::AbstractNCNLPModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+    variable_flow_des_common(wm, nw=nw, bounded=bounded, report=report)
+end
+
 function constraint_head_loss_check_valve(wm::AbstractNCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64) 
     # Gather common variables.
     q = var(wm, n, :q, a)
@@ -45,36 +55,13 @@ function constraint_head_gain_pump(wm::AbstractNCNLPModel, n::Int, a::Int, node_
     # Gather common variables.
     x_pump = var(wm, n, :x_pump, a)
     q, g = [var(wm, n, :q, a), var(wm, n, :g, a)]
-    h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
 
     # Add constraint equating the head gain variable.
     g_expr = curve_fun[1]*q*q + curve_fun[2]*q + curve_fun[3]*x_pump
-    c_1 = JuMP.@constraint(wm.model, g_expr == g)
-
-    # If the pump is off, decouple the head difference relationship.
-    dh_lb = JuMP.lower_bound(h_j) - JuMP.upper_bound(h_i)
-    c_3 = JuMP.@constraint(wm.model, (h_j - h_i) - g >= dh_lb * (1.0 - x_pump))
-    dh_ub = JuMP.upper_bound(h_j) - JuMP.lower_bound(h_i)
-    c_4 = JuMP.@constraint(wm.model, (h_j - h_i) - g <= dh_ub * (1.0 - x_pump))
-
-    # If the pump is off, the flow along the pump must be zero.
-    c_5 = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * x_pump)
-    c_6 = JuMP.@constraint(wm.model, q >= 6.31465679e-6 * x_pump)
+    c = JuMP.@constraint(wm.model, g_expr == g)
 
     # Append the constraint array.
-    append!(con(wm, n, :head_gain)[a], [c_1, c_3, c_4, c_5, c_6])
-end
-
-"Pump head gain constraint when the pump is forced to be on."
-function constraint_head_gain_pump_on(wm::AbstractNCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64})
-    # Gather common variables.
-    q = var(wm, n, :q, a)
-    h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
-
-    # Define the head difference relationship when the pump is on (h_j >= h_i).
-    lhs = curve_fun[1]*q*q + curve_fun[2]*q + curve_fun[3]
-    c = JuMP.@constraint(wm.model, lhs == h_j - h_i)
-    con(wm, n, :head_gain)[a] = [c]
+    append!(con(wm, n, :head_gain)[a], [c])
 end
 
 "Objective for the nonconvex optimal water flow problem."
