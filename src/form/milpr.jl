@@ -47,7 +47,7 @@ function variable_pump_operation(wm::AbstractMILPRModel; nw::Int=wm.cnw, report:
 end
 
 "Pump head gain constraint when the pump status is ambiguous."
-function constraint_head_gain_pump(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
+function constraint_pump_head_gain(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
     # If the number of breakpoints is not positive, no constraints are added.
     if wm.ext[:num_breakpoints] <= 0 return end
 
@@ -136,7 +136,7 @@ function constraint_head_loss_pipe(wm::AbstractMILPRModel, n::Int, a::Int, alpha
     end
 end
 
-function constraint_head_loss_check_valve(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
+function constraint_check_valve_head_loss(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # If the number of breakpoints is not positive, no constraints are added.
     if wm.ext[:num_breakpoints] <= 0 return end
 

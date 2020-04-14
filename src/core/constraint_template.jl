@@ -185,7 +185,7 @@ function constraint_check_valve_head_loss(wm::AbstractWaterModel, a::Int; nw::In
     alpha, L = [ref(wm, nw, :alpha), ref(wm, nw, :pipe, a)["length"]]
     r = minimum(ref(wm, nw, :resistance, a))
     con(wm, nw, :head_loss)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_head_loss_check_valve(wm, nw, a, node_fr, node_to, L, r)
+    constraint_check_valve_head_loss(wm, nw, a, node_fr, node_to, L, r)
     constraint_head_loss_ub_cv(wm, nw, a, alpha, L, r)
 end
 
@@ -204,7 +204,7 @@ function constraint_pump_head_gain(wm::AbstractWaterModel, a::Int; nw::Int=wm.cn
     # Add constraints that define head gain across the pump.
     _initialize_con_dict(wm, :head_gain, nw=nw, is_array=true)
     con(wm, nw, :head_gain)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_head_gain_pump(wm, nw, a, node_fr, node_to, coeffs)
+    constraint_pump_head_gain(wm, nw, a, node_fr, node_to, coeffs)
 end
 
 function constraint_head_difference_pump(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)

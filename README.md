@@ -14,11 +14,10 @@ This decoupling enables the definition of a wide variety of water network optimi
 * Network Design (des) - minimize the cost of design (or expansion)
 
 **Core Network Formulations**
-* CNLP - convex nonlinear program used for determining network flow rates
+* NCNLP - nonconvex nonlinear program
 * MICP-R - relaxation-based mixed-integer convex program
 * MILP - mixed-integer linear program using piecewise linear approximations
 * MILP-R - relaxation-based mixed-integer linear program
-* NCNLP - nonconvex nonlinear program
 
 ## Documentation
 The package [documentation](https://lanl-ansi.github.io/WaterModels.jl/latest/) includes a [quick start guide](https://lanl-ansi.github.io/WaterModels.jl/latest/quickguide).

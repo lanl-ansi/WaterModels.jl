@@ -62,7 +62,7 @@ function objective_wf(wm::AbstractCNLPModel, n::Int=wm.cnw)
 end
 
 "Pump head gain constraint when the pump status is ambiguous."
-function constraint_head_gain_pump(wm::AbstractCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64})
+function constraint_pump_head_gain(wm::AbstractCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64})
     # Fix reverse flow variable to zero (since this is a pump).
     qn = var(wm, n, :qn, a)
     JuMP.fix(qn, 0.0, force=true)
@@ -92,7 +92,7 @@ function constraint_head_gain_pump(wm::AbstractCNLPModel, n::Int, a::Int, node_f
 end
 
 "Pump head gain constraint when the pump is forced to be on."
-function constraint_head_gain_pump_on(wm::AbstractCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64})
+function constraint_pump_head_gain_on(wm::AbstractCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64})
     # Fix reverse flow variable to zero (since this is a pump).
     qn = var(wm, n, :qn, a)
     JuMP.fix(qn, 0.0, force=true)

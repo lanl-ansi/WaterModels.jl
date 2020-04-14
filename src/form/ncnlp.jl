@@ -17,7 +17,7 @@ function variable_flow_des(wm::AbstractNCNLPModel; nw::Int=wm.cnw, bounded::Bool
 end
 
 "Adds head loss constraints for check valves in `NCNLP` formulations."
-function constraint_head_loss_check_valve(wm::AbstractNCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64) 
+function constraint_check_valve_head_loss(wm::AbstractNCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64) 
     # Gather common variables and data.
     q, x_cv = [var(wm, n, :q, a), var(wm, n, :x_cv, a)]
     h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
@@ -64,7 +64,7 @@ function constraint_head_loss_pipe_des(wm::AbstractNCNLPModel, n::Int, a::Int, a
 end
 
 "Adds head gain constraints for pumps in `NCNLP` formulations."
-function constraint_head_gain_pump(wm::AbstractNCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
+function constraint_pump_head_gain(wm::AbstractNCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
     # Gather common flow and pump variables.
     x_pump = var(wm, n, :x_pump, a)
     q, g_var = [var(wm, n, :q, a), var(wm, n, :g, a)]
@@ -90,12 +90,12 @@ function objective_owf(wm::AbstractNCNLPModel)
 
         for (a, pump) in nw_ref[:pump]
             if haskey(pump, "energy_price")
-                # Get common variables and data.
+                # Get price data and power-related variables.
                 price = pump["energy_price"]
                 q, g = [var(wm, n)[:q][a], var(wm, n)[:g][a]]
-                cost_var = JuMP.@variable(wm.model, lower_bound=0.0)
 
                 # Constrain cost_var and append to the objective expression.
+                cost_var = JuMP.@variable(wm.model, lower_bound=0.0)
                 cost_expr = JuMP.@NLexpression(wm.model, coeff * price * g * q)
                 c = JuMP.@NLconstraint(wm.model, cost_expr <= cost_var)
                 JuMP.add_to_expression!(objective, cost_var)
