@@ -1,26 +1,27 @@
 # Mathematical Models in WaterModels
 
 ## Notation for Sets
-A water distribution network can be represented by a directed graph $\mathcal{G} := (\mathcal{N}, \mathcal{A})$, where $\mathcal{N}$ is the set of nodes (e.g., [junctions](https://github.com/OpenWaterAnalytics/EPANET/wiki/[JUNCTIONS]) and [reservoirs](https://github.com/OpenWaterAnalytics/EPANET/wiki/[RESERVOIRS])) and $\mathcal{A}$ is the set of arcs (e.g., [pipes](https://github.com/OpenWaterAnalytics/EPANET/wiki/[PIPES]) and [valves](https://github.com/OpenWaterAnalytics/EPANET/wiki/[VALVES])).
-Herein, the set of pipes in the network is denoted as $\mathcal{P} \subset \mathcal{A}$, the set of reservoirs (or sources) as $\mathcal{S} \subset \mathcal{N}$, and the set of junctions as $\mathcal{J} \subset \mathcal{N}$.
-The set of arcs incident on node $i \in \mathcal{N}$, where $i$ is the tail of the arc, is denoted as $\mathcal{A}^{-}(i) := \{(i, j) \in \mathcal{A}\}$.
-The set of arcs incident on node $i \in \mathcal{N}$, where $i$ is the head of the arc, is denoted as $\mathcal{A}^{+}(i) := \{(j, i) \in \mathcal{A}\}$.
-Reservoirs are always considered to be supply (or source) nodes, and junctions are typically considered to be demand nodes (i.e., the demand for flow at the node is positive).
-For convenience, it is thus implied that $\mathcal{S} \cap \mathcal{J} = \emptyset$.
-Finally, many network design problems are concerned with selecting from among a set of discrete resistances $\mathcal{R}(i, j) := \{r_{1}, r_{2}, \dots, r_{n^{\mathcal{R}}_{ij}}\}$ for a given pipe $(i, j) \in \mathcal{P}$.
-
+A water distribution network is represented by a directed graph $\mathcal{G} := (\mathcal{N}, \mathcal{L})$, where $\mathcal{N}$ is the set of nodes (e.g., [junctions](http://wateranalytics.org/EPANET/_juncs_page.html) and [reservoirs](http://wateranalytics.org/EPANET/_resv_page.html)) and $\mathcal{L}$ is the set of arcs (conventionally "links," e.g., [pipes](http://wateranalytics.org/EPANET/_pipes_page.html) and [valves](http://wateranalytics.org/EPANET/_valves_page.html)).
+Temporal evolution of the network is represented by a set $\mathcal{K}$, denoting the set of all time steps considered.
+The set of junctions is denoted by $\mathcal{J} \subset \mathcal{N}$, the set of reservoirs (or sources) by $\mathcal{R} \subset \mathcal{N}$, and the set of tanks by $\mathcal{T} \subset \mathcal{N}$.
+The set of pipes in the network is denoted by $\mathcal{A} \subset \mathcal{L}$, the set of pipes with check valves by $\mathcal{C} \subset \mathcal{A}$, and the set of pumps by $\mathcal{P} \subset \mathcal{L}$.
+The set of links incident to node $i \in \mathcal{N}$, where $i$ is the tail of the arc, is denoted by $\delta^{+}_{i} := \{(i, j) \in \mathcal{L}\}$.
+The set of links incident to node $i \in \mathcal{N}$, where $i$ is the head of the arc, is denoted by $\delta^{-}_{i} := \{(j, i) \in \mathcal{L}\}$.
 In summary, the following sets are commonly used when defining a WaterModels problem formulation:
 
-| Notation                                 | WaterModels Translation           | Description                              |
-| :--------------------------------------  | :-----------------------------    | :-------------------------               |
-| $\mathcal{N}$                            | `wm.ref[:nw][n][:node]`           | nodes                                    |
-| $\mathcal{J} \subset \mathcal{N}$        | `wm.ref[:nw][n][:junction]`       | junctions                                |
-| $\mathcal{S} \subset \mathcal{N}$        | `wm.ref[:nw][n][:reservoir]`      | reservoirs                               |
-| $\mathcal{A}$                            | `wm.ref[:nw][n][:arc]`            | arcs                                     |
-| $\mathcal{P} \subset \mathcal{A}$        | `wm.ref[:nw][n][:pipe]`           | pipes                                    |
-| $\mathcal{A^{-}(i)} \subset \mathcal{A}$ | `wm.ref[:nw][n][:arc_to][i]`      | arcs "to" node $i$                       |
-| $\mathcal{A^{+}(i)} \subset \mathcal{A}$ | `wm.ref[:nw][n][:arc_from][i]`    | arcs "from" node $i$                     |
-| $\mathcal{R}(i, j)$                      | `wm.ref[:nw][n][:resistance][ij]` | resistances for $(i, j) \in \mathcal{P}$ |
+| Notation                                         | WaterModels Translation           | Description                                                                  |
+| :--------------------------------------          | :-----------------------------    | :-------------------------                                                   |
+| $\mathcal{N}$                                    | `wm.ref[:nw][n][:node]`           | nodes                                                                        |
+| $\mathcal{L}$                                    | `wm.ref[:nw][n][:link]`           | links                                                                        |
+| $\mathcal{K}$                                    | `nw_ids(wm)`                      | time indices (multinetwork indices labeled by `n`)                           |
+| $\mathcal{J} \subset \mathcal{N}$                | `wm.ref[:nw][n][:junction]`       | [junctions](http://wateranalytics.org/EPANET/_juncs_page.html)               |
+| $\mathcal{R} \subset \mathcal{N}$                | `wm.ref[:nw][n][:reservoir]`      | [reservoirs](http://wateranalytics.org/EPANET/_resv_page.html)               |
+| $\mathcal{T} \subset \mathcal{N}$                | `wm.ref[:nw][n][:tank]`           | [tanks](http://wateranalytics.org/EPANET/_tanks_page.html)                   |
+| $\mathcal{A} \subset \mathcal{L}$                | `wm.ref[:nw][n][:pipe]`           | [pipes](http://wateranalytics.org/EPANET/_pipes_page.html)                   |
+| $\mathcal{C} \subset \mathcal{L}$                | `wm.ref[:nw][n][:check_valve]`    | [pipes with check valves](http://wateranalytics.org/EPANET/_pipes_page.html) |
+| $\mathcal{P} \subset \mathcal{L}$                | `wm.ref[:nw][n][:pump]`           | [pumps](http://wateranalytics.org/EPANET/_pumps_page.html)                   |
+| $\delta_{i}^{+} \subset \mathcal{A}$             | `wm.ref[:nw][n][:link_to][i]`     | links "from" node $i$                                                        |
+| $\delta_{i}^{-} \subset \mathcal{A}$             | `wm.ref[:nw][n][:link_fr][i]`     | links "to" node $i$                                                          |
 
 ## Physical Feasibility
 ### Satisfaction of Flow Bounds
@@ -36,7 +37,7 @@ For example, maximum flow speed and the diameter of the pipe can be used to boun
 where $D_{ij}$ is the diameter of pipe $(i, j)$ and $v^{\max}_{ij}$ is the maximum flow speed along the pipe.
 
 ### Satisfaction of Head Bounds
-Each node potential is denoted as $h_{i}$, $i \in \mathcal{N}$, and represents the hydraulic head in units of length ($\textrm{m}$).
+Each node potential is denoted by $h_{i}$, $i \in \mathcal{N}$, and represents the hydraulic head in units of length ($\textrm{m}$).
 The hydraulic head assimilates the elevation and pressure heads at each node, while the velocity head can typically be neglected.
 For each reservoir $i \in \mathcal{S}$, the hydraulic head is assumed to be fixed at a value $h_{i}^{\textrm{src}}$, i.e.,
 ```math
@@ -177,9 +178,9 @@ This solution must satisfy the first-order necessary conditions
 
 ## Mixed-integer Linear Program
 
-## Optimal Network Design
+## Network Design
 Currently, the primary formulation focuses on the problem of optimally designing a water distribution network.
 More specifically, given a network consisting of reservoirs, junctions, and pipes, the problem aims to select the most cost-effecient resistance from a discrete set of resistances for each pipe to meet demand over the entire network.
-The set of all possible resistances for a given pipe $(i, j) \in \mathcal{A}$ is denoted as $\mathcal{R}_{ij}$, where each resistance is denoted as $r \in \mathcal{R}_{ij}$.
+The set of all possible resistances for a given pipe $(i, j) \in \mathcal{A}$ is denoted by $\mathcal{R}_{ij}$, where each resistance is denoted by $r \in \mathcal{R}_{ij}$.
 A binary variable $x^{r}_{ijr}$ is associated with each of these diameters to model the decision, i.e., $x_{ijr}^{r} = 1$ if $r$ is selected to serve as the pipe resistance, and $x_{ijr}^{r} = 0$ otherwise.
-The cost per unit length of installing a pipe of resistance $r$ is denoted as $c_{ijr}$.
+The cost per unit length of installing a pipe of resistance $r$ is denoted by $c_{ijr}$.

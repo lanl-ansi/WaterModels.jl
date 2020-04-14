@@ -36,23 +36,23 @@ end
 
 ### Nodal Constraints ###
 function constraint_flow_conservation(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
-    arcs_from = ref(wm, nw, :node_arc_fr, i)
-    arcs_to = ref(wm, nw, :node_arc_to, i)
+    links_from = ref(wm, nw, :node_link_fr, i)
+    links_to = ref(wm, nw, :node_link_to, i)
     junctions = ref(wm, nw, :node_junction, i)
     reservoirs = ref(wm, nw, :node_reservoir, i)
     tanks = ref(wm, nw, :node_tank, i)
     demands = Dict{Int,Float64}(k => ref(wm, nw, :junction, k, "demand") for k in junctions)
 
     _initialize_con_dict(wm, :flow_conservation, nw=nw)
-    constraint_flow_conservation(wm, nw, i, arcs_from, arcs_to, reservoirs, tanks, demands)
+    constraint_flow_conservation(wm, nw, i, links_from, links_to, reservoirs, tanks, demands)
 end
 
 ### Junction Constraints ###
 function constraint_sink_flow(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
-    arcs_from = ref(wm, nw, :node_arc_fr, i)
-    arcs_to = ref(wm, nw, :node_arc_to, i)
+    links_from = ref(wm, nw, :node_link_fr, i)
+    links_to = ref(wm, nw, :node_link_to, i)
     _initialize_con_dict(wm, :sink_flow, nw=nw)
-    constraint_sink_flow(wm, nw, i, arcs_from, arcs_to)
+    constraint_sink_flow(wm, nw, i, links_from, links_to)
 end
 
 ### Reservoir Constraints ###
@@ -63,10 +63,10 @@ function constraint_source_head(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
 end
 
 function constraint_source_flow(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
-    arcs_from = ref(wm, nw, :node_arc_fr, i)
-    arcs_to = ref(wm, nw, :node_arc_to, i)
+    links_from = ref(wm, nw, :node_link_fr, i)
+    links_to = ref(wm, nw, :node_link_to, i)
     _initialize_con_dict(wm, :source_flow, nw=nw)
-    constraint_source_flow(wm, nw, i, arcs_from, arcs_to)
+    constraint_source_flow(wm, nw, i, links_from, links_to)
 end
 
 ### Tank Constraints ###

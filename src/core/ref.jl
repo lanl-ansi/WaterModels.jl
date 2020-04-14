@@ -31,9 +31,9 @@ function _get_function_from_pump_curve(pump_curve::Array{Tuple{Float64,Float64}}
 end
 
 function get_link_id(wm::AbstractWaterModel, i::Int, j::Int, n::Int=wm.cnw)
-    arcs = vcat(ref(wm, n, :node_arc_fr, i), ref(wm, n, :node_arc_to, i))
-    arc_id = findfirst(x -> x[2] in [i, j] && x[3] in [i, j], arcs)
-    return arcs[arc_id][1]
+    links = vcat(ref(wm, n, :node_link_fr, i), ref(wm, n, :node_link_to, i))
+    link_id = findfirst(x -> x[2] in [i, j] && x[3] in [i, j], links)
+    return links[link_id][1]
 end
 
 function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)

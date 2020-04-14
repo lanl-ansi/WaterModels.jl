@@ -46,7 +46,6 @@ Some of the common keys include:
 * `:junction` -- the set of junctions in the network,
 * `:reservoir` -- the set of reservoirs in the network,
 * `:tank` -- the set of tanks in the network,
-* `:emitter` -- the set of emitters in the network,
 * `:node` -- the set of all nodes in the network
 """
 function ref_add_core!(refs::Dict{Symbol,<:Any})
@@ -62,26 +61,26 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any})
         ref[:link_fixed] = filter(!is_des_link, ref[:link])
         ref[:pipe_fixed] = filter(!is_des_link, ref[:pipe])
 
-        # Set up arcs from existing links.
-        ref[:arc_fr] = [(i, comp["node_fr"], comp["node_to"]) for (i, comp) in ref[:link]]
+        # Set up links from existing links.
+        ref[:link_fr] = [(i, comp["node_fr"], comp["node_to"]) for (i, comp) in ref[:link]]
 
         # Set up dictionaries mapping "from" links for a node.
-        node_arcs_fr = Dict((i, Tuple{Int, Int, Int}[]) for (i, node) in ref[:node])
+        node_links_fr = Dict((i, Tuple{Int, Int, Int}[]) for (i, node) in ref[:node])
 
-        for (l, i, j) in ref[:arc_fr]
-            push!(node_arcs_fr[i], (l, i, j))
+        for (l, i, j) in ref[:link_fr]
+            push!(node_links_fr[i], (l, i, j))
         end
 
-        ref[:node_arc_fr] = node_arcs_fr
+        ref[:node_link_fr] = node_links_fr
 
         # Set up dictionaries mapping "to" links for a node.
-        node_arcs_to = Dict((i, Tuple{Int, Int, Int}[]) for (i, node) in ref[:node])
+        node_links_to = Dict((i, Tuple{Int, Int, Int}[]) for (i, node) in ref[:node])
 
-        for (l, i, j) in ref[:arc_fr]
-            push!(node_arcs_to[j], (l, i, j))
+        for (l, i, j) in ref[:link_fr]
+            push!(node_links_to[j], (l, i, j))
         end
 
-        ref[:node_arc_to] = node_arcs_to
+        ref[:node_link_to] = node_links_to
 
         # Set up dictionaries mapping nodes to attached junctions.
         node_junctions = Dict((i, Int[]) for (i,node) in ref[:node])

@@ -102,7 +102,7 @@ function constraint_energy_conservation(wm::MICPEWaterModel, n::Int, r, L, alpha
 
     f_2 = JuMP.@NLexpression(wm.model, sum(reservoir["head"]
         * sum(sum(qp[a][r_id] - qn[a][r_id] for r_id in
-        1:length(r[a])) for (a, f, t) in ref(wm, n, :node_arc_fr, i))
+        1:length(r[a])) for (a, f, t) in ref(wm, n, :node_link_fr, i))
         for (i, reservoir) in ref(wm, n, :reservoir)))
 
     f_3 = JuMP.@NLexpression(wm.model, sum(sum((L[a]*r[a][r_id])^-inv(alpha)
