@@ -45,7 +45,7 @@
         modifications = parse_file("../test/data/json/shamir-reduced.json")
         InfrastructureModels.update_data!(data, modifications)
 
-        ext = Dict(:num_breakpoints=>5)
+        ext = Dict(:pipe_breakpoints=>5, :pump_breakpoints=>0)
         wm = instantiate_model(data, MILPWaterModel, build_des, ext=ext)
         solution = _IM.optimize_model!(wm, optimizer=cbc)
 
@@ -58,7 +58,8 @@
         modifications = parse_file("../test/data/json/shamir-reduced.json")
         InfrastructureModels.update_data!(data, modifications)
 
-        wm = instantiate_model(data, MILPRWaterModel, build_des, ext=Dict(:num_breakpoints => 5))
+        ext = Dict(:pipe_breakpoints=>5, :pump_breakpoints=>0)
+        wm = instantiate_model(data, MILPRWaterModel, build_des, ext=ext)
         solution = _IM.optimize_model!(wm, optimizer=cbc)
 
         @test solution["termination_status"] == OPTIMAL

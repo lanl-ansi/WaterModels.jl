@@ -77,22 +77,22 @@ function constraint_resistance_selection_des(wm::AbstractUndirectedFlowModel, n:
 end
 
 function constraint_check_valve_common(wm::AbstractUndirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to)
-    # Get common flow variables and associated data.
+    # Get flow and check valve status variables.
     q, x_cv = [var(wm, n, :q, a), var(wm, n, :x_cv, a)]
 
     # If the check valve is open, flow must be appreciably nonnegative.
     c_1 = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * x_cv)
     c_2 = JuMP.@constraint(wm.model, q >= 6.31465679e-6 * x_cv)
 
-    # Get common head variables and associated data.
+    # Get head variables for from and to nodes.
     h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
-    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
-    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
 
     # When the check valve is open, negative head loss is not possible.
+    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
     c_3 = JuMP.@constraint(wm.model, h_i - h_j >= (1.0 - x_cv) * dh_lb)
 
     # When the check valve is closed, positive head loss is not possible.
+    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
     c_4 = JuMP.@constraint(wm.model, h_i - h_j <= x_cv * dh_ub)
 
     # Append the constraint array.
@@ -119,7 +119,7 @@ function constraint_pump_common(wm::AbstractUndirectedFlowModel, n::Int, a::Int,
     append!(con(wm, n, :pump, a), [c_1, c_2, c_3, c_4])
 end
 
-function constraint_pipe_common(wm::AbstractUndirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to)
+function constraint_pipe_common(wm::AbstractUndirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, alpha::Float64, L::Float64, r::Float64)
     # For undirected formulations, there are no constraints, here.
 end
 

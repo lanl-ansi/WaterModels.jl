@@ -24,6 +24,22 @@ In summary, the following sets are commonly used when defining a WaterModels pro
 | $\delta_{i}^{-} \subset \mathcal{A}$             | `wm.ref[:nw][n][:link_fr][i]`     | links "to" node $i$                                                          |
 
 ## Physical Feasibility
+### Nodes
+
+#### Junctions
+
+#### Reservoirs
+
+#### Tanks
+
+### Links
+
+#### Pipes Without Check Valves
+
+#### Pipes with Check Valves
+
+#### Pumps
+
 ### Satisfaction of Flow Bounds
 For each arc $(i, j) \in \mathcal{A}$, a variable $q_{ij}$ is used to represent the volumetric flow of water across the arc (in $\textrm{m}^{3}/\textrm{s}$).
 When $q_{ij}$ is positive, flow on arc $(i, j)$ travels from node $i$ to node $j$.

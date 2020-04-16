@@ -159,7 +159,7 @@ function constraint_check_valve_common(wm::AbstractDirectedFlowModel, n::Int, a:
     append!(con(wm, n, :check_valve, a), [c_1, c_2, c_3, c_4])
 end
 
-function constraint_pipe_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to)
+function constraint_pipe_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, alpha::Float64, L::Float64, r::Float64)
     # Get common flow variables and associated data.
     x_dir = var(wm, n, :x_dir, a)
     qp, qn = [var(wm, n, :qp, a), var(wm, n, :qn, a)]
@@ -180,8 +180,12 @@ function constraint_pipe_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, n
     c_4 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - x_dir))
     c_5 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
 
+    # Add linear upper bounds on the head loss approximations.
+    c_6 = JuMP.@constraint(wm.model, inv(L)*dhp <= r*qp_ub^(alpha - 1.0) * qp)
+    c_7 = JuMP.@constraint(wm.model, inv(L)*dhn <= r*qn_ub^(alpha - 1.0) * qn)
+
     # Append the constraint array.
-    append!(con(wm, n, :pipe)[a], [c_1, c_2, c_3, c_4, c_5])
+    append!(con(wm, n, :pipe)[a], [c_1, c_2, c_3, c_4, c_5, c_6, c_7])
 end
 
 function constraint_pump_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, pc::Array{Float64})
@@ -311,4 +315,5 @@ function constraint_sink_flow(wm::AbstractIntegerDirectedFlowForms, n::Int, i::I
 end
 
 function constraint_energy_conservation(wm::AbstractDirectedFlowModel, n::Int, r, L, alpha)
+    # For directed formulations, there are no constraints, here.
 end
