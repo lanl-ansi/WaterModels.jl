@@ -80,12 +80,12 @@ end
 "Defines the objective for the owf problem is `NCNLP` formulations."
 function objective_owf(wm::AbstractNCNLPModel) 
     objective = JuMP.AffExpr(0.0)
+    time_step = wm.ref[:option]["time"]["hydraulic_timestep"]
 
     for (n, nw_ref) in nws(wm)
         efficiency = 0.85 # TODO: How can the efficiency curve be used?
         rho = 1000.0 # Water density (kilogram per cubic meter).
         gravity = 9.80665 # Gravitational acceleration (meter per second squared).
-        time_step = nw_ref[:option]["time"]["hydraulic_timestep"]
         coeff = rho * gravity * time_step * inv(efficiency)
 
         for (a, pump) in nw_ref[:pump]

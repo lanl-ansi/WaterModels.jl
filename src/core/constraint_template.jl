@@ -78,8 +78,8 @@ function constraint_link_volume(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
 end
 
 function constraint_tank_state(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
-    if "hydraulic_timestep" in keys(ref(wm, nw, :option, "time"))
-        time_step_int = ref(wm, nw, :option, "time")["hydraulic_timestep"]
+    if "hydraulic_timestep" in keys(wm.ref[:option]["time"])
+        time_step_int = wm.ref[:option]["time"]["hydraulic_timestep"]
         time_step = convert(Float64, time_step_int)
     else
         Memento.error(_LOGGER, "Tank states cannot be controlled without a time step.")
@@ -95,8 +95,8 @@ function constraint_tank_state(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
 end
 
 function constraint_tank_state(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2::Int)
-    if "hydraulic_timestep" in keys(ref(wm, nw_2, :option, "time"))
-        time_step_int = ref(wm, nw_2, :option, "time")["hydraulic_timestep"]
+    if "hydraulic_timestep" in keys(wm.ref[:option]["time"])
+        time_step_int = wm.ref[:option]["time"]["hydraulic_timestep"]
         time_step = convert(Float64, time_step_int)
     else
         Memento.error(_LOGGER, "Tank states cannot be controlled without a time step.")

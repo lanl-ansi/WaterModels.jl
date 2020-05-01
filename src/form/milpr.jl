@@ -15,7 +15,7 @@ function _get_head_loss_cv_oa(q::JuMP.VariableRef, x_cv::JuMP.VariableRef, q_hat
     return q_hat^alpha*x_cv + alpha * q_hat^(alpha - 1.0) * (q - q_hat*x_cv)
 end
 
-function _get_pump_gain_oa(q::JuMP.VariableRef, x_pump::JuMP.VariableRef, q_hat::Float64, curve_fun::Array{Float64})
+function _get_head_gain_oa(q::JuMP.VariableRef, x_pump::JuMP.VariableRef, q_hat::Float64, curve_fun::Array{Float64})
     f = curve_fun[1]*q_hat^2 + curve_fun[2]*q_hat + curve_fun[3]
     df = 2.0 * curve_fun[1] * q_hat + curve_fun[2]
     return f * x_pump + df * (q - q_hat * x_pump)
@@ -84,7 +84,7 @@ function constraint_pump_head_gain(wm::AbstractMILPRModel, n::Int, a::Int, node_
 
     # Add head gain outer- (i.e., upper-) approximations.
     for qp_hat in breakpoints
-        lhs = _get_pump_gain_oa(qp, x_pump, qp_hat, pc)
+        lhs = _get_head_gain_oa(qp, x_pump, qp_hat, pc)
         c_7_k = JuMP.@constraint(wm.model, g <= lhs)
         append!(con(wm, n, :head_gain, a), [c_7_k])
     end
@@ -166,6 +166,7 @@ function objective_owf(wm::AbstractMILPRModel)
     # Initialize the objective function.
     objective = JuMP.AffExpr(0.0)
     K = 1:wm.ext[:pump_breakpoints]
+    time_step = wm.ref[:option]["time"]["hydraulic_timestep"]
 
     for (n, nw_ref) in nws(wm)
         # Get common variables.
@@ -174,7 +175,6 @@ function objective_owf(wm::AbstractMILPRModel)
         # Get common constant parameters.
         rho = 1000.0 # Water density (kilogram per cubic meter).
         gravity = 9.80665 # Gravitational acceleration (meter per second squared).
-        time_step = nw_ref[:option]["time"]["hydraulic_timestep"]
         constant = rho * gravity * time_step
 
         for (a, pump) in nw_ref[:pump]
@@ -197,7 +197,7 @@ function objective_owf(wm::AbstractMILPRModel)
                     eff_curve = pump["efficiency_curve"]
                     eff = _calc_efficiencies(collect(breakpoints), eff_curve)
                 else
-                    eff = ref(wm, n, :option)["energy"]["global_efficiency"]
+                    eff = wm.ref[:option]["energy"]["global_efficiency"]
                 end
 
                 # Add the cost corresponding to the current pump's operation.

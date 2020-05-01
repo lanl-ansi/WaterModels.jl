@@ -3,7 +3,6 @@ module WaterModels
     import InfrastructureModels: ids, ref, var, con, sol, nw_ids, nws, optimize_model!, @im_fields
     const _IM = InfrastructureModels
 
-    import DataStructures
     import Interpolations
     import JSON
     import JuMP
@@ -38,7 +37,7 @@ module WaterModels
         Memento.config!(Memento.getlogger("WaterModels"), level)
     end
 
-    const _wm_global_keys = Set(["time_series", "per_unit"])
+    const _wm_global_keys = Set(["time_series", "per_unit", "option"])
 
     include("io/common.jl")
     include("io/epanet.jl")
@@ -48,7 +47,6 @@ module WaterModels
     include("core/ref.jl")
     include("core/types.jl")
     include("core/function.jl")
-    include("core/solution.jl")
     include("core/variable.jl")
 
     include("core/constraint.jl")

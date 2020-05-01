@@ -19,16 +19,23 @@ function solve_model(data::Dict{String,<:Any}, model_type::Type, optimizer, buil
 end
 
 ""
-function instantiate_model(
-    file::String, model_type::Type, build_method; kwargs...)
+function instantiate_model(file::String, model_type::Type, build_method; kwargs...)
     data = WaterModels.parse_file(file)
     return instantiate_model(data, model_type, build_method; kwargs...)
 end
 
 ""
-function instantiate_model(
-    data::Dict{String,<:Any}, model_type::Type, build_method; kwargs...)
+function instantiate_model(data::Dict{String,<:Any}, model_type::Type, build_method; kwargs...)
     return _IM.instantiate_model(data, model_type, build_method, ref_add_core!, _wm_global_keys; kwargs...)
+end
+
+"""
+Builds the ref dictionary from the data dictionary. Additionally the ref
+dictionary would contain fields populated by the optional vector of
+ref_extensions provided as a keyword argument.
+"""
+function build_ref(data::Dict{String,<:Any}; ref_extensions=[])
+    return _IM.build_ref(data, ref_add_core!, _wm_global_keys, ref_extensions=ref_extensions)
 end
 
 """
@@ -49,10 +56,10 @@ Some of the common keys include:
 * `:node` -- the set of all nodes in the network
 """
 function ref_add_core!(refs::Dict{Symbol,<:Any})
-    _ref_add_core!(refs[:nw])
+    _ref_add_core!(refs[:nw], refs[:option])
 end
 
-function _ref_add_core!(nw_refs::Dict{Int,<:Any})
+function _ref_add_core!(nw_refs::Dict{Int,<:Any}, options::Dict{String,<:Any})
     for (nw, ref) in nw_refs
         ref[:link] = merge(ref[:pipe], ref[:valve], ref[:pump])
         ref[:check_valve] = filter(has_check_valve, ref[:pipe])
@@ -94,7 +101,7 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any})
         # Set up dictionaries mapping nodes to attached tanks.
         node_tanks = Dict((i, Int[]) for (i,node) in ref[:node])
 
-        for (i,tank) in ref[:tank]
+        for (i, tank) in ref[:tank]
             push!(node_tanks[tank["tank_node"]], i)
         end
 
@@ -103,7 +110,7 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any})
         # Set up dictionaries mapping nodes to attached reservoirs.
         node_reservoirs = Dict((i, Int[]) for (i,node) in ref[:node])
 
-        for (i,reservoir) in ref[:reservoir]
+        for (i, reservoir) in ref[:reservoir]
             push!(node_reservoirs[reservoir["reservoir_node"]], i)
         end
 
@@ -114,8 +121,8 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any})
         #ref[:link_unknown_direction] = filter(!has_known_flow_direction, ref[:link])
 
         # Set the resistances based on the head loss type.
-        headloss = ref[:option]["hydraulic"]["headloss"]
-        viscosity = ref[:option]["hydraulic"]["viscosity"]
+        headloss = options["hydraulic"]["headloss"]
+        viscosity = options["hydraulic"]["viscosity"]
         ref[:resistance] = calc_resistances(ref[:pipe], viscosity, headloss)
         ref[:resistance_cost] = calc_resistance_costs(ref[:pipe], viscosity, headloss)
 

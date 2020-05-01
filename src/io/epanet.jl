@@ -28,27 +28,24 @@ function _add_link_ids!(data::Dict{String, <:Any})
             end
         end
     else
-        link_id::Int64 = 1
-
+        # Otherwise, if any keys cannot be parsed as integers...
         for link_type in link_types
-            starnode_to = link_id
+            new_dict = Dict{String,Any}()
 
             for (link_name, link) in data[link_type]
-                link["index"] = link_id
+                link["index"] = data["link_map"][link_name]
                 link["node_fr"] = data["node_map"][pop!(link, "start_node_name")]
                 link["node_to"] = data["node_map"][pop!(link, "end_node_name")]
-                data["link_map"][link_name] = link["index"]
-                link_id += 1
 
                 # Add default status for pump if not present (Open).
                 if link_type == "pump" && link["initial_status"] == nothing
                     link["initial_status"] = "Open"
                 end
+
+                new_dict[string(link["index"])] = link
             end
 
-            new_ids = starnode_to:(starnode_to+length(keys(data[link_type]))-1)
-            new_keys = String[string(x) for x in new_ids]
-            data[link_type] = DataStructures.OrderedDict{String,Any}(new_keys .=> values(data[link_type]))
+            data[link_type] = new_dict
         end
     end
 
@@ -133,6 +130,7 @@ function _add_node_ids!(data::Dict{String, <:Any})
     node_names = vcat([collect(keys(data[t])) for t in node_types]...)
 
     if all([tryparse(Int64, x) != nothing for x in node_names])
+        # If all original indices can be parsed as integers, use them.
         for node_type in node_types
             for (node_name, node) in data[node_type]
                 node["index"] = parse(Int64, node_name)
@@ -140,20 +138,16 @@ function _add_node_ids!(data::Dict{String, <:Any})
             end
         end
     else
-        node_id::Int64 = 1
-
+        # Otherwise, if any keys cannot be parsed as integers...
         for node_type in node_types
-            starnode_to = node_id
+            new_dict = Dict{String,Any}()
 
             for (node_name, node) in data[node_type]
-                node["index"] = node_id
-                data["node_map"][node_name] = node["index"]
-                node_id += 1
+                node["index"] = data["node_map"][node_name]
+                new_dict[string(node["index"])] = node
             end
 
-            new_ids = starnode_to:(starnode_to+length(keys(data[node_type]))-1)
-            new_keys = String[string(x) for x in new_ids]
-            data[node_type] = DataStructures.OrderedDict{String,Any}(new_keys .=> values(data[node_type]))
+            data[node_type] = new_dict
         end
     end
 
@@ -265,9 +259,9 @@ end
 function _initialize_data()
     data = Dict{String, Any}()
 
-    data["curve"] = DataStructures.OrderedDict{String, Array}()
+    data["curve"] = Dict{String,Array}()
     data["top_comments"] = []
-    data["section"] = DataStructures.OrderedDict{String, Array}()
+    data["section"] = Dict{String,Array}()
 
     for section in _INP_SECTIONS
         data["section"][section] = []
@@ -277,9 +271,12 @@ function _initialize_data()
     data["mass_units"] = nothing
     data["flow_units"] = nothing
     data["time_series"] = Dict{String, Any}()
+    data["node_order"] = Array{String,1}()
 
     # Map EPANET indices to internal indices.
+    data["node_count"] = 1 # Counts nodes as appended.
     data["node_map"] = Dict{String, Int}()
+    data["link_count"] = 1 # Counts links as appended.
     data["link_map"] = Dict{String, Int}()
 
     return data
@@ -812,8 +809,8 @@ function _read_energy!(data::Dict{String, <:Any})
 end
 
 function _read_junction!(data::Dict{String, <:Any})
-    data["junction"] = DataStructures.OrderedDict{String, Dict{String, Any}}()
-    data["time_series"]["junction"] = DataStructures.OrderedDict{String, Any}()
+    data["junction"] = Dict{String, Dict{String,Any}}()
+    data["time_series"]["junction"] = Dict{String,Any}()
 
     # Get the demand units (e.g., LPS, GPM).
     demand_units = data["option"]["hydraulic"]["units"]
@@ -825,10 +822,11 @@ function _read_junction!(data::Dict{String, <:Any})
         if length(current) == 0
             continue
         else
-            junction = Dict{String, Any}()
+            junction = Dict{String,Any}()
 
             junction["name"] = current[1]
             junction["source_id"] = ["junction", current[1]]
+            push!(data["node_order"], current[1])
 
             if length(current) > 3
                 junction["demand_pattern_name"] = current[4]
@@ -866,6 +864,10 @@ function _read_junction!(data::Dict{String, <:Any})
 
             data["junction"][current[1]] = junction
 
+            # Update integer mapping that will potentially be used later.
+            data["node_map"][current[1]] = data["node_count"]
+            data["node_count"] += 1
+
             # Add time series of demand if necessary.
             pattern = junction["demand_pattern_name"]
 
@@ -881,11 +883,10 @@ function _read_junction!(data::Dict{String, <:Any})
 end
 
 function _read_option!(data::Dict{String, <:Any})
-    data["option"] = DataStructures.OrderedDict{String, Any}(
-        "energy" => Dict{String, Any}(), "hydraulic" => Dict{String, Any}(),
-        "quality" => Dict{String, Any}(), "solver" => Dict{String, Any}(),
-        "graphics" => Dict{String, Any}(), "time" => Dict{String, Any}(),
-        "results" => Dict{String, Any}())
+    data["option"] = Dict{String,Any}("energy"=>Dict{String,Any}(),
+        "hydraulic"=>Dict{String,Any}(), "quality"=>Dict{String,Any}(),
+        "solver"=>Dict{String,Any}(), "graphics"=>Dict{String,Any}(),
+        "time"=>Dict{String,Any}(), "results"=>Dict{String,Any}())
 
     for (line_number, line) in data["section"]["[OPTIONS]"]
         words, comments = _split_line(line)
@@ -948,11 +949,11 @@ function _read_option!(data::Dict{String, <:Any})
             else
                 if length(words) == 2
                     data["option"][lowercase(words[1])] = parse(Float64, words[2])
-                    Memento.warn(_LOGGER, "Option \"$(key)\" is undocumented; adding, but please verify syntax")
+                    Memento.warn(_LOGGER, "Option \"$(key)\" is undocumented. Adding, but please verify syntax.")
                 elseif length(words) == 3
                     fieldname = lowercase(words[1]) * "_" * lowercase(words[2])
                     data["option"][fieldname] = parse(Float64, words[3])
-                    Memento.warn(_LOGGER, "Option \"$(key)\" is undocumented; adding, but please verify syntax")
+                    Memento.warn(_LOGGER, "Option \"$(key)\" is undocumented. Adding, but please verify syntax.")
                 end
             end
         end
@@ -960,7 +961,7 @@ function _read_option!(data::Dict{String, <:Any})
 end
 
 function _read_pattern!(data::Dict{String, <:Any})
-    data["pattern"] = DataStructures.OrderedDict{String, Array}()
+    data["pattern"] = Dict{String,Array}()
 
     for (line_number, line) in data["section"]["[PATTERNS]"]
         # Read the lines for each pattern. Patterns can be multiple lines of arbitrary length.
@@ -1031,7 +1032,7 @@ function _read_pattern!(data::Dict{String, <:Any})
 end
 
 function _read_pipe!(data::Dict{String, <:Any})
-    data["pipe"] = DataStructures.OrderedDict{String, Dict{String, Any}}()
+    data["pipe"] = Dict{String,Dict{String,Any}}()
 
     # Get the demand units (e.g., LPS, GPM).
     demand_units = data["option"]["hydraulic"]["units"]
@@ -1097,13 +1098,17 @@ function _read_pipe!(data::Dict{String, <:Any})
             end
 
             data["pipe"][current[1]] = pipe
+
+            # Update integer mapping that will potentially be used later.
+            data["link_map"][current[1]] = data["link_count"]
+            data["link_count"] += 1
         end
     end
 end
 
 function _read_pump!(data::Dict{String, <:Any})
-    data["pump"] = DataStructures.OrderedDict{String, Dict{String, Any}}()
-    data["time_series"]["pump"] = DataStructures.OrderedDict{String, Any}()
+    data["pump"] = Dict{String,Dict{String,Any}}()
+    data["time_series"]["pump"] = Dict{String,Any}()
 
     for (line_number, line) in data["section"]["[PUMPS]"]
         line = split(line, ";")[1]
@@ -1171,13 +1176,17 @@ function _read_pump!(data::Dict{String, <:Any})
             pump["flow_direction"] = POSITIVE
 
             data["pump"][current[1]] = pump
+
+            # Update integer mapping that will potentially be used later.
+            data["link_map"][current[1]] = data["link_count"]
+            data["link_count"] += 1
         end
     end
 end
 
-function _read_reservoir!(data::Dict{String, <:Any})
-    data["reservoir"] = DataStructures.OrderedDict{String, Dict{String, Any}}()
-    data["time_series"]["reservoir"] = DataStructures.OrderedDict{String, Any}()
+function _read_reservoir!(data::Dict{String,<:Any})
+    data["reservoir"] = Dict{String,Dict{String,Any}}()
+    data["time_series"]["reservoir"] = Dict{String,Any}()
 
     # Get the demand units (e.g., LPS, GPM).
     demand_units = data["option"]["hydraulic"]["units"]
@@ -1193,6 +1202,7 @@ function _read_reservoir!(data::Dict{String, <:Any})
 
             reservoir["name"] = current[1]
             reservoir["source_id"] = ["reservoir", current[1]]
+            push!(data["node_order"], current[1])
 
             if length(current) >= 2
                 if demand_units == "LPS" # If liters per second...
@@ -1215,6 +1225,10 @@ function _read_reservoir!(data::Dict{String, <:Any})
             end
 
             data["reservoir"][current[1]] = reservoir
+
+            # Update integer mapping that will potentially be used later.
+            data["node_map"][current[1]] = data["node_count"]
+            data["node_count"] += 1
 
             # Add time series of demand if necessary.
             pattern = reservoir["head_pattern_name"]
@@ -1259,7 +1273,7 @@ function _read_status!(data::Dict{String, <:Any})
 end
 
 function _read_tank!(data::Dict{String, <:Any})
-    data["tank"] = DataStructures.OrderedDict{String, Dict{String, Any}}()
+    data["tank"] = Dict{String,Dict{String,Any}}()
 
     for (line_number, line) in data["section"]["[TANKS]"]
         line = split(line, ";")[1]
@@ -1272,6 +1286,7 @@ function _read_tank!(data::Dict{String, <:Any})
 
             tank["name"] = current[1]
             tank["source_id"] = ["tank", current[1]]
+            push!(data["node_order"], current[1])
 
             if data["option"]["hydraulic"]["units"] == "LPS" # If liters per second...
                 # Retain the original values (in meters).
@@ -1307,6 +1322,10 @@ function _read_tank!(data::Dict{String, <:Any})
             end
 
             data["tank"][current[1]] = tank
+
+            # Update integer mapping that will potentially be used later.
+            data["node_map"][current[1]] = data["node_count"]
+            data["node_count"] += 1
         end
     end
 end
@@ -1365,8 +1384,8 @@ function _read_title!(data::Dict{String, <:Any})
     data["name"] = join(lines, " ")
 end
 
-function _read_valve!(data::Dict{String, <:Any})
-    data["valve"] = DataStructures.OrderedDict{String, Dict{String, Any}}()
+function _read_valve!(data::Dict{String,<:Any})
+    data["valve"] = Dict{String,Dict{String,Any}}()
 
     for (line_number, line) in data["section"]["[VALVES]"]
         line = split(line, ";")[1]
@@ -1382,6 +1401,10 @@ function _read_valve!(data::Dict{String, <:Any})
 
             # TODO: Finish the rest of valve parsing before appending.
             data["valve"][current[1]] = valve
+
+            # Update integer mapping that will potentially be used later.
+            data["link_map"][current[1]] = data["link_count"]
+            data["link_count"] += 1
         end
     end
 end

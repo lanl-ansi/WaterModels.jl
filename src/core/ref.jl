@@ -113,7 +113,7 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     junctions = values(ref(wm, n, :junction))
     sum_demand = sum(abs(junction["demand"]) for junction in junctions)
 
-    time_step_int = ref(wm, n, :option, "time")["hydraulic_timestep"]
+    time_step_int = wm.ref[:option]["time"]["hydraulic_timestep"]
     time_step = convert(Float64, time_step_int)
     V_lb, V_ub = calc_tank_volume_bounds(wm, n)
     sum_demand += sum([(V_ub[i] - V_lb[i]) / time_step for i in ids(wm, n, :tank)])
