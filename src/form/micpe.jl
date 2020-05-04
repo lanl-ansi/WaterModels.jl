@@ -52,7 +52,7 @@ function variable_head(wm::MICPEWaterModel; nw::Int=wm.cnw, bounded::Bool=true, 
 end
 
 function constraint_head_difference_pipe(wm::MICPEWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to)
-    x_dir = var(wm, n, :x_dir, a)
+    y = var(wm, n, :y, a)
 
     for (r_id, r) in enumerate(ref(wm, n, :resistance, a))
         x_res = var(wm, n, :x_res, a)[r_id]
@@ -60,9 +60,9 @@ function constraint_head_difference_pipe(wm::MICPEWaterModel, n::Int, a::Int, no
         dhp_ub, dhn_ub = [JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)]
 
         c_p_r = JuMP.@constraint(wm.model, dhp <= dhp_ub * x_res)
-        c_p_d = JuMP.@constraint(wm.model, dhp <= dhp_ub * x_dir)
+        c_p_d = JuMP.@constraint(wm.model, dhp <= dhp_ub * y)
         c_n_r = JuMP.@constraint(wm.model, dhn <= dhn_ub * x_res)
-        c_n_d = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - x_dir))
+        c_n_d = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - y))
 
         # Append the constraint array.
         append!(con(wm, n, :head_loss)[a], [c_p_r, c_p_d, c_n_r, c_n_d])
@@ -90,7 +90,7 @@ function constraint_head_loss_pipe_des(wm::MICPEWaterModel, n::Int, a::Int, alph
     end
 end
 
-function constraint_energy_conservation(wm::MICPEWaterModel, n::Int, r, L, alpha)
+function constraint_energy_conservation(wm::MICPEWaterModel, n::Int, r::Dict{Int64,Array{Float64,1}}, L::Dict{Int64,Float64}, alpha::Float64)
     # Gather common variables.
     qp, qn = [var(wm, n, :qp_des), var(wm, n, :qn_des)]
     h, dhp, dhn = [var(wm, n, :h), var(wm, n, :dhp_des), var(wm, n, :dhn_des)]

@@ -247,7 +247,7 @@ end
 
 function set_start_flow_direction!(data::Dict{String, <:Any})
     for (a, link) in data["link"]
-        link["x_dir_start"] = link["q"] >= 0.0 ? 1.0 : 0.0
+        link["y_start"] = link["q"] >= 0.0 ? 1.0 : 0.0
     end
 end
 
