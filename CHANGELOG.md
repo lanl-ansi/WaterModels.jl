@@ -2,11 +2,13 @@ WaterModels.jl Change Log
 =========================
 
 ### v0.3.0
-- Update to InfrastructureModels v0.4.3.
+- Update to InfrastructureModels v0.5.
 - Remove the Constrained Water Flow (cwf) problem specification.
-- Rename `post_` methods to `solve_`.
+- Rename `run_` methods to `solve_`.
+- Rename `post_` methods to `build_`.
 - Rename `ne` (network expansion) methods to `des` (design).
 - Complete MILP implementations of constraints.
+- Implementation of pressure reducing valves.
 
 ### v0.2.0
 - Update to JuMP v0.21 and InfrastructureModels v0.4.

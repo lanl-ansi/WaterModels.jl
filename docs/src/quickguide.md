@@ -139,7 +139,7 @@ For additional details about the network data, see the [WaterModels Network Data
 The following example demonstrates how to break a `solve_des` call into separate model building and solving steps.
 This allows inspection of the JuMP model created by WaterModels for the problem.
 ```julia
-wm = build_model(data, MILPRWaterModel, WaterModels.post_des)
+wm = build_model(data, MILPRWaterModel, WaterModels.build_des)
 
 print(wm.model)
 

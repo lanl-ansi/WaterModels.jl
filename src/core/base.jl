@@ -46,8 +46,10 @@ components, and storing system-wide values that need to be computed globally.
 Some of the common keys include:
 
 * `:pipe` -- the set of pipes in the network,
+* `:check_valve` -- the set of pipes in the network with check valves,
 * `:pump` -- the set of pumps in the network,
 * `:valve` -- the set of valves in the network,
+* `:prv` -- the set of pressure reducing valves in the network,
 * `:link` -- the set of all links in the network,
 * `:link_des` -- the set of all network design links in the network,
 * `:junction` -- the set of junctions in the network,
