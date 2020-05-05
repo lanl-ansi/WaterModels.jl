@@ -1387,6 +1387,9 @@ end
 function _read_valve!(data::Dict{String,<:Any})
     data["valve"] = Dict{String,Dict{String,Any}}()
 
+    # Get the demand units (e.g., LPS, GPM).
+    demand_units = data["option"]["hydraulic"]["units"]
+
     for (line_number, line) in data["section"]["[VALVES]"]
         line = split(line, ";")[1]
         current = split(line)
@@ -1397,6 +1400,28 @@ function _read_valve!(data::Dict{String,<:Any})
             valve = Dict{String, Any}()
             valve["name"] = current[1]
             valve["source_id"] = ["valve", current[1]]
+            valve["start_node_name"] = current[2]
+            valve["end_node_name"] = current[3]
+            valve["type"] = uppercase(current[5])
+            valve["minor_loss"] = parse(Float64, current[7])
+
+            if demand_units == "LPS" # If liters per second...
+                # Retain the original value (in meters).
+                valve["setting"] = parse(Float64, current[6])
+
+                # Convert diameter from millimeters to meters.
+                valve["diameter"] = 0.001 * parse(Float64, current[4])
+            elseif demand_units == "GPM" # If gallons per minute...
+                # Convert setting from feet to meters.
+                valve["setting"] = 0.3048 * parse(Float64, current[6])
+
+                # Convert diameter from inches to meters.
+                valve["diameter"] = 0.0254 * parse(Float64, current[4])
+            else
+                Memento.error(_LOGGER, "Could not find a valid \"units\" option type.")
+            end
+
+            # TODO: Populate any relevant control data.
             valve["control"] = Dict{String, Any}()
 
             # TODO: Finish the rest of valve parsing before appending.

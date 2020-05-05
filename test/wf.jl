@@ -390,6 +390,23 @@
         @test solution["termination_status"] == OPTIMAL
     end
 
+    @testset "2PRVs network, NCNLP formulation." begin
+        data = WaterModels.parse_file("../test/data/epanet/2PRVs.inp")
+        wm = instantiate_model(data, NCNLPWaterModel, WaterModels.build_wf)
+        f = Juniper.register(head_loss_args(wm)..., autodiff=false)
+        juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
+            "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
+        #solution = WaterModels.optimize_model!(wm, optimizer=juniper)
+
+        #@test solution["termination_status"] == LOCALLY_SOLVED
+        #@test isapprox(solution["solution"]["link"]["1"]["q"], 0.012618, rtol=1.0e-3)
+        #@test isapprox(solution["solution"]["link"]["4"]["q"], 0.012618, rtol=1.0e-3)
+        #@test isapprox(solution["solution"]["link"]["5"]["q"], 0.0, atol=1.0e-6)
+        #@test isapprox(solution["solution"]["link"]["540"]["q"], -0.008713, rtol=1.0e-3)
+        #@test isapprox(solution["solution"]["node"]["1"]["h"], 45.720001, rtol=1.0e-3)
+        #@test isapprox(solution["solution"]["node"]["3"]["h"], 42.206322, rtol=1.0e-3)
+    end
+
     @testset "Balerma network, NCNLP formulation." begin
         network = WaterModels.parse_file("../test/data/epanet/balerma.inp")
         modifications = WaterModels.parse_file("../test/data/json/balerma.json")
