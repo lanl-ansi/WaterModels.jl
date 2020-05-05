@@ -1,8 +1,8 @@
 @testset "Optimal Water Flow Problems" begin
     @testset "Reduced van Zyl network, multinetwork, MICP formulation." begin
-        ext = Dict(:pump_breakpoints=>3)
         data = parse_file("../test/data/epanet/van_zyl-3_steps.inp")
         mn_data = WaterModels.make_multinetwork(data)
+        ext = Dict(:pump_breakpoints=>3)
         wm = instantiate_model(mn_data, MICPWaterModel, WaterModels.build_mn_owf, ext=ext)
         f = Juniper.register(head_loss_args(wm)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,

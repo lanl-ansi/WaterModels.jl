@@ -83,8 +83,9 @@
     end
  
     @testset "2PRVs network, MICP formulation." begin
+        ext = Dict(:pump_breakpoints=>0)
         data = WaterModels.parse_file("../test/data/epanet/2PRVs.inp")
-        wm = instantiate_model(data, MICPWaterModel, WaterModels.build_wf)
+        wm = instantiate_model(data, MICPWaterModel, WaterModels.build_wf, ext=ext)
         f = Juniper.register(head_loss_args(wm)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
             "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
@@ -93,10 +94,11 @@
     end
 
     @testset "Balerma network, MICP formulation." begin
+        ext = Dict(:pump_breakpoints=>0)
         data = WaterModels.parse_file("../test/data/epanet/balerma.inp")
         modifications = WaterModels.parse_file("../test/data/json/balerma.json")
         InfrastructureModels.update_data!(data, modifications)
-        wm = instantiate_model(data, MICPWaterModel, WaterModels.build_wf)
+        wm = instantiate_model(data, MICPWaterModel, WaterModels.build_wf, ext=ext)
         f = Juniper.register(head_loss_args(wm)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt,
             "registered_functions"=>[f], "log_levels"=>[])
@@ -107,8 +109,9 @@
     end
 
     @testset "Example 1 network (with tanks and pumps), MICP formulation." begin
+        ext = Dict(:pump_breakpoints=>0)
         data = WaterModels.parse_file("../test/data/epanet/example_1-sp.inp")
-        wm = instantiate_model(data, MICPWaterModel, WaterModels.build_wf)
+        wm = instantiate_model(data, MICPWaterModel, WaterModels.build_wf, ext=ext)
         f = Juniper.register(head_loss_args(wm)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
             "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
@@ -117,9 +120,10 @@
     end
 
     @testset "Example 1 network (with tanks and pumps), multinetwork MICP formulation." begin
+        ext = Dict(:pump_breakpoints=>0)
         data = WaterModels.parse_file("../test/data/epanet/example_1.inp")
         mn_data = WaterModels.make_multinetwork(data)
-        wm = instantiate_model(mn_data, MICPWaterModel, WaterModels.build_mn_wf)
+        wm = instantiate_model(mn_data, MICPWaterModel, WaterModels.build_mn_wf, ext=ext)
         f = Juniper.register(head_loss_args(wm)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
             "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
@@ -128,8 +132,9 @@
     end
 
     @testset "Richmond (single time) network, MICP formulation." begin
+        ext = Dict(:pump_breakpoints=>0)
         data = WaterModels.parse_file("../test/data/epanet/richmond-skeleton-sp.inp")
-        wm = instantiate_model(data, MICPWaterModel, WaterModels.build_wf)
+        wm = instantiate_model(data, MICPWaterModel, WaterModels.build_wf, ext=ext)
         f = Juniper.register(head_loss_args(wm)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
             "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
@@ -139,9 +144,10 @@
     end
 
     @testset "Richmond network, multinetwork MICP formulation." begin
+        ext = Dict(:pump_breakpoints=>0)
         data = WaterModels.parse_file("../test/data/epanet/richmond-skeleton.inp")
         mn_data = WaterModels.make_multinetwork(data)
-        wm = instantiate_model(mn_data, MICPWaterModel, WaterModels.build_mn_wf)
+        wm = instantiate_model(mn_data, MICPWaterModel, WaterModels.build_mn_wf, ext=ext)
         f = Juniper.register(head_loss_args(wm)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
             "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
@@ -151,8 +157,9 @@
     end
 
     @testset "Shamir network, MICP formulation." begin
+        ext = Dict(:pump_breakpoints=>0)
         data = WaterModels.parse_file("../test/data/epanet/shamir.inp")
-        wm = instantiate_model(data, MICPWaterModel, WaterModels.build_wf)
+        wm = instantiate_model(data, MICPWaterModel, WaterModels.build_wf, ext=ext)
         f = Juniper.register(head_loss_args(wm)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
             "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
@@ -161,9 +168,10 @@
     end
 
     @testset "Shamir network, multinetwork MICP formulation." begin
+        ext = Dict(:pump_breakpoints=>0)
         data = WaterModels.parse_file("../test/data/epanet/shamir-ts.inp")
         mn_data = WaterModels.make_multinetwork(data)
-        wm = instantiate_model(mn_data, MICPWaterModel, WaterModels.build_mn_wf)
+        wm = instantiate_model(mn_data, MICPWaterModel, WaterModels.build_mn_wf, ext=ext)
         f = Juniper.register(head_loss_args(wm)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
             "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
@@ -172,9 +180,10 @@
     end
 
     @testset "Shamir network (with tank), multinetwork MICP formulation." begin
+        ext = Dict(:pump_breakpoints=>0)
         data = WaterModels.parse_file("../test/data/epanet/shamir-ts-tank.inp")
         mn_data = WaterModels.make_multinetwork(data)
-        wm = instantiate_model(mn_data, MICPWaterModel, WaterModels.build_mn_wf)
+        wm = instantiate_model(mn_data, MICPWaterModel, WaterModels.build_mn_wf, ext=ext)
         f = Juniper.register(head_loss_args(wm)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
             "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
