@@ -63,6 +63,7 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any}, options::Dict{String,<:Any})
     for (nw, ref) in nw_refs
         ref[:link] = merge(ref[:pipe], ref[:valve], ref[:pump])
         ref[:check_valve] = filter(has_check_valve, ref[:pipe])
+        ref[:prv] = filter(is_prv, ref[:valve])
         ref[:link_des] = filter(is_des_link, ref[:link])
         ref[:pipe_des] = filter(is_des_link, ref[:pipe])
         ref[:link_fixed] = filter(!is_des_link, ref[:link])

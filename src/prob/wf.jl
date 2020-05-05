@@ -14,6 +14,7 @@ function build_wf(wm::AbstractWaterModel)
 
     # Component-specific variables.
     variable_check_valve(wm)
+    variable_prv_operation(wm)
     variable_pump_operation(wm)
     variable_pump_control(wm)
     variable_reservoir(wm)
@@ -80,6 +81,7 @@ function build_mn_wf(wm::AbstractWaterModel)
 
         # Component-specific variables.
         variable_check_valve(wm, nw=n)
+        variable_prv_operation(wm, nw=n)
         variable_pump_operation(wm, nw=n)
         variable_pump_control(wm, nw=n)
         variable_reservoir(wm, nw=n)

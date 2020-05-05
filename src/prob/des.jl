@@ -15,6 +15,7 @@ function build_des(wm::AbstractWaterModel)
 
     # Component-specific variables.
     variable_check_valve(wm)
+    variable_prv_operation(wm)
     variable_pump_operation(wm)
     variable_reservoir(wm)
     variable_tank(wm)

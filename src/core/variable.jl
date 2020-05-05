@@ -117,6 +117,16 @@ function variable_check_valve(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bo
         ids(wm, nw, :check_valve), x_cv)
 end
 
+"Creates binary variables for all PRVs in the network, i.e., `x_prv[a]`
+for `a` in `prv`, where one denotes that the prv is currently open."
+function variable_prv_common(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
+    x_prv = var(wm, nw)[:x_prv] = JuMP.@variable(wm.model,
+        [a in ids(wm, nw, :prv)], base_name="x_prv[$(nw)]", binary=true,
+        start=comp_start_value(ref(wm, nw, :prv, a), "x_prv_start"))
+
+    report && sol_component_value(wm, nw, :prv, :x_prv, ids(wm, nw, :prv), x_prv)
+end
+
 "Creates binary variables for all pumps in the network, i.e., `x_pump[a]`
 for `a` in `pump`, where one denotes that the pump is currently on."
 function variable_pump_common(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
@@ -139,6 +149,10 @@ function variable_fixed_speed_pump_threshold(wm::AbstractWaterModel; nw::Int=wm.
     var(wm, nw)[:x_thrs_bt] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
         base_name="x_thrs_bt[$(nw)]", binary=true,
         start=comp_start_value(ref(wm, nw, :pump, a), "x_thrs_bt_start"))
+end
+
+function variable_prv_operation(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
+    variable_prv_common(wm, nw=nw, report=report)
 end
 
 function variable_pump_operation(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)

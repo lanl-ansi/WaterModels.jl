@@ -153,6 +153,10 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
         end
     end
 
+    for (a, prv) in ref(wm, n, :prv)
+        lb[a], ub[a] = [0.0], [sum_demand]
+    end
+
     for (a, pump) in ref(wm, n, :pump)
         pump_curve = ref(wm, n, :pump, a)["pump_curve"]
         c = _get_function_from_pump_curve(pump_curve)

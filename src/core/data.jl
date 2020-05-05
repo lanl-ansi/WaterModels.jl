@@ -149,11 +149,19 @@ function has_known_flow_direction(link::Pair{Int, <:Any})
 end
 
 function has_check_valve(pipe::Dict{String, <:Any})
-    return pipe["status"] == "CV"
+    return uppercase(pipe["status"]) == "CV"
 end
 
 function has_check_valve(pipe::Pair{Int64, <:Any})
-    return pipe.second["status"] == "CV"
+    return uppercase(pipe.second["status"]) == "CV"
+end
+
+function is_prv(pipe::Dict{String, <:Any})
+    return uppercase(pipe["type"]) == "PRV"
+end
+
+function is_prv(pipe::Pair{Int64, <:Any})
+    return uppercase(pipe.second["type"]) == "PRV"
 end
 
 function is_des_link(link::Pair{Int64, <:Any})
