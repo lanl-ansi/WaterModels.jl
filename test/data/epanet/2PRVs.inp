@@ -26,7 +26,7 @@
 
 [VALVES]
 ;ID              	Node1           	Node2           	Diameter    	Type	Setting     	MinorLoss   
- 4               	2               	3               	6           	PRV 	60          	0           	;
+ 4               	2               	3               	6           	PRV 	0          	    0           	;
  5               	2               	4               	6           	PRV 	50          	0           	;
 
 [TAGS]
