@@ -81,6 +81,16 @@
         # The CNLP formulation does not support tanks, so an error is thrown.
         @test_throws ErrorException instantiate_model(mn_data, CNLPWaterModel, WaterModels.build_mn_wf)
     end
+ 
+    @testset "2PRVs network, MICP formulation." begin
+        data = WaterModels.parse_file("../test/data/epanet/2PRVs.inp")
+        wm = instantiate_model(data, MICPWaterModel, WaterModels.build_wf)
+        f = Juniper.register(head_loss_args(wm)..., autodiff=false)
+        juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
+            "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
+        solution = WaterModels.optimize_model!(wm, optimizer=juniper)
+        @test solution["termination_status"] == LOCALLY_SOLVED
+    end
 
     @testset "Balerma network, MICP formulation." begin
         data = WaterModels.parse_file("../test/data/epanet/balerma.inp")
@@ -170,6 +180,18 @@
             "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         solution = WaterModels.optimize_model!(wm, optimizer=juniper)
         @test solution["termination_status"] == LOCALLY_SOLVED
+    end
+
+    @testset "2PRVs network, MILP formulation." begin
+        ext = Dict(:pipe_breakpoints=>25, :pump_breakpoints=>0)
+        solution = solve_wf("../test/data/epanet/2PRVs.inp", MILPWaterModel, cbc, ext=ext)
+
+        @test solution["termination_status"] == OPTIMAL
+        @test isapprox(solution["solution"]["link"]["1"]["q"], 0.012618, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["link"]["4"]["q"], 0.0, atol=1.0e-4)
+        @test isapprox(solution["solution"]["link"]["5"]["q"], 0.012618, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["node"]["1"]["h"], 45.720001, rtol=1.0e-3)
+        @test isapprox(solution["solution"]["node"]["3"]["h"], 35.166771, rtol=1.0e-3)
     end
 
     @testset "Balerma network, MILP formulation." begin
@@ -315,6 +337,12 @@
         @test isapprox(solution["solution"]["nw"]["3"]["node"]["5"]["h"], 212.642853, rtol=1.0e-2)
     end
 
+    @testset "2PRVs network, MILPR formulation." begin
+        ext = Dict(:pipe_breakpoints=>5, :pump_breakpoints=>0)
+        solution = solve_wf("../test/data/epanet/2PRVs.inp", MILPRWaterModel, cbc, ext=ext)
+        @test solution["termination_status"] == OPTIMAL
+    end
+
     @testset "Balerma network, MILPR formulation." begin
         data = WaterModels.parse_file("../test/data/epanet/balerma.inp")
         modifications = WaterModels.parse_file("../test/data/json/balerma.json")
@@ -390,21 +418,21 @@
         @test solution["termination_status"] == OPTIMAL
     end
 
-    @testset "2PRVs network, NCNLP formulation." begin
-        data = WaterModels.parse_file("../test/data/epanet/2PRVs.inp")
-        wm = instantiate_model(data, NCNLPWaterModel, WaterModels.build_wf)
-        f = Juniper.register(head_loss_args(wm)..., autodiff=false)
-        juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
-            "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
-        solution = WaterModels.optimize_model!(wm, optimizer=juniper)
+    testset "2PRVs network, NCNLP formulation." begin
+       data = WaterModels.parse_file("../test/data/epanet/2PRVs.inp")
+       wm = instantiate_model(data, NCNLPWaterModel, WaterModels.build_wf)
+       f = Juniper.register(head_loss_args(wm)..., autodiff=false)
+       juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
+           "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
+       solution = WaterModels.optimize_model!(wm, optimizer=juniper)
 
-        @test solution["termination_status"] == LOCALLY_SOLVED
-        @test isapprox(solution["solution"]["link"]["1"]["q"], 0.012618, rtol=1.0e-3)
-        #@test isapprox(solution["solution"]["link"]["4"]["q"], 0.012618, rtol=1.0e-3)
-        #@test isapprox(solution["solution"]["link"]["5"]["q"], 0.0, atol=1.0e-6)
-        @test isapprox(solution["solution"]["node"]["1"]["h"], 45.720001, rtol=1.0e-3)
-        #@test isapprox(solution["solution"]["node"]["3"]["h"], 42.206322, rtol=1.0e-3)
-    end
+       @test solution["termination_status"] == LOCALLY_SOLVED
+       @test isapprox(solution["solution"]["link"]["1"]["q"], 0.012618, rtol=1.0e-3)
+       @test isapprox(solution["solution"]["link"]["4"]["q"], 0.0, atol=1.0e-4)
+       @test isapprox(solution["solution"]["link"]["5"]["q"], 0.012618, rtol=1.0e-3)
+       @test isapprox(solution["solution"]["node"]["1"]["h"], 45.720001, rtol=1.0e-3)
+       @test isapprox(solution["solution"]["node"]["3"]["h"], 35.166771, rtol=1.0e-3)
+    nd
 
     @testset "Balerma network, NCNLP formulation." begin
         network = WaterModels.parse_file("../test/data/epanet/balerma.inp")

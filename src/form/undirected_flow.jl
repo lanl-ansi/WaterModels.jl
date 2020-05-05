@@ -99,7 +99,7 @@ function constraint_check_valve_common(wm::AbstractUndirectedFlowModel, n::Int, 
     append!(con(wm, n, :check_valve, a), [c_1, c_2, c_3, c_4])
 end
 
-function constraint_prv_common(wm::AbstractUndirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, dh_prv::Float64)
+function constraint_prv_common(wm::AbstractUndirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, h_prv::Float64)
     # Get flow and pressure reducing valve status variables.
     q, x_prv = var(wm, n, :q, a), var(wm, n, :x_prv, a)
 
@@ -110,14 +110,17 @@ function constraint_prv_common(wm::AbstractUndirectedFlowModel, n::Int, a::Int, 
     # Get head variables for from and to nodes.
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
-    # When the pressure reducing valve is open, the head loss is predefined.
-    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
-    c_3 = JuMP.@constraint(wm.model, h_i - h_j >= (1.0 - x_prv) * dh_lb + x_prv * dh_prv)
-    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
-    c_4 = JuMP.@constraint(wm.model, h_i - h_j <= (1.0 - x_prv) * dh_ub + x_prv * dh_prv)
+    # When the pressure reducing valve is open, the head at node j is predefined.
+    h_lb, h_ub = JuMP.lower_bound(h_j), JuMP.upper_bound(h_j)
+    c_3 = JuMP.@constraint(wm.model, h_j >= (1.0 - x_prv) * h_lb + x_prv * h_prv)
+    c_4 = JuMP.@constraint(wm.model, h_j <= (1.0 - x_prv) * h_ub + x_prv * h_prv)
+
+    # When the pressure reducing valve is open, the head loss is nonnegative.
+    dh_lb = JuMP.lower_bound(h_i) - JuMP.lower_bound(h_j)
+    c_5 = JuMP.@constraint(wm.model, h_i - h_j >= dh_lb * (1.0 - x_prv))
 
     # Append the constraint array.
-    append!(con(wm, n, :prv, a), [c_1, c_2, c_3, c_4])
+    append!(con(wm, n, :prv, a), [c_1, c_2, c_3, c_4, c_5])
 end
 
 function constraint_pump_common(wm::AbstractUndirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, pc::Array{Float64})

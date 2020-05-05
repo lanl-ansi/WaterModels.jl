@@ -1412,8 +1412,8 @@ function _read_valve!(data::Dict{String,<:Any})
                 # Convert diameter from millimeters to meters.
                 valve["diameter"] = 0.001 * parse(Float64, current[4])
             elseif demand_units == "GPM" # If gallons per minute...
-                # Convert setting from feet to meters.
-                valve["setting"] = 0.3048 * parse(Float64, current[6])
+                # Convert setting from PSI to meters.
+                valve["setting"] = inv(1.421970206324753) * parse(Float64, current[6])
 
                 # Convert diameter from inches to meters.
                 valve["diameter"] = 0.0254 * parse(Float64, current[4])

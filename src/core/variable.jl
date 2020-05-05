@@ -118,7 +118,7 @@ function variable_check_valve(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bo
 end
 
 "Creates binary variables for all PRVs in the network, i.e., `x_prv[a]`
-for `a` in `prv`, where one denotes that the prv is currently open."
+for `a` in `prv`, where one denotes that the PRV is currently open."
 function variable_prv_common(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
     x_prv = var(wm, nw)[:x_prv] = JuMP.@variable(wm.model,
         [a in ids(wm, nw, :prv)], base_name="x_prv[$(nw)]", binary=true,

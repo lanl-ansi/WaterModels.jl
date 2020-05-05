@@ -188,7 +188,7 @@ function constraint_pipe_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, n
     append!(con(wm, n, :pipe)[a], [c_1, c_2, c_3, c_4, c_5, c_6, c_7])
 end
 
-function constraint_prv_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, dh_prv::Float64)
+function constraint_prv_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, h_prv::Float64)
     # Get common flow variables.
     qp, x_prv = var(wm, n, :qp, a), var(wm, n, :x_prv, a)
 
@@ -201,13 +201,16 @@ function constraint_prv_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, no
     dhp, dhn = var(wm, n, :dhp, a), var(wm, n, :dhn, a)
     dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
 
-    # When the pressure reducing valve is open, the head loss is predefined.
-    c_3 = JuMP.@constraint(wm.model, dhp <= dhp_ub * (1.0 - x_prv) + dh_prv * x_prv)
-    c_4 = JuMP.@constraint(wm.model, dhp >= dh_prv * x_prv)
+    # When the pressure reducing valve is open, the head at node j is predefined.
+    h_lb, h_ub = JuMP.lower_bound(h_j), JuMP.upper_bound(h_j)
+    c_3 = JuMP.@constraint(wm.model, h_j >= (1.0 - x_prv) * h_lb + x_prv * h_prv)
+    c_4 = JuMP.@constraint(wm.model, h_j <= (1.0 - x_prv) * h_ub + x_prv * h_prv)
+
+    # When the pressure reducing valve is open, the head loss is nonnegative.
     c_5 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - x_prv))
 
     # Append the constraint array.
-    append!(con(wm, n, :check_valve, a), [c_1, c_2, c_3, c_4, c_5])
+    append!(con(wm, n, :prv, a), [c_1, c_2, c_3, c_4, c_5])
 end
 
 function constraint_pump_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, pc::Array{Float64})
