@@ -1,6 +1,23 @@
 # Define common MICP (mixed-integer convex program) implementations of water
 # distribution constraints, which use directed flow variables.
 
+function variable_pump_operation(wm::AbstractMICPModel; nw::Int=wm.cnw, report::Bool=true)
+    # Create common pump variables.
+    variable_pump_common(wm, nw=nw, report=report)
+
+    # Create weights involved in convex combination constraints.
+    lambda = var(wm, nw)[:lambda_pump] = JuMP.@variable(wm.model,
+        [a in ids(wm, nw, :pump), k in 1:wm.ext[:pump_breakpoints]],
+        base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
+        start=comp_start_value(ref(wm, nw, :pump, a), "lambda_start", k))
+
+    # Create binary variables involved in convex combination constraints.
+    x_pw = var(wm, nw)[:x_pw_pump] = JuMP.@variable(wm.model,
+        [a in ids(wm, nw, :pump), k in 1:wm.ext[:pump_breakpoints]-1],
+        base_name="$(nw)_x_pw", binary=true,
+        start=comp_start_value(ref(wm, nw, :pump, a), "x_pw_start", k))
+end
+
 function constraint_head_loss_pipe_des(wm::AbstractMICPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances) 
     # Collect head difference variables.
     dhp, dhn = [var(wm, n, :dhp, a), var(wm, n, :dhn, a)]
@@ -19,7 +36,7 @@ function constraint_head_loss_pipe_des(wm::AbstractMICPModel, n::Int, a::Int, al
 end
 
 "Pump head gain constraint when the pump status is ambiguous."
-function constraint_pump_head_gain(wm::AbstractMICPModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64})
+function constraint_pump_head_gain(wm::AbstractMICPModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
     # Gather flow and head gain variables.
     g = var(wm, n, :g, a)
     qp, x_pump = [var(wm, n, :qp, a), var(wm, n, :x_pump, a)]
@@ -30,11 +47,39 @@ function constraint_pump_head_gain(wm::AbstractMICPModel, n::Int, a::Int, node_f
     dhp_ub, dhn_ub = [JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)]
 
     # Define the (relaxed) head gain caused by the pump.
-    g_expr = curve_fun[1]*qp^2 + curve_fun[2]*qp + curve_fun[3]*x_pump
+    g_expr = pc[1]*qp^2 + pc[2]*qp + pc[3]*x_pump
     c = JuMP.@constraint(wm.model, g_expr >= g) # Concavified.
 
     # Append the constraint array.
     append!(con(wm, n, :head_gain, a), [c])
+
+    # If the number of breakpoints is not positive, no constraints are added.
+    if wm.ext[:pump_breakpoints] <= 0 return end
+
+    # Gather flow, head gain, and convex combination variables.
+    lambda, x_pw = [var(wm, n, :lambda_pump), var(wm, n, :x_pw_pump)]
+
+    # Add the required SOS constraints.
+    c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == x_pump)
+    c_2 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == x_pump)
+    c_3 = JuMP.@constraint(wm.model, lambda[a, 1] <= x_pw[a, 1])
+    c_4 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
+
+    # Add a constraint for the flow piecewise approximation.
+    qp_ub, K = [JuMP.upper_bound(qp), 1:wm.ext[:pump_breakpoints]]
+    breakpoints = range(0.0, stop=qp_ub, length=wm.ext[:pump_breakpoints])
+    qp_lhs = sum(breakpoints[k] * lambda[a, k] for k in K)
+    c_5 = JuMP.@constraint(wm.model, qp_lhs == qp)
+
+    # Append the constraint array.
+    append!(con(wm, n, :head_gain, a), [c_1, c_2, c_3, c_4, c_5])
+
+    for k in 2:wm.ext[:pump_breakpoints]-1
+        # Add the adjacency constraints for piecewise variables.
+        adjacency = x_pw[a, k-1] + x_pw[a, k]
+        c_6_k = JuMP.@constraint(wm.model, lambda[a, k] <= adjacency)
+        append!(con(wm, n, :head_gain, a), [c_6_k])
+    end
 end
 
 function constraint_check_valve_head_loss(wm::AbstractMICPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
@@ -74,5 +119,55 @@ function objective_wf(wm::AbstractMICPModel)
 end
 
 function objective_owf(wm::AbstractMICPModel)
-    objective_wf(wm)
+    # If the number of breakpoints is not positive, no objective is added.
+    if wm.ext[:pump_breakpoints] <= 0 return end
+
+    # Initialize the objective function.
+    objective = JuMP.AffExpr(0.0)
+    K = 1:wm.ext[:pump_breakpoints]
+    time_step = wm.ref[:option]["time"]["hydraulic_timestep"]
+
+    for (n, nw_ref) in nws(wm)
+        # Get common variables.
+        lambda = var(wm, n, :lambda_pump)
+
+        # Get common constant parameters.
+        rho = 1000.0 # Water density (kilogram per cubic meter).
+        gravity = 9.80665 # Gravitational acceleration (meter per second squared).
+        constant = rho * gravity * time_step
+
+        for (a, pump) in nw_ref[:pump]
+            if haskey(pump, "energy_price")
+                # Get price and pump curve data.
+                price = pump["energy_price"]
+                pump_curve = ref(wm, n, :pump, a)["pump_curve"]
+                curve_fun = _get_function_from_pump_curve(pump_curve)
+
+                # Get flow-related variables and data.
+                qp, x_pump = [var(wm, n)[:qp][a], var(wm, n)[:x_pump][a]]
+                qp_ub = JuMP.upper_bound(qp)
+
+                # Generate a set of uniform flow and cubic function breakpoints.
+                breakpoints = range(0.0, stop=qp_ub, length=wm.ext[:pump_breakpoints])
+                f = _calc_cubic_flow_values(collect(breakpoints), curve_fun)
+
+                # Get pump efficiency data.
+                if haskey(pump, "efficiency_curve")
+                    eff_curve = pump["efficiency_curve"]
+                    eff = _calc_efficiencies(collect(breakpoints), eff_curve)
+                else
+                    eff = wm.ref[:option]["energy"]["global_efficiency"]
+                end
+
+                # Add the cost corresponding to the current pump's operation.
+                inner_expr = (constant*price) .* inv.(eff) .* f
+                cost = sum(inner_expr[k]*lambda[a, k] for k in K)
+                JuMP.add_to_expression!(objective, cost)
+            else
+                Memento.error(_LOGGER, "No cost given for pump \"$(pump["name"])\"")
+            end
+        end
+    end
+
+    return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
 end

@@ -39,15 +39,11 @@ function variable_pump_operation(wm::AbstractMILPRModel; nw::Int=wm.cnw, report:
         base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
         start=comp_start_value(ref(wm, nw, :pump, a), "lambda_start", k))
 
-    #report && sol_component_value(wm, nw, :pump, :lambda, ids(wm, nw, :pump), lambda)
-
     # Create binary variables involved in convex combination constraints.
     x_pw = var(wm, nw)[:x_pw_pump] = JuMP.@variable(wm.model,
         [a in ids(wm, nw, :pump), k in 1:wm.ext[:pump_breakpoints]-1],
         base_name="$(nw)_x_pw", binary=true,
         start=comp_start_value(ref(wm, nw, :pump, a), "x_pw_start", k))
-
-    #report && sol_component_value(wm, nw, :pump, :x_pw, ids(wm, nw, :pump), x_pw)
 end
 
 "Pump head gain constraint when the pump status is ambiguous."
