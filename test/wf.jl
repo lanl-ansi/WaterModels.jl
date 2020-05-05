@@ -418,7 +418,7 @@
         @test solution["termination_status"] == OPTIMAL
     end
 
-    testset "2PRVs network, NCNLP formulation." begin
+    @testset "2PRVs network, NCNLP formulation." begin
        data = WaterModels.parse_file("../test/data/epanet/2PRVs.inp")
        wm = instantiate_model(data, NCNLPWaterModel, WaterModels.build_wf)
        f = Juniper.register(head_loss_args(wm)..., autodiff=false)
