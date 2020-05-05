@@ -23,8 +23,8 @@
 
 [TANKS]
 ;ID     Elevation     InitLevel     MinLevel     MaxLevel     Diameter     MinVol
- A      80            4.5           0            5            25           0
- B      85            9.5           0            10           20           0
+ A      80            2.5           0            5            25           0
+ B      85            5.0           0            10           20           0
 
 [PIPES]
 ;ID     Node1     Node2     Length     Diam   Roughness   MinorLoss   Status
@@ -52,13 +52,11 @@
 
 [STATUS]
 ;ID     Status/Setting
- 2B     Closed
- 3B     Closed
 
 [PATTERNS]
 ;ID           Multipliers
 ;
- pattern3     0.620000 0.620000 0.670000
+ pattern3     0.500000 0.250000 0.000000
 ;
  pumptariff   0.024400 0.024400 0.024400
 

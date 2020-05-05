@@ -69,14 +69,14 @@ end
 
 function constraint_tank_state(wm::AbstractWaterModel, n_1::Int, n_2::Int, i::Int, time_step::Float64)
     qt = var(wm, n_1, :qt, i) # Tank outflow.
-    V_1, V_2 = [var(wm, n_1, :V, i), var(wm, n_2, :V, i)]
+    V_1, V_2 = var(wm, n_1, :V, i), var(wm, n_2, :V, i)
     c = JuMP.@constraint(wm.model, V_1 - time_step * qt == V_2)
     con(wm, n_2, :tank_state)[i] = c
 end
 
 function constraint_recover_volume(wm::AbstractWaterModel, i::Int, n_1::Int, n_f::Int)
     _initialize_con_dict(wm, :recover_volume, nw=n_f)
-    V_1, V_f = [var(wm, n_1, :V, i), var(wm, n_f, :V, i)]
+    V_1, V_f = var(wm, n_1, :V, i), var(wm, n_f, :V, i)
     c = JuMP.@constraint(wm.model, V_f >= V_1)
     con(wm, n_f, :recover_volume)[i] = c
 end

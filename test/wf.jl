@@ -432,7 +432,7 @@
        @test isapprox(solution["solution"]["link"]["5"]["q"], 0.012618, rtol=1.0e-3)
        @test isapprox(solution["solution"]["node"]["1"]["h"], 45.720001, rtol=1.0e-3)
        @test isapprox(solution["solution"]["node"]["3"]["h"], 35.166771, rtol=1.0e-3)
-    nd
+    end
 
     @testset "Balerma network, NCNLP formulation." begin
         network = WaterModels.parse_file("../test/data/epanet/balerma.inp")
