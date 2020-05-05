@@ -187,6 +187,17 @@ function constraint_check_valve_head_loss(wm::AbstractWaterModel, a::Int; nw::In
     constraint_head_loss_ub_cv(wm, nw, a, alpha, L, r)
 end
 
+### Pressure Reducing Valve Constraints ###
+function constraint_prv_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    node_fr, node_to, head_fr, head_to = _get_head_difference_data(wm, a, nw=nw)
+    dh_prv = ref(wm, nw, :prv, a)["setting"]
+
+    # Since check valves exist along prvs, add all common prv contstraints.
+    _initialize_con_dict(wm, :prv, nw=nw, is_array=true)
+    con(wm, nw, :prv)[a] = Array{JuMP.ConstraintRef}([])
+    constraint_prv_common(wm, nw, a, node_fr, node_to, head_fr, head_to, dh_prv)
+end
+
 ### Pump Constraints ###
 function constraint_pump_head_gain(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, force_on::Bool=false, kwargs...)
     # Get data common to all pump-related constraints.

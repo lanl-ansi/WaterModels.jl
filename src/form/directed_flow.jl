@@ -188,6 +188,28 @@ function constraint_pipe_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, n
     append!(con(wm, n, :pipe)[a], [c_1, c_2, c_3, c_4, c_5, c_6, c_7])
 end
 
+function constraint_prv_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, dh_prv::Float64)
+    # Get common flow variables.
+    qp, x_prv = var(wm, n, :qp, a), var(wm, n, :x_prv, a)
+
+    # If the pressure reducing valve is open, flow must be appreciably nonnegative.
+    c_1 = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * x_prv)
+    c_2 = JuMP.@constraint(wm.model, qp >= 6.31465679e-6 * x_prv)
+
+    # Get common head variables and associated data.
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+    dhp, dhn = var(wm, n, :dhp, a), var(wm, n, :dhn, a)
+    dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
+
+    # When the pressure reducing valve is open, the head loss is predefined.
+    c_3 = JuMP.@constraint(wm.model, dhp <= dhp_ub * (1.0 - x_prv) + dh_prv * x_prv)
+    c_4 = JuMP.@constraint(wm.model, dhp >= dh_prv * x_prv)
+    c_5 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - x_prv))
+
+    # Append the constraint array.
+    append!(con(wm, n, :check_valve, a), [c_1, c_2, c_3, c_4, c_5])
+end
+
 function constraint_pump_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, pc::Array{Float64})
     # Gather variables common to all formulations involving pumps.
     y, x_pump = [var(wm, n, :y, a), var(wm, n, :x_pump, a)]

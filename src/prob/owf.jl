@@ -28,6 +28,10 @@ function build_owf(wm::AbstractWaterModel)
         end
     end
 
+    for a in ids(wm, :prv)
+        constraint_prv_head_loss(wm, a)
+    end
+
     for a in ids(wm, :pump)
         constraint_pump_head_gain(wm, a)
     end
@@ -84,6 +88,10 @@ function build_mn_owf(wm::AbstractWaterModel)
             else
                 constraint_pipe_head_loss(wm, a, nw=n)
             end
+        end
+
+        for a in ids(wm, :prv, nw=n)
+            constraint_prv_head_loss(wm, a, nw=n)
         end
 
         for a in ids(wm, :pump, nw=n)

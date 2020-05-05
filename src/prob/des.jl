@@ -36,6 +36,10 @@ function build_des(wm::AbstractWaterModel)
         constraint_pipe_des_head_loss(wm, a)
     end
 
+    for a in ids(wm, :prv)
+        constraint_prv_head_loss(wm, a)
+    end
+
     for a in ids(wm, :pump)
         constraint_pump_head_gain(wm, a)
         constraint_pump_control(wm, a)
