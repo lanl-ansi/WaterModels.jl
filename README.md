@@ -29,8 +29,9 @@ That said, it is important to keep in mind the code quality requirements and sco
 See [CONTRIBUTING.md](https://github.com/lanl-ansi/WaterModels.jl/blob/master/CONTRIBUTING.md) for code contribution guidelines.
 
 ## Acknowledgments
-This work is conducted under the auspices of the National Nuclear Security Administration of the U.S. Department of Energy at Los Alamos National Laboratory under Contract No. 89233218CNA000001.
-Specifically, work is supported by the Laboratory Directed Research and Development program under the project ["Adaptation Science for Complex Natural-engineered Systems"](http://www.lanl.gov/projects/nesma) (20180033DR).
+This work is currently supported by the Advanced Grid Modeling Program within the U.S. Department of Energy under the project "Coordinated Planning and Operation of Water and Power Infrastructures for Increased Resilience and Reliability."
+Work at Los Alamos National Laboratory is conducted under the auspices of the National Nuclear Security Administration of the U.S. Department of Energy under Contract No. 89233218CNA000001.
+Previous work was supported by the Los Alamos National Laboratory Directed Research and Development program under the project ["Adaptation Science for Complex Natural-engineered Systems"](http://www.lanl.gov/projects/nesma) (20180033DR).
 It is also supported by the [Advanced Network Science Initiative](https://lanl-ansi.github.io) at Los Alamos National Laboratory.
 
 The primary developer is [Byron Tasseff](https://github.com/tasseff) with support from the following contributors:
