@@ -63,7 +63,7 @@ function build_owf(wm::AbstractWaterModel)
 end
 
 function solve_mn_owf(file, model_constructor, optimizer; kwargs...)
-    return solve_model(file, model_constructor, optimizer, build_mn_owf; multinetwork=true, kwargs...)
+    return solve_model(file, model_constructor, optimizer, build_mn_owf; kwargs...)
 end
 
 function build_mn_owf(wm::AbstractWaterModel)

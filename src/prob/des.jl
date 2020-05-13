@@ -45,7 +45,6 @@ function build_des(wm::AbstractWaterModel)
 
     for a in ids(wm, :pump)
         constraint_pump_head_gain(wm, a)
-        constraint_pump_control(wm, a)
     end
 
     # Flow conservation at all nodes.

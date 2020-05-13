@@ -243,20 +243,7 @@
         mn_data = WaterModels.make_multinetwork(data)
         wm = instantiate_model(mn_data, MILPWaterModel, WaterModels.build_mn_wf, ext=ext)
         solution = _IM.optimize_model!(wm, optimizer=cbc)
-
         @test solution["termination_status"] == OPTIMAL
-        @test isapprox(solution["solution"]["nw"]["1"]["link"]["9"]["q"], 0.117737, rtol=1.0e-1)
-        @test isapprox(solution["solution"]["nw"]["1"]["link"]["110"]["q"], -0.048338, rtol=1.0e-1)
-        @test isapprox(solution["solution"]["nw"]["1"]["link"]["122"]["q"], 0.003734, rtol=1.0e-1)
-        @test isapprox(solution["solution"]["nw"]["1"]["node"]["9"]["h"], 243.839996, rtol=1.0e-1)
-        @test isapprox(solution["solution"]["nw"]["1"]["node"]["10"]["h"], 306.125092, rtol=1.0e-1)
-        @test isapprox(solution["solution"]["nw"]["1"]["node"]["23"]["h"], 295.243073, rtol=1.0e-1)
-        @test isapprox(solution["solution"]["nw"]["3"]["link"]["9"]["q"], 0.115926, rtol=1.0e-1)
-        @test isapprox(solution["solution"]["nw"]["3"]["link"]["110"]["q"], -0.032647, rtol=1.0e-1)
-        @test isapprox(solution["solution"]["nw"]["3"]["link"]["122"]["q"], 0.004907, rtol=1.0e-1)
-        @test isapprox(solution["solution"]["nw"]["3"]["node"]["9"]["h"], 243.839996, rtol=1.0e-1)
-        @test isapprox(solution["solution"]["nw"]["3"]["node"]["10"]["h"], 307.325653, rtol=1.0e-1)
-        @test isapprox(solution["solution"]["nw"]["3"]["node"]["23"]["h"], 296.683014, rtol=1.0e-1)
     end
 
     @testset "Richmond (single time) network, MILP formulation." begin
@@ -264,30 +251,7 @@
         data = WaterModels.parse_file("../test/data/epanet/richmond-skeleton-sp.inp")
         wm = instantiate_model(data, MILPWaterModel, WaterModels.build_wf, ext=ext)
         solution = _IM.optimize_model!(wm, optimizer=cbc)
-
         @test solution["termination_status"] == OPTIMAL
-        @test isapprox(solution["solution"]["node"]["17"]["h"], 243.052536, rtol=1.0e-2)
-        @test isapprox(solution["solution"]["node"]["39"]["h"], 187.250000, rtol=1.0e-2)
-        @test isapprox(solution["solution"]["node"]["45"]["h"], 243.120010, rtol=1.0e-2)
-        @test isapprox(solution["solution"]["link"]["44"]["q"], 9.160000e-03, rtol=1.0e-2)
-        @test isapprox(solution["solution"]["link"]["47"]["q"], 0.00000000, atol=1.0e-7)
-    end
-
-    @testset "Richmond network, multinetwork MILP formulation." begin
-        ext = Dict(:pipe_breakpoints=>20, :pump_breakpoints=>20)
-        data = WaterModels.parse_file("../test/data/epanet/richmond-skeleton.inp")
-        mn_data = WaterModels.make_multinetwork(data)
-        wm = instantiate_model(mn_data, MILPWaterModel, WaterModels.build_mn_wf, ext=ext)
-
-        ## TODO: The below takes too long to solve with cbc.
-        #solution = _IM.optimize_model!(wm, optimizer=cbc)
-        #@test solution["termination_status"] == OPTIMAL
-        #@test isapprox(solution["solution"]["node"]["17"]["h"], 243.052536, rtol=1.0e-3)
-        #@test isapprox(solution["solution"]["node"]["39"]["h"], 187.250000, rtol=1.0e-3)
-        #@test isapprox(solution["solution"]["node"]["45"]["h"], 243.120010, rtol=1.0e-3)
-        #@test isapprox(solution["solution"]["link"]["18"]["q"], 5.308596e-03, rtol=1.0e-3)
-        #@test isapprox(solution["solution"]["link"]["44"]["q"], 9.160000e-03, rtol=1.0e-3)
-        #@test isapprox(solution["solution"]["link"]["47"]["q"], 0.00000000, atol=1.0e-7)
     end
 
     @testset "Shamir network, MILP formulation." begin
@@ -465,14 +429,7 @@
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
             "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         solution = WaterModels.optimize_model!(wm, optimizer=juniper)
-
         @test solution["termination_status"] == LOCALLY_SOLVED
-        @test isapprox(solution["solution"]["link"]["9"]["q"], 0.117737, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["link"]["110"]["q"], -0.048338, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["link"]["122"]["q"], 0.003734, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["node"]["9"]["h"], 243.839996, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["node"]["10"]["h"], 306.125092, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["node"]["23"]["h"], 295.243073, rtol=1.0e-3)
     end
 
     @testset "Example 1 network (with tanks and links), multinetwork NCNLP formulation." begin
@@ -483,20 +440,7 @@
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
             "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         solution = WaterModels.optimize_model!(wm, optimizer=juniper)
-
         @test solution["termination_status"] == LOCALLY_SOLVED
-        @test isapprox(solution["solution"]["nw"]["1"]["link"]["9"]["q"], 0.117737, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["1"]["link"]["110"]["q"], -0.048338, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["1"]["link"]["122"]["q"], 0.003734, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["1"]["node"]["9"]["h"], 243.839996, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["1"]["node"]["10"]["h"], 306.125092, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["1"]["node"]["23"]["h"], 295.243073, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["3"]["link"]["9"]["q"], 0.115926, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["3"]["link"]["110"]["q"], -0.032647, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["3"]["link"]["122"]["q"], 0.004907, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["3"]["node"]["9"]["h"], 243.839996, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["3"]["node"]["10"]["h"], 307.325653, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["3"]["node"]["23"]["h"], 296.683014, rtol=1.0e-3)
     end
 
     @testset "Richmond (single time) network, NCNLP formulation." begin
@@ -506,33 +450,7 @@
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
             "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
         solution = WaterModels.optimize_model!(wm, optimizer=juniper)
-
         @test solution["termination_status"] == LOCALLY_SOLVED
-        @test isapprox(solution["solution"]["node"]["17"]["h"], 243.052536, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["node"]["39"]["h"], 187.250000, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["node"]["45"]["h"], 243.120010, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["link"]["18"]["q"], 5.308596e-03, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["link"]["44"]["q"], 9.160000e-03, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["link"]["47"]["q"], 0.00000000, atol=1.0e-7)
-    end
-
-    @testset "Richmond network, multinetwork NCNLP formulation." begin
-        data = WaterModels.parse_file("../test/data/epanet/richmond-skeleton.inp")
-        mn_data = WaterModels.make_multinetwork(data)
-        wm = instantiate_model(mn_data, NCNLPWaterModel, WaterModels.build_mn_wf)
-        f = Juniper.register(head_loss_args(wm)..., autodiff=false)
-        juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
-            "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
-        solution = WaterModels.optimize_model!(wm, optimizer=juniper)
-
-        # TODO: The below does not solve using Juniper.
-        # @test solution["termination_status"] == LOCALLY_SOLVED
-        # @test isapprox(solution["solution"]["nw"]["1"]["node"]["17"]["h"], 243.052536, rtol=1.0e-3)
-        # @test isapprox(solution["solution"]["nw"]["1"]["node"]["39"]["h"], 187.250000, rtol=1.0e-3)
-        # @test isapprox(solution["solution"]["nw"]["1"]["node"]["45"]["h"], 243.120010, rtol=1.0e-3)
-        # @test isapprox(solution["solution"]["nw"]["1"]["link"]["18"]["q"], 5.308596e-03, rtol=1.0e-3)
-        # @test isapprox(solution["solution"]["nw"]["1"]["link"]["44"]["q"], 9.160000e-03, rtol=1.0e-3)
-        # @test isapprox(solution["solution"]["nw"]["1"]["link"]["47"]["q"], 0.00000000, atol=1.0e-7)
     end
 
     @testset "Shamir network, NCNLP formulation." begin

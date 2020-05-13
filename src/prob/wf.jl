@@ -17,7 +17,6 @@ function build_wf(wm::AbstractWaterModel)
     variable_sv(wm)
     variable_prv_operation(wm)
     variable_pump_operation(wm)
-    variable_pump_control(wm)
     variable_reservoir(wm)
     variable_tank(wm)
 
@@ -38,7 +37,6 @@ function build_wf(wm::AbstractWaterModel)
 
     for a in ids(wm, :pump)
         constraint_pump_head_gain(wm, a)
-        constraint_pump_control(wm, a)
     end
 
     # Flow conservation at all nodes.
@@ -91,7 +89,6 @@ function build_mn_wf(wm::AbstractWaterModel)
         variable_sv(wm, nw=n)
         variable_prv_operation(wm, nw=n)
         variable_pump_operation(wm, nw=n)
-        variable_pump_control(wm, nw=n)
         variable_reservoir(wm, nw=n)
         variable_tank(wm, nw=n)
 
@@ -144,11 +141,6 @@ function build_mn_wf(wm::AbstractWaterModel)
     # Start with the first network, representing the initial time step.
     n_1 = network_ids[1]
 
-    # Set initial conditions of pumps.
-    for a in ids(wm, :pump, nw=n_1)
-        constraint_pump_control(wm, a, nw=n_1)
-    end
-
     # Set initial conditions of tanks.
     for i in ids(wm, :tank, nw=n_1)
         constraint_tank_state(wm, i, nw=n_1)
@@ -158,11 +150,6 @@ function build_mn_wf(wm::AbstractWaterModel)
         # Set tank states after the initial time step.
         for i in ids(wm, :tank, nw=n_2)
             constraint_tank_state(wm, i, n_1, n_2)
-        end
-
-        # Set pump states after the initial time step.
-        for a in ids(wm, :pump, nw=n_2)
-            constraint_pump_control(wm, a, n_1, n_2)
         end
 
         n_1 = n_2

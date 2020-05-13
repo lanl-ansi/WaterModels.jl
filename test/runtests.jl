@@ -9,6 +9,8 @@ import JSON
 import Ipopt
 import Juniper
 import Memento
+import MathOptInterface
+const _MOI = MathOptInterface
 
 # Suppress warnings during testing.
 Memento.setlevel!(Memento.getlogger(InfrastructureModels), "error")

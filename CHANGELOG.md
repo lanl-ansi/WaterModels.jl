@@ -9,6 +9,8 @@ WaterModels.jl Change Log
 - Rename `ne` (network expansion) methods to `des` (design).
 - Complete MILP implementations of constraints.
 - Implementation of pressure reducing valves.
+- Implementation of shutoff valves.
+- Removal of pump control (not operation) constraints from the Water flow (wf) problem specification.
 
 ### v0.2.0
 - Update to JuMP v0.21 and InfrastructureModels v0.4.
