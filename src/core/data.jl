@@ -156,6 +156,14 @@ function has_check_valve(pipe::Pair{Int64, <:Any})
     return uppercase(pipe.second["status"]) == "CV"
 end
 
+function has_shutoff_valve(pipe::Dict{String, <:Any})
+    return uppercase(pipe["status"]) == "SV"
+end
+
+function has_shutoff_valve(pipe::Pair{Int64, <:Any})
+    return uppercase(pipe.second["status"]) == "SV"
+end
+
 function is_prv(pipe::Dict{String, <:Any})
     return uppercase(pipe["type"]) == "PRV"
 end

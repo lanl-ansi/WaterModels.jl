@@ -117,6 +117,24 @@ function variable_check_valve(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bo
         ids(wm, nw, :check_valve), x_cv)
 end
 
+"Creates binary variables for all shutoff valves in the network, i.e., `x_sv[a]`
+for `a` in `sv`, where one denotes that the shutoff valve is open."
+function variable_sv(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
+    x_sv = var(wm, nw)[:x_sv] = JuMP.@variable(wm.model,
+        [a in ids(wm, nw, :sv)], base_name="x_sv[$(nw)]", binary=true,
+        start=comp_start_value(ref(wm, nw, :sv, a), "x_sv_start"))
+
+    var(wm, nw)[:yp] = JuMP.@variable(wm.model, [a in ids(wm, nw, :sv)],
+        base_name="$(nw)_yp", binary=true,
+        start=comp_start_value(ref(wm, nw, :sv, a), "yp_start"))
+
+    var(wm, nw)[:yn] = JuMP.@variable(wm.model, [a in ids(wm, nw, :sv)],
+        base_name="$(nw)_yn", binary=true,
+        start=comp_start_value(ref(wm, nw, :sv, a), "yn_start"))
+
+    report && sol_component_value(wm, nw, :sv, :x_sv, ids(wm, nw, :sv), x_sv)
+end
+
 "Creates binary variables for all PRVs in the network, i.e., `x_prv[a]`
 for `a` in `prv`, where one denotes that the PRV is currently open."
 function variable_prv_common(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
@@ -143,9 +161,11 @@ function variable_fixed_speed_pump_threshold(wm::AbstractWaterModel; nw::Int=wm.
     var(wm, nw)[:x_thrs_gt] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
         base_name="x_thrs_gt[$(nw)]", binary=true,
         start=comp_start_value(ref(wm, nw, :pump, a), "x_thrs_gt_start"))
+
     var(wm, nw)[:x_thrs_lt] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
         base_name="x_thrs_lt[$(nw)]", binary=true,
         start=comp_start_value(ref(wm, nw, :pump, a), "x_thrs_lt_start"))
+
     var(wm, nw)[:x_thrs_bt] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
         base_name="x_thrs_bt[$(nw)]", binary=true,
         start=comp_start_value(ref(wm, nw, :pump, a), "x_thrs_bt_start"))

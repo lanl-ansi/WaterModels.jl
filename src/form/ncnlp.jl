@@ -36,6 +36,27 @@ function constraint_check_valve_head_loss(wm::AbstractNCNLPModel, n::Int, a::Int
     append!(con(wm, n, :head_loss)[a], [c_1, c_2])
 end
 
+"Adds head loss constraints for shutoff valves in `NCNLP` formulations."
+function constraint_sv_head_loss(wm::AbstractNCNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64) 
+    # Gather common variables and data.
+    q, x_sv = var(wm, n, :q, a), var(wm, n, :x_sv, a)
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
+    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
+
+    # There are two possibilities, here: (i) x_sv = 1, in which the shutoff
+    # valve is open, and the head loss relationship should be met with
+    # equality. In this case, the constraints below reduce to lhs = 0.0, as
+    # would be expected. Otherwise, (ii) x_sv = 0, and the head difference must
+    # be decoupled from the traditional head loss relationship.
+    lhs = JuMP.@NLexpression(wm.model, inv(L) * (h_i - h_j) - r * head_loss(q))
+    c_1 = JuMP.@NLconstraint(wm.model, lhs <= inv(L) * (1.0 - x_sv) * dh_ub)
+    c_2 = JuMP.@NLconstraint(wm.model, lhs >= inv(L) * (1.0 - x_sv) * dh_lb)
+
+    # Append the :head_loss constraint array.
+    append!(con(wm, n, :head_loss)[a], [c_1, c_2])
+end
+
 "Adds head loss constraints for pipes (without check valves) in `NCNLP` formulations."
 function constraint_head_loss_pipe(wm::AbstractNCNLPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # Gather flow and head variables included in head loss constraints.

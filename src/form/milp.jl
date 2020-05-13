@@ -111,6 +111,52 @@ function constraint_check_valve_head_loss(wm::AbstractMILPModel, n::Int, a::Int,
     end
 end
 
+"Adds head loss constraints for shutoff valves in `MILP` formulations."
+function constraint_sv_head_loss(wm::AbstractMILPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
+    # If the number of breakpoints is not positive, no constraints are added.
+    if wm.ext[:pipe_breakpoints] <= 0 return end
+
+    # Gather common variables.
+    q, x_sv = [var(wm, n, :q, a), var(wm, n, :x_sv, a)]
+    lambda, x_pw = [var(wm, n, :lambda_pipe), var(wm, n, :x_pw_pipe)]
+    h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
+
+    # Add the required SOS constraints.
+    c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == x_sv)
+    c_2 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == x_sv)
+    c_3 = JuMP.@constraint(wm.model, lambda[a, 1] <= x_pw[a, 1])
+    c_4 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
+
+    # Generate a set of uniform flow and head loss breakpoints.
+    q_lb, q_ub = [JuMP.lower_bound(q), JuMP.upper_bound(q)]
+    breakpoints = range(q_lb, stop=q_ub, length=wm.ext[:pipe_breakpoints])
+    f = _calc_head_loss_values(collect(breakpoints), ref(wm, :alpha))
+
+    # Add a constraint for the flow piecewise approximation.
+    K = 1:wm.ext[:pipe_breakpoints]
+    q_lhs = sum(breakpoints[k] * lambda[a, k] for k in K)
+    c_5 = JuMP.@constraint(wm.model, q_lhs == q)
+
+    # Add a constraint for the head gain piecewise approximation.
+    loss = r .* sum(f[k] .* lambda[a, k] for k in K)
+    lhs = inv(L) * (h_i - h_j) - loss
+
+    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
+    c_6 = JuMP.@constraint(wm.model, lhs <= inv(L) * (1.0 - x_sv) * dh_ub)
+    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
+    c_7 = JuMP.@constraint(wm.model, lhs >= inv(L) * (1.0 - x_sv) * dh_lb)
+
+    # Append the constraint array with the above-generated constraints.
+    append!(con(wm, n, :head_loss, a), [c_1, c_2, c_3, c_4, c_5, c_6, c_7])
+
+    # Add the adjacency constraints.
+    for k in 2:wm.ext[:pipe_breakpoints]-1
+        adjacency = x_pw[a, k-1] + x_pw[a, k]
+        c_8_k = JuMP.@constraint(wm.model, lambda[a, k] <= adjacency)
+        append!(con(wm, n, :head_loss, a), [c_8_k])
+    end
+end
+
 "Pump head gain constraint when the pump status is ambiguous."
 function constraint_pump_head_gain(wm::AbstractMILPModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64})
     # If the number of breakpoints is not positive, no constraints are added.

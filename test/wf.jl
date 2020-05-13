@@ -567,7 +567,10 @@
         data = WaterModels.parse_file("../test/data/epanet/shamir-ts-tank.inp")
         mn_data = WaterModels.make_multinetwork(data)
         wm = instantiate_model(mn_data, NCNLPWaterModel, WaterModels.build_mn_wf)
-        solution = _IM.optimize_model!(wm, optimizer=ipopt)
+        f = Juniper.register(head_loss_args(wm)..., autodiff=false)
+        juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
+            "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
+        solution = _IM.optimize_model!(wm, optimizer=juniper)
 
         @test solution["termination_status"] == LOCALLY_SOLVED
         @test isapprox(solution["solution"]["nw"]["1"]["link"]["2"]["q"], 0.09356500, rtol=1.0e-3)

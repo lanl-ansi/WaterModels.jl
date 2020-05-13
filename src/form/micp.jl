@@ -101,6 +101,25 @@ function constraint_check_valve_head_loss(wm::AbstractMICPModel, n::Int, a::Int,
     append!(con(wm, n, :head_loss)[a], [c_p, c_n])
 end
 
+function constraint_sv_head_loss(wm::AbstractMICPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
+    # Gather flow- and shutoff valve-related variables.
+    qp, qn = var(wm, n, :qp, a), var(wm, n, :qn, a)
+    yp, yn = var(wm, n, :yp, a), var(wm, n, :yn, a)
+
+    # Gather head variables and upper bound data.
+    dhp, dhn = var(wm, n, :dhp, a), var(wm, n, :dhn, a)
+    dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
+
+    # Add constraints for flow in the positive and negative directions.
+    lhs_p = JuMP.@NLexpression(wm.model, r*head_loss(qp) - inv(L)*dhp)
+    c_p = JuMP.@NLconstraint(wm.model, lhs_p <= dhp_ub * (1.0 - yp))
+    lhs_n = JuMP.@NLexpression(wm.model, r*head_loss(qn) - inv(L)*dhn)
+    c_n = JuMP.@NLconstraint(wm.model, lhs_n <= dhn_ub * (1.0 - yn))
+
+    # Append the constraint array.
+    append!(con(wm, n, :head_loss)[a], [c_p, c_n])
+end
+
 function constraint_head_loss_pipe(wm::AbstractMICPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # Gather common variables.
     qp, qn = [var(wm, n, :qp, a), var(wm, n, :qn, a)]

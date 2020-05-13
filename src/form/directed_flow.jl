@@ -159,6 +159,23 @@ function constraint_check_valve_common(wm::AbstractDirectedFlowModel, n::Int, a:
     append!(con(wm, n, :check_valve, a), [c_1, c_2, c_3, c_4])
 end
 
+function constraint_sv_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to)
+    # Get flow and shutoff valve status variables.
+    x_sv = var(wm, n, :x_sv, a)
+    qp, qn = var(wm, n, :qp, a), var(wm, n, :qn, a)
+    yp, yn = var(wm, n, :yp, a), var(wm, n, :yn, a)
+
+    # If the shutoff valve is open, flow must be appreciably nonnegative.
+    c_1 = JuMP.@constraint(wm.model, yp + yn == x_sv) # Directions will be zero when off.
+    c_2 = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * yp)
+    c_3 = JuMP.@constraint(wm.model, qp >= 6.31465679e-6 * yp)
+    c_4 = JuMP.@constraint(wm.model, qn <= JuMP.upper_bound(qn) * yn)
+    c_5 = JuMP.@constraint(wm.model, qn >= 6.31465679e-6 * yn)
+
+    # Append the constraint array.
+    append!(con(wm, n, :sv, a), [c_1, c_2, c_3, c_4, c_5])
+end
+
 function constraint_pipe_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, alpha::Float64, L::Float64, r::Float64)
     # Get common flow variables and associated data.
     y = var(wm, n, :y, a)
@@ -175,17 +192,13 @@ function constraint_pipe_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, n
     h_j = head_to == nothing ? var(wm, n, :h, node_to) : head_to
     dhp_ub, dhn_ub = [JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)]
 
-    # Constraint directed head variables based on direction.
+    # Constrain directed head variables based on direction.
     c_3 = JuMP.@constraint(wm.model, dhp <= dhp_ub * y)
     c_4 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - y))
     c_5 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
 
-    # Add linear upper bounds on the head loss approximations.
-    c_6 = JuMP.@constraint(wm.model, inv(L)*dhp <= r*qp_ub^(alpha - 1.0) * qp)
-    c_7 = JuMP.@constraint(wm.model, inv(L)*dhn <= r*qn_ub^(alpha - 1.0) * qn)
-
     # Append the constraint array.
-    append!(con(wm, n, :pipe)[a], [c_1, c_2, c_3, c_4, c_5, c_6, c_7])
+    append!(con(wm, n, :pipe)[a], [c_1, c_2, c_3, c_4, c_5])
 end
 
 function constraint_prv_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, h_prv::Float64)
@@ -264,12 +277,16 @@ function constraint_head_loss_ub_cv(wm::AbstractDirectedFlowModel, n::Int, a::In
     append!(con(wm, n, :head_loss)[a], [c_p])
 end
 
+function constraint_head_loss_ub_sv(wm::AbstractDirectedFlowModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64)
+    # TODO: Fill this in later.
+end
+
 function constraint_head_loss_ub_pipe(wm::AbstractDirectedFlowModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64)
-    qp, dhp = [var(wm, n, :qp, a), var(wm, n, :dhp, a)]
+    qp, dhp = var(wm, n, :qp, a), var(wm, n, :dhp, a)
     rhs_p = r * JuMP.upper_bound(qp)^(alpha - 1.0) * qp
     c_p = JuMP.@constraint(wm.model, inv(L) * dhp <= rhs_p)
 
-    qn, dhn = [var(wm, n, :qn, a), var(wm, n, :dhn, a)]
+    qn, dhn = var(wm, n, :qn, a), var(wm, n, :dhn, a)
     rhs_n = r * JuMP.upper_bound(qn)^(alpha - 1.0) * qn
     c_n = JuMP.@constraint(wm.model, inv(L) * dhn <= rhs_n)
 

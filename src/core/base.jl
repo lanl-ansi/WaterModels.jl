@@ -47,6 +47,7 @@ Some of the common keys include:
 
 * `:pipe` -- the set of pipes in the network,
 * `:check_valve` -- the set of pipes in the network with check valves,
+* `:sv` -- the set of pipes in the network wiith shutoff valves,
 * `:pump` -- the set of pumps in the network,
 * `:valve` -- the set of valves in the network,
 * `:prv` -- the set of pressure reducing valves in the network,
@@ -65,6 +66,7 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any}, options::Dict{String,<:Any})
     for (nw, ref) in nw_refs
         ref[:link] = merge(ref[:pipe], ref[:valve], ref[:pump])
         ref[:check_valve] = filter(has_check_valve, ref[:pipe])
+        ref[:sv] = filter(has_shutoff_valve, ref[:pipe])
         ref[:prv] = filter(is_prv, ref[:valve])
         ref[:link_des] = filter(is_des_link, ref[:link])
         ref[:pipe_des] = filter(is_des_link, ref[:pipe])

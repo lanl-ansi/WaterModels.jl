@@ -67,7 +67,20 @@ function _add_link_ids!(data::Dict{String, <:Any})
     end
 end
 
-function _correct_status!(data::Dict{String, <:Any})
+"Adds shutoff valves for all pipes connected to tanks."
+function _add_shutoff_valves!(data::Dict{String,<:Any})
+    tank_ids = [tank["index"] for tank in values(data["tank"])]
+
+    for (id, pipe) in data["pipe"]
+        i, j = pipe["node_fr"], pipe["node_to"]
+
+        if any(x in tank_ids for x in [i, j])
+            pipe["status"] = "SV" # Has a shutoff valve.
+        end
+    end
+end
+
+function _correct_status!(data::Dict{String,<:Any})
     for (id, pump) in data["pump"]
         initial_status = pump["initial_status"]
 
@@ -581,6 +594,9 @@ function parse_epanet(filename::String)
     # Add or remove time series information.
     _correct_time_series!(data)
 
+    # Add shutoff valves to pipes connected to tanks.
+    _add_shutoff_valves!(data)
+
     # Delete the data that has now been properly parsed.
     delete!(data, "section")
     delete!(data, "node_map")
@@ -634,10 +650,14 @@ function _read_control!(data::Dict{String, <:Any})
                 if link_type == "pump"
                     action["attribute"] = "base_speed"
                     action["value"] = parse(Float64, current[3])
+                elseif link_type == "pipe"
+                    link["status"] = "SV" # Has a shutoff valve.
                 elseif link_type == "valve"
                     # TODO: Fill this in when necessary.
                 else
-                    Memento.error(_LOGGER, "Links of type $(link_type) can only have controls that change the link status. Control: $(line)")
+                    Memento.error(_LOGGER, "Links of type $(link_type) can "
+                    * "only have controls that change the link status. "
+                    * "Control: $(line)")
                 end
             end
 

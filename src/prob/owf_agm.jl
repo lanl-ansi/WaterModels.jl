@@ -14,6 +14,7 @@ function build_owf_agm(wm::AbstractWaterModel)
 
     # Component-specific variables.
     variable_check_valve(wm)
+    variable_sv(wm)
     variable_prv_operation(wm)
     variable_pump_operation(wm)
     variable_reservoir(wm)
@@ -23,6 +24,8 @@ function build_owf_agm(wm::AbstractWaterModel)
         # TODO: Call this something other than status.
         if pipe["status"] == "CV"
             constraint_check_valve_head_loss(wm, a)
+        elseif pipe["status"] == "SV"
+            constraint_sv_head_loss(wm, a)
         else
             constraint_pipe_head_loss(wm, a)
         end
@@ -77,6 +80,7 @@ function build_mn_owf_agm(wm::AbstractWaterModel)
 
         # Component-specific variables.
         variable_check_valve(wm, nw=n)
+        variable_sv(wm, nw=n)
         variable_prv_operation(wm, nw=n)
         variable_pump_operation(wm, nw=n)
         variable_reservoir(wm, nw=n)
@@ -86,6 +90,8 @@ function build_mn_owf_agm(wm::AbstractWaterModel)
             # TODO: Call this something other than status.
             if pipe["status"] == "CV"
                 constraint_check_valve_head_loss(wm, a, nw=n)
+            elseif pipe["status"] == "SV"
+                constraint_sv_head_loss(wm, a, nw=n)
             else
                 constraint_pipe_head_loss(wm, a, nw=n)
             end

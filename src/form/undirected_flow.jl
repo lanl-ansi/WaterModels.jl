@@ -99,6 +99,20 @@ function constraint_check_valve_common(wm::AbstractUndirectedFlowModel, n::Int, 
     append!(con(wm, n, :check_valve, a), [c_1, c_2, c_3, c_4])
 end
 
+function constraint_sv_common(wm::AbstractUndirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to)
+    # Get flow and shutoff valve status variables.
+    q, x_sv = var(wm, n, :q, a), var(wm, n, :x_sv, a)
+    yp, yn = var(wm, n, :yp, a), var(wm, n, :yn, a)
+
+    # If the shutoff valve is open, flow must be appreciably nonnegative.
+    c_1 = JuMP.@constraint(wm.model, yp + yn == x_sv) # Directions will be zero when off.
+    c_2 = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * yp - 6.31465679e-6 * yn)
+    c_3 = JuMP.@constraint(wm.model, q >= JuMP.lower_bound(q) * yn + 6.31465679e-6 * yp)
+
+    # Append the constraint array.
+    append!(con(wm, n, :sv, a), [c_1, c_2, c_3])
+end
+
 function constraint_prv_common(wm::AbstractUndirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, h_prv::Float64)
     # Get flow and pressure reducing valve status variables.
     q, x_prv = var(wm, n, :q, a), var(wm, n, :x_prv, a)
@@ -157,6 +171,7 @@ end
 
 function constraint_flow_direction_selection_des(wm::AbstractUndirectedFlowModel, n::Int, a::Int, pipe_resistances) end
 function constraint_head_loss_ub_cv(wm::AbstractUndirectedFlowModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64) end
+function constraint_head_loss_ub_sv(wm::AbstractUndirectedFlowModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64) end
 function constraint_head_loss_ub_pipe_des(wm::AbstractUndirectedFlowModel, n::Int, a::Int, alpha, len, pipe_resistances) end
 function constraint_head_loss_ub_pipe(wm::AbstractUndirectedFlowModel, n::Int, a::Int, alpha, len, r_max) end
 function constraint_energy_conservation(wm::AbstractUndirectedFlowModel, n::Int, r, L, alpha) end

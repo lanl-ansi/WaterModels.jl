@@ -15,6 +15,7 @@ function build_des(wm::AbstractWaterModel)
 
     # Component-specific variables.
     variable_check_valve(wm)
+    variable_sv(wm)
     variable_prv_operation(wm)
     variable_pump_operation(wm)
     variable_reservoir(wm)
@@ -27,6 +28,8 @@ function build_des(wm::AbstractWaterModel)
         # TODO: Call this something other than status.
         if pipe["status"] == "CV"
             constraint_check_valve_head_loss(wm, a)
+        elseif pipe["status"] == "SV"
+            constraint_sv_head_loss(wm, a)
         else
             constraint_pipe_head_loss(wm, a)
         end
