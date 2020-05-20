@@ -4,7 +4,7 @@
 function variable_flow_piecewise_weights(wm::AbstractMILPModel; nw::Int=wm.cnw, report::Bool=false)
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
 
-    if pipe_breakpoints >= 0
+    if pipe_breakpoints > 0
         # Create weights involved in convex combination constraints for pipes.
         lambda_pipe = var(wm, nw)[:lambda_pipe] = JuMP.@variable(wm.model,
             [a in ids(wm, nw, :pipe_fixed), k in 1:pipe_breakpoints],
@@ -16,7 +16,7 @@ function variable_flow_piecewise_weights(wm::AbstractMILPModel; nw::Int=wm.cnw, 
 
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
 
-    if pump_breakpoints >= 0
+    if pump_breakpoints > 0
         # Create weights involved in convex combination constraints for pumps.
         lambda_pump = var(wm, nw)[:lambda_pump] = JuMP.@variable(wm.model,
             [a in ids(wm, nw, :pump), k in 1:pump_breakpoints],
@@ -30,7 +30,7 @@ end
 function variable_flow_piecewise_weights_des(wm::AbstractMILPModel; nw::Int=wm.cnw, report::Bool=false)
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
 
-    if pipe_breakpoints >= 0
+    if pipe_breakpoints > 0
         n_r = Dict(a=>length(ref(wm, nw, :resistance, a)) for a in ids(wm, nw, :link_des))
 
         # Create weights involved in convex combination constraints.
@@ -46,7 +46,7 @@ end
 function variable_flow_piecewise_adjacency(wm::AbstractMILPModel; nw::Int=wm.cnw, report::Bool=false)
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
 
-    if pipe_breakpoints >= 0
+    if pipe_breakpoints > 0
         # Create binary variables involved in convex combination constraints for pipes.
         x_pw_pipe = var(wm, nw)[:x_pw_pipe] = JuMP.@variable(wm.model,
             [a in ids(wm, nw, :pipe), k in 1:pipe_breakpoints-1],
@@ -58,7 +58,7 @@ function variable_flow_piecewise_adjacency(wm::AbstractMILPModel; nw::Int=wm.cnw
 
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
 
-    if pump_breakpoints >= 0
+    if pump_breakpoints > 0
         # Create binary variables involved in convex combination constraints for pumps.
         x_pw_pump = var(wm, nw)[:x_pw_pump] = JuMP.@variable(wm.model,
             [a in ids(wm, nw, :pump), k in 1:pump_breakpoints-1],

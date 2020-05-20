@@ -35,19 +35,20 @@ function variable_pump_operation(wm::AbstractMILPRModel; nw::Int=wm.cnw, report:
 
     # If the number of breakpoints is not positive, return.
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
-    if pump_breakpoints <= 0 return end
 
-    # Create weights involved in convex combination constraints.
-    lambda = var(wm, nw)[:lambda_pump] = JuMP.@variable(wm.model,
-        [a in ids(wm, nw, :pump), k in 1:pump_breakpoints],
-        base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
-        start=comp_start_value(ref(wm, nw, :pump, a), "lambda_start", k))
+    if pump_breakpoints > 0
+        # Create weights involved in convex combination constraints.
+        lambda = var(wm, nw)[:lambda_pump] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :pump), k in 1:pump_breakpoints],
+            base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
+            start=comp_start_value(ref(wm, nw, :pump, a), "lambda_start", k))
 
-    # Create binary variables involved in convex combination constraints.
-    x_pw = var(wm, nw)[:x_pw_pump] = JuMP.@variable(wm.model,
-        [a in ids(wm, nw, :pump), k in 1:pump_breakpoints-1],
-        base_name="$(nw)_x_pw", binary=true,
-        start=comp_start_value(ref(wm, nw, :pump, a), "x_pw_start", k))
+        # Create binary variables involved in convex combination constraints.
+        x_pw = var(wm, nw)[:x_pw_pump] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :pump), k in 1:pump_breakpoints-1],
+            base_name="$(nw)_x_pw", binary=true,
+            start=comp_start_value(ref(wm, nw, :pump, a), "x_pw_start", k))
+    end
 end
 
 "Pump head gain constraint when the pump status is ambiguous."
