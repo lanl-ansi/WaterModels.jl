@@ -75,7 +75,7 @@ function constraint_head_difference_pipe(wm::MICPEWaterModel, n::Int, a::Int, no
     append!(con(wm, n, :head_loss)[a], [c_e])
 end
 
-function constraint_head_loss_pipe_des(wm::MICPEWaterModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances) 
+function constraint_head_loss_pipe_des(wm::MICPEWaterModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances)
     for (r_id, r) in enumerate(pipe_resistances)
         # Collect directed flow and head difference variables.
         qp, qn = [var(wm, n, :qp_des, a)[r_id], var(wm, n, :qn_des, a)[r_id]]
