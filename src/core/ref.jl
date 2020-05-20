@@ -153,7 +153,7 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
         end
     end
 
-    for (a, prv) in ref(wm, n, :prv)
+    for (a, prv) in ref(wm, n, :pressure_reducing_valve)
         lb[a], ub[a] = [0.0], [sum_demand]
     end
 

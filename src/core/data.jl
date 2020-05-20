@@ -164,11 +164,11 @@ function has_shutoff_valve(pipe::Pair{Int64, <:Any})
     return uppercase(pipe.second["status"]) == "SV"
 end
 
-function is_prv(pipe::Dict{String, <:Any})
+function is_pressure_reducing_valve(pipe::Dict{String, <:Any})
     return uppercase(pipe["type"]) == "PRV"
 end
 
-function is_prv(pipe::Pair{Int64, <:Any})
+function is_pressure_reducing_valve(pipe::Pair{Int64, <:Any})
     return uppercase(pipe.second["type"]) == "PRV"
 end
 

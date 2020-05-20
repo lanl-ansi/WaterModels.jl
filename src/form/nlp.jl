@@ -19,18 +19,18 @@ end
 "Adds head loss constraints for check valves in `NLP` formulations."
 function constraint_check_valve_head_loss(wm::AbstractNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # Gather common variables and data.
-    q, x_cv = [var(wm, n, :q, a), var(wm, n, :x_cv, a)]
+    q, z = var(wm, n, :q, a), var(wm, n, :z_check_valve, a)
     h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
     dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
 
-    # There are two possibilities, here: (i) x_cv = 1, in which the check valve
-    # is open, and the head loss relationship should be met with equality. In
-    # this case, the constraints below reduce to lhs = 0.0, as would be
-    # expected. Otherwise, (ii) x_cv = 0, and the head difference must be
-    # negative and decoupled from the traditional head loss relationship.
+    # There are two possibilities, here: (i) z = 1, in which the check valve is
+    # open, and the head loss relationship should be met with equality. In this
+    # case, the constraints below reduce to lhs = 0.0, as would be expected.
+    # Otherwise, (ii) z = 0, and the head difference must be negative and
+    # decoupled from the traditional head loss relationship.
     lhs = JuMP.@NLexpression(wm.model, inv(L) * (h_i - h_j) - r * head_loss(q))
     c_1 = JuMP.@NLconstraint(wm.model, lhs <= 0.0)
-    c_2 = JuMP.@NLconstraint(wm.model, lhs >= inv(L) * (1.0 - x_cv) * dh_lb)
+    c_2 = JuMP.@NLconstraint(wm.model, lhs >= inv(L) * (1.0 - z) * dh_lb)
 
     # Append the :head_loss constraint array.
     append!(con(wm, n, :head_loss)[a], [c_1, c_2])
@@ -39,19 +39,19 @@ end
 "Adds head loss constraints for shutoff valves in `NLP` formulations."
 function constraint_sv_head_loss(wm::AbstractNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # Gather common variables and data.
-    q, x_sv = var(wm, n, :q, a), var(wm, n, :x_sv, a)
+    q, z = var(wm, n, :q, a), var(wm, n, :z_shutoff_valve, a)
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
     dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
     dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
 
-    # There are two possibilities, here: (i) x_sv = 1, in which the shutoff
-    # valve is open, and the head loss relationship should be met with
-    # equality. In this case, the constraints below reduce to lhs = 0.0, as
-    # would be expected. Otherwise, (ii) x_sv = 0, and the head difference must
-    # be decoupled from the traditional head loss relationship.
+    # There are two possibilities, here: (i) z = 1, in which the shutoff valve
+    # is open, and the head loss relationship should be met with equality. In
+    # this case, the constraints below reduce to lhs = 0.0, as would be
+    # expected. Otherwise, (ii) z = 0, and the head difference must be
+    # decoupled from the traditional head loss relationship.
     lhs = JuMP.@NLexpression(wm.model, inv(L) * (h_i - h_j) - r * head_loss(q))
-    c_1 = JuMP.@NLconstraint(wm.model, lhs <= inv(L) * (1.0 - x_sv) * dh_ub)
-    c_2 = JuMP.@NLconstraint(wm.model, lhs >= inv(L) * (1.0 - x_sv) * dh_lb)
+    c_1 = JuMP.@NLconstraint(wm.model, lhs <= inv(L) * (1.0 - z) * dh_ub)
+    c_2 = JuMP.@NLconstraint(wm.model, lhs >= inv(L) * (1.0 - z) * dh_lb)
 
     # Append the :head_loss constraint array.
     append!(con(wm, n, :head_loss)[a], [c_1, c_2])
@@ -87,11 +87,11 @@ end
 "Adds head gain constraints for pumps in `NLP` formulations."
 function constraint_pump_head_gain(wm::AbstractNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
     # Gather common flow and pump variables.
-    x_pump = var(wm, n, :x_pump, a)
+    z = var(wm, n, :z_pump, a)
     q, g_var = [var(wm, n, :q, a), var(wm, n, :g, a)]
 
     # Add constraint equating head gain with respect to the pump curve.
-    g_expr = pc[1]*q^2 + pc[2]*q + pc[3]*x_pump
+    g_expr = pc[1]*q^2 + pc[2]*q + pc[3]*z
     c = JuMP.@constraint(wm.model, g_expr == g_var)
 
     # Append the :head_gain constraint array.

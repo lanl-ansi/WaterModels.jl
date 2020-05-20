@@ -106,81 +106,97 @@ function variable_volume(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=t
 end
 
 ### Link variables. ###
-"Creates binary variables for all check valves in the network, i.e., `x_cv[a]`
-for `a` in `check_valve`, where one denotes that the check valve is open."
-function variable_check_valve(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
-    x_cv = var(wm, nw)[:x_cv] = JuMP.@variable(wm.model,
-        [a in ids(wm, nw, :check_valve)], base_name="x_cv[$(nw)]", binary=true,
-        start=comp_start_value(ref(wm, nw, :check_valve, a), "x_cv_start"))
+"Creates binary variables for all check valves in the network, i.e.,
+`z_check_valve[a]` for `a` in `check_valve`, where one denotes that the check
+valve is open and zero denotes that the check valve is closed."
+function variable_check_valve_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, relax::Bool=false, report::Bool=true)
+    if !relax
+        z_check_valve = var(wm, nw)[:z_check_valve] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :check_valve)], base_name = "$(nw)_z_check_valve",
+            binary = true,
+            start = comp_start_value(ref(wm, nw, :check_valve, a), "z_check_valve_start"))
+    else
+        z_check_valve = var(wm, nw)[:z_check_valve] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :check_valve)], base_name = "z_check_valve[$(nw)]",
+            lower_bound = 0.0, upper_bound = 1.0,
+            start = comp_start_value(ref(wm, nw, :check_valve, a), "z_check_valve_start"))
+    end
 
-    report && sol_component_value(wm, nw, :check_valve, :x_cv,
-        ids(wm, nw, :check_valve), x_cv)
+    report && _IM.sol_component_value(wm, nw, :check_valve, :status, ids(wm, nw, :check_valve), z_check_valve)
 end
 
-"Creates binary variables for all shutoff valves in the network, i.e., `x_sv[a]`
-for `a` in `sv`, where one denotes that the shutoff valve is open."
-function variable_sv(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
-    x_sv = var(wm, nw)[:x_sv] = JuMP.@variable(wm.model,
-        [a in ids(wm, nw, :sv)], base_name="x_sv[$(nw)]", binary=true,
-        start=comp_start_value(ref(wm, nw, :sv, a), "x_sv_start"))
+"Creates binary variables for all shutoff valves in the network, i.e.,
+`z_shutoff_valve[a]` for `a` in `sv`, where one denotes that the shutoff valve
+is open and zero denotes that the shutoff valve is closed."
+function variable_shutoff_valve_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, relax::Bool=false, report::Bool=true)
+    if !relax
+        z_shutoff_valve = var(wm, nw)[:z_shutoff_valve] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :shutoff_valve)], base_name = "$(nw)_z_shutoff_valve",
+            binary = true,
+            start = comp_start_value(ref(wm, nw, :shutoff_valve, a), "z_shutoff_valve_start"))
+    else
+        z_shutoff_valve = var(wm, nw)[:z_shutoff_valve] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :shutoff_valve)], base_name = "$(nw)_z_shutoff_valve",
+            lower_bound = 0.0, upper_bound = 1.0,
+            start = comp_start_value(ref(wm, nw, :shutoff_valve, a), "z_shutoff_valve_start"))
+    end
 
-    var(wm, nw)[:yp] = JuMP.@variable(wm.model, [a in ids(wm, nw, :sv)],
+    report && sol_component_value(wm, nw, :shutoff_valve, :status, ids(wm, nw, :shutoff_valve), z_shutoff_valve)
+
+    # TODO: Move the below two variable declarations somewhere more appropriate.
+    var(wm, nw)[:yp] = JuMP.@variable(wm.model, [a in ids(wm, nw, :shutoff_valve)],
         base_name="$(nw)_yp", binary=true,
-        start=comp_start_value(ref(wm, nw, :sv, a), "yp_start"))
-
-    var(wm, nw)[:yn] = JuMP.@variable(wm.model, [a in ids(wm, nw, :sv)],
+        start=comp_start_value(ref(wm, nw, :shutoff_valve, a), "yp_start"))
+    var(wm, nw)[:yn] = JuMP.@variable(wm.model, [a in ids(wm, nw, :shutoff_valve)],
         base_name="$(nw)_yn", binary=true,
-        start=comp_start_value(ref(wm, nw, :sv, a), "yn_start"))
+        start=comp_start_value(ref(wm, nw, :shutoff_valve, a), "yn_start"))
 
-    report && sol_component_value(wm, nw, :sv, :x_sv, ids(wm, nw, :sv), x_sv)
 end
 
-"Creates binary variables for all PRVs in the network, i.e., `x_prv[a]`
-for `a` in `prv`, where one denotes that the PRV is currently open."
-function variable_prv_common(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
-    x_prv = var(wm, nw)[:x_prv] = JuMP.@variable(wm.model,
-        [a in ids(wm, nw, :prv)], base_name="x_prv[$(nw)]", binary=true,
-        start=comp_start_value(ref(wm, nw, :prv, a), "x_prv_start"))
+"Creates binary variables for all PRVs in the network, i.e.,
+`z_pressure_reducing_valve[a]` for `a` in `pressure_reducing_valve`, where one
+denotes that the pressure reducing is currently open and zero otherwise."
+function variable_pressure_reducing_valve_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, relax::Bool=false, report::Bool=true)
+    if !relax
+        z_pressure_reducing_valve = var(wm, nw)[:z_pressure_reducing_valve] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :pressure_reducing_valve)], base_name = "$(nw)_z_pressure_reducing_valve",
+            binary = true,
+            start = comp_start_value(ref(wm, nw, :pressure_reducing_valve, a), "z_pressure_reducing_valve_start"))
+    else
+        z_pressure_reducing_valve = var(wm, nw)[:z_pressure_reducing_valve] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :pressure_reducing_valve)], base_name = "$(nw)_z_pressure_reducing_valve",
+            lower_bound = 0.0, upper_bound = 1.0,
+            start = comp_start_value(ref(wm, nw, :pressure_reducing_valve, a), "z_pressure_reducing_valve_start"))
+    end
 
-    report && sol_component_value(wm, nw, :prv, :x_prv, ids(wm, nw, :prv), x_prv)
+    report && sol_component_value(wm, nw, :pressure_reducing_valve, :z_pressure_reducing_valve,
+        ids(wm, nw, :pressure_reducing_valve), z_pressure_reducing_valve)
 end
 
-"Creates binary variables for all pumps in the network, i.e., `x_pump[a]`
-for `a` in `pump`, where one denotes that the pump is currently on."
-function variable_pump_common(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
-    x_pump = var(wm, nw)[:x_pump] = JuMP.@variable(wm.model,
-        [a in ids(wm, nw, :pump)], base_name="x_pump[$(nw)]", binary=true,
-        start=comp_start_value(ref(wm, nw, :pump, a), "x_pump_start"))
+"Creates binary variables for all pumps in the network, i.e., `z_pump[a]` for
+`a` in `pump`, where one denotes that the pump is currently operating (i.e.,
+on), and zero indicates that the pump is not operating (i.e., off)."
+function variable_pump_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, relax::Bool=false, report::Bool=true)
+    if !relax
+        z_pump = var(wm, nw)[:z_pump] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :pump)], base_name = "$(nw)_z_pump",
+            binary = true,
+            start = comp_start_value(ref(wm, nw, :pump, a), "z_pump_start"))
+    else
+        z_pump = var(wm, nw)[:z_pump] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :pump)], base_name = "$(nw)_z_pump",
+            lower_bound = 0.0, upper_bound = 1.0,
+            start = comp_start_value(ref(wm, nw, :pump, a), "z_pump_start"))
+    end
 
-    report && sol_component_value(wm, nw, :pump, :x_pump, ids(wm, nw, :pump), x_pump)
+    report && sol_component_value(wm, nw, :pump, :status, ids(wm, nw, :pump), z_pump)
 end
 
-"Creates binary variables for all pumps in the network, i.e., `x_pump[a]`
-for `a` in `pump`, where one denotes that the pump is currently on."
-function variable_fixed_speed_pump_threshold(wm::AbstractWaterModel; nw::Int=wm.cnw)
-    var(wm, nw)[:x_thrs_gt] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
-        base_name="x_thrs_gt[$(nw)]", binary=true,
-        start=comp_start_value(ref(wm, nw, :pump, a), "x_thrs_gt_start"))
-
-    var(wm, nw)[:x_thrs_lt] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
-        base_name="x_thrs_lt[$(nw)]", binary=true,
-        start=comp_start_value(ref(wm, nw, :pump, a), "x_thrs_lt_start"))
-
-    var(wm, nw)[:x_thrs_bt] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
-        base_name="x_thrs_bt[$(nw)]", binary=true,
-        start=comp_start_value(ref(wm, nw, :pump, a), "x_thrs_bt_start"))
-end
-
-function variable_prv_operation(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
-    variable_prv_common(wm, nw=nw, report=report)
+function variable_pressure_reducing_valve_operation(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
+    variable_pressure_reducing_valve_indicator(wm, nw=nw, report=report)
 end
 
 function variable_pump_operation(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
-    variable_pump_common(wm, nw=nw, report=report)
-end
-
-function variable_pump_control(wm::AbstractWaterModel; nw::Int=wm.cnw)
-    variable_fixed_speed_pump_threshold(wm, nw=nw)
 end
 
 "Creates binary variables for all network design or design resistances in

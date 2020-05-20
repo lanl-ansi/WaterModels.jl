@@ -1,24 +1,24 @@
 # Define MILP-R (relaxation-based mixed-integer linear programming)
 # implementations of common water distribution model specifications.
 
-function _get_owf_oa(q::JuMP.VariableRef, x_pump::JuMP.VariableRef, q_hat::Float64, coeffs::Array{Float64})
+function _get_owf_oa(q::JuMP.VariableRef, z::JuMP.VariableRef, q_hat::Float64, coeffs::Array{Float64})
     f = coeffs[1]*q_hat^3 + coeffs[2]*q_hat^2 + coeffs[3]*q_hat
     df = 3.0*coeffs[1]*q_hat^2 + 2.0*coeffs[2]*q_hat + coeffs[3]
-    return f*x_pump + df*(q - q_hat*x_pump)
+    return f*z + df*(q - q_hat*z)
 end
 
 function _get_head_loss_oa(q::JuMP.VariableRef, q_hat::Float64, alpha::Float64)
     return q_hat^alpha + alpha * q_hat^(alpha - 1.0) * (q - q_hat)
 end
 
-function _get_head_loss_cv_oa(q::JuMP.VariableRef, x_cv::JuMP.VariableRef, q_hat::Float64, alpha::Float64)
-    return q_hat^alpha*x_cv + alpha * q_hat^(alpha - 1.0) * (q - q_hat*x_cv)
+function _get_head_loss_cv_oa(q::JuMP.VariableRef, z::JuMP.VariableRef, q_hat::Float64, alpha::Float64)
+    return q_hat^alpha*z + alpha * q_hat^(alpha - 1.0) * (q - q_hat*z)
 end
 
-function _get_head_gain_oa(q::JuMP.VariableRef, x_pump::JuMP.VariableRef, q_hat::Float64, curve_fun::Array{Float64})
+function _get_head_gain_oa(q::JuMP.VariableRef, z::JuMP.VariableRef, q_hat::Float64, curve_fun::Array{Float64})
     f = curve_fun[1]*q_hat^2 + curve_fun[2]*q_hat + curve_fun[3]
     df = 2.0 * curve_fun[1] * q_hat + curve_fun[2]
-    return f * x_pump + df * (q - q_hat * x_pump)
+    return f * z + df * (q - q_hat * z)
 end
 
 function variable_flow(wm::AbstractMILPRModel; nw::Int=wm.cnw, bounded::Bool=true)
@@ -30,9 +30,6 @@ function variable_flow(wm::AbstractMILPRModel; nw::Int=wm.cnw, bounded::Bool=tru
 end
 
 function variable_pump_operation(wm::AbstractMILPRModel; nw::Int=wm.cnw, report::Bool=true)
-    # Create common pump variables.
-    variable_pump_common(wm, nw=nw, report=report)
-
     # If the number of breakpoints is not positive, return.
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
 
@@ -59,12 +56,12 @@ function constraint_pump_head_gain(wm::AbstractMILPRModel, n::Int, a::Int, node_
 
     # Gather flow, head gain, and convex combination variables.
     g = var(wm, n, :g, a)
-    qp, x_pump = [var(wm, n, :qp, a), var(wm, n, :x_pump, a)]
+    qp, z = var(wm, n, :qp, a), var(wm, n, :z_pump, a)
     lambda, x_pw = [var(wm, n, :lambda_pump), var(wm, n, :x_pw_pump)]
 
     # Add the required SOS constraints.
-    c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == x_pump)
-    c_2 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == x_pump)
+    c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == z)
+    c_2 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == z)
     c_3 = JuMP.@constraint(wm.model, lambda[a, 1] <= x_pw[a, 1])
     c_4 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
 
@@ -86,7 +83,7 @@ function constraint_pump_head_gain(wm::AbstractMILPRModel, n::Int, a::Int, node_
 
     # Add head gain outer- (i.e., upper-) approximations.
     for qp_hat in breakpoints
-        lhs = _get_head_gain_oa(qp, x_pump, qp_hat, pc)
+        lhs = _get_head_gain_oa(qp, z, qp_hat, pc)
         c_7_k = JuMP.@constraint(wm.model, g <= lhs)
         append!(con(wm, n, :head_gain, a), [c_7_k])
     end
@@ -152,13 +149,13 @@ function constraint_check_valve_head_loss(wm::AbstractMILPRModel, n::Int, a::Int
     if pipe_breakpoints <= 0 return end
 
     # Get common data for outer-approximation constraints.
-    qp, x_cv = [var(wm, n, :qp, a), var(wm, n, :x_cv, a)]
+    qp, z = [var(wm, n, :qp, a), var(wm, n, :z_check_valve, a)]
     dhp = var(wm, n, :dhp, a)
     qp_ub = JuMP.upper_bound(qp)
 
     # Add outer-approximation constraints.
     for qp_hat in range(0.0, stop=qp_ub, length=pipe_breakpoints)
-        lhs = _get_head_loss_cv_oa(qp, x_cv, qp_hat, ref(wm, n, :alpha))
+        lhs = _get_head_loss_cv_oa(qp, z, qp_hat, ref(wm, n, :alpha))
         c_p = JuMP.@constraint(wm.model, r * lhs <= inv(L) * dhp)
         append!(con(wm, n, :head_loss)[a], [c_p])
     end
@@ -216,7 +213,7 @@ function objective_owf(wm::AbstractMILPRModel)
                 curve_fun = _get_function_from_pump_curve(pump_curve)
 
                 # Get flow-related variables and data.
-                qp, x_pump = [var(wm, n)[:qp][a], var(wm, n)[:x_pump][a]]
+                qp, z = var(wm, n, :qp, a), var(wm, n, :z_pump, a)
                 qp_ub = JuMP.upper_bound(qp)
 
                 # Generate a set of uniform flow and cubic function breakpoints.

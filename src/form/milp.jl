@@ -93,13 +93,13 @@ function constraint_check_valve_head_loss(wm::AbstractMILPModel, n::Int, a::Int,
     if pipe_breakpoints <= 0 return end
 
     # Gather common variables.
-    q, x_cv = [var(wm, n, :q, a), var(wm, n, :x_cv, a)]
+    q, z = [var(wm, n, :q, a), var(wm, n, :z_check_valve, a)]
     lambda, x_pw = [var(wm, n, :lambda_pipe), var(wm, n, :x_pw_pipe)]
     h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
 
     # Add the required SOS constraints.
-    c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == x_cv)
-    c_2 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == x_cv)
+    c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == z)
+    c_2 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == z)
     c_3 = JuMP.@constraint(wm.model, lambda[a, 1] <= x_pw[a, 1])
     c_4 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
 
@@ -117,7 +117,7 @@ function constraint_check_valve_head_loss(wm::AbstractMILPModel, n::Int, a::Int,
     lhs = inv(L) * (h_i - h_j) - loss
     c_6 = JuMP.@constraint(wm.model, lhs <= 0.0)
     dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
-    c_7 = JuMP.@constraint(wm.model, lhs >= inv(L) * (1.0 - x_cv) * dh_lb)
+    c_7 = JuMP.@constraint(wm.model, lhs >= inv(L) * (1.0 - z) * dh_lb)
 
     # Append the constraint array with the above-generated constraints.
     append!(con(wm, n, :head_loss, a), [c_1, c_2, c_3, c_4, c_5, c_6, c_7])
@@ -137,13 +137,13 @@ function constraint_sv_head_loss(wm::AbstractMILPModel, n::Int, a::Int, node_fr:
     if pipe_breakpoints <= 0 return end
 
     # Gather common variables.
-    q, x_sv = [var(wm, n, :q, a), var(wm, n, :x_sv, a)]
+    q, z = var(wm, n, :q, a), var(wm, n, :z_shutoff_valve, a)
     lambda, x_pw = [var(wm, n, :lambda_pipe), var(wm, n, :x_pw_pipe)]
     h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
 
     # Add the required SOS constraints.
-    c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == x_sv)
-    c_2 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == x_sv)
+    c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == z)
+    c_2 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == z)
     c_3 = JuMP.@constraint(wm.model, lambda[a, 1] <= x_pw[a, 1])
     c_4 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
 
@@ -161,9 +161,9 @@ function constraint_sv_head_loss(wm::AbstractMILPModel, n::Int, a::Int, node_fr:
     lhs = inv(L) * (h_i - h_j) - loss
 
     dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
-    c_6 = JuMP.@constraint(wm.model, lhs <= inv(L) * (1.0 - x_sv) * dh_ub)
+    c_6 = JuMP.@constraint(wm.model, lhs <= inv(L) * (1.0 - z) * dh_ub)
     dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
-    c_7 = JuMP.@constraint(wm.model, lhs >= inv(L) * (1.0 - x_sv) * dh_lb)
+    c_7 = JuMP.@constraint(wm.model, lhs >= inv(L) * (1.0 - z) * dh_lb)
 
     # Append the constraint array with the above-generated constraints.
     append!(con(wm, n, :head_loss, a), [c_1, c_2, c_3, c_4, c_5, c_6, c_7])
@@ -183,13 +183,13 @@ function constraint_pump_head_gain(wm::AbstractMILPModel, n::Int, a::Int, node_f
     if pump_breakpoints <= 0 return end
 
     # Gather common variables.
-    x_pump = var(wm, n, :x_pump, a)
-    q, g = [var(wm, n, :q, a), var(wm, n, :g, a)]
+    z = var(wm, n, :z_pump, a)
+    q, g = var(wm, n, :q, a), var(wm, n, :g, a)
     lambda, x_pw = [var(wm, n, :lambda_pump), var(wm, n, :x_pw_pump)]
 
     # Add the required SOS constraints.
-    c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == x_pump)
-    c_2 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == x_pump)
+    c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == z)
+    c_2 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == z)
     c_3 = JuMP.@constraint(wm.model, lambda[a, 1] <= x_pw[a, 1])
     c_4 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
 
@@ -335,7 +335,7 @@ function objective_owf(wm::AbstractMILPModel)
                 curve_fun = _get_function_from_pump_curve(pump_curve)
 
                 # Get flow-related variables and data.
-                q, x_pump = [var(wm, n)[:q][a], var(wm, n)[:x_pump][a]]
+                q, z = var(wm, n, :q, a), var(wm, n, :z_pump, a)
                 q_ub = JuMP.upper_bound(q)
 
                 # Generate a set of uniform flow and cubic function breakpoints.

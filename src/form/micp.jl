@@ -2,9 +2,6 @@
 # distribution constraints, which use directed flow variables.
 
 function variable_pump_operation(wm::AbstractMICPModel; nw::Int=wm.cnw, report::Bool=true)
-    # Create common pump variables.
-    variable_pump_common(wm, nw=nw, report=report)
-
     # If the number of breakpoints is zero, the variables below are not added.
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
 
@@ -44,7 +41,7 @@ end
 function constraint_pump_head_gain(wm::AbstractMICPModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
     # Gather flow and head gain variables.
     g = var(wm, n, :g, a)
-    qp, x_pump = [var(wm, n, :qp, a), var(wm, n, :x_pump, a)]
+    qp, z = var(wm, n, :qp, a), var(wm, n, :z_pump, a)
 
     # Gather head-related variables and data.
     h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
@@ -52,7 +49,7 @@ function constraint_pump_head_gain(wm::AbstractMICPModel, n::Int, a::Int, node_f
     dhp_ub, dhn_ub = [JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)]
 
     # Define the (relaxed) head gain caused by the pump.
-    g_expr = pc[1]*qp^2 + pc[2]*qp + pc[3]*x_pump
+    g_expr = pc[1]*qp^2 + pc[2]*qp + pc[3]*z
     c = JuMP.@constraint(wm.model, g_expr >= g) # Concavified.
 
     # Append the constraint array.
@@ -66,8 +63,8 @@ function constraint_pump_head_gain(wm::AbstractMICPModel, n::Int, a::Int, node_f
     lambda, x_pw = [var(wm, n, :lambda_pump), var(wm, n, :x_pw_pump)]
 
     # Add the required SOS constraints.
-    c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == x_pump)
-    c_2 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == x_pump)
+    c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == z)
+    c_2 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == z)
     c_3 = JuMP.@constraint(wm.model, lambda[a, 1] <= x_pw[a, 1])
     c_4 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
 
@@ -91,7 +88,7 @@ end
 function constraint_check_valve_head_loss(wm::AbstractMICPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # Gather flow- and check valve-related variables.
     qp, qn = [var(wm, n, :qp, a), var(wm, n, :qn, a)]
-    x_cv = var(wm, n, :x_cv, a)
+    z = var(wm, n, :z_check_valve, a)
 
     # Gather head variables and upper bound data.
     h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
@@ -100,8 +97,8 @@ function constraint_check_valve_head_loss(wm::AbstractMICPModel, n::Int, a::Int,
 
     # Add constraints for flow in the positive and negative directions.
     lhs = JuMP.@NLexpression(wm.model, r*head_loss(qp) - inv(L)*dhp)
-    c_p = JuMP.@NLconstraint(wm.model, lhs <= dhp_ub * (1.0 - x_cv))
-    c_n = JuMP.@NLconstraint(wm.model, dhn <= dhn_ub * (1.0 - x_cv))
+    c_p = JuMP.@NLconstraint(wm.model, lhs <= dhp_ub * (1.0 - z))
+    c_n = JuMP.@NLconstraint(wm.model, dhn <= dhn_ub * (1.0 - z))
 
     # Append the constraint array.
     append!(con(wm, n, :head_loss)[a], [c_p, c_n])
@@ -169,7 +166,7 @@ function objective_owf(wm::AbstractMICPModel)
                 curve_fun = _get_function_from_pump_curve(pump_curve)
 
                 # Get flow-related variables and data.
-                qp, x_pump = [var(wm, n)[:qp][a], var(wm, n)[:x_pump][a]]
+                qp, z = var(wm, n, :qp, a), var(wm, n, :z_pump, a)
                 qp_ub = JuMP.upper_bound(qp)
 
                 # Generate a set of uniform flow and cubic function breakpoints.

@@ -170,7 +170,7 @@ function constraint_check_valve_head_loss(wm::AbstractWaterModel, a::Int; nw::In
     alpha, L = [ref(wm, nw, :alpha), ref(wm, nw, :pipe, a)["length"]]
     r = maximum(ref(wm, nw, :resistance, a))
 
-    # Since check valves exist along pipes, add all common pipe contstraints.
+    # Since check valves exist along pipes, add all common pipe constraints.
     _initialize_con_dict(wm, :pipe, nw=nw, is_array=true)
     con(wm, nw, :pipe)[a] = Array{JuMP.ConstraintRef}([])
     constraint_pipe_common(wm, nw, a, node_fr, node_to, head_fr, head_to, alpha, L, r)
@@ -195,7 +195,7 @@ function constraint_sv_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw,
     alpha, L = [ref(wm, nw, :alpha), ref(wm, nw, :pipe, a)["length"]]
     r = maximum(ref(wm, nw, :resistance, a))
 
-    # Since shutoff valves exist along pipes, add all common pipe contstraints.
+    # Since shutoff valves exist along pipes, add all common pipe constraints.
     _initialize_con_dict(wm, :pipe, nw=nw, is_array=true)
     con(wm, nw, :pipe)[a] = Array{JuMP.ConstraintRef}([])
     constraint_pipe_common(wm, nw, a, node_fr, node_to, head_fr, head_to, alpha, L, r)
@@ -217,9 +217,9 @@ end
 ### Pressure Reducing Valve Constraints ###
 function constraint_prv_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     node_fr, node_to, head_fr, head_to = _get_head_difference_data(wm, a, nw=nw)
-    h_prv = ref(wm, nw, :prv, a)["setting"]
+    h_prv = ref(wm, nw, :pressure_reducing_valve, a)["setting"]
 
-    # Since check valves exist along prvs, add all common prv contstraints.
+    # Add all common pressure reducing valve constraints.
     _initialize_con_dict(wm, :prv, nw=nw, is_array=true)
     con(wm, nw, :prv)[a] = Array{JuMP.ConstraintRef}([])
     constraint_prv_common(wm, nw, a, node_fr, node_to, head_fr, head_to, h_prv)

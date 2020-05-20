@@ -24,8 +24,8 @@ function constraint_link_volume(wm::AbstractWaterModel, n::Int, i::Int, elevatio
 end
 
 function constraint_pump_control_initial(wm::AbstractWaterModel, n::Int, a::Int, status::Bool)
-    x_pump = var(wm, n, :x_pump, a)
-    c = JuMP.@constraint(wm.model, x_pump == status)
+    z = var(wm, n, :z_pump, a)
+    c = JuMP.@constraint(wm.model, z == status)
 end
 
 function constraint_tank_state_initial(wm::AbstractWaterModel, n::Int, i::Int, V_0::Float64, time_step::Float64)

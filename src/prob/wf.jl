@@ -12,10 +12,13 @@ function build_wf(wm::AbstractWaterModel)
     variable_flow(wm)
     variable_volume(wm)
 
+    # Indicator (status) variables.
+    variable_check_valve_indicator(wm)
+    variable_pump_indicator(wm)
+    variable_pressure_reducing_valve_indicator(wm)
+    variable_shutoff_valve_indicator(wm)
+
     # Component-specific variables.
-    variable_check_valve(wm)
-    variable_sv(wm)
-    variable_prv_operation(wm)
     variable_pump_operation(wm)
     variable_reservoir(wm)
     variable_tank(wm)
@@ -31,7 +34,7 @@ function build_wf(wm::AbstractWaterModel)
         end
     end
 
-    for a in ids(wm, :prv)
+    for a in ids(wm, :pressure_reducing_valve)
         constraint_prv_head_loss(wm, a)
     end
 
@@ -84,10 +87,13 @@ function build_mn_wf(wm::AbstractWaterModel)
         variable_flow(wm, nw=n)
         variable_volume(wm, nw=n)
 
+        # Indicator (status) variables.
+        variable_check_valve_indicator(wm, nw=n)
+        variable_shutoff_valve_indicator(wm, nw=n)
+        variable_pressure_reducing_valve_indicator(wm, nw=n)
+        variable_pump_indicator(wm, nw=n)
+
         # Component-specific variables.
-        variable_check_valve(wm, nw=n)
-        variable_sv(wm, nw=n)
-        variable_prv_operation(wm, nw=n)
         variable_pump_operation(wm, nw=n)
         variable_reservoir(wm, nw=n)
         variable_tank(wm, nw=n)
@@ -103,7 +109,7 @@ function build_mn_wf(wm::AbstractWaterModel)
             end
         end
 
-        for a in ids(wm, :prv, nw=n)
+        for a in ids(wm, :pressure_reducing_valve, nw=n)
             constraint_prv_head_loss(wm, a, nw=n)
         end
 
