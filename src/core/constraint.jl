@@ -23,39 +23,6 @@ function constraint_link_volume(wm::AbstractWaterModel, n::Int, i::Int, elevatio
     con(wm, n, :link_volume)[i] = c
 end
 
-function constraint_pump_control_tank(wm::AbstractWaterModel, n_1::Int, n_2::Int, a::Int, i::Int, lt::Float64, gt::Float64, elevation::Float64)
-    h = var(wm, n_2, :h, i)
-    x_p = var(wm, n_2, :x_pump, a)
-    x_lt = var(wm, n_2, :x_thrs_lt, a)
-    x_gt = var(wm, n_2, :x_thrs_gt, a)
-    x_bt = var(wm, n_2, :x_thrs_bt, a)
-    x_p_tm1 = var(wm, n_1, :x_pump, a)
-
-    h_ub = JuMP.upper_bound(h) - elevation
-    h_lb = JuMP.lower_bound(h) - elevation
-
-    # Pump constraints.
-    # TODO: Clean everything below. There are probably plenty of simplifications.
-    c_1 = JuMP.@constraint(wm.model, h - elevation <= x_p * gt + (1.0 - x_p) * h_ub)
-    c_2 = JuMP.@constraint(wm.model, h - elevation >= (1.0 - x_p) * lt + x_p * h_lb)
-    c_3 = JuMP.@constraint(wm.model, h - elevation <= x_lt * lt + (1.0 - x_lt) * h_ub)
-    c_4 = JuMP.@constraint(wm.model, h - elevation >= x_gt * gt + (1.0 - x_gt) * h_lb)
-    c_5 = JuMP.@constraint(wm.model, h - elevation <= x_bt * gt + (1.0 - x_bt) * h_ub)
-    c_6 = JuMP.@constraint(wm.model, h - elevation >= x_bt * lt + (1.0 - x_bt) * h_lb)
-    c_7 = JuMP.@constraint(wm.model, x_lt + x_gt + x_bt == 1)
-
-    w_1 = JuMP.@variable(wm.model, binary=true, start=1)
-    c_8 = JuMP.@constraint(wm.model, w_1 <= x_p_tm1)
-    c_9 = JuMP.@constraint(wm.model, w_1 <= x_bt)
-    c_10 = JuMP.@constraint(wm.model, w_1 >= x_bt + x_p_tm1 - 1.0)
-
-    w_2 = JuMP.@variable(wm.model, binary=true, start=0)
-    c_11 = JuMP.@constraint(wm.model, w_2 <= x_lt + x_gt)
-    c_12 = JuMP.@constraint(wm.model, w_2 <= x_p)
-    c_13 = JuMP.@constraint(wm.model, w_2 >= (x_lt + x_gt) + x_p - 1.0)
-    c_14 = JuMP.@constraint(wm.model, w_1 + w_2 == x_p)
-end
-
 function constraint_pump_control_initial(wm::AbstractWaterModel, n::Int, a::Int, status::Bool)
     x_pump = var(wm, n, :x_pump, a)
     c = JuMP.@constraint(wm.model, x_pump == status)

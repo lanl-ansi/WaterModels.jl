@@ -11,7 +11,7 @@ WaterModels.jl Change Log
 - Completed MILP implementations of constraints.
 - Implemented pressure reducing valves.
 - Implemented shutoff valves.
-- Removed of pump control (not operation) constraints from the Water flow (wf) problem specification.
+- Removed pump control (not operation) constraints from the Water flow (wf) problem specification.
 - Migrated experimental formulations (CNLP and MICP-E) to [WaterModelsAnnex.jl](https://github.com/lanl-ansi/WaterModelsAnnex.jl).
 
 ### v0.2.0
