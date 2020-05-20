@@ -133,7 +133,8 @@ end
 "Adds head loss constraints for shutoff valves in `MILP` formulations."
 function constraint_sv_head_loss(wm::AbstractMILPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # If the number of breakpoints is not positive, no constraints are added.
-    if wm.ext[:pipe_breakpoints] <= 0 return end
+    pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
+    if pipe_breakpoints <= 0 return end
 
     # Gather common variables.
     q, x_sv = [var(wm, n, :q, a), var(wm, n, :x_sv, a)]
@@ -148,16 +149,15 @@ function constraint_sv_head_loss(wm::AbstractMILPModel, n::Int, a::Int, node_fr:
 
     # Generate a set of uniform flow and head loss breakpoints.
     q_lb, q_ub = [JuMP.lower_bound(q), JuMP.upper_bound(q)]
-    breakpoints = range(q_lb, stop=q_ub, length=wm.ext[:pipe_breakpoints])
+    breakpoints = range(q_lb, stop=q_ub, length=pipe_breakpoints)
     f = _calc_head_loss_values(collect(breakpoints), ref(wm, :alpha))
 
     # Add a constraint for the flow piecewise approximation.
-    K = 1:wm.ext[:pipe_breakpoints]
-    q_lhs = sum(breakpoints[k] * lambda[a, k] for k in K)
+    q_lhs = sum(breakpoints[k] * lambda[a, k] for k in 1:pipe_breakpoints)
     c_5 = JuMP.@constraint(wm.model, q_lhs == q)
 
     # Add a constraint for the head gain piecewise approximation.
-    loss = r .* sum(f[k] .* lambda[a, k] for k in K)
+    loss = r .* sum(f[k] .* lambda[a, k] for k in 1:pipe_breakpoints)
     lhs = inv(L) * (h_i - h_j) - loss
 
     dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
@@ -169,7 +169,7 @@ function constraint_sv_head_loss(wm::AbstractMILPModel, n::Int, a::Int, node_fr:
     append!(con(wm, n, :head_loss, a), [c_1, c_2, c_3, c_4, c_5, c_6, c_7])
 
     # Add the adjacency constraints.
-    for k in 2:wm.ext[:pipe_breakpoints]-1
+    for k in 2:pipe_breakpoints-1
         adjacency = x_pw[a, k-1] + x_pw[a, k]
         c_8_k = JuMP.@constraint(wm.model, lambda[a, k] <= adjacency)
         append!(con(wm, n, :head_loss, a), [c_8_k])

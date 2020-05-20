@@ -166,7 +166,8 @@ end
 
 function constraint_sv_head_loss(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # If the number of breakpoints is not positive, no constraints are added.
-    if wm.ext[:pipe_breakpoints] <= 0 return end
+    pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
+    if pipe_breakpoints <= 0 return end
 
     # Get common data for outer-approximation constraints.
     yp, yn = var(wm, n, :yp, a), var(wm, n, :yn, a)
@@ -175,14 +176,14 @@ function constraint_sv_head_loss(wm::AbstractMILPRModel, n::Int, a::Int, node_fr
     qp_ub, qn_ub = JuMP.upper_bound(qp), JuMP.upper_bound(qn)
 
     # Add outer-approximation constraints.
-    for qp_hat in range(0.0, stop=qp_ub, length=wm.ext[:pipe_breakpoints])
+    for qp_hat in range(0.0, stop=qp_ub, length=pipe_breakpoints)
         lhs = _get_head_loss_cv_oa(qp, yp, qp_hat, ref(wm, n, :alpha))
         c_p = JuMP.@constraint(wm.model, r * lhs <= inv(L) * dhp)
         append!(con(wm, n, :head_loss)[a], [c_p])
     end
 
     # Add outer-approximation constraints.
-    for qn_hat in range(0.0, stop=qn_ub, length=wm.ext[:pipe_breakpoints])
+    for qn_hat in range(0.0, stop=qn_ub, length=pipe_breakpoints)
         lhs = _get_head_loss_cv_oa(qn, yn, qn_hat, ref(wm, n, :alpha))
         c_n = JuMP.@constraint(wm.model, r * lhs <= inv(L) * dhn)
         append!(con(wm, n, :head_loss)[a], [c_n])
