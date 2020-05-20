@@ -2,15 +2,17 @@ WaterModels.jl Change Log
 =========================
 
 ### v0.3.0
-- Update to InfrastructureModels v0.5.
-- Remove the Constrained Water Flow (cwf) problem specification.
-- Rename `run_` methods to `solve_`.
-- Rename `post_` methods to `build_`.
-- Rename `ne` (network expansion) methods to `des` (design).
-- Complete MILP implementations of constraints.
-- Implementation of pressure reducing valves.
-- Implementation of shutoff valves.
-- Removal of pump control (not operation) constraints from the Water flow (wf) problem specification.
+- Updated to InfrastructureModels v0.5.
+- Removed the Constrained Water Flow (`cwf`) problem specification.
+- Renamed `run_` methods to `solve_`.
+- Renamed `post_` methods to `build_`.
+- Renamed `ne` (network expansion) methods to `des` (design).
+- Renamed `NCNLP` formulation to `NLP`.
+- Completed MILP implementations of constraints.
+- Implemented pressure reducing valves.
+- Implemented shutoff valves.
+- Removed of pump control (not operation) constraints from the Water flow (wf) problem specification.
+- Migrated experimental formulations (CNLP and MICP-E) to [WaterModelsAnnex.jl](https://github.com/lanl-ansi/WaterModelsAnnex.jl).
 
 ### v0.2.0
 - Update to JuMP v0.21 and InfrastructureModels v0.4.

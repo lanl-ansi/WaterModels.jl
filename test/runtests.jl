@@ -24,11 +24,11 @@ using Test
 cbc = JuMP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
 
 ipopt = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "tol"=>1.0e-9,
-    "acceptable_tol"=>1.0e-9, "max_iter"=>9999, "print_level"=>0)
+    "acceptable_tol"=>1.0e-9, "max_iter"=>9999, "print_level"=>0, "sb"=>"yes")
 
 ipopt_ws = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "tol"=>1.0e-9,
     "acceptable_tol"=>1.0e-9, "max_iter"=>9999, "mu_init"=>1.0e-9,
-    "start_with_resto"=>"yes", "print_level"=>0)
+    "start_with_resto"=>"yes", "print_level"=>0, "sb"=>"yes")
 
 include("common.jl")
 

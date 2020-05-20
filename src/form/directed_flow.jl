@@ -6,7 +6,7 @@
 "Create head-related variables for formulations that use binary direction
 variables. These head variables include total hydraulic head variables as well
 as positive (i to j) and negative (j to i) head difference variables."
-function variable_head(wm::AbstractIntegerDirectedFlowForms; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_head(wm::AbstractDirectedModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
     # Initialize variables associated with heads.
     h = var(wm, nw)[:h] = JuMP.@variable(wm.model,
         [i in ids(wm, nw, :node)], base_name="$(nw)_h",
@@ -44,19 +44,14 @@ function variable_head(wm::AbstractIntegerDirectedFlowForms; nw::Int=wm.cnw, bou
     report && sol_component_value(wm, nw, :node, :h, ids(wm, nw, :node), h)
 end
 
-"Create flow variables for CNLP model."
-function variable_flow(wm::AbstractContinuousDirectedFlowForms; nw::Int=wm.cnw, bounded::Bool=true)
-    variable_flow_common(wm, nw=nw, bounded=bounded)
-end
-
 "Create flow variables for formulations with binary direction variables."
-function variable_flow(wm::AbstractIntegerDirectedFlowForms; nw::Int=wm.cnw, bounded::Bool=true)
+function variable_flow(wm::AbstractDirectedModel; nw::Int=wm.cnw, bounded::Bool=true)
     variable_flow_common(wm, nw=nw, bounded=bounded)
     variable_flow_direction(wm, nw=nw)
 end
 
 "Create flow variables that are common to all directed flow models."
-function variable_flow_common(wm::AbstractDirectedFlowModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_flow_common(wm::AbstractDirectedModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
     # Initialize variables associated with positive flows.
     qp = var(wm, nw)[:qp] = JuMP.@variable(wm.model,
         [a in ids(wm, nw, :link_fixed)], lower_bound=0.0, base_name="$(nw)_qp",
@@ -88,14 +83,14 @@ end
 "Initialize variables associated with flow direction. If this variable is equal
 to one, the flow direction is from i to j. If it is equal to zero, the flow
 direction is from j to i."
-function variable_flow_direction(wm::AbstractDirectedFlowModel; nw::Int=wm.cnw)
+function variable_flow_direction(wm::AbstractDirectedModel; nw::Int=wm.cnw)
     var(wm, nw)[:y] = JuMP.@variable(wm.model, [a in ids(wm, nw, :link)],
         base_name="$(nw)_y", binary=true,
         start=comp_start_value(ref(wm, nw, :link, a), "y_start"))
 end
 
 "Create network design flow variables for directed flow formulations."
-function variable_flow_des(wm::AbstractDirectedFlowModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_flow_des(wm::AbstractDirectedModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
     # Create dictionary for undirected design flow variables (qp_des and qn_des).
     qp_des = var(wm, nw)[:qp_des] = Dict{Int,Array{JuMP.VariableRef}}()
     qn_des = var(wm, nw)[:qn_des] = Dict{Int,Array{JuMP.VariableRef}}()
@@ -136,7 +131,7 @@ function variable_flow_des(wm::AbstractDirectedFlowModel; nw::Int=wm.cnw, bounde
     variable_resistance(wm, nw=nw)
 end
 
-function constraint_check_valve_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to)
+function constraint_check_valve_common(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to)
     # Get common flow variables.
     qp, x_cv = [var(wm, n, :qp, a), var(wm, n, :x_cv, a)]
 
@@ -159,7 +154,7 @@ function constraint_check_valve_common(wm::AbstractDirectedFlowModel, n::Int, a:
     append!(con(wm, n, :check_valve, a), [c_1, c_2, c_3, c_4])
 end
 
-function constraint_sv_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to)
+function constraint_sv_common(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to)
     # Get flow and shutoff valve status variables.
     x_sv = var(wm, n, :x_sv, a)
     qp, qn = var(wm, n, :qp, a), var(wm, n, :qn, a)
@@ -176,7 +171,7 @@ function constraint_sv_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, nod
     append!(con(wm, n, :sv, a), [c_1, c_2, c_3, c_4, c_5])
 end
 
-function constraint_pipe_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, alpha::Float64, L::Float64, r::Float64)
+function constraint_pipe_common(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, alpha::Float64, L::Float64, r::Float64)
     # Get common flow variables and associated data.
     y = var(wm, n, :y, a)
     qp, qn = [var(wm, n, :qp, a), var(wm, n, :qn, a)]
@@ -201,7 +196,7 @@ function constraint_pipe_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, n
     append!(con(wm, n, :pipe)[a], [c_1, c_2, c_3, c_4, c_5])
 end
 
-function constraint_prv_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, h_prv::Float64)
+function constraint_prv_common(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, h_prv::Float64)
     # Get common flow variables.
     qp, x_prv = var(wm, n, :qp, a), var(wm, n, :x_prv, a)
 
@@ -226,7 +221,7 @@ function constraint_prv_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, no
     append!(con(wm, n, :prv, a), [c_1, c_2, c_3, c_4, c_5])
 end
 
-function constraint_pump_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, pc::Array{Float64})
+function constraint_pump_common(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, pc::Array{Float64})
     # Gather variables common to all formulations involving pumps.
     y, x_pump = [var(wm, n, :y, a), var(wm, n, :x_pump, a)]
     qp, g = [var(wm, n, :qp, a), var(wm, n, :g, a)]
@@ -259,7 +254,7 @@ function constraint_pump_common(wm::AbstractDirectedFlowModel, n::Int, a::Int, n
     append!(con(wm, n, :pump, a), [c_1, c_2, c_3, c_4, c_5, c_6, c_7])
 end
 
-function constraint_flow_direction_selection_des(wm::AbstractDirectedFlowModel, n::Int, a::Int, pipe_resistances)
+function constraint_flow_direction_selection_des(wm::AbstractDirectedModel, n::Int, a::Int, pipe_resistances)
     y = var(wm, n, :y, a)
 
     for r_id in 1:length(pipe_resistances)
@@ -270,18 +265,18 @@ function constraint_flow_direction_selection_des(wm::AbstractDirectedFlowModel, 
     end
 end
 
-function constraint_head_loss_ub_cv(wm::AbstractDirectedFlowModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64)
+function constraint_head_loss_ub_cv(wm::AbstractDirectedModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64)
     qp, dhp = [var(wm, n, :qp, a), var(wm, n, :dhp, a)]
     rhs_p = r * JuMP.upper_bound(qp)^(alpha - 1.0) * qp
     c_p = JuMP.@constraint(wm.model, inv(L) * dhp <= rhs_p)
     append!(con(wm, n, :head_loss)[a], [c_p])
 end
 
-function constraint_head_loss_ub_sv(wm::AbstractDirectedFlowModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64)
+function constraint_head_loss_ub_sv(wm::AbstractDirectedModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64)
     # TODO: Fill this in later.
 end
 
-function constraint_head_loss_ub_pipe(wm::AbstractDirectedFlowModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64)
+function constraint_head_loss_ub_pipe(wm::AbstractDirectedModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64)
     qp, dhp = var(wm, n, :qp, a), var(wm, n, :dhp, a)
     rhs_p = r * JuMP.upper_bound(qp)^(alpha - 1.0) * qp
     c_p = JuMP.@constraint(wm.model, inv(L) * dhp <= rhs_p)
@@ -293,7 +288,7 @@ function constraint_head_loss_ub_pipe(wm::AbstractDirectedFlowModel, n::Int, a::
     append!(con(wm, n, :head_loss)[a], [c_p, c_n])
 end
 
-function constraint_head_loss_ub_pipe_des(wm::AbstractDirectedFlowModel, n::Int, a::Int, alpha::Float64, L::Float64, pipe_resistances)
+function constraint_head_loss_ub_pipe_des(wm::AbstractDirectedModel, n::Int, a::Int, alpha::Float64, L::Float64, pipe_resistances)
     dhp = var(wm, n, :dhp, a)
     qp_des = var(wm, n, :qp_des, a)
     qp_des_ub = JuMP.upper_bound.(qp_des)
@@ -309,7 +304,7 @@ function constraint_head_loss_ub_pipe_des(wm::AbstractDirectedFlowModel, n::Int,
     append!(con(wm, n, :head_loss)[a], [c_p, c_n])
 end
 
-function constraint_resistance_selection_des(wm::AbstractDirectedFlowModel, n::Int, a::Int, pipe_resistances)
+function constraint_resistance_selection_des(wm::AbstractDirectedModel, n::Int, a::Int, pipe_resistances)
     c = JuMP.@constraint(wm.model, sum(var(wm, n, :x_res, a)) == 1.0)
     append!(con(wm, n, :head_loss)[a], [c])
 
@@ -329,7 +324,7 @@ function constraint_resistance_selection_des(wm::AbstractDirectedFlowModel, n::I
 end
 
 "Constraint to ensure at least one direction is set to take flow away from a source."
-function constraint_source_flow(wm::AbstractIntegerDirectedFlowForms, n::Int, i::Int, a_fr::Array{Tuple{Int,Int,Int}}, a_to::Array{Tuple{Int,Int,Int}})
+function constraint_source_flow(wm::AbstractDirectedModel, n::Int, i::Int, a_fr::Array{Tuple{Int,Int,Int}}, a_to::Array{Tuple{Int,Int,Int}})
     # Collect the required variables.
     y = var(wm, n, :y)
 
@@ -343,7 +338,7 @@ function constraint_source_flow(wm::AbstractIntegerDirectedFlowForms, n::Int, i:
 end
 
 "Constraint to ensure at least one direction is set to take flow to a junction with demand."
-function constraint_sink_flow(wm::AbstractIntegerDirectedFlowForms, n::Int, i::Int, a_fr::Array{Tuple{Int,Int,Int}}, a_to::Array{Tuple{Int,Int,Int}})
+function constraint_sink_flow(wm::AbstractDirectedModel, n::Int, i::Int, a_fr::Array{Tuple{Int,Int,Int}}, a_to::Array{Tuple{Int,Int,Int}})
     # Collect the required variables.
     y = var(wm, n, :y)
 
@@ -356,6 +351,6 @@ function constraint_sink_flow(wm::AbstractIntegerDirectedFlowForms, n::Int, i::I
     con(wm, n, :sink_flow)[i] = c
 end
 
-function constraint_energy_conservation(wm::AbstractDirectedFlowModel, n::Int, r::Dict{Int64,Array{Float64,1}}, L::Dict{Int64,Float64}, alpha::Float64)
+function constraint_energy_conservation(wm::AbstractDirectedModel, n::Int, r::Dict{Int64,Array{Float64,1}}, L::Dict{Int64,Float64}, alpha::Float64)
     # For directed formulations, there are no constraints, here.
 end

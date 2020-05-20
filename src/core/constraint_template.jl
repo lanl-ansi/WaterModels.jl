@@ -250,35 +250,6 @@ function constraint_head_difference_pump(wm::AbstractWaterModel, a::Int; nw::Int
     constraint_head_difference_pump(wm, nw, a, node_fr, node_to, head_fr, head_to)
 end
 
-function constraint_pump_control(wm::AbstractWaterModel, a::Int, nw_1::Int, nw_2::Int)
-    pump = ref(wm, nw_2, :pump, a)
-
-    if "control" in keys(pump)
-        comps = Array{Pair{String, Int64}, 1}()
-        lt, gt = [nothing, nothing]
-
-        for (control_name, control) in pump["control"]
-            action = control["action"]
-            condition = control["condition"]
-            comps = vcat((condition["node_type"], condition["node_id"]), comps)
-
-            if condition["operator"] == "<="
-                lt = condition["threshold"]
-            elseif condition["operator"] == ">="
-                gt = condition["threshold"]
-            end
-        end
-
-        if all(y->y==comps[1], comps) && lt <= gt && comps[1][1] == "tank"
-            elevation = ref(wm, nw_2, :node, comps[1][2])["elevation"]
-            _initialize_con_dict(wm, :pump_control, nw=nw_2)
-            constraint_pump_control_tank(wm, nw_1, nw_2, a, comps[1][2], lt, gt, elevation)
-        else
-            Memento.error(_LOGGER, "Can't handle control condition.")
-        end
-    end
-end
-
 function constraint_pump_control(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
     pump = ref(wm, nw, :pump, a)
 

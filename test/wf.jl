@@ -1,87 +1,4 @@
 @testset "Water Flow Problems" begin
-    @testset "Balerma network, CNLP formulation." begin
-        network = WaterModels.parse_file("../test/data/epanet/balerma.inp")
-        modifications = WaterModels.parse_file("../test/data/json/balerma.json")
-        InfrastructureModels.update_data!(network, modifications)
-        solution = solve_wf(network, CNLPWaterModel, ipopt,
-            setting=Dict("output"=>Dict("duals"=>true)),
-            solution_processors=[sol_data_model!])
-
-        @test solution["termination_status"] == LOCALLY_SOLVED
-        @test isapprox(solution["solution"]["link"]["1"]["q"], -0.002498, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["link"]["429"]["q"], 0.000864, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["link"]["540"]["q"], -0.008713, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["node"]["191"]["h"], 118.006958, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["node"]["381"]["h"], 86.70694, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["node"]["127001"]["h"], 84.481102, rtol=1.0e-3)
-    end
-
-    @testset "Example 1 network (with tanks and pumps), CNLP formulation." begin
-        # The CNLP formulation does not support tanks, so an error is thrown.
-        @test_throws ErrorException solve_wf("../test/data/epanet/example_1-sp.inp", CNLPWaterModel, ipopt)
-    end
-
-    @testset "Example 1 network (with tanks and pumps), multinetwork CNLP formulation." begin
-        data = WaterModels.parse_file("../test/data/epanet/example_1.inp")
-        mn_data = WaterModels.make_multinetwork(data)
-
-        # The CNLP formulation does not support tanks, so an error is thrown.
-        @test_throws ErrorException instantiate_model(mn_data, CNLPWaterModel, WaterModels.build_mn_wf)
-    end
-
-    @testset "Richmond (single time) network, CNLP formulation." begin
-        # The CNLP formulation does not support tanks, so an error is thrown.
-        @test_throws ErrorException solve_wf("../test/data/epanet/richmond-skeleton-sp.inp", CNLPWaterModel, ipopt)
-    end
-
-    @testset "Richmond network, multinetwork CNLP formulation." begin
-        data = WaterModels.parse_file("../test/data/epanet/richmond-skeleton.inp")
-        mn_data = WaterModels.make_multinetwork(data)
-
-        # The CNLP formulation does not support tanks, so an error is thrown.
-        @test_throws ErrorException instantiate_model(mn_data, CNLPWaterModel, WaterModels.build_mn_wf)
-    end
-
-    @testset "Shamir network, CNLP formulation." begin
-        solution = solve_wf("../test/data/epanet/shamir.inp", CNLPWaterModel,
-            ipopt, setting=Dict("output"=>Dict("duals"=>true)),
-            solution_processors=[sol_data_model!])
-        @test solution["termination_status"] == LOCALLY_SOLVED
-        @test isapprox(solution["solution"]["link"]["2"]["q"], 0.093565, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["link"]["6"]["q"], 0.055710, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["node"]["2"]["h"], 203.247650, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["node"]["6"]["h"], 195.445953, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["reservoir"]["1"]["qr"], 0.31109, rtol=1.0e-3)
-    end
-
-    @testset "Shamir network, multinetwork CNLP formulation." begin
-        data = WaterModels.parse_file("../test/data/epanet/shamir-ts.inp")
-        mn_data = WaterModels.make_multinetwork(data)
-        wm = instantiate_model(mn_data, CNLPWaterModel, WaterModels.build_mn_wf,
-            setting=Dict("output"=>Dict("duals"=>true)))
-        solution = _IM.optimize_model!(wm, optimizer=ipopt,
-            solution_processors=[sol_data_model!])
-
-        @test solution["termination_status"] == LOCALLY_SOLVED
-        @test isapprox(solution["solution"]["nw"]["1"]["link"]["2"]["q"], 0.09356500, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["1"]["link"]["6"]["q"], 0.05571000, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["1"]["reservoir"]["1"]["qr"], 0.31109, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["2"]["link"]["2"]["q"], 0.04678500, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["2"]["link"]["6"]["q"], 0.02785300, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["2"]["reservoir"]["1"]["qr"], 0.5*0.31109, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["3"]["link"]["2"]["q"], 0.02339300, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["3"]["link"]["6"]["q"], 0.01392600, rtol=1.0e-3)
-        @test isapprox(solution["solution"]["nw"]["3"]["reservoir"]["1"]["qr"], 0.25*0.31109, rtol=1.0e-3)
-    end
-
-    @testset "Shamir network (with tank), multinetwork CNLP formulation." begin
-        data = WaterModels.parse_file("../test/data/epanet/shamir-ts-tank.inp")
-        mn_data = WaterModels.make_multinetwork(data)
-
-        # The CNLP formulation does not support tanks, so an error is thrown.
-        @test_throws ErrorException instantiate_model(mn_data, CNLPWaterModel, WaterModels.build_mn_wf)
-    end
- 
     @testset "2PRVs network, MICP formulation." begin
         data = WaterModels.parse_file("../test/data/epanet/2PRVs.inp")
         wm = instantiate_model(data, MICPWaterModel, WaterModels.build_wf)
@@ -382,9 +299,9 @@
         @test solution["termination_status"] == OPTIMAL
     end
 
-    @testset "2PRVs network, NCNLP formulation." begin
+    @testset "2PRVs network, NLP formulation." begin
        data = WaterModels.parse_file("../test/data/epanet/2PRVs.inp")
-       wm = instantiate_model(data, NCNLPWaterModel, WaterModels.build_wf)
+       wm = instantiate_model(data, NLPWaterModel, WaterModels.build_wf)
        f = Juniper.register(head_loss_args(wm)..., autodiff=false)
        juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
            "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
@@ -398,11 +315,11 @@
        @test isapprox(solution["solution"]["node"]["3"]["h"], 35.166771, rtol=1.0e-3)
     end
 
-    @testset "Balerma network, NCNLP formulation." begin
+    @testset "Balerma network, NLP formulation." begin
         network = WaterModels.parse_file("../test/data/epanet/balerma.inp")
         modifications = WaterModels.parse_file("../test/data/json/balerma.json")
         InfrastructureModels.update_data!(network, modifications)
-        solution = solve_wf(network, NCNLPWaterModel, ipopt)
+        solution = solve_wf(network, NLPWaterModel, ipopt)
 
         @test solution["termination_status"] == LOCALLY_SOLVED
         @test isapprox(solution["solution"]["link"]["1"]["q"], -0.002498, rtol=1.0e-3)
@@ -413,9 +330,9 @@
         @test isapprox(solution["solution"]["node"]["127001"]["h"], 84.481102, rtol=1.0e-3)
     end
 
-    @testset "Example 1 network (with tanks and pump), NCNLP formulation." begin
+    @testset "Example 1 network (with tanks and pump), NLP formulation." begin
         data = WaterModels.parse_file("../test/data/epanet/example_1-sp.inp")
-        wm = instantiate_model(data, NCNLPWaterModel, WaterModels.build_wf)
+        wm = instantiate_model(data, NLPWaterModel, WaterModels.build_wf)
         f = Juniper.register(head_loss_args(wm)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
             "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
@@ -423,10 +340,10 @@
         @test solution["termination_status"] == LOCALLY_SOLVED
     end
 
-    @testset "Example 1 network (with tanks and links), multinetwork NCNLP formulation." begin
+    @testset "Example 1 network (with tanks and links), multinetwork NLP formulation." begin
         data = WaterModels.parse_file("../test/data/epanet/example_1.inp")
         mn_data = WaterModels.make_multinetwork(data)
-        wm = instantiate_model(mn_data, NCNLPWaterModel, WaterModels.build_mn_wf)
+        wm = instantiate_model(mn_data, NLPWaterModel, WaterModels.build_mn_wf)
         f = Juniper.register(head_loss_args(wm)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
             "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
@@ -434,9 +351,9 @@
         @test solution["termination_status"] == LOCALLY_SOLVED
     end
 
-    @testset "Richmond (single time) network, NCNLP formulation." begin
+    @testset "Richmond (single time) network, NLP formulation." begin
         data = WaterModels.parse_file("../test/data/epanet/richmond-skeleton-sp.inp")
-        wm = instantiate_model(data, NCNLPWaterModel, WaterModels.build_wf)
+        wm = instantiate_model(data, NLPWaterModel, WaterModels.build_wf)
         f = Juniper.register(head_loss_args(wm)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
             "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
@@ -444,8 +361,8 @@
         @test solution["termination_status"] == LOCALLY_SOLVED
     end
 
-    @testset "Shamir network, NCNLP formulation." begin
-        solution = solve_wf("../test/data/epanet/shamir.inp", NCNLPWaterModel, ipopt)
+    @testset "Shamir network, NLP formulation." begin
+        solution = solve_wf("../test/data/epanet/shamir.inp", NLPWaterModel, ipopt)
         @test solution["termination_status"] == LOCALLY_SOLVED
         @test isapprox(solution["solution"]["link"]["2"]["q"], 0.093565, rtol=1.0e-3)
         @test isapprox(solution["solution"]["link"]["6"]["q"], 0.055710, rtol=1.0e-3)
@@ -454,10 +371,10 @@
         @test isapprox(solution["solution"]["reservoir"]["1"]["qr"], 0.31109, rtol=1.0e-3)
     end
 
-    @testset "Shamir network, multinetwork NCNLP formulation." begin
+    @testset "Shamir network, multinetwork NLP formulation." begin
         data = WaterModels.parse_file("../test/data/epanet/shamir-ts.inp")
         mn_data = WaterModels.make_multinetwork(data)
-        wm = instantiate_model(mn_data, NCNLPWaterModel, WaterModels.build_mn_wf)
+        wm = instantiate_model(mn_data, NLPWaterModel, WaterModels.build_mn_wf)
         solution = _IM.optimize_model!(wm, optimizer=ipopt)
 
         @test solution["termination_status"] == LOCALLY_SOLVED
@@ -472,10 +389,10 @@
         @test isapprox(solution["solution"]["nw"]["3"]["reservoir"]["1"]["qr"], 0.25*0.31109, rtol=1.0e-3)
     end
 
-    @testset "Shamir network (with tank), multinetwork NCNLP formulation." begin
+    @testset "Shamir network (with tank), multinetwork NLP formulation." begin
         data = WaterModels.parse_file("../test/data/epanet/shamir-ts-tank.inp")
         mn_data = WaterModels.make_multinetwork(data)
-        wm = instantiate_model(mn_data, NCNLPWaterModel, WaterModels.build_mn_wf)
+        wm = instantiate_model(mn_data, NLPWaterModel, WaterModels.build_mn_wf)
         f = Juniper.register(head_loss_args(wm)..., autodiff=false)
         juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
             "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
