@@ -166,7 +166,7 @@ function constraint_check_valve_head_loss(wm::AbstractWaterModel, a::Int; nw::In
     # Since check valves exist along pipes, add all common pipe constraints.
     _initialize_con_dict(wm, :pipe, nw=nw, is_array=true)
     con(wm, nw, :pipe)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_pipe_common(wm, nw, a, node_fr, node_to, head_fr, head_to, alpha, L, r)
+    constraint_pipe_common(wm, nw, a, node_fr, node_to, alpha, L, r)
 
     # Add all common check valve constraints.
     _initialize_con_dict(wm, :check_valve, nw=nw, is_array=true)
