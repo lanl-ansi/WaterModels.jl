@@ -174,8 +174,8 @@ end
 function constraint_pipe_common(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
     # Get common flow variables and associated data.
     y = var(wm, n, :y, a)
-    qp, qn = [var(wm, n, :qp, a), var(wm, n, :qn, a)]
-    qp_ub, qn_ub = [JuMP.upper_bound(qp), JuMP.upper_bound(qn)]
+    qp, qn = var(wm, n, :qp, a), var(wm, n, :qn, a)
+    qp_ub, qn_ub = JuMP.upper_bound(qp), JuMP.upper_bound(qn)
 
     # Constrain directed flow variables based on direction.
     c_1 = JuMP.@constraint(wm.model, qp <= qp_ub * y)

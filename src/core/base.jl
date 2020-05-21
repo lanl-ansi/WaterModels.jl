@@ -63,10 +63,21 @@ function ref_add_core!(refs::Dict{Symbol,<:Any})
 end
 
 function _ref_add_core!(nw_refs::Dict{Int,<:Any}, options::Dict{String,<:Any})
+    # Set the resistances based on the head loss type.
+    headloss = options["hydraulic"]["headloss"]
+    viscosity = options["hydraulic"]["viscosity"]
+
     for (nw, ref) in nw_refs
         ref[:link] = merge(ref[:pipe], ref[:valve], ref[:pump])
+        ref[:resistance] = calc_resistances(ref[:pipe], viscosity, headloss)
+        ref[:resistance_cost] = calc_resistance_costs(ref[:pipe], viscosity, headloss)
+
+        # TODO: Check and shutoff valves should not have pipe properties.
         ref[:check_valve] = filter(has_check_valve, ref[:pipe])
         ref[:shutoff_valve] = filter(has_shutoff_valve, ref[:pipe])
+        ref[:pipe] = filter(!has_check_valve, ref[:pipe])
+        ref[:pipe] = filter(!has_shutoff_valve, ref[:pipe])
+
         ref[:pressure_reducing_valve] = filter(is_pressure_reducing_valve, ref[:valve])
         ref[:link_des] = filter(is_des_link, ref[:link])
         ref[:pipe_des] = filter(is_des_link, ref[:pipe])
@@ -120,12 +131,6 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any}, options::Dict{String,<:Any})
         end
 
         ref[:node_reservoir] = node_reservoirs
-
-        # Set the resistances based on the head loss type.
-        headloss = options["hydraulic"]["headloss"]
-        viscosity = options["hydraulic"]["viscosity"]
-        ref[:resistance] = calc_resistances(ref[:pipe], viscosity, headloss)
-        ref[:resistance_cost] = calc_resistance_costs(ref[:pipe], viscosity, headloss)
 
         # Set alpha, that is, the exponent used for head loss relationships.
         ref[:alpha] = uppercase(headloss) == "H-W" ? 1.852 : 2.0

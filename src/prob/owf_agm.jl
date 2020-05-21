@@ -24,14 +24,15 @@ function build_owf_agm(wm::AbstractWaterModel)
     variable_tank(wm)
 
     for (a, pipe) in ref(wm, :pipe)
-        # TODO: Call this something other than status.
-        if pipe["status"] == "CV"
-            constraint_check_valve_head_loss(wm, a)
-        elseif pipe["status"] == "SV"
-            constraint_shutoff_valve_head_loss(wm, a)
-        else
-            constraint_pipe_head_loss(wm, a)
-        end
+        constraint_pipe_head_loss(wm, a)
+    end
+
+    for (a, check_valve) in ref(wm, :check_valve)
+        constraint_check_valve_head_loss(wm, a)
+    end
+
+    for (a, shutoff_valve) in ref(wm, :shutoff_valve)
+        constraint_shutoff_valve_head_loss(wm, a)
     end
 
     for a in ids(wm, :pressure_reducing_valve)
@@ -93,14 +94,15 @@ function build_mn_owf_agm(wm::AbstractWaterModel)
         variable_tank(wm, nw=n)
 
         for (a, pipe) in ref(wm, :pipe, nw=n)
-            # TODO: Call this something other than status.
-            if pipe["status"] == "CV"
-                constraint_check_valve_head_loss(wm, a, nw=n)
-            elseif pipe["status"] == "SV"
-                constraint_shutoff_valve_head_loss(wm, a, nw=n)
-            else
-                constraint_pipe_head_loss(wm, a, nw=n)
-            end
+            constraint_pipe_head_loss(wm, a, nw=n)
+        end
+
+        for (a, check_valve) in ref(wm, :check_valve, nw=n)
+            constraint_check_valve_head_loss(wm, a, nw=n)
+        end
+
+        for (a, shutoff_valve) in ref(wm, :shutoff_valve, nw=n)
+            constraint_shutoff_valve_head_loss(wm, a, nw=n)
         end
 
         for a in ids(wm, :pressure_reducing_valve, nw=n)

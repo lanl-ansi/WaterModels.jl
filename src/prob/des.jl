@@ -28,14 +28,15 @@ function build_des(wm::AbstractWaterModel)
     objective_des(wm)
 
     for (a, pipe) in ref(wm, :pipe_fixed)
-        # TODO: Call this something other than status.
-        if pipe["status"] == "CV"
-            constraint_check_valve_head_loss(wm, a)
-        elseif pipe["status"] == "SV"
-            constraint_shutoff_valve_head_loss(wm, a)
-        else
-            constraint_pipe_head_loss(wm, a)
-        end
+        constraint_pipe_head_loss(wm, a)
+    end
+
+    for (a, check_valve) in ref(wm, :check_valve)
+        constraint_check_valve_head_loss(wm, a)
+    end
+
+    for (a, shutoff_valve) in ref(wm, :shutoff_valve)
+        constraint_shutoff_valve_head_loss(wm, a)
     end
 
     for (a, pipe) in ref(wm, :pipe_des)

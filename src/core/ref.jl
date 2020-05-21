@@ -121,7 +121,10 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     lb = Dict([(a, Float64[]) for a in keys(links)])
     ub = Dict([(a, Float64[]) for a in keys(links)])
 
-    for (a, pipe) in ref(wm, n, :pipe)
+    # TODO: Make separate calculations per merge component.
+    pipes = merge(ref(wm, n, :pipe), ref(wm, n, :check_valve), ref(wm, n, :shutoff_valve))
+
+    for (a, pipe) in pipes
         L = pipe["length"]
         i, j = [pipe["node_fr"], pipe["node_to"]]
 
