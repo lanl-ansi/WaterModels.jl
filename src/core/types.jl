@@ -1,5 +1,8 @@
 "Enumerated type specifying the direction of flow along a link."
 @enum FLOW_DIRECTION POSITIVE=1 NEGATIVE=-1 UNKNOWN=0
+
+"Defines a constant for determining whether flow along a pump or valve is
+considered appreciable. If not, the heads at adjacent nodes will be decoupled."
 const _q_eps = 6.31465679e-6
 
 "Models with two positive flow variables, one for each direction."

@@ -82,7 +82,7 @@ function constraint_check_valve_common(wm::AbstractUndirectedFlowModel, n::Int, 
 
     # If the check valve is open, flow must be appreciably nonnegative.
     c_1 = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * z)
-    c_2 = JuMP.@constraint(wm.model, q >= 6.31465679e-6 * z)
+    c_2 = JuMP.@constraint(wm.model, q >= _q_eps * z)
 
     # Get head variables for from and to nodes.
     h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
@@ -106,8 +106,8 @@ function constraint_sv_common(wm::AbstractUndirectedFlowModel, n::Int, a::Int, n
 
     # If the shutoff valve is open, flow must be appreciably nonnegative.
     c_1 = JuMP.@constraint(wm.model, yp + yn == z) # Directions will be zero when off.
-    c_2 = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * yp - 6.31465679e-6 * yn)
-    c_3 = JuMP.@constraint(wm.model, q >= JuMP.lower_bound(q) * yn + 6.31465679e-6 * yp)
+    c_2 = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * yp - _q_eps * yn)
+    c_3 = JuMP.@constraint(wm.model, q >= JuMP.lower_bound(q) * yn + _q_eps * yp)
 
     # Append the constraint array.
     append!(con(wm, n, :sv, a), [c_1, c_2, c_3])
@@ -119,7 +119,7 @@ function constraint_prv_common(wm::AbstractUndirectedFlowModel, n::Int, a::Int, 
 
     # If the pressure reducing valve is open, flow must be appreciably nonnegative.
     c_1 = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * z)
-    c_2 = JuMP.@constraint(wm.model, q >= 6.31465679e-6 * z)
+    c_2 = JuMP.@constraint(wm.model, q >= _q_eps * z)
 
     # Get head variables for from and to nodes.
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
@@ -145,7 +145,7 @@ function constraint_pump_common(wm::AbstractUndirectedFlowModel, n::Int, a::Int,
 
     # If the pump is off, the flow along the pump must be zero.
     c_1 = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * z)
-    c_2 = JuMP.@constraint(wm.model, q >= 6.31465679e-6 * z)
+    c_2 = JuMP.@constraint(wm.model, q >= _q_eps * z)
 
     # If the pump is off, decouple the head difference relationship.
     dhn_lb = JuMP.lower_bound(h_j) - JuMP.upper_bound(h_i)

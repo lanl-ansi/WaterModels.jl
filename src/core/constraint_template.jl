@@ -185,7 +185,7 @@ end
 ### Shutoff Valve Constraints ###
 function constraint_shutoff_valve_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     node_fr, node_to, head_fr, head_to = _get_head_difference_data(wm, a, nw=nw)
-    alpha, L = ref(wm, nw, :alpha), ref(wm, nw, :check_valve, a)["length"]
+    alpha, L = ref(wm, nw, :alpha), ref(wm, nw, :shutoff_valve, a)["length"]
     r = maximum(ref(wm, nw, :resistance, a))
 
     # Since shutoff valves exist along pipes, add all common pipe constraints.
@@ -200,7 +200,7 @@ function constraint_shutoff_valve_head_loss(wm::AbstractWaterModel, a::Int; nw::
 
     # Add constraints that describe head loss relationships.
     _initialize_con_dict(wm, :head_loss, nw=nw, is_array=true)
-    alpha, L = ref(wm, nw, :alpha), ref(wm, nw, :check_valve, a)["length"]
+    alpha, L = ref(wm, nw, :alpha), ref(wm, nw, :shutoff_valve, a)["length"]
     r = minimum(ref(wm, nw, :resistance, a))
     con(wm, nw, :head_loss)[a] = Array{JuMP.ConstraintRef}([])
     constraint_shutoff_valve_head_loss(wm, nw, a, node_fr, node_to, L, r)

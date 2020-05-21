@@ -6,10 +6,12 @@ function variable_flow_piecewise_weights(wm::AbstractMILPModel; nw::Int=wm.cnw, 
 
     if pipe_breakpoints > 0
         # Create weights involved in convex combination constraints for pipes.
+        # TODO: Split up the different types of lambda variables into their component types.
+        pipe_ids = vcat(ids(wm, nw, :pipe_fixed)..., ids(wm, nw, :check_valve)..., ids(wm, nw, :shutoff_valve)...)
         lambda_pipe = var(wm, nw)[:lambda_pipe] = JuMP.@variable(wm.model,
-            [a in ids(wm, nw, :pipe_fixed), k in 1:pipe_breakpoints],
+            [a in pipe_ids, k in 1:pipe_breakpoints],
             base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
-            start=comp_start_value(ref(wm, nw, :pipe_fixed, a), "lambda_start", k))
+            start=comp_start_value(ref(wm, nw, :link, a), "lambda_start", k))
 
         #report && sol_component_value(wm, nw, :link, :lambda, ids(wm, nw, :pipe_fixed), lambda_pipe)
     end
@@ -48,10 +50,13 @@ function variable_flow_piecewise_adjacency(wm::AbstractMILPModel; nw::Int=wm.cnw
 
     if pipe_breakpoints > 0
         # Create binary variables involved in convex combination constraints for pipes.
+        # TODO: Split up the different types of lambda variables into their component types.
+        pipe_ids = vcat(ids(wm, nw, :pipe_fixed)..., ids(wm, nw, :check_valve)..., ids(wm, nw, :shutoff_valve)...)
+
         x_pw_pipe = var(wm, nw)[:x_pw_pipe] = JuMP.@variable(wm.model,
-            [a in ids(wm, nw, :pipe), k in 1:pipe_breakpoints-1],
+            [a in pipe_ids, k in 1:pipe_breakpoints-1],
             base_name="$(nw)_x_pw", binary=true,
-            start=comp_start_value(ref(wm, nw, :pipe, a), "x_pw_start"))
+            start=comp_start_value(ref(wm, nw, :link, a), "x_pw_start"))
 
         #report && sol_component_value(wm, nw, :link, :x_pw, ids(wm, nw, :pipe), x_pw_pipe)
     end

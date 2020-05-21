@@ -137,7 +137,7 @@ function constraint_check_valve_common(wm::AbstractDirectedModel, n::Int, a::Int
 
     # If the check valve is open, flow must be appreciably nonnegative.
     c_1 = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * z)
-    c_2 = JuMP.@constraint(wm.model, qp >= 6.31465679e-6 * z)
+    c_2 = JuMP.@constraint(wm.model, qp >= _q_eps * z)
 
     # Get common head variables and associated data.
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
@@ -163,9 +163,9 @@ function constraint_sv_common(wm::AbstractDirectedModel, n::Int, a::Int, node_fr
     # If the shutoff valve is open, flow must be appreciably nonnegative.
     c_1 = JuMP.@constraint(wm.model, yp + yn == z) # Directions will be zero when off.
     c_2 = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * yp)
-    c_3 = JuMP.@constraint(wm.model, qp >= 6.31465679e-6 * yp)
+    c_3 = JuMP.@constraint(wm.model, qp >= _q_eps * yp)
     c_4 = JuMP.@constraint(wm.model, qn <= JuMP.upper_bound(qn) * yn)
-    c_5 = JuMP.@constraint(wm.model, qn >= 6.31465679e-6 * yn)
+    c_5 = JuMP.@constraint(wm.model, qn >= _q_eps * yn)
 
     # Append the constraint array.
     append!(con(wm, n, :sv, a), [c_1, c_2, c_3, c_4, c_5])
@@ -201,7 +201,7 @@ function constraint_prv_common(wm::AbstractDirectedModel, n::Int, a::Int, node_f
 
     # If the pressure reducing valve is open, flow must be appreciably nonnegative.
     c_1 = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * z)
-    c_2 = JuMP.@constraint(wm.model, qp >= 6.31465679e-6 * z)
+    c_2 = JuMP.@constraint(wm.model, qp >= _q_eps * z)
 
     # Get common head variables and associated data.
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
@@ -229,7 +229,7 @@ function constraint_pump_common(wm::AbstractDirectedModel, n::Int, a::Int, node_
     # If the pump is off, flow across the pump must be zero.
     qp_ub = JuMP.upper_bound(qp)
     c_1 = JuMP.@constraint(wm.model, qp <= qp_ub * z)
-    c_2 = JuMP.@constraint(wm.model, qp >= 6.31465679e-6 * z)
+    c_2 = JuMP.@constraint(wm.model, qp >= _q_eps * z)
 
     # If the pump is off, decouple the head difference relationship.
     dhp_ub, dhn_ub = [JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)]

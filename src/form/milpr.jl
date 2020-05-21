@@ -95,7 +95,7 @@ function constraint_pipe_head_loss_des(wm::AbstractMILPRModel, n::Int, a::Int, a
     if pipe_breakpoints <= 0 return end
 
     for (r_id, r) in enumerate(resistances)
-        # Add constraints corresponding to positive outer-approximations.
+        # Add constraints corresponding to positive outer approximations.
         qp, dhp = var(wm, n, :qp_des, a)[r_id], var(wm, n, :dhp, a)
         qp_ub = JuMP.upper_bound(qp)
 
@@ -105,7 +105,7 @@ function constraint_pipe_head_loss_des(wm::AbstractMILPRModel, n::Int, a::Int, a
             append!(con(wm, n, :head_loss)[a], [c_p])
         end
 
-        # Add constraints corresponding to negative outer-approximations.
+        # Add constraints corresponding to negative outer approximations.
         qn, dhn = var(wm, n, :qn_des, a)[r_id], var(wm, n, :dhn, a)
         qn_ub = JuMP.upper_bound(qn)
 
@@ -122,8 +122,8 @@ function constraint_pipe_head_loss(wm::AbstractMILPRModel, n::Int, a::Int, node_
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
     if pipe_breakpoints <= 0 return end
 
-    # Add constraints corresponding to positive outer-approximations.
-    qp, dhp = [var(wm, n, :qp, a), var(wm, n, :dhp, a)]
+    # Add constraints corresponding to positive outer approximations.
+    qp, dhp = var(wm, n, :qp, a), var(wm, n, :dhp, a)
     qp_ub = JuMP.upper_bound(qp)
 
     for qp_hat in range(0.0, stop=qp_ub, length=pipe_breakpoints)
@@ -132,8 +132,8 @@ function constraint_pipe_head_loss(wm::AbstractMILPRModel, n::Int, a::Int, node_
         append!(con(wm, n, :head_loss)[a], [c_p])
     end
 
-    # Add constraints corresponding to positive outer-approximations.
-    qn, dhn = [var(wm, n, :qn, a), var(wm, n, :dhn, a)]
+    # Add constraints corresponding to positive outer approximations.
+    qn, dhn = var(wm, n, :qn, a), var(wm, n, :dhn, a)
     qn_ub = JuMP.upper_bound(qn)
 
     for qn_hat in range(0.0, stop=qn_ub, length=pipe_breakpoints)
@@ -148,13 +148,11 @@ function constraint_check_valve_head_loss(wm::AbstractMILPRModel, n::Int, a::Int
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
     if pipe_breakpoints <= 0 return end
 
-    # Get common data for outer-approximation constraints.
-    qp, z = [var(wm, n, :qp, a), var(wm, n, :z_check_valve, a)]
-    dhp = var(wm, n, :dhp, a)
-    qp_ub = JuMP.upper_bound(qp)
+    # Get common variables for outer approximation constraints.
+    qp, dhp, z = var(wm, n, :qp, a), var(wm, n, :dhp, a), var(wm, n, :z_check_valve, a)
 
-    # Add outer-approximation constraints.
-    for qp_hat in range(0.0, stop=qp_ub, length=pipe_breakpoints)
+    # Add outer approximation constraints.
+    for qp_hat in range(0.0, stop=JuMP.upper_bound(qp), length=pipe_breakpoints)
         lhs = _get_head_loss_cv_oa(qp, z, qp_hat, ref(wm, n, :alpha))
         c_p = JuMP.@constraint(wm.model, r * lhs <= inv(L) * dhp)
         append!(con(wm, n, :head_loss)[a], [c_p])
@@ -166,20 +164,20 @@ function constraint_shutoff_valve_head_loss(wm::AbstractMILPRModel, n::Int, a::I
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
     if pipe_breakpoints <= 0 return end
 
-    # Get common data for outer-approximation constraints.
+    # Get common data for outer approximation constraints.
     yp, yn = var(wm, n, :yp, a), var(wm, n, :yn, a)
     qp, qn = var(wm, n, :qp, a), var(wm, n, :qn, a)
     dhp, dhn = var(wm, n, :dhp, a), var(wm, n, :dhn, a)
     qp_ub, qn_ub = JuMP.upper_bound(qp), JuMP.upper_bound(qn)
 
-    # Add outer-approximation constraints.
+    # Add outer approximation constraints for positively-directed flow.
     for qp_hat in range(0.0, stop=qp_ub, length=pipe_breakpoints)
         lhs = _get_head_loss_cv_oa(qp, yp, qp_hat, ref(wm, n, :alpha))
         c_p = JuMP.@constraint(wm.model, r * lhs <= inv(L) * dhp)
         append!(con(wm, n, :head_loss)[a], [c_p])
     end
 
-    # Add outer-approximation constraints.
+    # Add outer approximation constraints for negatively-directed flow.
     for qn_hat in range(0.0, stop=qn_ub, length=pipe_breakpoints)
         lhs = _get_head_loss_cv_oa(qn, yn, qn_hat, ref(wm, n, :alpha))
         c_n = JuMP.@constraint(wm.model, r * lhs <= inv(L) * dhn)
