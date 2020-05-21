@@ -157,7 +157,7 @@ function constraint_pump_common(wm::AbstractUndirectedFlowModel, n::Int, a::Int,
     append!(con(wm, n, :pump, a), [c_1, c_2, c_3, c_4])
 end
 
-function constraint_pipe_common(wm::AbstractUndirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, alpha::Float64, L::Float64, r::Float64)
+function constraint_pipe_common(wm::AbstractUndirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
     # For undirected formulations, there are no constraints, here.
 end
 
@@ -171,7 +171,7 @@ end
 
 function constraint_flow_direction_selection_des(wm::AbstractUndirectedFlowModel, n::Int, a::Int, pipe_resistances) end
 function constraint_head_loss_ub_cv(wm::AbstractUndirectedFlowModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64) end
-function constraint_head_loss_ub_sv(wm::AbstractUndirectedFlowModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64) end
-function constraint_head_loss_ub_pipe_des(wm::AbstractUndirectedFlowModel, n::Int, a::Int, alpha, len, pipe_resistances) end
-function constraint_head_loss_ub_pipe(wm::AbstractUndirectedFlowModel, n::Int, a::Int, alpha, len, r_max) end
+function constraint_shutoff_valve_head_loss_ub(wm::AbstractUndirectedFlowModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64) end
+function constraint_pipe_head_loss_ub_des(wm::AbstractUndirectedFlowModel, n::Int, a::Int, alpha, len, pipe_resistances) end
+function constraint_pipe_head_loss_ub(wm::AbstractUndirectedFlowModel, n::Int, a::Int, alpha, len, r_max) end
 function constraint_energy_conservation(wm::AbstractUndirectedFlowModel, n::Int, r, L, alpha) end

@@ -28,7 +28,7 @@ function build_owf_agm(wm::AbstractWaterModel)
         if pipe["status"] == "CV"
             constraint_check_valve_head_loss(wm, a)
         elseif pipe["status"] == "SV"
-            constraint_sv_head_loss(wm, a)
+            constraint_shutoff_valve_head_loss(wm, a)
         else
             constraint_pipe_head_loss(wm, a)
         end
@@ -97,7 +97,7 @@ function build_mn_owf_agm(wm::AbstractWaterModel)
             if pipe["status"] == "CV"
                 constraint_check_valve_head_loss(wm, a, nw=n)
             elseif pipe["status"] == "SV"
-                constraint_sv_head_loss(wm, a, nw=n)
+                constraint_shutoff_valve_head_loss(wm, a, nw=n)
             else
                 constraint_pipe_head_loss(wm, a, nw=n)
             end

@@ -37,7 +37,7 @@ function constraint_check_valve_head_loss(wm::AbstractNLPModel, n::Int, a::Int, 
 end
 
 "Adds head loss constraints for shutoff valves in `NLP` formulations."
-function constraint_sv_head_loss(wm::AbstractNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
+function constraint_shutoff_valve_head_loss(wm::AbstractNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # Gather common variables and data.
     q, z = var(wm, n, :q, a), var(wm, n, :z_shutoff_valve, a)
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
@@ -58,10 +58,9 @@ function constraint_sv_head_loss(wm::AbstractNLPModel, n::Int, a::Int, node_fr::
 end
 
 "Adds head loss constraints for pipes (without check valves) in `NLP` formulations."
-function constraint_head_loss_pipe(wm::AbstractNLPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, r::Float64)
+function constraint_pipe_head_loss(wm::AbstractNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
     # Gather flow and head variables included in head loss constraints.
-    q = var(wm, n, :q, a)
-    h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
+    q, h_i, h_j = var(wm, n, :q, a), var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
     # Add nonconvex constraint for the head loss relationship.
     c = JuMP.@NLconstraint(wm.model, r * head_loss(q) == inv(L) * (h_i - h_j))
@@ -71,7 +70,7 @@ function constraint_head_loss_pipe(wm::AbstractNLPModel, n::Int, a::Int, alpha::
 end
 
 "Add head loss constraints for design pipes (without check valves) in `NLP` formulations."
-function constraint_head_loss_pipe_des(wm::AbstractNLPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, res)
+function constraint_pipe_head_loss_des(wm::AbstractNLPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, res)
     # Gather common flow and head variables, as well as design indices.
     q, R = [var(wm, n, :q_des, a), 1:length(res)]
     h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]

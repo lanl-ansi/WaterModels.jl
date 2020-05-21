@@ -18,7 +18,7 @@ function constraint_flow_conservation(wm::AbstractWaterModel, n::Int, i::Int, a_
 end
 
 function constraint_link_volume(wm::AbstractWaterModel, n::Int, i::Int, elevation::Float64, surface_area::Float64)
-    h, V = [var(wm, n, :h, i), var(wm, n, :V, i)]
+    h, V = var(wm, n, :h, i), var(wm, n, :V, i)
     c = JuMP.@constraint(wm.model, h - elevation == V * inv(surface_area))
     con(wm, n, :link_volume)[i] = c
 end

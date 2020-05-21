@@ -32,14 +32,14 @@ function build_des(wm::AbstractWaterModel)
         if pipe["status"] == "CV"
             constraint_check_valve_head_loss(wm, a)
         elseif pipe["status"] == "SV"
-            constraint_sv_head_loss(wm, a)
+            constraint_shutoff_valve_head_loss(wm, a)
         else
             constraint_pipe_head_loss(wm, a)
         end
     end
 
     for (a, pipe) in ref(wm, :pipe_des)
-        constraint_pipe_des_head_loss(wm, a)
+        constraint_pipe_head_loss_des(wm, a)
     end
 
     for a in ids(wm, :pressure_reducing_valve)

@@ -110,30 +110,23 @@ end
 
 ### Pipe Constraints ###
 function constraint_pipe_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
-    pipe = ref(wm, nw, :pipe, a)
-    alpha, L = [ref(wm, nw, :alpha), ref(wm, nw, :pipe, a)["length"]]
+    node_fr, node_to = ref(wm, nw, :pipe, a)["node_fr"], ref(wm, nw, :pipe, a)["node_to"]
+    alpha, L = ref(wm, nw, :alpha), ref(wm, nw, :pipe, a)["length"]
     r = minimum(ref(wm, nw, :resistance, a))
-
-    _initialize_con_dict(wm, :head_loss, nw=nw, is_array=true)
-    con(wm, nw, :head_loss)[a] = Array{JuMP.ConstraintRef}([])
 
     # Add common constraints used to model pump behavior.
     _initialize_con_dict(wm, :pipe, nw=nw, is_array=true)
     con(wm, nw, :pipe)[a] = Array{JuMP.ConstraintRef}([])
-    node_fr, node_to, head_fr, head_to = _get_head_difference_data(wm, a, nw=nw)
+    constraint_pipe_common(wm, nw, a, node_fr, node_to, alpha, L, r)
 
-    constraint_pipe_common(wm, nw, a, node_fr, node_to, head_fr, head_to, alpha, L, r)
-    constraint_head_loss_ub_pipe(wm, a; nw=nw, kwargs...)
-    constraint_head_loss_pipe(wm, nw, a, alpha, pipe["node_fr"], pipe["node_to"], pipe["length"], r)
+    # Add constraints related to modeling head loss along pipe.
+    _initialize_con_dict(wm, :head_loss, nw=nw, is_array=true)
+    con(wm, nw, :head_loss)[a] = Array{JuMP.ConstraintRef}([])
+    constraint_pipe_head_loss(wm, nw, a, node_fr, node_to, alpha, L, r)
+    constraint_pipe_head_loss_ub(wm, nw, a, alpha, L, r)
 end
 
-function constraint_head_loss_ub_pipe(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
-    alpha, L = [ref(wm, nw, :alpha), ref(wm, nw, :pipe, a)["length"]]
-    r = maximum(ref(wm, nw, :resistance, a))
-    constraint_head_loss_ub_pipe(wm, nw, a, alpha, L, r)
-end
-
-function constraint_pipe_des_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_pipe_head_loss_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     alpha = ref(wm, nw, :alpha)
     pipe = ref(wm, nw, :pipe, a)
     resistances = ref(wm, nw, :resistance, a)
@@ -143,8 +136,8 @@ function constraint_pipe_des_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=w
     con(wm, nw, :head_loss)[a] = Array{JuMP.ConstraintRef}([])
 
     constraint_flow_direction_selection_des(wm, a; nw=nw, kwargs...)
-    constraint_head_loss_pipe_des(wm, nw, a, alpha, i, j, pipe["length"], resistances)
-    constraint_head_loss_ub_pipe_des(wm, a; nw=nw, kwargs...)
+    constraint_pipe_head_loss_des(wm, nw, a, alpha, i, j, pipe["length"], resistances)
+    constraint_pipe_head_loss_ub_des(wm, a; nw=nw, kwargs...)
     constraint_resistance_selection_des(wm, a; nw=nw, kwargs...)
 end
 
@@ -158,10 +151,10 @@ function constraint_flow_direction_selection_des(wm::AbstractWaterModel, a::Int;
     constraint_flow_direction_selection_des(wm, nw, a, pipe_resistances)
 end
 
-function constraint_head_loss_ub_pipe_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
+function constraint_pipe_head_loss_ub_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
     alpha, L = [ref(wm, nw, :alpha), ref(wm, nw, :pipe, a)["length"]]
     pipe_resistances = ref(wm, nw, :resistance, a)
-    constraint_head_loss_ub_pipe_des(wm, nw, a, alpha, L, pipe_resistances)
+    constraint_pipe_head_loss_ub_des(wm, nw, a, alpha, L, pipe_resistances)
 end
 
 ### Check Valve Constraints ###
@@ -190,7 +183,7 @@ function constraint_check_valve_head_loss(wm::AbstractWaterModel, a::Int; nw::In
 end
 
 ### Shutoff Valve Constraints ###
-function constraint_sv_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_shutoff_valve_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     node_fr, node_to, head_fr, head_to = _get_head_difference_data(wm, a, nw=nw)
     alpha, L = [ref(wm, nw, :alpha), ref(wm, nw, :pipe, a)["length"]]
     r = maximum(ref(wm, nw, :resistance, a))
@@ -198,7 +191,7 @@ function constraint_sv_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw,
     # Since shutoff valves exist along pipes, add all common pipe constraints.
     _initialize_con_dict(wm, :pipe, nw=nw, is_array=true)
     con(wm, nw, :pipe)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_pipe_common(wm, nw, a, node_fr, node_to, head_fr, head_to, alpha, L, r)
+    constraint_pipe_common(wm, nw, a, node_fr, node_to, alpha, L, r)
 
     # Add all common shutoff valve constraints.
     _initialize_con_dict(wm, :sv, nw=nw, is_array=true)
@@ -210,8 +203,8 @@ function constraint_sv_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw,
     alpha, L = [ref(wm, nw, :alpha), ref(wm, nw, :pipe, a)["length"]]
     r = minimum(ref(wm, nw, :resistance, a))
     con(wm, nw, :head_loss)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_sv_head_loss(wm, nw, a, node_fr, node_to, L, r)
-    constraint_head_loss_ub_sv(wm, nw, a, alpha, L, r)
+    constraint_shutoff_valve_head_loss(wm, nw, a, node_fr, node_to, L, r)
+    constraint_shutoff_valve_head_loss_ub(wm, nw, a, alpha, L, r)
 end
 
 ### Pressure Reducing Valve Constraints ###

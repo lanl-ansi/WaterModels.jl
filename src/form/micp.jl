@@ -20,7 +20,7 @@ function variable_pump_operation(wm::AbstractMICPModel; nw::Int=wm.cnw, report::
     end
 end
 
-function constraint_head_loss_pipe_des(wm::AbstractMICPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances)
+function constraint_pipe_head_loss_des(wm::AbstractMICPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances)
     # Collect head difference variables.
     dhp, dhn = [var(wm, n, :dhp, a), var(wm, n, :dhn, a)]
 
@@ -104,7 +104,7 @@ function constraint_check_valve_head_loss(wm::AbstractMICPModel, n::Int, a::Int,
     append!(con(wm, n, :head_loss)[a], [c_p, c_n])
 end
 
-function constraint_sv_head_loss(wm::AbstractMICPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
+function constraint_shutoff_valve_head_loss(wm::AbstractMICPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # Gather flow- and shutoff valve-related variables.
     qp, qn = var(wm, n, :qp, a), var(wm, n, :qn, a)
     yp, yn = var(wm, n, :yp, a), var(wm, n, :yn, a)
@@ -123,7 +123,7 @@ function constraint_sv_head_loss(wm::AbstractMICPModel, n::Int, a::Int, node_fr:
     append!(con(wm, n, :head_loss)[a], [c_p, c_n])
 end
 
-function constraint_head_loss_pipe(wm::AbstractMICPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, r::Float64)
+function constraint_pipe_head_loss(wm::AbstractMICPModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
     # Gather common variables.
     qp, qn = [var(wm, n, :qp, a), var(wm, n, :qn, a)]
     dhp, dhn = [var(wm, n, :dhp, a), var(wm, n, :dhn, a)]

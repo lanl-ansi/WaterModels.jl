@@ -89,14 +89,14 @@ function constraint_pump_head_gain(wm::AbstractMILPRModel, n::Int, a::Int, node_
     end
 end
 
-function constraint_head_loss_pipe_des(wm::AbstractMILPRModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, resistances)
+function constraint_pipe_head_loss_des(wm::AbstractMILPRModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, resistances)
     # If the number of breakpoints is not positive, no constraints are added.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
     if pipe_breakpoints <= 0 return end
 
     for (r_id, r) in enumerate(resistances)
         # Add constraints corresponding to positive outer-approximations.
-        qp, dhp = [var(wm, n, :qp_des, a)[r_id], var(wm, n, :dhp, a)]
+        qp, dhp = var(wm, n, :qp_des, a)[r_id], var(wm, n, :dhp, a)
         qp_ub = JuMP.upper_bound(qp)
 
         for qp_hat in range(0.0, stop=qp_ub, length=pipe_breakpoints)
@@ -106,7 +106,7 @@ function constraint_head_loss_pipe_des(wm::AbstractMILPRModel, n::Int, a::Int, a
         end
 
         # Add constraints corresponding to negative outer-approximations.
-        qn, dhn = [var(wm, n, :qn_des, a)[r_id], var(wm, n, :dhn, a)]
+        qn, dhn = var(wm, n, :qn_des, a)[r_id], var(wm, n, :dhn, a)
         qn_ub = JuMP.upper_bound(qn)
 
         for qn_hat in range(0.0, stop=qn_ub, length=pipe_breakpoints)
@@ -117,7 +117,7 @@ function constraint_head_loss_pipe_des(wm::AbstractMILPRModel, n::Int, a::Int, a
     end
 end
 
-function constraint_head_loss_pipe(wm::AbstractMILPRModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, r::Float64)
+function constraint_pipe_head_loss(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
     # If the number of breakpoints is not positive, no constraints are added.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
     if pipe_breakpoints <= 0 return end
@@ -161,7 +161,7 @@ function constraint_check_valve_head_loss(wm::AbstractMILPRModel, n::Int, a::Int
     end
 end
 
-function constraint_sv_head_loss(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
+function constraint_shutoff_valve_head_loss(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # If the number of breakpoints is not positive, no constraints are added.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
     if pipe_breakpoints <= 0 return end

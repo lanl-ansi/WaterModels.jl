@@ -121,10 +121,6 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any}, options::Dict{String,<:Any})
 
         ref[:node_reservoir] = node_reservoirs
 
-        # TODO: Fix these when feeling ambitious about more carefully handling directions.
-        #ref[:link_known_direction] = filter(has_known_flow_direction, ref[:link])
-        #ref[:link_unknown_direction] = filter(!has_known_flow_direction, ref[:link])
-
         # Set the resistances based on the head loss type.
         headloss = options["hydraulic"]["headloss"]
         viscosity = options["hydraulic"]["viscosity"]

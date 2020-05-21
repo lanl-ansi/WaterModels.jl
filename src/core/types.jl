@@ -1,5 +1,6 @@
 "Enumerated type specifying the direction of flow along a link."
 @enum FLOW_DIRECTION POSITIVE=1 NEGATIVE=-1 UNKNOWN=0
+const _q_eps = 6.31465679e-6
 
 "Models with two positive flow variables, one for each direction."
 abstract type AbstractDirectedFlowModel <: AbstractWaterModel end

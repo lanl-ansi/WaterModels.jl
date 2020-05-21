@@ -131,7 +131,7 @@ function constraint_check_valve_head_loss(wm::AbstractMILPModel, n::Int, a::Int,
 end
 
 "Adds head loss constraints for shutoff valves in `MILP` formulations."
-function constraint_sv_head_loss(wm::AbstractMILPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
+function constraint_shutoff_valve_head_loss(wm::AbstractMILPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # If the number of breakpoints is not positive, no constraints are added.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
     if pipe_breakpoints <= 0 return end
@@ -217,7 +217,7 @@ function constraint_pump_head_gain(wm::AbstractMILPModel, n::Int, a::Int, node_f
     end
 end
 
-function constraint_head_loss_pipe_des(wm::AbstractMILPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, resistances)
+function constraint_pipe_head_loss_des(wm::AbstractMILPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, resistances)
     # If the number of breakpoints is not positive, no constraints are added.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
     if pipe_breakpoints <= 0 return end
@@ -269,7 +269,7 @@ function constraint_head_loss_pipe_des(wm::AbstractMILPModel, n::Int, a::Int, al
     append!(con(wm, n, :head_loss, a), [c_6, c_7])
 end
 
-function constraint_head_loss_pipe(wm::AbstractMILPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, r::Float64)
+function constraint_pipe_head_loss(wm::AbstractMILPModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
     # If the number of breakpoints is not positive, no constraints are added.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
     if pipe_breakpoints <= 0 return end
