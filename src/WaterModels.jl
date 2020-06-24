@@ -3,7 +3,6 @@ module WaterModels
     import InfrastructureModels: ids, ref, var, con, sol, nw_ids, nws, optimize_model!, @im_fields
     const _IM = InfrastructureModels
 
-    import Interpolations
     import JSON
     import JuMP
     import LinearAlgebra
