@@ -44,5 +44,5 @@ Then, as one example, an approximation of water flow physics for the well-known 
 using Cbc
 using WaterModels
 ext = Dict(:num_breakpoints=>10)
-result = solve_wf("shamir.inp", MILPWaterModel, Cbc.Optimizer, ext=ext)
+result = run_wf("shamir.inp", MILPWaterModel, Cbc.Optimizer, ext=ext)
 ```

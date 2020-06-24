@@ -1110,6 +1110,10 @@ function _read_pipe!(data::Dict{String, <:Any})
             pipe["status"] = current[8]
             pipe["initial_status"] = current[8]
 
+            if uppercase(pipe["status"]) == "CLOSED"
+                pipe["status"] = "SV"
+            end
+
             # If the pipe has a check valve, ensure unidirectional flow.
             if uppercase(pipe["status"]) == "CV"
                 pipe["flow_direction"] = POSITIVE

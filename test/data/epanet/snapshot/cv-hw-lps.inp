@@ -1,0 +1,109 @@
+[TITLE]
+Test for Hazen-Williams Head Loss Along a Pipe with a Check Valve
+
+[JUNCTIONS]
+;ID              Elev            Demand          Pattern
+ 2               0.0             1000.0                 ;
+
+[RESERVOIRS]
+;ID              Head            Pattern
+ 1               10.0                                   ;
+
+[TANKS]
+;ID              Elevation       InitLevel       MinLevel         MaxLevel         Diameter         MinVol           VolCurve
+
+[PIPES]
+;ID               Node1          Node2           Length           Diameter         Roughness        MinorLoss        Status
+ 1                1              2               1000.0           1000.0           100.0            0.0              CV    ;
+
+[PUMPS]
+;ID               Node1          Node2           Parameters
+
+[VALVES]
+;ID               Node1          Node2           Diameter         Type             Setting          MinorLoss   
+
+[TAGS]
+
+[DEMANDS]
+;Junction         Demand         Pattern         Category
+
+[STATUS]
+;ID               Status/Setting
+
+[PATTERNS]
+;ID               Multipliers
+
+[CURVES]
+;ID               X-Value        Y-Value
+
+[CONTROLS]
+
+[RULES]
+
+[ENERGY]
+
+[EMITTERS]
+;Junction         Coefficient
+
+[QUALITY]
+;Node             InitQual
+
+[SOURCES]
+;Node             Type           Quality         Pattern
+
+[REACTIONS]
+;Type             Pipe/Tank      Coefficient
+
+[REACTIONS]
+
+[MIXING]
+;Tank             Model
+
+[TIMES]
+ Duration               0:00
+ Hydraulic Timestep     1:00 
+ Quality Timestep       0:05 
+ Pattern Timestep       2:00 
+ Pattern Start          0:00 
+ Report Timestep        1:00 
+ Report Start           0:00 
+ Start ClockTime        12 am
+ Statistic              NONE
+
+[REPORT]
+ Status                 Yes
+ Summary                No
+ Page                   0
+
+[OPTIONS]
+ Units                  LPS
+ Headloss               H-W
+ Specific Gravity       1.0
+ Viscosity              1.0
+ Trials                 40
+ Accuracy               0.00000001
+ Unbalanced             Continue 10
+ Pattern                1
+ Demand Multiplier      1.0
+ Emitter Exponent       0.5
+ Diffusivity            1.0
+ Tolerance              0.01
+
+[COORDINATES]
+;Node             X-Coord        Y-Coord
+ 1                0.0            2500.0
+ 2                1414.21        1085.79
+
+[VERTICES]
+;Link             X-Coord        Y-Coord
+
+[LABELS]
+;X-Coord          Y-Coord        Label & Anchor Node
+
+[BACKDROP]
+ DIMENSIONS       980.00         980.00          5000.00          5000.00         
+ UNITS            None
+ FILE
+ OFFSET           0.00           0.00
+
+[END]

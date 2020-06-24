@@ -61,14 +61,14 @@ import JuMP
 import Cbc
 
 cbc = JuMP.with_optimizer(Cbc.Optimizer)
-solve_des(data, MILPWaterModel, cbc)
+run_des(data, MILPWaterModel, cbc)
 ```
 
 By default, only two breakpoints are used for the linear approximation of each head loss curve.
-These approximations can be more finely discretized by using additional arguments to the `solve_des` function.
+These approximations can be more finely discretized by using additional arguments to the `run_des` function.
 For example, to employ five breakpoints per head loss curve in this formulation, the following can be executed:
 ```julia
-solve_des(data, MILPWaterModel, cbc, ext=Dict(:num_breakpoints=>5))
+run_des(data, MILPWaterModel, cbc, ext=Dict(:num_breakpoints=>5))
 ```
 Note that this takes much longer to solve due to the use of more binary variables.
 However, because of the finer discretization, a lower objective (design cost) can be obtained.
@@ -77,19 +77,19 @@ Instead of linear approximation, head loss curves can also be linearly outer-app
 This formulation employs less strict requirements and avoids the use of binary variables, but solutions (e.g., diameters) may not necessarily be feasible with respect to the full (nonconvex) water network physics.
 To employ five outer-approximation points per (positive or negative) head loss curve in this formulation, the following can be executed
 ```julia
-solve_des(data, MILPRWaterModel, cbc, ext=Dict(:num_breakpoints=>5))
+run_des(data, MILPRWaterModel, cbc, ext=Dict(:num_breakpoints=>5))
 ```
 
 ## Obtaining Results
 The `run` commands in WaterModels return detailed results data in the form of a Julia `Dict`.
 This dictionary can be saved for further processing as follows:
 ```julia
-result = solve_des(data, MILPRWaterModel, cbc, ext=Dict(:num_breakpoints=>5))
+result = run_des(data, MILPRWaterModel, cbc, ext=Dict(:num_breakpoints=>5))
 ```
 
 For example, the algorithm's runtime and final objective value can be accessed with,
 ```
-result["solve_time"]
+result["run_time"]
 result["objective"]
 ```
 
@@ -113,30 +113,30 @@ For example, the full mixed-integer nonconvex formulation for network expansion 
 import KNITRO
 
 knitro = JuMP.with_optimizer(KNITRO.Optimizer)
-solve_des(data, NCNLPWaterModel, knitro)
+run_des(data, NCNLPWaterModel, knitro)
 ```
 and the mixed-integer convex formulation (MICP) can be solved via
 
 ```julia
-solve_des(data, MICPWaterModel, knitro)
+run_des(data, MICPWaterModel, knitro)
 ```
 
 ## Modifying Network Data
 The following example demonstrates one way to perform multiple WaterModels solves while modifing network data in Julia.
 ```julia
-solve_des(data, MILPRWaterModel, cbc, ext=Dict(:num_breakpoints=>5))
+run_des(data, MILPRWaterModel, cbc, ext=Dict(:num_breakpoints=>5))
 
 data["junction"]["3"]["demand"] *= 2.0
 data["junction"]["4"]["demand"] *= 2.0
 data["junction"]["5"]["demand"] *= 2.0
 
-solve_des(data, MILPRWaterModel, cbc, ext=Dict(:num_breakpoints=>5))
+run_des(data, MILPRWaterModel, cbc, ext=Dict(:num_breakpoints=>5))
 ```
 Note that the greater demands in the second problem result in an overall larger network cost.
 For additional details about the network data, see the [WaterModels Network Data Format](@ref) section.
 
 ## Alternative Methods for Building and Solving Models
-The following example demonstrates how to break a `solve_des` call into separate model building and solving steps.
+The following example demonstrates how to break a `run_des` call into separate model building and solving steps.
 This allows inspection of the JuMP model created by WaterModels for the problem.
 ```julia
 wm = build_model(data, MILPRWaterModel, WaterModels.build_des)

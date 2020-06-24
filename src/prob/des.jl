@@ -1,5 +1,5 @@
-function solve_des(network, model_constructor, optimizer; kwargs...)
-    return solve_model(network, model_constructor, optimizer, build_des; kwargs...)
+function run_des(network, model_constructor, optimizer; kwargs...)
+    return run_model(network, model_constructor, optimizer, build_des; kwargs...)
 end
 
 function build_des(wm::AbstractWaterModel)
@@ -11,43 +11,16 @@ function build_des(wm::AbstractWaterModel)
     variable_head_gain(wm)
     variable_flow(wm)
     variable_flow_des(wm)
-    variable_volume(wm)
-
-    # Indicator (status) variables.
-    variable_check_valve_indicator(wm)
-    variable_shutoff_valve_indicator(wm)
-    variable_pressure_reducing_valve_indicator(wm)
-    variable_pump_indicator(wm)
 
     # Component-specific variables.
-    variable_pump_operation(wm)
     variable_reservoir(wm)
-    variable_tank(wm)
 
     # Add the network design objective.
     objective_des(wm)
 
-    for (a, pipe) in ref(wm, :pipe_fixed)
-        # TODO: Call this something other than status.
-        if pipe["status"] == "CV"
-            constraint_check_valve_head_loss(wm, a)
-        elseif pipe["status"] == "SV"
-            constraint_shutoff_valve_head_loss(wm, a)
-        else
-            constraint_pipe_head_loss(wm, a)
-        end
-    end
-
+    # Head loss along design pipes.
     for (a, pipe) in ref(wm, :pipe_des)
         constraint_pipe_head_loss_des(wm, a)
-    end
-
-    for a in ids(wm, :pressure_reducing_valve)
-        constraint_prv_head_loss(wm, a)
-    end
-
-    for a in ids(wm, :pump)
-        constraint_pump_head_gain(wm, a)
     end
 
     # Flow conservation at all nodes.
@@ -61,21 +34,10 @@ function build_des(wm::AbstractWaterModel)
         constraint_source_flow(wm, i)
     end
 
+    # Constrain flow directions based on demand.
     for (i, junction) in ref(wm, :junction)
-        # TODO: The conditional may be redundant, here.
         if junction["demand"] > 0.0
             constraint_sink_flow(wm, i)
         end
     end
-
-    for i in ids(wm, :tank)
-        # Link tank volume variables with tank head variables.
-        constraint_link_volume(wm, i)
-
-        # Set the initial tank volume.
-        constraint_tank_state(wm, i)
-    end
-
-    # Add the energy conservation (primal-dual) constraint.
-    constraint_energy_conservation(wm)
 end

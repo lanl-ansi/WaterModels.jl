@@ -7,13 +7,19 @@ abstract type AbstractWaterModel <: _IM.AbstractInfrastructureModel end
 _IM.@def wm_fields begin WaterModels.@im_fields end
 
 ""
-function solve_model(file::String, model_type::Type, optimizer, build_method; kwargs...)
+function run_model(file::String, model_type::Type, optimizer, build_method; kwargs...)
     data = WaterModels.parse_file(file)
-    return solve_model(data, model_type, optimizer, build_method; kwargs...)
+    return run_model(data, model_type, optimizer, build_method; kwargs...)
 end
 
 ""
-function solve_model(data::Dict{String,<:Any}, model_type::Type, optimizer, build_method; ref_extensions=[], solution_processors=[], kwargs...)
+function run_model(data::Dict{String,<:Any}, model_type::Type, optimizer, build_method; ref_extensions=[], solution_processors=[], multinetwork=false, kwargs...)
+    if multinetwork != _IM.ismultinetwork(data)
+        model_requirement = multinetwork ? "multi-network" : "single-network"
+        data_type = _IM.ismultinetwork(data) ? "multi-network" : "single-network"
+        Memento.error(_LOGGER, "Attempted to build a $(model_requirement) model with $(data_type) data.")
+    end
+
     wm = instantiate_model(data, model_type, build_method; ref_extensions=ref_extensions, kwargs...)
     return optimize_model!(wm, optimizer=optimizer, solution_processors=solution_processors)
 end

@@ -210,7 +210,8 @@ end
 ### Pressure Reducing Valve Constraints ###
 function constraint_prv_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     node_fr, node_to, head_fr, head_to = _get_head_difference_data(wm, a, nw=nw)
-    h_prv = ref(wm, nw, :pressure_reducing_valve, a)["setting"]
+    h_lb = ref(wm, nw, :node, node_to)["elevation"]
+    h_prv = h_lb + ref(wm, nw, :pressure_reducing_valve, a)["setting"]
 
     # Add all common pressure reducing valve constraints.
     _initialize_con_dict(wm, :prv, nw=nw, is_array=true)
@@ -253,13 +254,4 @@ function constraint_pump_control(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
     else
         Memento.error(_LOGGER, "Initial status not found for pump.")
     end
-end
-
-### Global Constraints ###
-function constraint_energy_conservation(wm::AbstractWaterModel, nw::Int=wm.cnw)
-    alpha = ref(wm, nw, :alpha)
-    resistances = ref(wm, nw, :resistance)
-    lengths = Dict(a=>ref(wm, nw, :pipe, a)["length"] for a in ids(wm, nw, :pipe))
-    _initialize_con_dict(wm, :energy_conservation, nw=nw)
-    constraint_energy_conservation(wm, nw, resistances, lengths, alpha)
 end

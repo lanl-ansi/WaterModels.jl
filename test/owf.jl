@@ -1,43 +1,52 @@
-@testset "Optimal Water Flow Problems" begin
-    @testset "Reduced van Zyl network, multinetwork, MICP formulation." begin
-        data = parse_file("../test/data/epanet/van_zyl-3_steps.inp")
-        mn_data = WaterModels.make_multinetwork(data)
-        ext = Dict(:pump_breakpoints=>3)
-        wm = instantiate_model(mn_data, MICPWaterModel, WaterModels.build_mn_owf, ext=ext)
-        f = Juniper.register(head_loss_args(wm)..., autodiff=false)
-        juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
-            "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
-        ## TODO: The below takes too long to execute.
-        #solution = _IM.optimize_model!(wm, optimizer=juniper)
-        #@test solution["termination_status"] == LOCALLY_SOLVED
-    end
+@testset "Optimal Water Flow Problems (Single Network)" begin
+    network = WaterModels.parse_file("../test/data/epanet/snapshot/pump-hw-lps.inp")
 
-    @testset "Reduced van Zyl network, multinetwork, MILP formulation." begin
-        data = parse_file("../test/data/epanet/van_zyl-3_steps.inp")
-        mn_data = WaterModels.make_multinetwork(data)
-        ext = Dict(:pipe_breakpoints=>5, :pump_breakpoints=>5)
-        wm = instantiate_model(mn_data, MILPWaterModel, WaterModels.build_mn_owf, ext=ext)
-        solution = _IM.optimize_model!(wm, optimizer=cbc)
-        @test solution["termination_status"] == OPTIMAL
-    end
+    wm = instantiate_model(network, NLPWaterModel, build_owf)
+    result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
+    @test result["termination_status"] == LOCALLY_SOLVED
+    @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
+    @test isapprox(result["solution"]["node"]["2"]["h"], 98.98, rtol=1.0e-3)
+    @test isapprox(result["solution"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
+    @test result["objective"] <= 128.302
 
-    @testset "Reduced van Zyl network, multinetwork, MILP-R formulation." begin
-        data = parse_file("../test/data/epanet/van_zyl-3_steps.inp")
-        mn_data = WaterModels.make_multinetwork(data)
-        ext = Dict(:pipe_breakpoints=>3, :pump_breakpoints=>3)
-        wm = instantiate_model(mn_data, MILPRWaterModel, WaterModels.build_mn_owf, ext=ext)
-        solution = _IM.optimize_model!(wm, optimizer=cbc)
-        @test solution["termination_status"] == OPTIMAL
-    end
+    wm = instantiate_model(network, MICPRWaterModel, build_owf, ext=Dict(:pump_breakpoints=>3))
+    result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
+    @test result["termination_status"] == LOCALLY_SOLVED
+    @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
+    @test result["solution"]["node"]["2"]["h"] <= 98.99
+    @test isapprox(result["solution"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
+    @test result["objective"] <= 128.302
 
-    @testset "Reduced van Zyl network, multinetwork, NLP formulation." begin
-        data = parse_file("../test/data/epanet/van_zyl-3_steps.inp")
-        mn_data = WaterModels.make_multinetwork(data)
-        wm = instantiate_model(mn_data, NLPWaterModel, WaterModels.build_mn_owf)
-        f = Juniper.register(head_loss_args(wm)..., autodiff=false)
-        juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer,
-            "nl_solver"=>ipopt, "registered_functions"=>[f], "log_levels"=>[])
-        solution = _IM.optimize_model!(wm, optimizer=juniper)
-        @test solution["termination_status"] == LOCALLY_SOLVED
-    end
+    result = run_owf(network, MILPWaterModel, cbc, ext=Dict(:pump_breakpoints=>4))
+    @test result["termination_status"] == OPTIMAL
+    @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
+    @test isapprox(result["solution"]["node"]["2"]["h"], 98.98, rtol=1.0e-1)
+    @test isapprox(result["solution"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
+    @test result["objective"] <= 128.302
+
+    result = run_owf(network, MILPRWaterModel, cbc, ext=Dict(:pump_breakpoints=>3))
+    @test result["termination_status"] == OPTIMAL
+    @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
+    @test result["solution"]["node"]["2"]["h"] <= 98.99
+    @test isapprox(result["solution"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
+    @test result["objective"] <= 128.302
+end
+
+@testset "Optimal Water Flow Problems (Multinetwork)" begin
+    network = WaterModels.parse_file("../test/data/epanet/multinetwork/owf-hw-lps.inp")
+    network = WaterModels.make_multinetwork(network)
+
+    wm = instantiate_model(network, NLPWaterModel, build_mn_owf)
+    result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
+    @test result["termination_status"] == LOCALLY_SOLVED
+
+    wm = instantiate_model(network, MICPRWaterModel, build_mn_owf, ext=Dict(:pump_breakpoints=>3))
+    result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
+    @test result["termination_status"] == LOCALLY_SOLVED
+
+    result = run_mn_owf(network, MILPWaterModel, cbc, ext=Dict(:pump_breakpoints=>4))
+    @test result["termination_status"] == OPTIMAL
+
+    result = run_mn_owf(network, MILPRWaterModel, cbc, ext=Dict(:pump_breakpoints=>3))
+    @test result["termination_status"] == OPTIMAL
 end

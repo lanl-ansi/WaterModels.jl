@@ -46,12 +46,12 @@ function variable_flow_des_common(wm::AbstractUndirectedFlowModel; nw::Int=wm.cn
         end
     end
 
-    # Create expressions capturing the relationships among q, and q_des.
+    # Create expressions capturing the relationships among q and q_des.
     q = var(wm, nw)[:q] = JuMP.@expression(
         wm.model, [a in ids(wm, nw, :link_des)], sum(var(wm, nw, :q_des, a)))
 
     # Initialize the solution reporting data structures.
-    report && sol_component_value(wm, nw, :link, :q, ids(wm, nw, :link_des), q)
+    report && sol_component_value(wm, nw, :link, :q, ids(wm, nw, :link_des), var(wm, nw, :q))
 
     # Create resistance binary variables.
     variable_resistance(wm, nw=nw)
@@ -174,4 +174,3 @@ function constraint_head_loss_ub_cv(wm::AbstractUndirectedFlowModel, n::Int, a::
 function constraint_shutoff_valve_head_loss_ub(wm::AbstractUndirectedFlowModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64) end
 function constraint_pipe_head_loss_ub_des(wm::AbstractUndirectedFlowModel, n::Int, a::Int, alpha, len, pipe_resistances) end
 function constraint_pipe_head_loss_ub(wm::AbstractUndirectedFlowModel, n::Int, a::Int, alpha, len, r_max) end
-function constraint_energy_conservation(wm::AbstractUndirectedFlowModel, n::Int, r, L, alpha) end

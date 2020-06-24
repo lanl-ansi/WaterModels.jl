@@ -40,8 +40,16 @@ function variable_head(wm::AbstractDirectedModel; nw::Int=wm.cnw, bounded::Bool=
         end
     end
 
-    # Report back head values as part of the solution.
+    # Report head values as part of the solution.
     report && sol_component_value(wm, nw, :node, :h, ids(wm, nw, :node), h)
+
+    # Create expressions that calculate pressures.
+    p = var(wm, nw)[:p] = JuMP.@expression(wm.model,
+        [i in ids(wm, nw, :node)],
+        var(wm, nw, :h, i) - ref(wm, nw, :node, i)["elevation"])
+
+    # Report pressure values as part of the solution.
+    report && sol_component_value(wm, nw, :node, :p, ids(wm, nw, :node), p)
 end
 
 "Create flow variables for formulations with binary direction variables."
@@ -348,8 +356,4 @@ function constraint_sink_flow(wm::AbstractDirectedModel, n::Int, i::Int, a_fr::A
     # Add the sink flow direction constraint.
     c = JuMP.@constraint(wm.model, sum(x_in) - sum(x_out) >= 1.0 - length(x_out))
     con(wm, n, :sink_flow)[i] = c
-end
-
-function constraint_energy_conservation(wm::AbstractDirectedModel, n::Int, r::Dict{Int64,Array{Float64,1}}, L::Dict{Int64,Float64}, alpha::Float64)
-    # For directed formulations, there are no constraints, here.
 end

@@ -3,6 +3,17 @@ function calc_resistance_hw(diameter::Float64, roughness::Float64)
     return 7.8828 * inv(0.849^1.852 * roughness^1.852 * diameter^4.8704)
 end
 
+"""
+Turns given single network data into multinetwork data with a `count` replicate
+of the given network. Note that this function performs a deepcopy of the
+network data. Significant multinetwork space savings can often be achieved by
+building application specific methods of building multinetwork with minimal
+data replication.
+"""
+function replicate(data::Dict{String,<:Any}, count::Int; global_keys::Set{String}=Set{String}())
+    return _IM.replicate(data, count, union(global_keys, _wm_global_keys))
+end
+
 function calc_resistances_hw(links::Dict{<:Any, <:Any})
     resistances = Dict([(a, Array{Float64, 1}()) for a in keys(links)])
 
