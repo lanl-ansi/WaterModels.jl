@@ -93,9 +93,9 @@ function constraint_check_valve_head_loss(wm::AbstractMILPModel, n::Int, a::Int,
     if pipe_breakpoints <= 0 return end
 
     # Gather common variables.
-    q, z = [var(wm, n, :q, a), var(wm, n, :z_check_valve, a)]
+    q, z = var(wm, n, :q, a), var(wm, n, :z_check_valve, a)
     lambda, x_pw = [var(wm, n, :lambda_pipe), var(wm, n, :x_pw_pipe)]
-    h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
     # Add the required SOS constraints.
     c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == z)

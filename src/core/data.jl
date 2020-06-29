@@ -223,7 +223,7 @@ end
 
 function set_start_directed_head_difference!(data::Dict{String, <:Any})
     for (a, pipe) in data["pipe"]
-        i, j = [data["pipe"][a]["node_fr"], data["pipe"][a]["node_to"]]
+        i, j = data["pipe"][a]["node_fr"], data["pipe"][a]["node_to"]
         dh = data["node"][string(i)]["h"] - data["node"][string(j)]["h"]
         pipe["dhp_start"] = max(0.0, dh)
         pipe["dhn_start"] = max(0.0, -dh)
