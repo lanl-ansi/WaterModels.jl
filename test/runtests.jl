@@ -1,19 +1,17 @@
 using WaterModels
 
-import InfrastructureModels
-const _IM = InfrastructureModels
-
 import Cbc
 import JuMP
 import JSON
 import Ipopt
 import Juniper
 import Memento
-import MathOptInterface
-const _MOI = MathOptInterface
+
+const _IM = WaterModels._IM
+const _MOI = WaterModels._MOI
 
 # Suppress warnings during testing.
-Memento.setlevel!(Memento.getlogger(InfrastructureModels), "error")
+Memento.setlevel!(Memento.getlogger(_IM), "error")
 Memento.setlevel!(Memento.getlogger(Ipopt), "error")
 Memento.setlevel!(Memento.getlogger(Juniper), "error")
 WaterModels.logger_config!("error")
@@ -23,11 +21,11 @@ using Test
 # Default MIP and NLP optimizers.
 cbc = JuMP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
 
-ipopt = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "tol"=>1.0e-9,
-    "acceptable_tol"=>1.0e-9, "max_iter"=>9999, "print_level"=>0, "sb"=>"yes")
+ipopt = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "tol"=>1.0e-8,
+    "acceptable_tol"=>1.0e-8, "max_iter"=>9999, "print_level"=>0, "sb"=>"yes")
 
-ipopt_ws = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "tol"=>1.0e-9,
-    "acceptable_tol"=>1.0e-9, "max_iter"=>9999, "mu_init"=>1.0e-9,
+ipopt_ws = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "tol"=>1.0e-8,
+    "acceptable_tol"=>1.0e-8, "max_iter"=>9999, "mu_init"=>1.0e-8,
     "start_with_resto"=>"yes", "print_level"=>0, "sb"=>"yes")
 
 include("common.jl")
@@ -43,8 +41,6 @@ include("common.jl")
     include("wf.jl")
 
     include("owf.jl")
-
-    include("owf_agm.jl")
 
     include("des.jl")
 

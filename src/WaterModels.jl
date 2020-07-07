@@ -3,7 +3,6 @@ module WaterModels
     import InfrastructureModels: ids, ref, var, con, sol, nw_ids, nws, optimize_model!, @im_fields
     const _IM = InfrastructureModels
 
-    import Interpolations
     import JSON
     import JuMP
     import LinearAlgebra
@@ -62,7 +61,6 @@ module WaterModels
 
     include("prob/wf.jl")
     include("prob/owf.jl")
-    include("prob/owf_agm.jl")
     include("prob/des.jl")
 
     include("core/export.jl")

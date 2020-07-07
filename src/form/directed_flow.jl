@@ -34,14 +34,22 @@ function variable_head(wm::AbstractDirectedModel; nw::Int=wm.cnw, bounded::Bool=
 
         # Set lower and upper bounds on head differences.
         for (a, link) in ref(wm, nw, :link)
-            i, j = [link["node_fr"], link["node_to"]]
+            i, j = link["node_fr"], link["node_to"]
             JuMP.set_upper_bound(dhp[a], max(0.0, h_ub[i] - h_lb[j]))
             JuMP.set_upper_bound(dhn[a], max(0.0, h_ub[j] - h_lb[i]))
         end
     end
 
-    # Report back head values as part of the solution.
+    # Report head values as part of the solution.
     report && sol_component_value(wm, nw, :node, :h, ids(wm, nw, :node), h)
+
+    # Create expressions that calculate pressures.
+    p = var(wm, nw)[:p] = JuMP.@expression(wm.model,
+        [i in ids(wm, nw, :node)],
+        var(wm, nw, :h, i) - ref(wm, nw, :node, i)["elevation"])
+
+    # Report pressure values as part of the solution.
+    report && sol_component_value(wm, nw, :node, :p, ids(wm, nw, :node), p)
 end
 
 "Create flow variables for formulations with binary direction variables."
@@ -95,17 +103,17 @@ function variable_flow_des(wm::AbstractDirectedModel; nw::Int=wm.cnw, bounded::B
     qp_des = var(wm, nw)[:qp_des] = Dict{Int,Array{JuMP.VariableRef}}()
     qn_des = var(wm, nw)[:qn_des] = Dict{Int,Array{JuMP.VariableRef}}()
 
-    # Initialize the variables. (The default start value of 1.0e-6 is crucial.)
+    # Initialize the variables. (The default start value of _q_eps is crucial.)
     for a in ids(wm, nw, :link_des)
         var(wm, nw, :qp_des)[a] = JuMP.@variable(wm.model,
             [r in 1:length(ref(wm, nw, :resistance, a))], lower_bound=0.0,
             base_name="$(nw)_qp_des[$(a)]",
-            start=comp_start_value(ref(wm, nw, :link_des, a), "qp_des_start", r, 1.0e-6))
+            start=comp_start_value(ref(wm, nw, :link_des, a), "qp_des_start", r, _q_eps))
 
         var(wm, nw, :qn_des)[a] = JuMP.@variable(wm.model,
             [r in 1:length(ref(wm, nw, :resistance, a))], lower_bound=0.0,
             base_name="$(nw)_qn_des[$(a)]",
-            start=comp_start_value(ref(wm, nw, :link_des, a), "qn_des_start", r, 1.0e-6))
+            start=comp_start_value(ref(wm, nw, :link_des, a), "qn_des_start", r, _q_eps))
     end
 
     if bounded # If the variables are bounded, apply the bounds.
@@ -222,9 +230,9 @@ end
 
 function constraint_pump_common(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, pc::Array{Float64})
     # Gather variables common to all formulations involving pumps.
-    y, z = [var(wm, n, :y, a), var(wm, n, :z_pump, a)]
-    qp, g = [var(wm, n, :qp, a), var(wm, n, :g, a)]
-    dhp, dhn = [var(wm, n, :dhp, a), var(wm, n, :dhn, a)]
+    y, z = var(wm, n, :y, a), var(wm, n, :z_pump, a)
+    qp, g = var(wm, n, :qp, a), var(wm, n, :g, a)
+    dhp, dhn = var(wm, n, :dhp, a), var(wm, n, :dhn, a)
 
     # If the pump is off, flow across the pump must be zero.
     qp_ub = JuMP.upper_bound(qp)
@@ -232,7 +240,7 @@ function constraint_pump_common(wm::AbstractDirectedModel, n::Int, a::Int, node_
     c_2 = JuMP.@constraint(wm.model, qp >= _q_eps * z)
 
     # If the pump is off, decouple the head difference relationship.
-    dhp_ub, dhn_ub = [JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)]
+    dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
     c_3 = JuMP.@constraint(wm.model, dhp <= dhp_ub * (1.0 - z))
     c_4 = JuMP.@constraint(wm.model, dhn <= g + dhn_ub * (1.0 - z))
 
@@ -245,7 +253,7 @@ function constraint_pump_common(wm::AbstractDirectedModel, n::Int, a::Int, node_
     c_6 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
 
     # Add a linear lower bound on the head gain approximation.
-    g_1, g_2 = [pc[3], pc[1]*qp_ub^2 + pc[2]*qp_ub + pc[3]]
+    g_1, g_2 = pc[3], pc[1]*qp_ub^2 + pc[2]*qp_ub + pc[3]
     g_lb_line = (g_2 - g_1) * inv(qp_ub) * qp + g_1 * z
     c_7 = JuMP.@constraint(wm.model, g_lb_line <= g)
 
@@ -257,7 +265,7 @@ function constraint_flow_direction_selection_des(wm::AbstractDirectedModel, n::I
     y = var(wm, n, :y, a)
 
     for r_id in 1:length(pipe_resistances)
-        qp, qn = [var(wm, n, :qp_des, a)[r_id], var(wm, n, :qn_des, a)[r_id]]
+        qp, qn = var(wm, n, :qp_des, a)[r_id], var(wm, n, :qn_des, a)[r_id]
         c_p = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * y)
         c_n = JuMP.@constraint(wm.model, qn <= JuMP.upper_bound(qn) * (1.0 - y))
         append!(con(wm, n, :head_loss)[a], [c_p, c_n])
@@ -265,7 +273,7 @@ function constraint_flow_direction_selection_des(wm::AbstractDirectedModel, n::I
 end
 
 function constraint_head_loss_ub_cv(wm::AbstractDirectedModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64)
-    qp, dhp = [var(wm, n, :qp, a), var(wm, n, :dhp, a)]
+    qp, dhp = var(wm, n, :qp, a), var(wm, n, :dhp, a)
     rhs_p = r * JuMP.upper_bound(qp)^(alpha - 1.0) * qp
     c_p = JuMP.@constraint(wm.model, inv(L) * dhp <= rhs_p)
     append!(con(wm, n, :head_loss)[a], [c_p])
@@ -348,8 +356,4 @@ function constraint_sink_flow(wm::AbstractDirectedModel, n::Int, i::Int, a_fr::A
     # Add the sink flow direction constraint.
     c = JuMP.@constraint(wm.model, sum(x_in) - sum(x_out) >= 1.0 - length(x_out))
     con(wm, n, :sink_flow)[i] = c
-end
-
-function constraint_energy_conservation(wm::AbstractDirectedModel, n::Int, r::Dict{Int64,Array{Float64,1}}, L::Dict{Int64,Float64}, alpha::Float64)
-    # For directed formulations, there are no constraints, here.
 end

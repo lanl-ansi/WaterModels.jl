@@ -55,8 +55,7 @@ function constraint_pump_head_gain(wm::AbstractMILPRModel, n::Int, a::Int, node_
     if pump_breakpoints <= 0 return end
 
     # Gather flow, head gain, and convex combination variables.
-    g = var(wm, n, :g, a)
-    qp, z = var(wm, n, :qp, a), var(wm, n, :z_pump, a)
+    qp, g, z = var(wm, n, :qp, a), var(wm, n, :g, a), var(wm, n, :z_pump, a)
     lambda, x_pw = [var(wm, n, :lambda_pump), var(wm, n, :x_pw_pump)]
 
     # Add the required SOS constraints.
@@ -66,8 +65,7 @@ function constraint_pump_head_gain(wm::AbstractMILPRModel, n::Int, a::Int, node_
     c_4 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
 
     # Add a constraint for the flow piecewise approximation.
-    qp_ub = JuMP.upper_bound(qp)
-    breakpoints = range(0.0, stop=qp_ub, length=pump_breakpoints)
+    breakpoints = range(0.0, stop=JuMP.upper_bound(qp), length=pump_breakpoints)
     qp_lhs = sum(breakpoints[k] * lambda[a, k] for k in 1:pump_breakpoints)
     c_5 = JuMP.@constraint(wm.model, qp_lhs == qp)
 
@@ -81,7 +79,7 @@ function constraint_pump_head_gain(wm::AbstractMILPRModel, n::Int, a::Int, node_
         append!(con(wm, n, :head_gain, a), [c_6_k])
     end
 
-    # Add head gain outer- (i.e., upper-) approximations.
+    # Add head gain outer (i.e., upper) approximations.
     for qp_hat in breakpoints
         lhs = _get_head_gain_oa(qp, z, qp_hat, pc)
         c_7_k = JuMP.@constraint(wm.model, g <= lhs)
@@ -122,21 +120,19 @@ function constraint_pipe_head_loss(wm::AbstractMILPRModel, n::Int, a::Int, node_
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
     if pipe_breakpoints <= 0 return end
 
-    # Add constraints corresponding to positive outer approximations.
+    # Add constraints corresponding to positive outer-approximations.
     qp, dhp = var(wm, n, :qp, a), var(wm, n, :dhp, a)
-    qp_ub = JuMP.upper_bound(qp)
 
-    for qp_hat in range(0.0, stop=qp_ub, length=pipe_breakpoints)
+    for qp_hat in range(0.0, stop=JuMP.upper_bound(qp), length=pipe_breakpoints)
         lhs = r * _get_head_loss_oa(qp, qp_hat, alpha)
         c_p = JuMP.@constraint(wm.model, lhs <= inv(L) * dhp)
         append!(con(wm, n, :head_loss)[a], [c_p])
     end
 
-    # Add constraints corresponding to positive outer approximations.
+    # Add constraints corresponding to positive outer-approximations.
     qn, dhn = var(wm, n, :qn, a), var(wm, n, :dhn, a)
-    qn_ub = JuMP.upper_bound(qn)
 
-    for qn_hat in range(0.0, stop=qn_ub, length=pipe_breakpoints)
+    for qn_hat in range(0.0, stop=JuMP.upper_bound(qn), length=pipe_breakpoints)
         lhs = r * _get_head_loss_oa(qn, qn_hat, alpha)
         c_n = JuMP.@constraint(wm.model, lhs <= inv(L) * dhn)
         append!(con(wm, n, :head_loss)[a], [c_n])

@@ -1,5 +1,5 @@
-function solve_wf(network, model_constructor, optimizer; kwargs...)
-    return solve_model(network, model_constructor, optimizer, build_wf; kwargs...)
+function run_wf(network, model_constructor, optimizer; kwargs...)
+    return run_model(network, model_constructor, optimizer, build_wf; kwargs...)
 end
 
 function build_wf(wm::AbstractWaterModel)
@@ -35,10 +35,12 @@ function build_wf(wm::AbstractWaterModel)
         constraint_shutoff_valve_head_loss(wm, a)
     end
 
+    # Head loss along pressure reducing valves.
     for a in ids(wm, :pressure_reducing_valve)
         constraint_prv_head_loss(wm, a)
     end
 
+    # Head gain along pumps.
     for a in ids(wm, :pump)
         constraint_pump_head_gain(wm, a)
     end
@@ -54,10 +56,12 @@ function build_wf(wm::AbstractWaterModel)
         constraint_source_flow(wm, i)
     end
 
+    # Constrain flow directions based on demand.
     for (i, junction) in ref(wm, :junction)
-        # TODO: The conditional may be redundant, here.
         if junction["demand"] > 0.0
             constraint_sink_flow(wm, i)
+        elseif junction["demand"] < 0.0
+            constraint_source_flow(wm, i)
         end
     end
 
@@ -73,8 +77,8 @@ function build_wf(wm::AbstractWaterModel)
     objective_wf(wm)
 end
 
-function solve_mn_wf(file, model_constructor, optimizer; kwargs...)
-    return solve_model(file, model_constructor, optimizer, build_mn_wf; multinetwork=true, kwargs...)
+function run_mn_wf(file, model_constructor, optimizer; kwargs...)
+    return run_model(file, model_constructor, optimizer, build_mn_wf; multinetwork=true, kwargs...)
 end
 
 function build_mn_wf(wm::AbstractWaterModel)
@@ -83,21 +87,21 @@ function build_mn_wf(wm::AbstractWaterModel)
 
     for (n, network) in nws(wm)
         # Physical variables.
-        variable_head(wm, nw=n)
-        variable_head_gain(wm, nw=n)
-        variable_flow(wm, nw=n)
-        variable_volume(wm, nw=n)
+        variable_head(wm; nw=n)
+        variable_head_gain(wm; nw=n)
+        variable_flow(wm; nw=n)
+        variable_volume(wm; nw=n)
 
         # Indicator (status) variables.
-        variable_check_valve_indicator(wm, nw=n)
-        variable_shutoff_valve_indicator(wm, nw=n)
-        variable_pressure_reducing_valve_indicator(wm, nw=n)
-        variable_pump_indicator(wm, nw=n)
+        variable_check_valve_indicator(wm; nw=n)
+        variable_shutoff_valve_indicator(wm; nw=n)
+        variable_pressure_reducing_valve_indicator(wm; nw=n)
+        variable_pump_indicator(wm; nw=n)
 
         # Component-specific variables.
-        variable_pump_operation(wm, nw=n)
-        variable_reservoir(wm, nw=n)
-        variable_tank(wm, nw=n)
+        variable_pump_operation(wm; nw=n)
+        variable_reservoir(wm; nw=n)
+        variable_tank(wm; nw=n)
 
         for (a, pipe) in ref(wm, :pipe, nw=n)
             constraint_pipe_head_loss(wm, a, nw=n)
@@ -111,35 +115,39 @@ function build_mn_wf(wm::AbstractWaterModel)
             constraint_shutoff_valve_head_loss(wm, a, nw=n)
         end
 
-        for a in ids(wm, :pressure_reducing_valve, nw=n)
-            constraint_prv_head_loss(wm, a, nw=n)
+        # Head loss along pressure reducing valves.
+        for a in ids(wm, :pressure_reducing_valve; nw=n)
+            constraint_prv_head_loss(wm, a; nw=n)
         end
 
-        for a in ids(wm, :pump, nw=n)
-            constraint_pump_head_gain(wm, a, nw=n)
+        # Head gain along pumps.
+        for a in ids(wm, :pump; nw=n)
+            constraint_pump_head_gain(wm, a; nw=n)
         end
 
         # Flow conservation at all nodes.
-        for (i, node) in ref(wm, :node, nw=n)
-            constraint_flow_conservation(wm, i, nw=n)
+        for (i, node) in ref(wm, :node; nw=n)
+            constraint_flow_conservation(wm, i; nw=n)
         end
 
         # Set source node hydraulic heads.
-        for (i, reservoir) in ref(wm, :reservoir, nw=n)
-            constraint_source_head(wm, i, nw=n)
-            constraint_source_flow(wm, i, nw=n)
+        for (i, reservoir) in ref(wm, :reservoir; nw=n)
+            constraint_source_head(wm, i; nw=n)
+            constraint_source_flow(wm, i; nw=n)
         end
 
-        for (i, junction) in ref(wm, :junction, nw=n)
-            # TODO: The conditional may be redundant, here.
+        # Constrain flow directions based on demand.
+        for (i, junction) in ref(wm, :junction; nw=n)
             if junction["demand"] > 0.0
-                constraint_sink_flow(wm, i, nw=n)
+                constraint_sink_flow(wm, i; nw=n)
+            elseif junction["demand"] < 0.0
+                constraint_source_flow(wm, i; nw=n)
             end
         end
 
         # Link tank volume variables with tank head variables.
-        for i in ids(wm, :tank, nw=n)
-            constraint_link_volume(wm, i, nw=n)
+        for i in ids(wm, :tank; nw=n)
+            constraint_link_volume(wm, i; nw=n)
         end
     end
 
@@ -150,13 +158,13 @@ function build_mn_wf(wm::AbstractWaterModel)
     n_1 = network_ids[1]
 
     # Set initial conditions of tanks.
-    for i in ids(wm, :tank, nw=n_1)
-        constraint_tank_state(wm, i, nw=n_1)
+    for i in ids(wm, :tank; nw=n_1)
+        constraint_tank_state(wm, i; nw=n_1)
     end
 
     for n_2 in network_ids[2:end]
         # Set tank states after the initial time step.
-        for i in ids(wm, :tank, nw=n_2)
+        for i in ids(wm, :tank; nw=n_2)
             constraint_tank_state(wm, i, n_1, n_2)
         end
 

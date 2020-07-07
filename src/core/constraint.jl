@@ -8,13 +8,12 @@ function constraint_source_head(wm::AbstractWaterModel, n::Int, i::Int, h_s::Flo
 end
 
 function constraint_flow_conservation(wm::AbstractWaterModel, n::Int, i::Int, a_fr::Array{Tuple{Int,Int,Int}}, a_to::Array{Tuple{Int,Int,Int}}, reservoirs::Array{Int}, tanks::Array{Int}, demands::Dict{Int,Float64})
-    q, qr, qt = [var(wm, n, :q), var(wm, n, :qr), var(wm, n, :qt)]
-
-    c = JuMP.@constraint(wm.model, sum(q[a] for (a, f, t) in a_to)
-        - sum(q[a] for (a, f, t) in a_fr) == -sum(qr[id] for id in reservoirs)
-        - sum(qt[id] for id in tanks) + sum(demand for (id, demand) in demands))
-
-    con(wm, n, :flow_conservation)[i] = c
+    con(wm, n, :flow_conservation)[i] = JuMP.@constraint(wm.model,
+          sum(var(wm, n, :q, a) for (a, f, t) in a_to)
+        - sum(var(wm, n, :q, a) for (a, f, t) in a_fr) ==
+        - sum(var(wm, n, :qr, id) for id in reservoirs)
+        - sum(var(wm, n, :qt, id) for id in tanks)
+        + sum(demand for (id, demand) in demands))
 end
 
 function constraint_link_volume(wm::AbstractWaterModel, n::Int, i::Int, elevation::Float64, surface_area::Float64)

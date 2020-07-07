@@ -11,7 +11,7 @@ This decoupling enables the definition of a wide variety of water network optimi
 **Core Problem Specifications**
 * Water Flow (wf) - obtain feasible flows for a fixed network
 * Optimal Water Flow (owf) - minimize the cost required for network operation
-* Network Design (des) - minimize the cost of design (or expansion)
+* Network Design (des) - minimize the cost of network design
 
 **Core Network Formulations**
 * NLP - nonconvex nonlinear program

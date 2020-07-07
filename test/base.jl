@@ -3,7 +3,7 @@
         # This should silence everything except error messages.
         WaterModels.silence()
 
-        wm_logger = Memento.getlogger(InfrastructureModels)
+        wm_logger = Memento.getlogger(_IM)
         @test Memento.getlevel(wm_logger) == "error"
         Memento.warn(wm_logger, "Silenced message should not be displayed.")
 
