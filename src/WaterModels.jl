@@ -5,10 +5,8 @@ module WaterModels
 
     import JSON
     import JuMP
-    import LinearAlgebra
     import LsqFit
     import Memento
-    import SparseArrays
 
     import MathOptInterface
     const _MOI = MathOptInterface
