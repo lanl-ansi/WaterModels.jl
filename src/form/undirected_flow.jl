@@ -3,42 +3,55 @@
 # When q is nonnegative, flow is assumed to travel from i to j. When q is
 # negative, flow is assumed to travel from j to i.
 
-"Create common flow variables for undirected flow formulations."
-function variable_flow_common(wm::AbstractUndirectedFlowModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
-    # Initialize the variables. (The default start value of 1.0e-6 is crucial.)
-    q = var(wm, nw)[:q] = JuMP.@variable(wm.model,
-        [a in ids(wm, nw, :link_fixed)], base_name="$(nw)_q",
-        start=comp_start_value(ref(wm, nw, :link_fixed, a), "q_start", 1.0e-6))
+"Create flow-related variables common to all directed flow models for edge-type components."
+function variable_flow(wm::AbstractUndirectedModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+    for name in ["check_valve", "pipe", "pressure_reducing_valve", "pump", "shutoff_valve"]
+        # Create directed flow (`qp` and `qn`) variables for each component.
+        variable_component_flow(wm, name; nw=nw, bounded=bounded, report=report)
+    end
+end
+
+"Create flow variables that are common to all directed flow models for a component."
+function variable_component_flow(
+    wm::AbstractUndirectedModel, component_name::String; nw::Int=wm.cnw,
+    bounded::Bool=true, report::Bool=true)
+    # Store the corresponding component symbol.
+    comp_sym = Symbol(component_name)
+
+    # Initialize the variables. (The default start value of _q_eps is crucial.)
+    q = var(wm, nw)[Symbol("q_" * component_name)] = JuMP.@variable(wm.model,
+        [a in ids(wm, nw, comp_sym)], base_name="$(nw)_q",
+        start=comp_start_value(ref(wm, nw, comp_sym, a), "q_start", _q_eps))
 
     if bounded # If the variables are bounded, apply the bounds.
         q_lb, q_ub = calc_flow_bounds(wm, nw)
 
-        for (a, link) in ref(wm, nw, :link_fixed)
+        for (a, comp) in ref(wm, nw, comp_sym)
             JuMP.set_lower_bound(q[a], minimum(q_lb[a]))
             JuMP.set_upper_bound(q[a], maximum(q_ub[a]))
         end
     end
 
     # Initialize the solution reporting data structures.
-    report && sol_component_value(wm, nw, :link, :q, ids(wm, nw, :link_fixed), q)
+    report && sol_component_value(wm, nw, comp_sym, :q, ids(wm, nw, comp_sym), q)
 end
 
 "Create common network design flow variables for undirected flow formulations."
-function variable_flow_des_common(wm::AbstractUndirectedFlowModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_flow_des_common(wm::AbstractUndirectedModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
     # Create dictionary for undirected design flow variables (i.e., q_des).
     q_des = var(wm, nw)[:q_des] = Dict{Int,Array{JuMP.VariableRef}}()
 
-    # Initialize the variables. (The default start value of 1.0e-6 is crucial.)
-    for a in ids(wm, nw, :link_des)
+    # Initialize the variables. (The default start value of _q_eps is crucial.)
+    for a in ids(wm, nw, :pipe_des)
         var(wm, nw, :q_des)[a] = JuMP.@variable(wm.model,
             [r in 1:length(ref(wm, nw, :resistance, a))], base_name="$(nw)_q_des",
-            start=comp_start_value(ref(wm, nw, :link_des, a), "q_des_start", r, 1.0e-6))
+            start=comp_start_value(ref(wm, nw, :pipe_des, a), "q_des_start", r, _q_eps))
     end
 
     if bounded # If the variables are bounded, apply the bounds.
         q_lb, q_ub = calc_flow_bounds(wm, nw)
 
-        for a in ids(wm, nw, :link_des)
+        for a in ids(wm, nw, :pipe_des)
             for r in 1:length(ref(wm, nw, :resistance, a))
                 JuMP.set_lower_bound(q_des[a][r], q_lb[a][r])
                 JuMP.set_upper_bound(q_des[a][r], q_ub[a][r])
@@ -48,17 +61,17 @@ function variable_flow_des_common(wm::AbstractUndirectedFlowModel; nw::Int=wm.cn
 
     # Create expressions capturing the relationships among q and q_des.
     q = var(wm, nw)[:q] = JuMP.@expression(
-        wm.model, [a in ids(wm, nw, :link_des)], sum(var(wm, nw, :q_des, a)))
+        wm.model, [a in ids(wm, nw, :pipe_des)], sum(var(wm, nw, :q_des, a)))
 
     # Initialize the solution reporting data structures.
-    report && sol_component_value(wm, nw, :link, :q, ids(wm, nw, :link_des), var(wm, nw, :q))
+    report && sol_component_value(wm, nw, :pipe_des, :q, ids(wm, nw, :pipe_des), q)
 
     # Create resistance binary variables.
     variable_resistance(wm, nw=nw)
 end
 
 "Constrain flow variables, based on design selections, in undirected flow formulations."
-function constraint_resistance_selection_des(wm::AbstractUndirectedFlowModel, n::Int, a::Int, pipe_resistances)
+function constraint_resistance_selection_des(wm::AbstractUndirectedModel, n::Int, a::Int, pipe_resistances)
     c = JuMP.@constraint(wm.model, sum(var(wm, n, :x_res, a)) == 1.0)
     append!(con(wm, n, :head_loss)[a], [c])
 
@@ -76,16 +89,16 @@ function constraint_resistance_selection_des(wm::AbstractUndirectedFlowModel, n:
     end
 end
 
-function constraint_check_valve_common(wm::AbstractUndirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to)
+function constraint_check_valve_common(wm::AbstractUndirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int)
     # Get flow and check valve status variables.
-    q, z = var(wm, n, :q, a), var(wm, n, :z_check_valve, a)
+    q, z = var(wm, n, :q_check_valve, a), var(wm, n, :z_check_valve, a)
 
     # If the check valve is open, flow must be appreciably nonnegative.
     c_1 = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * z)
     c_2 = JuMP.@constraint(wm.model, q >= _q_eps * z)
 
     # Get head variables for from and to nodes.
-    h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
     # When the check valve is open, negative head loss is not possible.
     dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
@@ -99,23 +112,22 @@ function constraint_check_valve_common(wm::AbstractUndirectedFlowModel, n::Int, 
     append!(con(wm, n, :check_valve, a), [c_1, c_2, c_3, c_4])
 end
 
-function constraint_sv_common(wm::AbstractUndirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to)
+function constraint_sv_common(wm::AbstractUndirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int)
     # Get flow and shutoff valve status variables.
-    q, z = var(wm, n, :q, a), var(wm, n, :z_shutoff_valve, a)
-    yp, yn = var(wm, n, :yp, a), var(wm, n, :yn, a)
+    q, z = var(wm, n, :q_shutoff_valve, a), var(wm, n, :z_shutoff_valve, a)
 
     # If the shutoff valve is open, flow must be appreciably nonnegative.
-    c_1 = JuMP.@constraint(wm.model, yp + yn == z) # Directions will be zero when off.
-    c_2 = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * yp - _q_eps * yn)
-    c_3 = JuMP.@constraint(wm.model, q >= JuMP.lower_bound(q) * yn + _q_eps * yp)
+    c_1 = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * z)
+    c_2 = JuMP.@constraint(wm.model, q >= JuMP.lower_bound(q) * z)
 
     # Append the constraint array.
-    append!(con(wm, n, :sv, a), [c_1, c_2, c_3])
+    append!(con(wm, n, :sv, a), [c_1, c_2])
 end
 
-function constraint_prv_common(wm::AbstractUndirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, h_prv::Float64)
+function constraint_prv_common(wm::AbstractUndirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, h_prv::Float64)
     # Get flow and pressure reducing valve status variables.
-    q, z = var(wm, n, :q, a), var(wm, n, :z_pressure_reducing_valve, a)
+    q = var(wm, n, :q_pressure_reducing_valve, a)
+    z = var(wm, n, :z_pressure_reducing_valve, a)
 
     # If the pressure reducing valve is open, flow must be appreciably nonnegative.
     c_1 = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * z)
@@ -137,10 +149,10 @@ function constraint_prv_common(wm::AbstractUndirectedFlowModel, n::Int, a::Int, 
     append!(con(wm, n, :prv, a), [c_1, c_2, c_3, c_4, c_5])
 end
 
-function constraint_pump_common(wm::AbstractUndirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_fr, head_to, pc::Array{Float64})
+function constraint_pump_common(wm::AbstractUndirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
     # Gather common variables.
     z = var(wm, n, :z_pump, a)
-    q, g = var(wm, n, :q, a), var(wm, n, :g, a)
+    q, g = var(wm, n, :q_pump, a), var(wm, n, :g, a)
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
     # If the pump is off, the flow along the pump must be zero.
@@ -157,20 +169,20 @@ function constraint_pump_common(wm::AbstractUndirectedFlowModel, n::Int, a::Int,
     append!(con(wm, n, :pump, a), [c_1, c_2, c_3, c_4])
 end
 
-function constraint_pipe_common(wm::AbstractUndirectedFlowModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
+function constraint_pipe_common(wm::AbstractUndirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
     # For undirected formulations, there are no constraints, here.
 end
 
-function constraint_sink_flow(wm::AbstractWaterModel, n::Int, i::Int, a_fr::Array{Tuple{Int,Int,Int}}, a_to::Array{Tuple{Int,Int,Int}})
+function constraint_sink_flow(wm::AbstractUndirectedModel, n::Int, i::Int, a_fr::Array{Tuple{Int,Int,Int}}, a_to::Array{Tuple{Int,Int,Int}})
     # For undirected formulations, there are no constraints, here.
 end
 
-function constraint_source_flow(wm::AbstractWaterModel, n::Int, i::Int, a_fr::Array{Tuple{Int,Int,Int}}, a_to::Array{Tuple{Int,Int,Int}})
+function constraint_source_flow(wm::AbstractUndirectedModel, n::Int, i::Int, a_fr::Array{Tuple{Int,Int,Int}}, a_to::Array{Tuple{Int,Int,Int}})
     # For undirected formulations, there are no constraints, here.
 end
 
-function constraint_flow_direction_selection_des(wm::AbstractUndirectedFlowModel, n::Int, a::Int, pipe_resistances) end
-function constraint_head_loss_ub_cv(wm::AbstractUndirectedFlowModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64) end
-function constraint_shutoff_valve_head_loss_ub(wm::AbstractUndirectedFlowModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64) end
-function constraint_pipe_head_loss_ub_des(wm::AbstractUndirectedFlowModel, n::Int, a::Int, alpha, len, pipe_resistances) end
-function constraint_pipe_head_loss_ub(wm::AbstractUndirectedFlowModel, n::Int, a::Int, alpha, len, r_max) end
+function constraint_flow_direction_selection_des(wm::AbstractUndirectedModel, n::Int, a::Int, pipe_resistances) end
+function constraint_head_loss_ub_cv(wm::AbstractUndirectedModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64) end
+function constraint_shutoff_valve_head_loss_ub(wm::AbstractUndirectedModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64) end
+function constraint_pipe_head_loss_ub_des(wm::AbstractUndirectedModel, n::Int, a::Int, alpha, len, pipe_resistances) end
+function constraint_pipe_head_loss_ub(wm::AbstractUndirectedModel, n::Int, a::Int, alpha, len, r_max) end

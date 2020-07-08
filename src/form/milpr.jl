@@ -11,7 +11,7 @@ function _get_head_loss_oa(q::JuMP.VariableRef, q_hat::Float64, alpha::Float64)
     return q_hat^alpha + alpha * q_hat^(alpha - 1.0) * (q - q_hat)
 end
 
-function _get_head_loss_cv_oa(q::JuMP.VariableRef, z::JuMP.VariableRef, q_hat::Float64, alpha::Float64)
+function _get_head_loss_cv_oa(q::JuMP.VariableRef, z::Union{JuMP.VariableRef, JuMP.GenericAffExpr}, q_hat::Float64, alpha::Float64)
     return q_hat^alpha*z + alpha * q_hat^(alpha - 1.0) * (q - q_hat*z)
 end
 
@@ -21,13 +21,13 @@ function _get_head_gain_oa(q::JuMP.VariableRef, z::JuMP.VariableRef, q_hat::Floa
     return f * z + df * (q - q_hat * z)
 end
 
-function variable_flow(wm::AbstractMILPRModel; nw::Int=wm.cnw, bounded::Bool=true)
-    # Create directed flow variables (i.e., qp and qn).
-    variable_flow_common(wm, nw=nw, bounded=bounded)
-
-    # Variables for direction.
-    variable_flow_direction(wm, nw=nw)
-end
+#function variable_flow(wm::AbstractMILPRModel; nw::Int=wm.cnw, bounded::Bool=true)
+#    # Create directed flow variables (i.e., qp and qn).
+#    variable_flow_common(wm, nw=nw, bounded=bounded)
+#
+#    # Variables for direction.
+#    variable_flow_direction(wm, nw=nw)
+#end
 
 function variable_pump_operation(wm::AbstractMILPRModel; nw::Int=wm.cnw, report::Bool=true)
     # If the number of breakpoints is not positive, return.
@@ -55,7 +55,7 @@ function constraint_pump_head_gain(wm::AbstractMILPRModel, n::Int, a::Int, node_
     if pump_breakpoints <= 0 return end
 
     # Gather flow, head gain, and convex combination variables.
-    qp, g, z = var(wm, n, :qp, a), var(wm, n, :g, a), var(wm, n, :z_pump, a)
+    qp, g, z = var(wm, n, :qp_pump, a), var(wm, n, :g, a), var(wm, n, :z_pump, a)
     lambda, x_pw = [var(wm, n, :lambda_pump), var(wm, n, :x_pw_pump)]
 
     # Add the required SOS constraints.
@@ -94,7 +94,7 @@ function constraint_pipe_head_loss_des(wm::AbstractMILPRModel, n::Int, a::Int, a
 
     for (r_id, r) in enumerate(resistances)
         # Add constraints corresponding to positive outer approximations.
-        qp, dhp = var(wm, n, :qp_des, a)[r_id], var(wm, n, :dhp, a)
+        qp, dhp = var(wm, n, :qp_des, a)[r_id], var(wm, n, :dhp_pipe, a)
         qp_ub = JuMP.upper_bound(qp)
 
         for qp_hat in range(0.0, stop=qp_ub, length=pipe_breakpoints)
@@ -104,7 +104,7 @@ function constraint_pipe_head_loss_des(wm::AbstractMILPRModel, n::Int, a::Int, a
         end
 
         # Add constraints corresponding to negative outer approximations.
-        qn, dhn = var(wm, n, :qn_des, a)[r_id], var(wm, n, :dhn, a)
+        qn, dhn = var(wm, n, :qn_des, a)[r_id], var(wm, n, :dhn_pipe, a)
         qn_ub = JuMP.upper_bound(qn)
 
         for qn_hat in range(0.0, stop=qn_ub, length=pipe_breakpoints)
@@ -121,7 +121,7 @@ function constraint_pipe_head_loss(wm::AbstractMILPRModel, n::Int, a::Int, node_
     if pipe_breakpoints <= 0 return end
 
     # Add constraints corresponding to positive outer-approximations.
-    qp, dhp = var(wm, n, :qp, a), var(wm, n, :dhp, a)
+    qp, dhp = var(wm, n, :qp_pipe, a), var(wm, n, :dhp_pipe, a)
 
     for qp_hat in range(0.0, stop=JuMP.upper_bound(qp), length=pipe_breakpoints)
         lhs = r * _get_head_loss_oa(qp, qp_hat, alpha)
@@ -130,7 +130,7 @@ function constraint_pipe_head_loss(wm::AbstractMILPRModel, n::Int, a::Int, node_
     end
 
     # Add constraints corresponding to positive outer-approximations.
-    qn, dhn = var(wm, n, :qn, a), var(wm, n, :dhn, a)
+    qn, dhn = var(wm, n, :qn_pipe, a), var(wm, n, :dhn_pipe, a)
 
     for qn_hat in range(0.0, stop=JuMP.upper_bound(qn), length=pipe_breakpoints)
         lhs = r * _get_head_loss_oa(qn, qn_hat, alpha)
@@ -145,7 +145,8 @@ function constraint_check_valve_head_loss(wm::AbstractMILPRModel, n::Int, a::Int
     if pipe_breakpoints <= 0 return end
 
     # Get common variables for outer approximation constraints.
-    qp, dhp, z = var(wm, n, :qp, a), var(wm, n, :dhp, a), var(wm, n, :z_check_valve, a)
+    qp, z = var(wm, n, :qp_check_valve, a), var(wm, n, :z_check_valve, a)
+    dhp = var(wm, n, :dhp_check_valve, a)
 
     # Add outer approximation constraints.
     for qp_hat in range(0.0, stop=JuMP.upper_bound(qp), length=pipe_breakpoints)
@@ -161,21 +162,20 @@ function constraint_shutoff_valve_head_loss(wm::AbstractMILPRModel, n::Int, a::I
     if pipe_breakpoints <= 0 return end
 
     # Get common data for outer approximation constraints.
-    yp, yn = var(wm, n, :yp, a), var(wm, n, :yn, a)
-    qp, qn = var(wm, n, :qp, a), var(wm, n, :qn, a)
-    dhp, dhn = var(wm, n, :dhp, a), var(wm, n, :dhn, a)
-    qp_ub, qn_ub = JuMP.upper_bound(qp), JuMP.upper_bound(qn)
+    qp, qn = var(wm, n, :qp_shutoff_valve, a), var(wm, n, :qn_shutoff_valve, a)
+    dhp, dhn = var(wm, n, :dhp_shutoff_valve, a), var(wm, n, :dhn_shutoff_valve, a)
+    y = var(wm, n, :y_shutoff_valve, a)
 
     # Add outer approximation constraints for positively-directed flow.
-    for qp_hat in range(0.0, stop=qp_ub, length=pipe_breakpoints)
-        lhs = _get_head_loss_cv_oa(qp, yp, qp_hat, ref(wm, n, :alpha))
+    for qp_hat in range(0.0, stop=JuMP.upper_bound(qp), length=pipe_breakpoints)
+        lhs = _get_head_loss_cv_oa(qp, y, qp_hat, ref(wm, n, :alpha))
         c_p = JuMP.@constraint(wm.model, r * lhs <= inv(L) * dhp)
         append!(con(wm, n, :head_loss)[a], [c_p])
     end
 
     # Add outer approximation constraints for negatively-directed flow.
-    for qn_hat in range(0.0, stop=qn_ub, length=pipe_breakpoints)
-        lhs = _get_head_loss_cv_oa(qn, yn, qn_hat, ref(wm, n, :alpha))
+    for qn_hat in range(0.0, stop=JuMP.upper_bound(qn), length=pipe_breakpoints)
+        lhs = _get_head_loss_cv_oa(qn, (1.0 - y), qn_hat, ref(wm, n, :alpha))
         c_n = JuMP.@constraint(wm.model, r * lhs <= inv(L) * dhn)
         append!(con(wm, n, :head_loss)[a], [c_n])
     end
@@ -207,7 +207,7 @@ function objective_owf(wm::AbstractMILPRModel)
                 curve_fun = _get_function_from_pump_curve(pump_curve)
 
                 # Get flow-related variables and data.
-                qp, z = var(wm, n, :qp, a), var(wm, n, :z_pump, a)
+                qp, z = var(wm, n, :qp_pump, a), var(wm, n, :z_pump, a)
                 qp_ub = JuMP.upper_bound(qp)
 
                 # Generate a set of uniform flow and cubic function breakpoints.

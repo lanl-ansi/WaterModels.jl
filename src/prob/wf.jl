@@ -67,7 +67,7 @@ function build_wf(wm::AbstractWaterModel)
 
     for i in ids(wm, :tank)
         # Link tank volume variables with tank head variables.
-        constraint_link_volume(wm, i)
+        constraint_volume(wm, i)
 
         # Set the initial tank volume.
         constraint_tank_state(wm, i)
@@ -147,7 +147,7 @@ function build_mn_wf(wm::AbstractWaterModel)
 
         # Link tank volume variables with tank head variables.
         for i in ids(wm, :tank; nw=n)
-            constraint_link_volume(wm, i; nw=n)
+            constraint_volume(wm, i; nw=n)
         end
     end
 

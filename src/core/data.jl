@@ -273,8 +273,8 @@ function set_start_directed_flow_rate_des!(data::Dict{String, <:Any})
 end
 
 function set_start_flow_direction!(data::Dict{String, <:Any})
-    for (a, link) in data["link"]
-        link["y_start"] = link["q"] >= 0.0 ? 1.0 : 0.0
+    for (a, pipe) in data["pipe"]
+        pipe["y_start"] = pipe["q"] >= 0.0 ? 1.0 : 0.0
     end
 end
 

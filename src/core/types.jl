@@ -25,5 +25,6 @@ abstract type AbstractMILPModel <: AbstractUndirectedFlowModel end
 mutable struct MILPWaterModel <: AbstractMILPModel @wm_fields end
 
 "Directed models that also use direction variables."
+AbstractUndirectedModel = Union{AbstractNLPModel,AbstractMILPModel}
 AbstractDirectedModel = Union{AbstractMICPModel,AbstractMILPRModel}
 AbstractNonlinearModel = Union{AbstractNLPModel,AbstractMICPModel}

@@ -1,6 +1,10 @@
 WaterModels.jl Change Log
 =========================
 
+### v0.3.1
+- Removed unnecessary dependencies.
+- Removed the `link` component abstraction.
+
 ### v0.3.0
 - Updated to InfrastructureModels v0.5.
 - Removed the Constrained Water Flow (`cwf`) problem specification.

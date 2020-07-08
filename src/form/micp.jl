@@ -22,7 +22,7 @@ end
 
 function constraint_pipe_head_loss_des(wm::AbstractMICPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances)
     # Collect head difference variables.
-    dhp, dhn = [var(wm, n, :dhp, a), var(wm, n, :dhn, a)]
+    dhp, dhn = var(wm, n, :dhp_pipe, a), var(wm, n, :dhn_pipe, a)
 
     for (r_id, r) in enumerate(pipe_resistances)
         # Collect directed flow variables.
@@ -41,12 +41,12 @@ end
 function constraint_pump_head_gain(wm::AbstractMICPModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
     # Gather flow and head gain variables.
     g = var(wm, n, :g, a)
-    qp, z = var(wm, n, :qp, a), var(wm, n, :z_pump, a)
+    qp, z = var(wm, n, :qp_pump, a), var(wm, n, :z_pump, a)
 
     # Gather head-related variables and data.
-    h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
-    dhp, dhn = [var(wm, n, :dhp, a), var(wm, n, :dhn, a)]
-    dhp_ub, dhn_ub = [JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)]
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+    dhp, dhn = var(wm, n, :dhp_pump, a), var(wm, n, :dhn_pump, a)
+    dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
 
     # Define the (relaxed) head gain caused by the pump.
     g_expr = pc[1]*qp^2 + pc[2]*qp + pc[3]*z
@@ -87,13 +87,13 @@ end
 
 function constraint_check_valve_head_loss(wm::AbstractMICPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # Gather flow- and check valve-related variables.
-    qp, qn = [var(wm, n, :qp, a), var(wm, n, :qn, a)]
+    qp, qn = var(wm, n, :qp_check_valve, a), var(wm, n, :qn_check_valve, a)
     z = var(wm, n, :z_check_valve, a)
 
     # Gather head variables and upper bound data.
-    h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
-    dhp, dhn = [var(wm, n, :dhp, a), var(wm, n, :dhn, a)]
-    dhp_ub, dhn_ub = [JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)]
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+    dhp, dhn = var(wm, n, :dhp_check_valve, a), var(wm, n, :dhn_check_valve, a)
+    dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
 
     # Add constraints for flow in the positive and negative directions.
     lhs = JuMP.@NLexpression(wm.model, r*head_loss(qp) - inv(L)*dhp)
@@ -106,27 +106,30 @@ end
 
 function constraint_shutoff_valve_head_loss(wm::AbstractMICPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # Gather flow- and shutoff valve-related variables.
-    qp, qn = var(wm, n, :qp, a), var(wm, n, :qn, a)
-    yp, yn = var(wm, n, :yp, a), var(wm, n, :yn, a)
+    qp, qn = var(wm, n, :qp_shutoff_valve, a), var(wm, n, :qn_shutoff_valve, a)
+    y, z = var(wm, n, :y_shutoff_valve, a), var(wm, n, :z_shutoff_valve, a)
 
     # Gather head variables and upper bound data.
-    dhp, dhn = var(wm, n, :dhp, a), var(wm, n, :dhn, a)
+    dhp, dhn = var(wm, n, :dhp_shutoff_valve, a), var(wm, n, :dhn_shutoff_valve, a)
     dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
 
     # Add constraints for flow in the positive and negative directions.
     lhs_p = JuMP.@NLexpression(wm.model, r*head_loss(qp) - inv(L)*dhp)
-    c_p = JuMP.@NLconstraint(wm.model, lhs_p <= dhp_ub * (1.0 - yp))
+    c_1 = JuMP.@NLconstraint(wm.model, lhs_p <= dhp_ub * y)
+    c_2 = JuMP.@NLconstraint(wm.model, lhs_p <= dhp_ub * (1.0 - z))
+
     lhs_n = JuMP.@NLexpression(wm.model, r*head_loss(qn) - inv(L)*dhn)
-    c_n = JuMP.@NLconstraint(wm.model, lhs_n <= dhn_ub * (1.0 - yn))
+    c_3 = JuMP.@NLconstraint(wm.model, lhs_n <= dhn_ub * (1.0 - y))
+    c_4 = JuMP.@NLconstraint(wm.model, lhs_n <= dhn_ub * (1.0 - z))
 
     # Append the constraint array.
-    append!(con(wm, n, :head_loss)[a], [c_p, c_n])
+    append!(con(wm, n, :head_loss)[a], [c_1, c_2, c_3, c_4])
 end
 
 function constraint_pipe_head_loss(wm::AbstractMICPModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
     # Gather common variables.
-    qp, qn = [var(wm, n, :qp, a), var(wm, n, :qn, a)]
-    dhp, dhn = [var(wm, n, :dhp, a), var(wm, n, :dhn, a)]
+    qp, qn = var(wm, n, :qp_pipe, a), var(wm, n, :qn_pipe, a)
+    dhp, dhn = var(wm, n, :dhp_pipe, a), var(wm, n, :dhn_pipe, a)
 
     # Add constraints for head loss in the positive and negative directions.
     c_p = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= inv(L) * dhp)
@@ -166,7 +169,7 @@ function objective_owf(wm::AbstractMICPModel)
                 curve_fun = _get_function_from_pump_curve(pump_curve)
 
                 # Get flow-related variables and data.
-                qp, z = var(wm, n, :qp, a), var(wm, n, :z_pump, a)
+                qp, z = var(wm, n, :qp_pump, a), var(wm, n, :z_pump, a)
                 qp_ub = JuMP.upper_bound(qp)
 
                 # Generate a set of uniform flow and cubic function breakpoints.

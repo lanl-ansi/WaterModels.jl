@@ -7,19 +7,25 @@ function constraint_source_head(wm::AbstractWaterModel, n::Int, i::Int, h_s::Flo
     con(wm, n, :source_head)[i] = c
 end
 
+function _collect_flows(wm::AbstractWaterModel, n::Int, a::Int)
+    comps = ["check_valve", "pipe", "pressure_reducing_valve", "pump", "shutoff_valve"]
+    comps = filter(x -> a in ids(wm, n, Symbol(x)), comps)
+    return sum(var(wm, n, Symbol("q_" * c), a) for c in comps)
+end
+
 function constraint_flow_conservation(wm::AbstractWaterModel, n::Int, i::Int, a_fr::Array{Tuple{Int,Int,Int}}, a_to::Array{Tuple{Int,Int,Int}}, reservoirs::Array{Int}, tanks::Array{Int}, demands::Dict{Int,Float64})
     con(wm, n, :flow_conservation)[i] = JuMP.@constraint(wm.model,
-          sum(var(wm, n, :q, a) for (a, f, t) in a_to)
-        - sum(var(wm, n, :q, a) for (a, f, t) in a_fr) ==
+          sum(_collect_flows(wm, n, a) for (a, f, t) in a_to)
+        - sum(_collect_flows(wm, n, a) for (a, f, t) in a_fr) ==
         - sum(var(wm, n, :qr, id) for id in reservoirs)
         - sum(var(wm, n, :qt, id) for id in tanks)
         + sum(demand for (id, demand) in demands))
 end
 
-function constraint_link_volume(wm::AbstractWaterModel, n::Int, i::Int, elevation::Float64, surface_area::Float64)
+function constraint_volume(wm::AbstractWaterModel, n::Int, i::Int, elevation::Float64, surface_area::Float64)
     h, V = var(wm, n, :h, i), var(wm, n, :V, i)
     c = JuMP.@constraint(wm.model, h - elevation == V * inv(surface_area))
-    con(wm, n, :link_volume)[i] = c
+    con(wm, n, :volume)[i] = c
 end
 
 function constraint_pump_control_initial(wm::AbstractWaterModel, n::Int, a::Int, status::Bool)

@@ -6,10 +6,10 @@
 # (e.g., in the optimal power flow problem, a cubic function of flow is used in
 # this formulation to define the consumption of power by active pumps).
 
-"Creates flow variables for `NLP` formulations (`q`)."
-function variable_flow(wm::AbstractNLPModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
-    variable_flow_common(wm, nw=nw, bounded=bounded, report=report)
-end
+#"Creates flow variables for `NLP` formulations (`q`)."
+#function variable_flow(wm::AbstractNLPModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+#    variable_flow_common(wm, nw=nw, bounded=bounded, report=report)
+#end
 
 "Creates network design flow variables for `NLP` formulations (`q_des`, `x_des`)."
 function variable_flow_des(wm::AbstractNLPModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
@@ -19,8 +19,8 @@ end
 "Adds head loss constraints for check valves in `NLP` formulations."
 function constraint_check_valve_head_loss(wm::AbstractNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # Gather common variables and data.
-    q, z = var(wm, n, :q, a), var(wm, n, :z_check_valve, a)
-    h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
+    q, z = var(wm, n, :q_check_valve, a), var(wm, n, :z_check_valve, a)
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
     dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
 
     # There are two possibilities, here: (i) z = 1, in which the check valve is
@@ -39,7 +39,7 @@ end
 "Adds head loss constraints for shutoff valves in `NLP` formulations."
 function constraint_shutoff_valve_head_loss(wm::AbstractNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # Gather common variables and data.
-    q, z = var(wm, n, :q, a), var(wm, n, :z_shutoff_valve, a)
+    q, z = var(wm, n, :q_shutoff_valve, a), var(wm, n, :z_shutoff_valve, a)
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
     dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
     dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
@@ -60,7 +60,8 @@ end
 "Adds head loss constraints for pipes (without check valves) in `NLP` formulations."
 function constraint_pipe_head_loss(wm::AbstractNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
     # Gather flow and head variables included in head loss constraints.
-    q, h_i, h_j = var(wm, n, :q, a), var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+    q = var(wm, n, :q_pipe, a)
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
     # Add nonconvex constraint for the head loss relationship.
     c = JuMP.@NLconstraint(wm.model, r * head_loss(q) == inv(L) * (h_i - h_j))
@@ -73,7 +74,7 @@ end
 function constraint_pipe_head_loss_des(wm::AbstractNLPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, res)
     # Gather common flow and head variables, as well as design indices.
     q, R = [var(wm, n, :q_des, a), 1:length(res)]
-    h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
     # Add the nonconvex, design-expanded head loss constraint.
     lhs = JuMP.@NLexpression(wm.model, sum(res[r] * head_loss(q[r]) for r in R))
@@ -87,7 +88,7 @@ end
 function constraint_pump_head_gain(wm::AbstractNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
     # Gather common flow and pump variables.
     z = var(wm, n, :z_pump, a)
-    q, g_var = [var(wm, n, :q, a), var(wm, n, :g, a)]
+    q, g_var = [var(wm, n, :q_pump, a), var(wm, n, :g, a)]
 
     # Add constraint equating head gain with respect to the pump curve.
     g_expr = pc[1]*q^2 + pc[2]*q + pc[3]*z
@@ -112,7 +113,7 @@ function objective_owf(wm::AbstractNLPModel)
             if haskey(pump, "energy_price")
                 # Get price data and power-related variables.
                 price = pump["energy_price"]
-                q, g = [var(wm, n)[:q][a], var(wm, n)[:g][a]]
+                q, g = var(wm, n, :q_pump, a), var(wm, n, :g, a)
 
                 # Constrain cost_var and append to the objective expression.
                 cost_var = JuMP.@variable(wm.model, lower_bound=0.0)

@@ -1,5 +1,3 @@
-# Functions commonly used in the construction of water models.
-
 "Root of the water formulation type hierarchy."
 abstract type AbstractWaterModel <: _IM.AbstractInfrastructureModel end
 
@@ -8,12 +6,13 @@ _IM.@def wm_fields begin WaterModels.@im_fields end
 
 ""
 function run_model(file::String, model_type::Type, optimizer, build_method; kwargs...)
-    data = WaterModels.parse_file(file)
+    data = parse_file(file)
     return run_model(data, model_type, optimizer, build_method; kwargs...)
 end
 
 ""
-function run_model(data::Dict{String,<:Any}, model_type::Type, optimizer, build_method; ref_extensions=[], solution_processors=[], multinetwork=false, kwargs...)
+function run_model(
+    data::Dict{String,<:Any}, model_type::Type, optimizer, build_method::Function; ref_extensions=[], solution_processors=[], multinetwork::Bool=false, kwargs...)
     if multinetwork != _IM.ismultinetwork(data)
         model_requirement = multinetwork ? "multi-network" : "single-network"
         data_type = _IM.ismultinetwork(data) ? "multi-network" : "single-network"
@@ -26,7 +25,7 @@ end
 
 ""
 function instantiate_model(file::String, model_type::Type, build_method; kwargs...)
-    data = WaterModels.parse_file(file)
+    data = parse_file(file)
     return instantiate_model(data, model_type, build_method; kwargs...)
 end
 
@@ -89,6 +88,18 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any}, options::Dict{String,<:Any})
         ref[:pipe_des] = filter(is_des_link, ref[:pipe])
         ref[:link_fixed] = filter(!is_des_link, ref[:link])
         ref[:pipe_fixed] = filter(!is_des_link, ref[:pipe])
+
+        #for component_name in ["check_valve", "shutoff_valve", "pipe", "pressure_reducing_valve"]
+        #    comp_sym, fr_sym = Symbol(component_name), Symbol(component_name * "_fr")
+        #    ref[fr_sym] = [(i, c["node_fr"], c["node_to"]) for (i, c) in ref[comp_sym]]
+        #    node_links_fr = Dict((i, Tuple{Int, Int, Int}[]) for (i, node) in ref[:node])
+
+        #    for (l, i, j) in ref[fr_sym]
+        #        push!(node_links_fr[i], (l, i, j))
+        #    end
+
+        #    ref[Symbol("node_" * component_name * "_fr")] = node_links_fr
+        #end
 
         # Set up links from existing links.
         ref[:link_fr] = [(i, comp["node_fr"], comp["node_to"]) for (i, comp) in ref[:link]]

@@ -14,24 +14,6 @@ function _initialize_con_dict(wm::AbstractWaterModel, key::Symbol; nw::Int=wm.cn
     end
 end
 
-function _get_head_difference_data(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
-    node_fr, head_fr = [ref(wm, nw, :link, a)["node_fr"], nothing]
-
-    for rid in ref(wm, nw, :node_reservoir, node_fr)
-        # TODO: This is a good place to check these are consistent.
-        head_fr = ref(wm, nw, :reservoir, rid)["elevation"]
-    end
-
-    node_to, head_to = [ref(wm, nw, :link, a)["node_to"], nothing]
-
-    for rid in ref(wm, nw, :node_reservoir, node_to)
-        # TODO: This is a good place to check these are consistent
-        head_to = ref(wm, nw, :reservoir, rid)["elevation"]
-    end
-
-    return node_fr, node_to, head_fr, head_to
-end
-
 ### Nodal Constraints ###
 function constraint_flow_conservation(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
     links_from = ref(wm, nw, :node_link_fr, i)
@@ -68,13 +50,13 @@ function constraint_source_flow(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
 end
 
 ### Tank Constraints ###
-function constraint_link_volume(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
+function constraint_volume(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
     tank = ref(wm, nw, :tank, i)
     elevation = ref(wm, nw, :node, tank["tank_node"])["elevation"]
     surface_area = 0.25 * pi * tank["diameter"]^2
 
-    _initialize_con_dict(wm, :link_volume, nw=nw)
-    constraint_link_volume(wm, nw, i, elevation, surface_area)
+    _initialize_con_dict(wm, :volume, nw=nw)
+    constraint_volume(wm, nw, i, elevation, surface_area)
 end
 
 function constraint_tank_state(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
@@ -159,19 +141,15 @@ end
 
 ### Check Valve Constraints ###
 function constraint_check_valve_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
-    node_fr, node_to, head_fr, head_to = _get_head_difference_data(wm, a, nw=nw)
+    node_fr = ref(wm, nw, :check_valve, a)["node_fr"]
+    node_to = ref(wm, nw, :check_valve, a)["node_to"]
     alpha, L = ref(wm, nw, :alpha), ref(wm, nw, :check_valve, a)["length"]
     r = maximum(ref(wm, nw, :resistance, a))
-
-    # Since check valves exist along pipes, add all common pipe constraints.
-    _initialize_con_dict(wm, :pipe, nw=nw, is_array=true)
-    con(wm, nw, :pipe)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_pipe_common(wm, nw, a, node_fr, node_to, alpha, L, r)
 
     # Add all common check valve constraints.
     _initialize_con_dict(wm, :check_valve, nw=nw, is_array=true)
     con(wm, nw, :check_valve)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_check_valve_common(wm, nw, a, node_fr, node_to, head_fr, head_to)
+    constraint_check_valve_common(wm, nw, a, node_fr, node_to)
 
     # Add constraints that describe head loss relationships.
     _initialize_con_dict(wm, :head_loss, nw=nw, is_array=true)
@@ -184,19 +162,20 @@ end
 
 ### Shutoff Valve Constraints ###
 function constraint_shutoff_valve_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
-    node_fr, node_to, head_fr, head_to = _get_head_difference_data(wm, a, nw=nw)
+    node_fr = ref(wm, nw, :shutoff_valve, a)["node_fr"]
+    node_to = ref(wm, nw, :shutoff_valve, a)["node_to"]
     alpha, L = ref(wm, nw, :alpha), ref(wm, nw, :shutoff_valve, a)["length"]
     r = maximum(ref(wm, nw, :resistance, a))
 
-    # Since shutoff valves exist along pipes, add all common pipe constraints.
-    _initialize_con_dict(wm, :pipe, nw=nw, is_array=true)
-    con(wm, nw, :pipe)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_pipe_common(wm, nw, a, node_fr, node_to, alpha, L, r)
+    ## Since shutoff valves exist along pipes, add all common pipe constraints.
+    #_initialize_con_dict(wm, :pipe, nw=nw, is_array=true)
+    #con(wm, nw, :pipe)[a] = Array{JuMP.ConstraintRef}([])
+    #constraint_pipe_common(wm, nw, a, node_fr, node_to, alpha, L, r)
 
     # Add all common shutoff valve constraints.
     _initialize_con_dict(wm, :sv, nw=nw, is_array=true)
     con(wm, nw, :sv)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_sv_common(wm, nw, a, node_fr, node_to, head_fr, head_to)
+    constraint_sv_common(wm, nw, a, node_fr, node_to)
 
     # Add constraints that describe head loss relationships.
     _initialize_con_dict(wm, :head_loss, nw=nw, is_array=true)
@@ -209,27 +188,28 @@ end
 
 ### Pressure Reducing Valve Constraints ###
 function constraint_prv_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
-    node_fr, node_to, head_fr, head_to = _get_head_difference_data(wm, a, nw=nw)
+    node_fr = ref(wm, nw, :pressure_reducing_valve, a)["node_fr"]
+    node_to = ref(wm, nw, :pressure_reducing_valve, a)["node_to"]
     h_lb = ref(wm, nw, :node, node_to)["elevation"]
     h_prv = h_lb + ref(wm, nw, :pressure_reducing_valve, a)["setting"]
 
     # Add all common pressure reducing valve constraints.
     _initialize_con_dict(wm, :prv, nw=nw, is_array=true)
     con(wm, nw, :prv)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_prv_common(wm, nw, a, node_fr, node_to, head_fr, head_to, h_prv)
+    constraint_prv_common(wm, nw, a, node_fr, node_to, h_prv)
 end
 
 ### Pump Constraints ###
 function constraint_pump_head_gain(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, force_on::Bool=false, kwargs...)
     # Get data common to all pump-related constraints.
-    node_fr, node_to, head_fr, head_to = _get_head_difference_data(wm, a, nw=nw)
+    node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
     pump_curve = ref(wm, nw, :pump, a)["pump_curve"]
     coeffs = _get_function_from_pump_curve(pump_curve)
 
     # Add common constraints used to model pump behavior.
     _initialize_con_dict(wm, :pump, nw=nw, is_array=true)
     con(wm, nw, :pump)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_pump_common(wm, nw, a, node_fr, node_to, head_fr, head_to, coeffs)
+    constraint_pump_common(wm, nw, a, node_fr, node_to, coeffs)
 
     # Add constraints that define head gain across the pump.
     _initialize_con_dict(wm, :head_gain, nw=nw, is_array=true)
@@ -240,8 +220,8 @@ end
 function constraint_head_difference_pump(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
     _initialize_con_dict(wm, :head_difference, nw=nw, is_array=true)
     con(wm, nw, :head_difference)[a] = Array{JuMP.ConstraintRef}([])
-    node_fr, node_to, head_fr, head_to = _get_head_difference_data(wm, a, nw=nw)
-    constraint_head_difference_pump(wm, nw, a, node_fr, node_to, head_fr, head_to)
+    node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
+    constraint_head_difference_pump(wm, nw, a, node_fr, node_to)
 end
 
 function constraint_pump_control(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)

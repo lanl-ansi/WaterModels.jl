@@ -143,14 +143,13 @@ function variable_shutoff_valve_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw
 
     report && sol_component_value(wm, nw, :shutoff_valve, :status, ids(wm, nw, :shutoff_valve), z_shutoff_valve)
 
-    # TODO: Move the below two variable declarations somewhere more appropriate.
-    var(wm, nw)[:yp] = JuMP.@variable(wm.model, [a in ids(wm, nw, :shutoff_valve)],
-        base_name="$(nw)_yp", binary=true,
-        start=comp_start_value(ref(wm, nw, :shutoff_valve, a), "yp_start"))
-    var(wm, nw)[:yn] = JuMP.@variable(wm.model, [a in ids(wm, nw, :shutoff_valve)],
-        base_name="$(nw)_yn", binary=true,
-        start=comp_start_value(ref(wm, nw, :shutoff_valve, a), "yn_start"))
-
+    ## TODO: Move the below two variable declarations somewhere more appropriate.
+    #var(wm, nw)[:yp] = JuMP.@variable(wm.model, [a in ids(wm, nw, :shutoff_valve)],
+    #    base_name="$(nw)_yp", binary=true,
+    #    start=comp_start_value(ref(wm, nw, :shutoff_valve, a), "yp_start"))
+    #var(wm, nw)[:yn] = JuMP.@variable(wm.model, [a in ids(wm, nw, :shutoff_valve)],
+    #    base_name="$(nw)_yn", binary=true,
+    #    start=comp_start_value(ref(wm, nw, :shutoff_valve, a), "yn_start"))
 end
 
 "Creates binary variables for all PRVs in the network, i.e.,
@@ -205,11 +204,11 @@ where one denotes that the given resistance is active in the design."
 function variable_resistance(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
     x_res = var(wm, nw)[:x_res] = Dict{Int, Array{JuMP.VariableRef}}()
 
-    for a in ids(wm, nw, :link_des)
+    for a in ids(wm, nw, :pipe_des)
         n_r = length(ref(wm, nw, :resistance, a)) # Number of resistances.
         var(wm, nw, :x_res)[a] = JuMP.@variable(wm.model, [r in 1:n_r],
             binary=true, base_name="$(nw)_x_res[$(a)]",
-            start=comp_start_value(ref(wm, nw, :link_des, a), "x_res_start", r))
+            start=comp_start_value(ref(wm, nw, :pipe_des, a), "x_res_start", r))
     end
 
     report && sol_component_value(wm, nw, :pipe_des, :x_res, ids(wm, nw, :pipe_des), x_res)
