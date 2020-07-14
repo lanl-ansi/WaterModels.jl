@@ -30,11 +30,6 @@ function _get_function_from_pump_curve(pump_curve::Array{Tuple{Float64,Float64}}
     end
 end
 
-function get_link_id(wm::AbstractWaterModel, i::Int, j::Int, n::Int=wm.cnw)
-    links = vcat(ref(wm, n, :node_link_fr, i), ref(wm, n, :node_link_to, i))
-    link_id = findfirst(x -> x[2] in [i, j] && x[3] in [i, j], links)
-    return links[link_id][1]
-end
 
 function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     nodes = ref(wm, n, :node)
@@ -106,7 +101,6 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
 end
 
 function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
-    links = ref(wm, n, :link)
     h_lb, h_ub = calc_head_bounds(wm, n)
     alpha = ref(wm, n, :alpha)
 
@@ -118,11 +112,9 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     V_lb, V_ub = calc_tank_volume_bounds(wm, n)
     sum_demand += sum([(V_ub[i] - V_lb[i]) / time_step for i in ids(wm, n, :tank)])
 
-    lb = Dict([(a, Float64[]) for a in keys(links)])
-    ub = Dict([(a, Float64[]) for a in keys(links)])
-
     # TODO: Make separate calculations per merge component.
     pipes = merge(ref(wm, n, :pipe), ref(wm, n, :check_valve), ref(wm, n, :shutoff_valve))
+    lb, ub = Dict{Int,Array{Float64}}(), Dict{Int,Array{Float64}}()
 
     for (a, pipe) in pipes
         L = pipe["length"]
@@ -131,8 +123,8 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
         resistances = ref(wm, n, :resistance, a)
         num_resistances = length(resistances)
 
-        dh_lb, dh_ub = [h_lb[i] - h_ub[j], h_ub[i] - h_lb[j]]
-        lb[a], ub[a] = [zeros(num_resistances), zeros(num_resistances)]
+        dh_lb, dh_ub = h_lb[i] - h_ub[j], h_ub[i] - h_lb[j]
+        lb[a], ub[a] = zeros(num_resistances), zeros(num_resistances)
 
         for (r_id, r) in enumerate(resistances)
             lb[a][r_id] = sign(dh_lb) * (abs(dh_lb) * inv(L*r))^inv(alpha)

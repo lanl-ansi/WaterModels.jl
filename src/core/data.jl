@@ -14,23 +14,23 @@ function replicate(data::Dict{String,<:Any}, count::Int; global_keys::Set{String
     return _IM.replicate(data, count, union(global_keys, _wm_global_keys))
 end
 
-function calc_resistances_hw(links::Dict{<:Any, <:Any})
-    resistances = Dict([(a, Array{Float64, 1}()) for a in keys(links)])
+function calc_resistances_hw(pipes::Dict{<:Any, <:Any})
+    resistances = Dict([(a, Array{Float64, 1}()) for a in keys(pipes)])
 
-    for (a, link) in links
-        if haskey(link, "resistances")
-            resistances[a] = sort(link["resistances"], rev=true)
-        elseif haskey(link, "resistance")
-            resistances[a] = vcat(resistances[a], link["resistance"])
-        elseif haskey(link, "diameters")
-            for entry in link["diameters"]
-                r = calc_resistance_hw(entry["diameter"], link["roughness"])
+    for (a, pipe) in pipes
+        if haskey(pipe, "resistances")
+            resistances[a] = sort(pipe["resistances"], rev=true)
+        elseif haskey(pipe, "resistance")
+            resistances[a] = vcat(resistances[a], pipe["resistance"])
+        elseif haskey(pipe, "diameters")
+            for entry in pipe["diameters"]
+                r = calc_resistance_hw(entry["diameter"], pipe["roughness"])
                 resistances[a] = vcat(resistances[a], r)
             end
 
             resistances[a] = sort(resistances[a], rev=true)
         else
-            r = calc_resistance_hw(link["diameter"], link["roughness"])
+            r = calc_resistance_hw(pipe["diameter"], pipe["roughness"])
             resistances[a] = vcat(resistances[a], r)
         end
     end
@@ -50,33 +50,33 @@ function calc_resistance_dw(diameter::Float64, roughness::Float64, viscosity::Fl
     return 0.0826 * inv(diameter^5) * inv(y3*y3)
 end
 
-function calc_resistances_dw(links::Dict{<:Any, <:Any}, viscosity::Float64)
-    resistances = Dict([(a, Array{Float64, 1}()) for a in keys(links)])
+function calc_resistances_dw(pipes::Dict{<:Any, <:Any}, viscosity::Float64)
+    resistances = Dict([(a, Array{Float64, 1}()) for a in keys(pipes)])
 
-    for (a, link) in links
-        if haskey(link, "resistances")
-            resistances[a] = sort(link["resistances"], rev = true)
-        elseif haskey(link, "resistance")
-            resistance = link["resistance"]
+    for (a, pipe) in pipes
+        if haskey(pipe, "resistances")
+            resistances[a] = sort(pipe["resistances"], rev=true)
+        elseif haskey(pipe, "resistance")
+            resistance = pipe["resistance"]
             resistances[a] = vcat(resistances[a], resistance)
-        elseif haskey(link, "diameters")
-            for entry in link["diameters"]
+        elseif haskey(pipe, "diameters")
+            for entry in pipe["diameters"]
                 # Get relevant values to compute the friction factor.
                 diameter = entry["diameter"]
-                roughness = link["roughness"]
+                roughness = pipe["roughness"]
                 r = calc_resistance_dw(diameter, roughness, viscosity, 10.0, 1000.0)
                 resistances[a] = vcat(resistances[a], r)
             end
 
             resistances[a] = sort(resistances[a], rev = true)
-        elseif haskey(link, "friction_factor")
+        elseif haskey(pipe, "friction_factor")
             # Return the overall friction factor.
-            diameter = link["diameter"]
-            resistances[a] = [0.0826*inv(diameter^5) * link["friction_factor"]]
+            diameter = pipe["diameter"]
+            resistances[a] = [0.0826551*inv(diameter^5) * pipe["friction_factor"]]
         else
             # Get relevant values to compute the friction factor.
-            diameter = link["diameter"]
-            roughness = link["roughness"]
+            diameter = pipe["diameter"]
+            roughness = pipe["roughness"]
             r = calc_resistance_dw(diameter, roughness, viscosity, 10.0, 1000.0)
             resistances[a] = vcat(resistances[a], r)
         end
@@ -85,16 +85,16 @@ function calc_resistances_dw(links::Dict{<:Any, <:Any}, viscosity::Float64)
     return resistances
 end
 
-function calc_resistance_costs_hw(links::Dict{Int, <:Any})
+function calc_resistance_costs_hw(pipes::Dict{Int, <:Any})
     # Create placeholder costs dictionary.
-    costs = Dict([(a, Array{Float64, 1}()) for a in keys(links)])
+    costs = Dict([(a, Array{Float64, 1}()) for a in keys(pipes)])
 
-    for (a, link) in links
-        if haskey(link, "diameters")
+    for (a, pipe) in pipes
+        if haskey(pipe, "diameters")
             resistances = Array{Float64, 1}()
 
-            for entry in link["diameters"]
-                resistance = calc_resistance_hw(entry["diameter"], link["roughness"])
+            for entry in pipe["diameters"]
+                resistance = calc_resistance_hw(entry["diameter"], pipe["roughness"])
                 resistances = vcat(resistances, resistance)
                 costs[a] = vcat(costs[a], entry["costPerUnitLength"])
             end
@@ -109,17 +109,17 @@ function calc_resistance_costs_hw(links::Dict{Int, <:Any})
     return costs
 end
 
-function calc_resistance_costs_dw(links::Dict{Int, <:Any}, viscosity::Float64)
+function calc_resistance_costs_dw(pipes::Dict{Int, <:Any}, viscosity::Float64)
     # Create placeholder costs dictionary.
-    costs = Dict([(a, Array{Float64, 1}()) for a in keys(links)])
+    costs = Dict([(a, Array{Float64, 1}()) for a in keys(pipes)])
 
-    for (a, link) in links
-        if haskey(link, "diameters")
+    for (a, pipe) in pipes
+        if haskey(pipe, "diameters")
             resistances = Array{Float64, 1}()
 
-            for entry in link["diameters"]
+            for entry in pipe["diameters"]
                 diameter = entry["diameter"]
-                roughness = link["roughness"]
+                roughness = pipe["roughness"]
                 resistance = calc_resistance_dw(diameter, roughness, viscosity, 10.0, 1000.0)
                 resistances = vcat(resistances, resistance)
                 costs[a] = vcat(costs[a], entry["costPerUnitLength"])
@@ -135,28 +135,28 @@ function calc_resistance_costs_dw(links::Dict{Int, <:Any}, viscosity::Float64)
     return costs
 end
 
-function calc_resistances(links::Dict{<:Any, <:Any}, viscosity::Float64, head_loss_type::String)
+function calc_resistances(pipes::Dict{<:Any, <:Any}, viscosity::Float64, head_loss_type::String)
     if head_loss_type == "H-W"
-        return calc_resistances_hw(links)
+        return calc_resistances_hw(pipes)
     elseif head_loss_type == "D-W"
-        return calc_resistances_dw(links, viscosity)
+        return calc_resistances_dw(pipes, viscosity)
     else
         Memento.error(_LOGGER, "Head loss formulation type \"$(head_loss_type)\" is not recognized.")
     end
 end
 
-function calc_resistance_costs(links::Dict{Int, <:Any}, viscosity::Float64, head_loss_type::String)
+function calc_resistance_costs(pipes::Dict{Int, <:Any}, viscosity::Float64, head_loss_type::String)
     if head_loss_type == "H-W"
-        return calc_resistance_costs_hw(links)
+        return calc_resistance_costs_hw(pipes)
     elseif head_loss_type == "D-W"
-        return calc_resistance_costs_dw(links, viscosity)
+        return calc_resistance_costs_dw(pipes, viscosity)
     else
         Memento.error(_LOGGER, "Head loss formulation type \"$(head_loss_type)\" is not recognized.")
     end
 end
 
-function has_known_flow_direction(link::Pair{Int, <:Any})
-    return link.second["flow_direction"] != UNKNOWN
+function has_known_flow_direction(comp::Pair{Int, <:Any})
+    return comp.second["flow_direction"] != UNKNOWN
 end
 
 function has_check_valve(pipe::Dict{String, <:Any})
@@ -183,12 +183,12 @@ function is_pressure_reducing_valve(pipe::Pair{Int64, <:Any})
     return uppercase(pipe.second["type"]) == "PRV"
 end
 
-function is_des_link(link::Pair{Int64, <:Any})
-    return any([x in ["diameters", "resistances"] for x in keys(link.second)])
+function is_des_pipe(pipe::Pair{Int64, <:Any})
+    return any([x in ["diameters", "resistances"] for x in keys(pipe.second)])
 end
 
-function is_des_link(link::Pair{String, <:Any})
-    return any([x in ["diameters", "resistances"] for x in keys(link.second)])
+function is_des_pipe(pipe::Pair{String, <:Any})
+    return any([x in ["diameters", "resistances"] for x in keys(pipe.second)])
 end
 
 "turns a single network and a time_series data block into a multi-network"
@@ -215,9 +215,9 @@ function set_start_undirected_flow_rate!(data::Dict{String, <:Any})
 end
 
 function set_start_directed_flow_rate!(data::Dict{String, <:Any})
-    for (a, link) in data["pipe"]
-        link["qn_start"] = link["q"] < 0.0 ? abs(link["q"]) : 0.0
-        link["qp_start"] = link["q"] >= 0.0 ? abs(link["q"]) : 0.0
+    for (a, pipe) in data["pipe"]
+        pipe["qn_start"] = pipe["q"] < 0.0 ? abs(pipe["q"]) : 0.0
+        pipe["qp_start"] = pipe["q"] >= 0.0 ? abs(pipe["q"]) : 0.0
     end
 end
 
@@ -235,7 +235,7 @@ function set_start_resistance_des!(data::Dict{String, <:Any})
     head_loss_type = data["option"]["hydraulic"]["headloss"]
     resistances = calc_resistances(data["pipe"], viscosity, head_loss_type)
 
-    for (a, pipe) in filter(is_des_link, data["pipe"])
+    for (a, pipe) in filter(is_des_pipe, data["pipe"])
         num_resistances = length(resistances[a])
         pipe["x_res_start"] = zeros(Float64, num_resistances)
         r_id, val = findmax(pipe["x_res_start"])
@@ -248,7 +248,7 @@ function set_start_undirected_flow_rate_des!(data::Dict{String, <:Any})
     head_loss_type = data["option"]["hydraulic"]["headloss"]
     resistances = calc_resistances(data["pipe"], viscosity, head_loss_type)
 
-    for (a, pipe) in filter(is_des_link, data["pipe"])
+    for (a, pipe) in filter(is_des_pipe, data["pipe"])
         num_resistances = length(resistances[a])
         pipe["q_des_start"] = zeros(Float64, num_resistances)
         r_id, val = findmax(pipe["x_res_start"])
@@ -261,7 +261,7 @@ function set_start_directed_flow_rate_des!(data::Dict{String, <:Any})
     head_loss_type = data["option"]["hydraulic"]["headloss"]
     resistances = calc_resistances(data["pipe"], viscosity, head_loss_type)
 
-    for (a, pipe) in filter(is_des_link, data["pipe"])
+    for (a, pipe) in filter(is_des_pipe, data["pipe"])
         num_resistances = length(resistances[a])
         pipe["qp_des_start"] = zeros(Float64, num_resistances)
         pipe["qn_des_start"] = zeros(Float64, num_resistances)

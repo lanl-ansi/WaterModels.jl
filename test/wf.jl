@@ -27,7 +27,6 @@
             result = run_wf(network, MILPRWaterModel, cbc, ext=Dict(:pipe_breakpoints=>3))
             @test result["termination_status"] == OPTIMAL
             @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
-            @test result["solution"]["node"]["2"]["p"] <= 7.89
             @test isapprox(result["solution"][name]["1"]["q"], 1.0, rtol=1.0e-3)
         end
     end
@@ -47,8 +46,6 @@
         result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
         @test result["termination_status"] == LOCALLY_SOLVED
         @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
-        @test result["solution"]["node"]["2"]["p"] <= 8.27
-        @test result["solution"]["node"]["3"]["p"] <= 8.30
         @test isapprox(result["solution"]["pipe"]["1"]["q"], 0.9, rtol=1.0e-3)
 
         result = run_wf(network, MILPWaterModel, cbc, ext=Dict(:pipe_breakpoints=>4))
@@ -80,7 +77,6 @@
         result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
         @test result["termination_status"] == LOCALLY_SOLVED
         @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
-        @test result["solution"]["node"]["2"]["p"] <= 2.39
         @test isapprox(result["solution"]["node"]["3"]["h"], 2.00, rtol=1.0e-3)
         @test isapprox(result["solution"]["node"]["3"]["p"], 1.00, rtol=1.0e-3)
         @test isapprox(result["solution"]["pipe"]["1"]["q"], 2.0, rtol=1.0e-3)
@@ -96,7 +92,6 @@
         result = run_wf(network, MILPRWaterModel, cbc, ext=Dict(:pipe_breakpoints=>3))
         @test result["termination_status"] == OPTIMAL
         @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
-        @test result["solution"]["node"]["2"]["p"] <= 2.39
         @test isapprox(result["solution"]["node"]["3"]["h"], 2.00, rtol=1.0e-3)
         @test isapprox(result["solution"]["node"]["3"]["p"], 1.00, rtol=1.0e-3)
         @test isapprox(result["solution"]["pipe"]["1"]["q"], 2.0, rtol=1.0e-3)
@@ -116,7 +111,6 @@
         result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
         @test result["termination_status"] == LOCALLY_SOLVED
         @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
-        @test result["solution"]["node"]["2"]["h"] <= 98.99
         @test isapprox(result["solution"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
 
         result = run_wf(network, MILPWaterModel, cbc, ext=Dict(:pump_breakpoints=>4))
@@ -128,7 +122,6 @@
         result = run_wf(network, MILPRWaterModel, cbc, ext=Dict(:pump_breakpoints=>3))
         @test result["termination_status"] == OPTIMAL
         @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
-        @test result["solution"]["node"]["2"]["h"] <= 98.99
         @test isapprox(result["solution"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
     end
 
@@ -146,7 +139,6 @@
         result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
         @test result["termination_status"] == LOCALLY_SOLVED
         @test isapprox(result["solution"]["node"]["1"]["h"], 20.0, rtol=1.0e-3)
-        @test result["solution"]["node"]["2"]["h"] <= 17.90
         @test isapprox(result["solution"]["shutoff_valve"]["1"]["q"], 1.0, rtol=1.0e-3)
 
         result = run_wf(network, MILPWaterModel, cbc, ext=Dict(:pipe_breakpoints=>4))
@@ -184,9 +176,6 @@ end
             result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
             @test result["termination_status"] == LOCALLY_SOLVED
             @test isapprox(result["solution"]["nw"]["2"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
-            @test result["solution"]["nw"]["1"]["node"]["2"]["p"] <= 7.89
-            @test result["solution"]["nw"]["2"]["node"]["2"]["h"] <= 9.42
-            @test result["solution"]["nw"]["3"]["node"]["2"]["h"] <= 9.84
             @test isapprox(result["solution"]["nw"]["1"][name]["1"]["q"], 1.0, rtol=1.0e-3)
             @test isapprox(result["solution"]["nw"]["2"][name]["1"]["q"], 0.5, rtol=1.0e-3)
             @test isapprox(result["solution"]["nw"]["3"][name]["1"]["q"], 0.25, rtol=1.0e-3)
@@ -204,9 +193,6 @@ end
             result = run_mn_wf(network, MILPRWaterModel, cbc, ext=Dict(:pipe_breakpoints=>3))
             @test result["termination_status"] == OPTIMAL
             @test isapprox(result["solution"]["nw"]["2"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
-            @test result["solution"]["nw"]["1"]["node"]["2"]["p"] <= 7.89
-            @test result["solution"]["nw"]["2"]["node"]["2"]["h"] <= 9.42
-            @test result["solution"]["nw"]["3"]["node"]["2"]["h"] <= 9.84
             @test isapprox(result["solution"]["nw"]["1"][name]["1"]["q"], 1.0, rtol=1.0e-3)
             @test isapprox(result["solution"]["nw"]["2"][name]["1"]["q"], 0.5, rtol=1.0e-3)
             @test isapprox(result["solution"]["nw"]["3"][name]["1"]["q"], 0.25, rtol=1.0e-3)
@@ -229,8 +215,6 @@ end
         result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
         @test result["termination_status"] == LOCALLY_SOLVED
         @test isapprox(result["solution"]["nw"]["1"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
-        @test result["solution"]["nw"]["1"]["node"]["2"]["p"] <= 8.27
-        @test result["solution"]["nw"]["2"]["node"]["3"]["p"] <= 8.30
         @test isapprox(result["solution"]["nw"]["3"]["pipe"]["1"]["q"], 0.9, rtol=1.0e-3)
 
         result = run_mn_wf(network, MILPWaterModel, cbc, ext=Dict(:pipe_breakpoints=>4))
@@ -359,8 +343,6 @@ end
         @test result["termination_status"] == LOCALLY_SOLVED
         @test isapprox(result["solution"]["nw"]["1"]["node"]["1"]["h"], 60.00, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["3"]["node"]["1"]["h"], 25.62, rtol=1.0e-3)
-        @test result["solution"]["nw"]["1"]["node"]["2"]["h"] <= 59.42
-        @test result["solution"]["nw"]["3"]["node"]["2"]["h"] <= 25.58
         @test isapprox(result["solution"]["nw"]["1"]["shutoff_valve"]["1"]["q"], 0.500, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["3"]["shutoff_valve"]["1"]["q"], 0.125, rtol=1.0e-3)
 

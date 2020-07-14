@@ -823,7 +823,6 @@ function _read_energy!(data::Dict{String, <:Any})
 
                 entry = Dict{String, Array{Float64}}("energy_price" => price_pattern)
                 data["time_series"]["pump"][pump_id] = entry
-                pump["energy_price"] = price_pattern[1] # Replace with price at first time step.
             end
         end
     end
@@ -896,7 +895,6 @@ function _read_junction!(data::Dict{String, <:Any})
                 demand = junction["demand"] .* data["pattern"][pattern]
                 entry = Dict{String, Array{Float64}}("demand" => demand)
                 data["time_series"]["junction"][current[1]] = entry
-                junction["demand"] = demand[1] # Replace with demand at first time step.
             elseif pattern != nothing && pattern != "1"
                 junction["demand"] *= data["pattern"][pattern][1]
             end
@@ -1263,7 +1261,6 @@ function _read_reservoir!(data::Dict{String,<:Any})
                 head = reservoir["head"] .* data["pattern"][pattern]
                 entry = Dict{String, Array{Float64}}("head" => head, "elevation" => head)
                 data["time_series"]["reservoir"][current[1]] = entry
-                reservoir["head"] = head[1] # Replace with head at first time step.
             elseif pattern != nothing && pattern != "1"
                 reservoir["head"] *= data["pattern"][pattern][1]
                 reservoir["elevation"] *= data["pattern"][pattern][1]

@@ -50,18 +50,15 @@ components, and storing system-wide values that need to be computed globally.
 
 Some of the common keys include:
 
-* `:pipe` -- the set of pipes in the network,
+* `:pipe` -- the set of pipes in the network without valves,
 * `:check_valve` -- the set of pipes in the network with check valves,
 * `:shutoff_valve` -- the set of pipes in the network wiith shutoff valves,
-* `:pump` -- the set of pumps in the network,
-* `:valve` -- the set of valves in the network,
 * `:pressure_reducing_valve` -- the set of pressure reducing valves in the network,
-* `:link` -- the set of all links in the network,
-* `:link_des` -- the set of all network design links in the network,
+* `:pump` -- the set of pumps in the network,
+* `:node` -- the set of all nodes in the network,
 * `:junction` -- the set of junctions in the network,
 * `:reservoir` -- the set of reservoirs in the network,
-* `:tank` -- the set of tanks in the network,
-* `:node` -- the set of all nodes in the network
+* `:tank` -- the set of tanks in the network
 """
 function ref_add_core!(refs::Dict{Symbol,<:Any})
     _ref_add_core!(refs[:nw], refs[:option])
@@ -73,7 +70,6 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any}, options::Dict{String,<:Any})
     viscosity = options["hydraulic"]["viscosity"]
 
     for (nw, ref) in nw_refs
-        ref[:link] = merge(ref[:pipe], ref[:valve], ref[:pump])
         ref[:resistance] = calc_resistances(ref[:pipe], viscosity, headloss)
         ref[:resistance_cost] = calc_resistance_costs(ref[:pipe], viscosity, headloss)
 
@@ -84,70 +80,25 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any}, options::Dict{String,<:Any})
         ref[:pipe] = filter(!has_shutoff_valve, ref[:pipe])
 
         ref[:pressure_reducing_valve] = filter(is_pressure_reducing_valve, ref[:valve])
-        ref[:link_des] = filter(is_des_link, ref[:link])
-        ref[:pipe_des] = filter(is_des_link, ref[:pipe])
-        ref[:link_fixed] = filter(!is_des_link, ref[:link])
-        ref[:pipe_fixed] = filter(!is_des_link, ref[:pipe])
+        ref[:pipe_des] = filter(is_des_pipe, ref[:pipe])
+        ref[:pipe_fixed] = filter(!is_des_pipe, ref[:pipe])
 
-        #for component_name in ["check_valve", "shutoff_valve", "pipe", "pressure_reducing_valve"]
-        #    comp_sym, fr_sym = Symbol(component_name), Symbol(component_name * "_fr")
-        #    ref[fr_sym] = [(i, c["node_fr"], c["node_to"]) for (i, c) in ref[comp_sym]]
-        #    node_links_fr = Dict((i, Tuple{Int, Int, Int}[]) for (i, node) in ref[:node])
-
-        #    for (l, i, j) in ref[fr_sym]
-        #        push!(node_links_fr[i], (l, i, j))
-        #    end
-
-        #    ref[Symbol("node_" * component_name * "_fr")] = node_links_fr
-        #end
-
-        # Set up links from existing links.
-        ref[:link_fr] = [(i, comp["node_fr"], comp["node_to"]) for (i, comp) in ref[:link]]
-
-        # Set up dictionaries mapping "from" links for a node.
-        node_links_fr = Dict((i, Tuple{Int, Int, Int}[]) for (i, node) in ref[:node])
-
-        for (l, i, j) in ref[:link_fr]
-            push!(node_links_fr[i], (l, i, j))
+        # Create mappings of "from" and "to" arcs for link- (i.e., edge-) type components.
+        for name in ["check_valve", "shutoff_valve", "pipe", "pressure_reducing_valve"]
+            fr_sym, to_sym = Symbol(name * "_fr"), Symbol(name * "_to")
+            ref[fr_sym] = [(i, c["node_fr"], c["node_to"]) for (i, c) in ref[Symbol(name)]]
+            ref[to_sym] = [(i, c["node_to"], c["node_fr"]) for (i, c) in ref[Symbol(name)]]
         end
 
-        ref[:node_link_fr] = node_links_fr
+        # Set up dictionaries mapping node indices to attached component indices.
+        for name in ["junction", "tank", "reservoir"]
+            name_sym = Symbol("node_" * name)
+            ref[name_sym] = Dict{Int,Array{Int,1}}(i=>Int[] for (i, node) in ref[:node])
 
-        # Set up dictionaries mapping "to" links for a node.
-        node_links_to = Dict((i, Tuple{Int, Int, Int}[]) for (i, node) in ref[:node])
-
-        for (l, i, j) in ref[:link_fr]
-            push!(node_links_to[j], (l, i, j))
+            for (i, comp) in ref[Symbol(name)]
+                push!(ref[name_sym][comp["$(name)_node"]], i)
+            end
         end
-
-        ref[:node_link_to] = node_links_to
-
-        # Set up dictionaries mapping nodes to attached junctions.
-        node_junctions = Dict((i, Int[]) for (i,node) in ref[:node])
-
-        for (i, junction) in ref[:junction]
-            push!(node_junctions[junction["junction_node"]], i)
-        end
-
-        ref[:node_junction] = node_junctions
-
-        # Set up dictionaries mapping nodes to attached tanks.
-        node_tanks = Dict((i, Int[]) for (i,node) in ref[:node])
-
-        for (i, tank) in ref[:tank]
-            push!(node_tanks[tank["tank_node"]], i)
-        end
-
-        ref[:node_tank] = node_tanks
-
-        # Set up dictionaries mapping nodes to attached reservoirs.
-        node_reservoirs = Dict((i, Int[]) for (i,node) in ref[:node])
-
-        for (i, reservoir) in ref[:reservoir]
-            push!(node_reservoirs[reservoir["reservoir_node"]], i)
-        end
-
-        ref[:node_reservoir] = node_reservoirs
 
         # Set alpha, that is, the exponent used for head loss relationships.
         ref[:alpha] = uppercase(headloss) == "H-W" ? 1.852 : 2.0

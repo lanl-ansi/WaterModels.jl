@@ -12,7 +12,6 @@ In summary, the following sets are commonly used when defining a WaterModels pro
 | Notation                                         | WaterModels Translation           | Description                                                                  |
 | :--------------------------------------          | :-----------------------------    | :-------------------------                                                   |
 | $\mathcal{N}$                                    | `wm.ref[:nw][n][:node]`           | nodes                                                                        |
-| $\mathcal{L}$                                    | `wm.ref[:nw][n][:link]`           | links                                                                        |
 | $\mathcal{K}$                                    | `nw_ids(wm)`                      | time indices (multinetwork indices labeled by `n`)                           |
 | $\mathcal{J} \subset \mathcal{N}$                | `wm.ref[:nw][n][:junction]`       | [junctions](http://wateranalytics.org/EPANET/_juncs_page.html)               |
 | $\mathcal{R} \subset \mathcal{N}$                | `wm.ref[:nw][n][:reservoir]`      | [reservoirs](http://wateranalytics.org/EPANET/_resv_page.html)               |

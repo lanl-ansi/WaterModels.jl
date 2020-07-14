@@ -11,10 +11,12 @@
 #    variable_flow_common(wm, nw=nw, bounded=bounded, report=report)
 #end
 
+
 "Creates network design flow variables for `NLP` formulations (`q_des`, `x_des`)."
 function variable_flow_des(wm::AbstractNLPModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
     variable_flow_des_common(wm, nw=nw, bounded=bounded, report=report)
 end
+
 
 "Adds head loss constraints for check valves in `NLP` formulations."
 function constraint_check_valve_head_loss(wm::AbstractNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
@@ -35,6 +37,7 @@ function constraint_check_valve_head_loss(wm::AbstractNLPModel, n::Int, a::Int, 
     # Append the :head_loss constraint array.
     append!(con(wm, n, :head_loss)[a], [c_1, c_2])
 end
+
 
 "Adds head loss constraints for shutoff valves in `NLP` formulations."
 function constraint_shutoff_valve_head_loss(wm::AbstractNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
@@ -57,6 +60,7 @@ function constraint_shutoff_valve_head_loss(wm::AbstractNLPModel, n::Int, a::Int
     append!(con(wm, n, :head_loss)[a], [c_1, c_2])
 end
 
+
 "Adds head loss constraints for pipes (without check valves) in `NLP` formulations."
 function constraint_pipe_head_loss(wm::AbstractNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
     # Gather flow and head variables included in head loss constraints.
@@ -70,10 +74,11 @@ function constraint_pipe_head_loss(wm::AbstractNLPModel, n::Int, a::Int, node_fr
     append!(con(wm, n, :head_loss)[a], [c])
 end
 
+
 "Add head loss constraints for design pipes (without check valves) in `NLP` formulations."
 function constraint_pipe_head_loss_des(wm::AbstractNLPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, res)
     # Gather common flow and head variables, as well as design indices.
-    q, R = [var(wm, n, :q_des, a), 1:length(res)]
+    q, R = var(wm, n, :q_des, a), 1:length(res)
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
     # Add the nonconvex, design-expanded head loss constraint.
@@ -84,15 +89,14 @@ function constraint_pipe_head_loss_des(wm::AbstractNLPModel, n::Int, a::Int, alp
     append!(con(wm, n, :head_loss)[a], [c])
 end
 
+
 "Adds head gain constraints for pumps in `NLP` formulations."
 function constraint_pump_head_gain(wm::AbstractNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
     # Gather common flow and pump variables.
-    z = var(wm, n, :z_pump, a)
-    q, g_var = [var(wm, n, :q_pump, a), var(wm, n, :g, a)]
+    q, g, z = var(wm, n, :q_pump, a), var(wm, n, :g, a), var(wm, n, :z_pump, a)
 
     # Add constraint equating head gain with respect to the pump curve.
-    g_expr = pc[1]*q^2 + pc[2]*q + pc[3]*z
-    c = JuMP.@constraint(wm.model, g_expr == g_var)
+    c = JuMP.@constraint(wm.model, pc[1]*q^2 + pc[2]*q + pc[3]*z == g)
 
     # Append the :head_gain constraint array.
     append!(con(wm, n, :head_gain)[a], [c])

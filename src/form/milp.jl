@@ -6,12 +6,22 @@ function variable_flow_piecewise_weights(wm::AbstractMILPModel; nw::Int=wm.cnw, 
 
     if pipe_breakpoints > 0
         # Create weights involved in convex combination constraints for pipes.
-        # TODO: Split up the different types of lambda variables into their component types.
-        pipe_ids = vcat(ids(wm, nw, :pipe_fixed)..., ids(wm, nw, :check_valve)..., ids(wm, nw, :shutoff_valve)...)
         lambda_pipe = var(wm, nw)[:lambda_pipe] = JuMP.@variable(wm.model,
-            [a in pipe_ids, k in 1:pipe_breakpoints],
+            [a in ids(wm, nw, :pipe_fixed), k in 1:pipe_breakpoints],
             base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
-            start=comp_start_value(ref(wm, nw, :link, a), "lambda_start", k))
+            start=comp_start_value(ref(wm, nw, :pipe_fixed, a), "lambda_start", k))
+
+        # Create weights involved in convex combination constraints for check valves.
+        lambda_check_valve = var(wm, nw)[:lambda_check_valve] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :check_valve), k in 1:pipe_breakpoints],
+            base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
+            start=comp_start_value(ref(wm, nw, :check_valve, a), "lambda_start", k))
+
+        # Create weights involved in convex combination constraints for shutoff valves.
+        lambda_shutoff_valve = var(wm, nw)[:lambda_shutoff_valve] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :shutoff_valve), k in 1:pipe_breakpoints],
+            base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
+            start=comp_start_value(ref(wm, nw, :shutoff_valve, a), "lambda_start", k))
     end
 
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
@@ -43,14 +53,20 @@ function variable_flow_piecewise_adjacency(wm::AbstractMILPModel; nw::Int=wm.cnw
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
 
     if pipe_breakpoints > 0
-        # Create binary variables involved in convex combination constraints for pipes.
-        # TODO: Split up the different types of lambda variables into their component types.
-        pipe_ids = vcat(ids(wm, nw, :pipe)..., ids(wm, nw, :check_valve)..., ids(wm, nw, :shutoff_valve)...)
-
+        # Create binary variables for pipe convex combination constraints.
         x_pw_pipe = var(wm, nw)[:x_pw_pipe] = JuMP.@variable(wm.model,
-            [a in pipe_ids, k in 1:pipe_breakpoints-1],
-            base_name="$(nw)_x_pw", binary=true,
-            start=comp_start_value(ref(wm, nw, :link, a), "x_pw_start"))
+            [a in ids(wm, nw, :pipe), k in 1:pipe_breakpoints-1], base_name="$(nw)_x_pw", binary=true,
+            start=comp_start_value(ref(wm, nw, :pipe, a), "x_pw_start"))
+
+        # Create binary variables for check valve convex combination constraints.
+        x_pw_check_valve = var(wm, nw)[:x_pw_check_valve] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :check_valve), k in 1:pipe_breakpoints-1], base_name="$(nw)_x_pw", binary=true,
+            start=comp_start_value(ref(wm, nw, :check_valve, a), "x_pw_start"))
+
+        # Create binary variables for shutoff valve convex combination constraints.
+        x_pw_shutoff_valve = var(wm, nw)[:x_pw_shutoff_valve] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :shutoff_valve), k in 1:pipe_breakpoints-1], base_name="$(nw)_x_pw", binary=true,
+            start=comp_start_value(ref(wm, nw, :shutoff_valve, a), "x_pw_start"))
     end
 
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
@@ -58,9 +74,8 @@ function variable_flow_piecewise_adjacency(wm::AbstractMILPModel; nw::Int=wm.cnw
     if pump_breakpoints > 0
         # Create binary variables involved in convex combination constraints for pumps.
         x_pw_pump = var(wm, nw)[:x_pw_pump] = JuMP.@variable(wm.model,
-            [a in ids(wm, nw, :pump), k in 1:pump_breakpoints-1],
-            base_name="$(nw)_x_pw", binary=true,
-            start=comp_start_value(ref(wm, nw, :pump, a), "x_pw_start"))
+            [a in ids(wm, nw, :pump), k in 1:pump_breakpoints-1], base_name="$(nw)_x_pw",
+            binary=true, start=comp_start_value(ref(wm, nw, :pump, a), "x_pw_start"))
     end
 end
 
@@ -91,7 +106,7 @@ function constraint_check_valve_head_loss(wm::AbstractMILPModel, n::Int, a::Int,
 
     # Gather common variables.
     q, z = var(wm, n, :q_check_valve, a), var(wm, n, :z_check_valve, a)
-    lambda, x_pw = [var(wm, n, :lambda_pipe), var(wm, n, :x_pw_pipe)]
+    lambda, x_pw = var(wm, n, :lambda_check_valve), var(wm, n, :x_pw_check_valve)
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
     # Add the required SOS constraints.
@@ -135,8 +150,8 @@ function constraint_shutoff_valve_head_loss(wm::AbstractMILPModel, n::Int, a::In
 
     # Gather common variables.
     q, z = var(wm, n, :q_shutoff_valve, a), var(wm, n, :z_shutoff_valve, a)
-    lambda, x_pw = [var(wm, n, :lambda_pipe), var(wm, n, :x_pw_pipe)]
-    h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
+    lambda, x_pw = var(wm, n, :lambda_shutoff_valve), var(wm, n, :x_pw_shutoff_valve)
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
     # Add the required SOS constraints.
     c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == z)
@@ -182,7 +197,7 @@ function constraint_pump_head_gain(wm::AbstractMILPModel, n::Int, a::Int, node_f
     # Gather common variables.
     z = var(wm, n, :z_pump, a)
     q, g = var(wm, n, :q_pump, a), var(wm, n, :g, a)
-    lambda, x_pw = [var(wm, n, :lambda_pump), var(wm, n, :x_pw_pump)]
+    lambda, x_pw = var(wm, n, :lambda_pump), var(wm, n, :x_pw_pump)
 
     # Add the required SOS constraints.
     c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == z)
@@ -221,8 +236,8 @@ function constraint_pipe_head_loss_des(wm::AbstractMILPModel, n::Int, a::Int, al
 
     # Get common variables and data.
     n_b = pipe_breakpoints
-    lambda, x_pw = [var(wm, n, :lambda_pipe), var(wm, n, :x_pw_pipe)]
-    h_i, h_j = [var(wm, n, :h, node_fr), var(wm, n, :h, node_to)]
+    lambda, x_pw = var(wm, n, :lambda_pipe), var(wm, n, :x_pw_pipe)
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
     # Initialize flow expression in the head loss relationship.
     q_loss_expr = JuMP.AffExpr(0.0)
@@ -273,7 +288,7 @@ function constraint_pipe_head_loss(wm::AbstractMILPModel, n::Int, a::Int, node_f
 
     # Get required variables.
     q = var(wm, n, :q_pipe, a)
-    lambda, x_pw = [var(wm, n, :lambda_pipe), var(wm, n, :x_pw_pipe)]
+    lambda, x_pw = var(wm, n, :lambda_pipe), var(wm, n, :x_pw_pipe)
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
     # Add the required SOS constraints.

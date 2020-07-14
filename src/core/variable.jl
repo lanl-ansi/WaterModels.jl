@@ -158,9 +158,10 @@ denotes that the pressure reducing is currently open and zero otherwise."
 function variable_pressure_reducing_valve_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, relax::Bool=false, report::Bool=true)
     if !relax
         z_pressure_reducing_valve = var(wm, nw)[:z_pressure_reducing_valve] = JuMP.@variable(wm.model,
-            [a in ids(wm, nw, :pressure_reducing_valve)], base_name = "$(nw)_z_pressure_reducing_valve",
-            binary = true,
-            start = comp_start_value(ref(wm, nw, :pressure_reducing_valve, a), "z_pressure_reducing_valve_start"))
+            [a in ids(wm, nw, :pressure_reducing_valve)], base_name =
+            "$(nw)_z_pressure_reducing_valve", binary = true, start =
+            comp_start_value(ref(wm, nw, :pressure_reducing_valve, a),
+                             "z_pressure_reducing_valve_start"))
     else
         z_pressure_reducing_valve = var(wm, nw)[:z_pressure_reducing_valve] = JuMP.@variable(wm.model,
             [a in ids(wm, nw, :pressure_reducing_valve)], base_name = "$(nw)_z_pressure_reducing_valve",

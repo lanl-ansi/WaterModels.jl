@@ -394,24 +394,68 @@ end
 
 
 "Constraint to ensure at least one direction is set to take flow away from a source."
-function constraint_source_flow(wm::AbstractDirectedModel, n::Int, i::Int, a_fr::Array{Tuple{Int,Int,Int}}, a_to::Array{Tuple{Int,Int,Int}})
-    # Get sums of inward- and outward-pointing direction variables.
-    x_out = Array{JuMP.VariableRef}([_collect_directions(wm, n, a) for (a, f, t) in a_fr])
-    x_in = Array{JuMP.VariableRef}([_collect_directions(wm, n, a) for (a, f, t) in a_to])
+function constraint_source_flow(
+    wm::AbstractDirectedModel, n::Int, i::Int, check_valve_fr::Array{Int64,1},
+    check_valve_to::Array{Int64,1}, pipe_fr::Array{Int64,1}, pipe_to::Array{Int64,1},
+    pump_fr::Array{Int64,1}, pump_to::Array{Int64,1},
+    pressure_reducing_valve_fr::Array{Int64,1}, pressure_reducing_valve_to::Array{Int64,1},
+    shutoff_valve_fr::Array{Int64,1}, shutoff_valve_to::Array{Int64,1})
+    # Collect direction variable references per component.
+    y_check_valve = var(wm, n, :y_check_valve)
+    y_pipe, y_pump = var(wm, n, :y_pipe), var(wm, n, :y_pump)
+    y_pressure_reducing_valve = var(wm, n, :y_pressure_reducing_valve)
+    y_shutoff_valve = var(wm, n, :y_shutoff_valve)
+
+    y_out = length(check_valve_fr) > 0 ? sum(y_check_valve[check_valve_fr...]) : 0.0
+          + length(pipe_fr) > 0 ? sum(y_pipe[pipe_fr...]) : 0.0
+          + length(pump_fr) > 0 ? sum(y_pump[pump_fr...]) : 0.0
+          + length(pressure_reducing_valve_fr) > 0 ? sum(y_pressure_reducing_valve[pressure_reducing_valve_fr...]) : 0.0
+          + length(shutoff_valve_fr) > 0 ? sum(y_shutoff_valve[shutoff_valve_fr...]) : 0.0
+
+    y_in = length(check_valve_to) > 0 ? sum(y_check_valve[check_valve_to...]) : 0.0
+         + length(pipe_to) > 0 ? sum(y_pipe[pipe_to...]) : 0.0
+         + length(pump_to) > 0 ? sum(y_pump[pump_to...]) : 0.0
+         + length(pressure_reducing_valve_to) > 0 ? sum(y_pressure_reducing_valve[pressure_reducing_valve_to...]) : 0.0
+         + length(shutoff_valve_to) > 0 ? sum(y_shutoff_valve[shutoff_valve_to...]) : 0.0
+
+    y_in_length = length(check_valve_to) + length(pipe_to) + length(pump_to)
+                + length(pressure_reducing_valve_to) + length(shutoff_valve_to)
 
     # Add the source flow direction constraint.
-    c = JuMP.@constraint(wm.model, sum(x_out) - sum(x_in) >= 1.0 - length(x_in))
+    c = JuMP.@constraint(wm.model, y_out - y_in >= 1.0 - y_in_length)
     con(wm, n, :source_flow)[i] = c
 end
 
 
 "Constraint to ensure at least one direction is set to take flow to a junction with demand."
-function constraint_sink_flow(wm::AbstractDirectedModel, n::Int, i::Int, a_fr::Array{Tuple{Int,Int,Int}}, a_to::Array{Tuple{Int,Int,Int}})
-    # Get sums of inward- and outward-pointing direction variables.
-    x_out = Array{JuMP.VariableRef}([_collect_directions(wm, n, a) for (a, f, t) in a_fr])
-    x_in = Array{JuMP.VariableRef}([_collect_directions(wm, n, a) for (a, f, t) in a_to])
+function constraint_sink_flow(
+    wm::AbstractDirectedModel, n::Int, i::Int, check_valve_fr::Array{Int64,1},
+    check_valve_to::Array{Int64,1}, pipe_fr::Array{Int64,1}, pipe_to::Array{Int64,1},
+    pump_fr::Array{Int64,1}, pump_to::Array{Int64,1},
+    pressure_reducing_valve_fr::Array{Int64,1}, pressure_reducing_valve_to::Array{Int64,1},
+    shutoff_valve_fr::Array{Int64,1}, shutoff_valve_to::Array{Int64,1})
+    # Collect direction variable references per component.
+    y_check_valve = var(wm, n, :y_check_valve)
+    y_pipe, y_pump = var(wm, n, :y_pipe), var(wm, n, :y_pump)
+    y_pressure_reducing_valve = var(wm, n, :y_pressure_reducing_valve)
+    y_shutoff_valve = var(wm, n, :y_shutoff_valve)
+
+    y_out = length(check_valve_fr) > 0 ? sum(y_check_valve[check_valve_fr...]) : 0.0
+          + length(pipe_fr) > 0 ? sum(y_pipe[pipe_fr...]) : 0.0
+          + length(pump_fr) > 0 ? sum(y_pump[pump_fr...]) : 0.0
+          + length(pressure_reducing_valve_fr) > 0 ? sum(y_pressure_reducing_valve[pressure_reducing_valve_fr...]) : 0.0
+          + length(shutoff_valve_fr) > 0 ? sum(y_shutoff_valve[shutoff_valve_fr...]) : 0.0
+
+    y_in = length(check_valve_to) > 0 ? sum(y_check_valve[check_valve_to...]) : 0.0
+         + length(pipe_to) > 0 ? sum(y_pipe[pipe_to...]) : 0.0
+         + length(pump_to) > 0 ? sum(y_pump[pump_to...]) : 0.0
+         + length(pressure_reducing_valve_to) > 0 ? sum(y_pressure_reducing_valve[pressure_reducing_valve_to...]) : 0.0
+         + length(shutoff_valve_to) > 0 ? sum(y_shutoff_valve[shutoff_valve_to...]) : 0.0
+
+     y_out_length = length(check_valve_fr) + length(pipe_fr) + length(pump_fr)
+                  + length(pressure_reducing_valve_fr) + length(shutoff_valve_fr)
 
     # Add the sink flow direction constraint.
-    c = JuMP.@constraint(wm.model, sum(x_in) - sum(x_out) >= 1.0 - length(x_out))
+    c = JuMP.@constraint(wm.model, y_in - y_out >= 1.0 - y_out_length)
     con(wm, n, :sink_flow)[i] = c
 end

@@ -1,4 +1,4 @@
-"Enumerated type specifying the direction of flow along a link."
+"Enumerated type specifying the direction of flow along an edge."
 @enum FLOW_DIRECTION POSITIVE=1 NEGATIVE=-1 UNKNOWN=0
 
 "Defines a constant for determining whether flow along a pump or valve is

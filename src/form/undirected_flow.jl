@@ -36,6 +36,7 @@ function variable_component_flow(
     report && sol_component_value(wm, nw, comp_sym, :q, ids(wm, nw, comp_sym), q)
 end
 
+
 "Create common network design flow variables for undirected flow formulations."
 function variable_flow_des_common(wm::AbstractUndirectedModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
     # Create dictionary for undirected design flow variables (i.e., q_des).
@@ -70,6 +71,7 @@ function variable_flow_des_common(wm::AbstractUndirectedModel; nw::Int=wm.cnw, b
     variable_resistance(wm, nw=nw)
 end
 
+
 "Constrain flow variables, based on design selections, in undirected flow formulations."
 function constraint_resistance_selection_des(wm::AbstractUndirectedModel, n::Int, a::Int, pipe_resistances)
     c = JuMP.@constraint(wm.model, sum(var(wm, n, :x_res, a)) == 1.0)
@@ -88,6 +90,7 @@ function constraint_resistance_selection_des(wm::AbstractUndirectedModel, n::Int
         append!(con(wm, n, :head_loss)[a], [c_lb, c_ub])
     end
 end
+
 
 function constraint_check_valve_common(wm::AbstractUndirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int)
     # Get flow and check valve status variables.
@@ -112,6 +115,7 @@ function constraint_check_valve_common(wm::AbstractUndirectedModel, n::Int, a::I
     append!(con(wm, n, :check_valve, a), [c_1, c_2, c_3, c_4])
 end
 
+
 function constraint_sv_common(wm::AbstractUndirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int)
     # Get flow and shutoff valve status variables.
     q, z = var(wm, n, :q_shutoff_valve, a), var(wm, n, :z_shutoff_valve, a)
@@ -123,6 +127,7 @@ function constraint_sv_common(wm::AbstractUndirectedModel, n::Int, a::Int, node_
     # Append the constraint array.
     append!(con(wm, n, :sv, a), [c_1, c_2])
 end
+
 
 function constraint_prv_common(wm::AbstractUndirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, h_prv::Float64)
     # Get flow and pressure reducing valve status variables.
@@ -149,6 +154,7 @@ function constraint_prv_common(wm::AbstractUndirectedModel, n::Int, a::Int, node
     append!(con(wm, n, :prv, a), [c_1, c_2, c_3, c_4, c_5])
 end
 
+
 function constraint_pump_common(wm::AbstractUndirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
     # Gather common variables.
     z = var(wm, n, :z_pump, a)
@@ -173,11 +179,19 @@ function constraint_pipe_common(wm::AbstractUndirectedModel, n::Int, a::Int, nod
     # For undirected formulations, there are no constraints, here.
 end
 
-function constraint_sink_flow(wm::AbstractUndirectedModel, n::Int, i::Int, a_fr::Array{Tuple{Int,Int,Int}}, a_to::Array{Tuple{Int,Int,Int}})
+function constraint_sink_flow(
+    wm::AbstractWaterModel, n::Int, i::Int, check_valve_fr::Array{Int},
+    check_valve_to::Array{Int}, pipe_fr::Array{Int}, pipe_to::Array{Int},
+    pressure_reducing_valve_fr::Array{Int}, pressure_reducing_valve_to::Array{Int},
+    shutoff_valve_fr::Array{Int}, shutoff_valve_to::Array{Int})
     # For undirected formulations, there are no constraints, here.
 end
 
-function constraint_source_flow(wm::AbstractUndirectedModel, n::Int, i::Int, a_fr::Array{Tuple{Int,Int,Int}}, a_to::Array{Tuple{Int,Int,Int}})
+function constraint_source_flow(
+    wm::AbstractWaterModel, n::Int, i::Int, check_valve_fr::Array{Int},
+    check_valve_to::Array{Int}, pipe_fr::Array{Int}, pipe_to::Array{Int},
+    pressure_reducing_valve_fr::Array{Int}, pressure_reducing_valve_to::Array{Int},
+    shutoff_valve_fr::Array{Int}, shutoff_valve_to::Array{Int})
     # For undirected formulations, there are no constraints, here.
 end
 
