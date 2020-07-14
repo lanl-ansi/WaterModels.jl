@@ -231,8 +231,8 @@ function set_start_directed_head_difference!(data::Dict{String, <:Any})
 end
 
 function set_start_resistance_des!(data::Dict{String, <:Any})
-    viscosity = data["option"]["hydraulic"]["viscosity"]
-    head_loss_type = data["option"]["hydraulic"]["headloss"]
+    viscosity = data["viscosity"]
+    head_loss_type = data["head_loss"]
     resistances = calc_resistances(data["pipe"], viscosity, head_loss_type)
 
     for (a, pipe) in filter(is_des_pipe, data["pipe"])
@@ -244,8 +244,8 @@ function set_start_resistance_des!(data::Dict{String, <:Any})
 end
 
 function set_start_undirected_flow_rate_des!(data::Dict{String, <:Any})
-    viscosity = data["option"]["hydraulic"]["viscosity"]
-    head_loss_type = data["option"]["hydraulic"]["headloss"]
+    viscosity = data["viscosity"]
+    head_loss_type = data["head_loss"]
     resistances = calc_resistances(data["pipe"], viscosity, head_loss_type)
 
     for (a, pipe) in filter(is_des_pipe, data["pipe"])
@@ -257,8 +257,8 @@ function set_start_undirected_flow_rate_des!(data::Dict{String, <:Any})
 end
 
 function set_start_directed_flow_rate_des!(data::Dict{String, <:Any})
-    viscosity = data["option"]["hydraulic"]["viscosity"]
-    head_loss_type = data["option"]["hydraulic"]["headloss"]
+    viscosity = data["viscosity"]
+    head_loss_type = data["head_loss"]
     resistances = calc_resistances(data["pipe"], viscosity, head_loss_type)
 
     for (a, pipe) in filter(is_des_pipe, data["pipe"])

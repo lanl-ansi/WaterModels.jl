@@ -80,6 +80,14 @@ function _add_shutoff_valves!(data::Dict{String,<:Any})
     end
 end
 
+function _correct_pump!(data::Dict{String,<:Any})
+    for (id, pump) in data["pump"]
+        if !("efficiency_curve" in keys(pump))
+            pump["efficiency"] = data["option"]["energy"]["global_efficiency"]
+        end
+    end
+end
+
 function _correct_status!(data::Dict{String,<:Any})
     for (id, pump) in data["pump"]
         initial_status = pump["initial_status"]
@@ -468,6 +476,12 @@ function _string_time_to_seconds(s::AbstractString)
     end
 end
 
+function _update_metadata!(data)
+    data["head_loss"] = data["option"]["hydraulic"]["headloss"]
+    data["viscosity"] = data["option"]["hydraulic"]["viscosity"]
+    data["time_step"] = convert(Float64, data["option"]["time"]["hydraulic_timestep"])
+end
+
 function _clean_nothing!(data)
     for (key, value) in data
         if isa(value, Dict)
@@ -599,14 +613,28 @@ function parse_epanet(filename::String)
 
     # Delete the data that has now been properly parsed.
     delete!(data, "section")
+    delete!(data, "node_count")
     delete!(data, "node_map")
+    delete!(data, "node_order")
     delete!(data, "link_map")
+    delete!(data, "link_count")
+    delete!(data, "curve")
+    delete!(data, "pattern")
 
     # Add other data required by InfrastructureModels.
     data["per_unit"] = false
 
     # Remove all keys that have values of nothing.
     _clean_nothing!(data)
+
+    # Correct data associated with pumps.
+    _correct_pump!(data)
+
+    # Move important metadata to the top level.
+    _update_metadata!(data)
+
+    # Delete the options dictionary.
+    delete!(data, "option")
 
     # Return the dictionary.
     return data
@@ -823,6 +851,7 @@ function _read_energy!(data::Dict{String, <:Any})
 
                 entry = Dict{String, Array{Float64}}("energy_price" => price_pattern)
                 data["time_series"]["pump"][pump_id] = entry
+                delete!(pump, "energy_pattern_name")
             end
         end
     end
@@ -895,6 +924,7 @@ function _read_junction!(data::Dict{String, <:Any})
                 demand = junction["demand"] .* data["pattern"][pattern]
                 entry = Dict{String, Array{Float64}}("demand" => demand)
                 data["time_series"]["junction"][current[1]] = entry
+                delete!(junction, "demand_pattern_name")
             elseif pattern != nothing && pattern != "1"
                 junction["demand"] *= data["pattern"][pattern][1]
             end
@@ -1261,6 +1291,7 @@ function _read_reservoir!(data::Dict{String,<:Any})
                 head = reservoir["head"] .* data["pattern"][pattern]
                 entry = Dict{String, Array{Float64}}("head" => head, "elevation" => head)
                 data["time_series"]["reservoir"][current[1]] = entry
+                delete!(reservoir, "head_pattern_name")
             elseif pattern != nothing && pattern != "1"
                 reservoir["head"] *= data["pattern"][pattern][1]
                 reservoir["elevation"] *= data["pattern"][pattern][1]

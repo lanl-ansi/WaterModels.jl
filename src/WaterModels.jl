@@ -34,7 +34,7 @@ module WaterModels
         Memento.config!(Memento.getlogger("WaterModels"), level)
     end
 
-    const _wm_global_keys = Set(["time_series", "per_unit", "option"])
+    const _wm_global_keys = Set(["time_series", "per_unit"])
 
     include("io/common.jl")
     include("io/epanet.jl")

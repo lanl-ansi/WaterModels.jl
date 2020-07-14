@@ -107,10 +107,11 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     junctions = values(ref(wm, n, :junction))
     sum_demand = sum(abs(junction["demand"]) for junction in junctions)
 
-    time_step_int = wm.ref[:option]["time"]["hydraulic_timestep"]
-    time_step = convert(Float64, time_step_int)
-    V_lb, V_ub = calc_tank_volume_bounds(wm, n)
-    sum_demand += sum([(V_ub[i] - V_lb[i]) / time_step for i in ids(wm, n, :tank)])
+    if :time_step in keys(ref(wm, n))
+        time_step = ref(wm, n, :time_step)
+        V_lb, V_ub = calc_tank_volume_bounds(wm, n)
+        sum_demand += sum([(V_ub[i] - V_lb[i]) / time_step for i in ids(wm, n, :tank)])
+    end
 
     # TODO: Make separate calculations per merge component.
     pipes = merge(ref(wm, n, :pipe), ref(wm, n, :check_valve), ref(wm, n, :shutoff_valve))

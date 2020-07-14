@@ -61,17 +61,13 @@ Some of the common keys include:
 * `:tank` -- the set of tanks in the network
 """
 function ref_add_core!(refs::Dict{Symbol,<:Any})
-    _ref_add_core!(refs[:nw], refs[:option])
+    _ref_add_core!(refs[:nw])
 end
 
-function _ref_add_core!(nw_refs::Dict{Int,<:Any}, options::Dict{String,<:Any})
-    # Set the resistances based on the head loss type.
-    headloss = options["hydraulic"]["headloss"]
-    viscosity = options["hydraulic"]["viscosity"]
-
+function _ref_add_core!(nw_refs::Dict{Int,<:Any})
     for (nw, ref) in nw_refs
-        ref[:resistance] = calc_resistances(ref[:pipe], viscosity, headloss)
-        ref[:resistance_cost] = calc_resistance_costs(ref[:pipe], viscosity, headloss)
+        ref[:resistance] = calc_resistances(ref[:pipe], ref[:viscosity], ref[:head_loss])
+        ref[:resistance_cost] = calc_resistance_costs(ref[:pipe], ref[:viscosity], ref[:head_loss])
 
         # TODO: Check and shutoff valves should not have pipe properties.
         ref[:check_valve] = filter(has_check_valve, ref[:pipe])
@@ -84,7 +80,7 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any}, options::Dict{String,<:Any})
         ref[:pipe_fixed] = filter(!is_des_pipe, ref[:pipe])
 
         # Create mappings of "from" and "to" arcs for link- (i.e., edge-) type components.
-        for name in ["check_valve", "shutoff_valve", "pipe", "pressure_reducing_valve"]
+        for name in ["check_valve", "shutoff_valve", "pipe", "pressure_reducing_valve", "pump"]
             fr_sym, to_sym = Symbol(name * "_fr"), Symbol(name * "_to")
             ref[fr_sym] = [(i, c["node_fr"], c["node_to"]) for (i, c) in ref[Symbol(name)]]
             ref[to_sym] = [(i, c["node_to"], c["node_fr"]) for (i, c) in ref[Symbol(name)]]
@@ -101,6 +97,6 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any}, options::Dict{String,<:Any})
         end
 
         # Set alpha, that is, the exponent used for head loss relationships.
-        ref[:alpha] = uppercase(headloss) == "H-W" ? 1.852 : 2.0
+        ref[:alpha] = uppercase(ref[:head_loss]) == "H-W" ? 1.852 : 2.0
     end
 end

@@ -10,15 +10,10 @@ end
 
 
 """
-    constraint_tank_state(
+    constraint_flow_conservation(
         wm, n, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to, pump_fr, pump_to,
         pressure_reducing_valve_fr, pressure_reducing_valve_to, shutoff_valve_fr,
         shutoff_valve_to, reservoirs, tanks, demand)
-
-Adds a constraint that integrates the volume of a tank forward in time. Here, `wm` is the
-WaterModels object, `n_1` is the index of a subnetwork within a multinetwork, `n_2` is the
-index of another subnetwork forward in time, relative to `n_1`, i is the index of the tank,
-and time_step is the time step (in seconds) between networks `n_1` and `n_2`.
 """
 function constraint_flow_conservation(
     wm::AbstractWaterModel, n::Int, i::Int, check_valve_fr::Array{Int64,1},

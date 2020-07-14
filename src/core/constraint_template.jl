@@ -123,10 +123,7 @@ end
 
 
 function constraint_tank_state(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
-    if "hydraulic_timestep" in keys(wm.ref[:option]["time"])
-        time_step_int = wm.ref[:option]["time"]["hydraulic_timestep"]
-        time_step = convert(Float64, time_step_int)
-    else
+    if !(:time_step in keys(ref(wm, nw)))
         Memento.error(_LOGGER, "Tank states cannot be controlled without a time step.")
     end
 
@@ -136,22 +133,19 @@ function constraint_tank_state(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
     V_initial = surface_area * initial_level
 
     _initialize_con_dict(wm, :tank_state, nw=nw)
-    constraint_tank_state_initial(wm, nw, i, V_initial, time_step)
+    constraint_tank_state_initial(wm, nw, i, V_initial, ref(wm, nw, :time_step))
 end
 
 
 function constraint_tank_state(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2::Int)
-    if "hydraulic_timestep" in keys(wm.ref[:option]["time"])
-        time_step_int = wm.ref[:option]["time"]["hydraulic_timestep"]
-        time_step = convert(Float64, time_step_int)
-    else
+    if !(:time_step in keys(ref(wm, nw_1)))
         Memento.error(_LOGGER, "Tank states cannot be controlled without a time step.")
     end
 
     # TODO: What happens if a tank exists in nw_1 but not in nw_2? The index
     # "i" is assumed to be present in both when this constraint is applied.
     _initialize_con_dict(wm, :tank_state, nw=nw_2)
-    constraint_tank_state(wm, nw_1, nw_2, i, time_step)
+    constraint_tank_state(wm, nw_1, nw_2, i, ref(wm, nw_1, :time_step))
 end
 
 

@@ -188,7 +188,6 @@ function objective_owf(wm::AbstractMILPRModel)
 
     # Initialize the objective function.
     objective = JuMP.AffExpr(0.0)
-    time_step = wm.ref[:option]["time"]["hydraulic_timestep"]
 
     for (n, nw_ref) in nws(wm)
         # Get common variables.
@@ -197,7 +196,7 @@ function objective_owf(wm::AbstractMILPRModel)
         # Get common constant parameters.
         rho = 1000.0 # Water density (kilogram per cubic meter).
         gravity = 9.80665 # Gravitational acceleration (meter per second squared).
-        constant = rho * gravity * time_step
+        constant = rho * gravity * ref(wm, n, :time_step)
 
         for (a, pump) in nw_ref[:pump]
             if haskey(pump, "energy_price")
@@ -219,7 +218,7 @@ function objective_owf(wm::AbstractMILPRModel)
                     eff_curve = pump["efficiency_curve"]
                     eff = _calc_efficiencies(collect(breakpoints), eff_curve)
                 else
-                    eff = wm.ref[:option]["energy"]["global_efficiency"]
+                    eff = pump["efficiency"]
                 end
 
                 # Add the cost corresponding to the current pump's operation.
