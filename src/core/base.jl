@@ -70,6 +70,7 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any})
         ref[:resistance_cost] = calc_resistance_costs(ref[:pipe], ref[:viscosity], ref[:head_loss])
 
         # TODO: Check and shutoff valves should not have pipe properties.
+        edge_index = length(ref[:pipe]) > 0 ? maximum(collect(keys(ref[:pipe]))) + 1 : 1
         ref[:check_valve] = filter(has_check_valve, ref[:pipe])
         ref[:shutoff_valve] = filter(has_shutoff_valve, ref[:pipe])
         ref[:pipe] = filter(!has_check_valve, ref[:pipe])
@@ -78,6 +79,35 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any})
         ref[:pressure_reducing_valve] = filter(is_pressure_reducing_valve, ref[:valve])
         ref[:pipe_des] = filter(is_des_pipe, ref[:pipe])
         ref[:pipe_fixed] = filter(!is_des_pipe, ref[:pipe])
+
+        # Modify the network for standard modeling of tanks.
+        for (i, tank) in ref[:tank]
+            # Create a new node, which will be connected to the tank with a shutoff valve.
+            node = deepcopy(ref[:node][tank["tank_node"]])
+            node["index"] = sort(collect(keys(ref[:node])))[end] + 1
+            node["source_id"] = ["node", "tank_$(i)_dummy"]
+            ref[:node][node["index"]] = node
+
+            # Instantiate the properties that define the shutoff valve.
+            sv = Dict{String,Any}("flow_direction"=>0, "node_fr"=>tank["tank_node"],
+                "node_to"=>node["index"], "diameter"=>1.0, "minor_loss"=>0.0, "length"=>0.0,
+                "name"=>"tank_$(i)_sv", "status"=>"SV",
+                "source_id"=>["shutoff_valve", "tank_$(i)_sv"], "initial_status"=>"Closed",
+                "control"=>Dict{String,Any}(), "roughness"=>0.0)
+
+            # Set the tank node index to the index of the dummy node.
+            tank["tank_node"] = node["index"]
+
+            # Give the new shutoff valve a new index.
+            sv["index"] = edge_index
+
+            # Update portions of `ref` with shutoff valve data.
+            ref[:resistance][sv["index"]] = [0.0]
+            ref[:resistance_cost][sv["index"]] = [0.0]
+            ref[:shutoff_valve][sv["index"]] = sv
+
+            edge_index += 1
+        end
 
         # Create mappings of "from" and "to" arcs for link- (i.e., edge-) type components.
         for name in ["check_valve", "shutoff_valve", "pipe", "pressure_reducing_valve", "pump"]

@@ -20,7 +20,7 @@ function variable_component_flow(
 
     # Initialize the variables. (The default start value of _q_eps is crucial.)
     q = var(wm, nw)[Symbol("q_" * component_name)] = JuMP.@variable(wm.model,
-        [a in ids(wm, nw, comp_sym)], base_name="$(nw)_q",
+        [a in ids(wm, nw, comp_sym)], base_name="$(nw)_q_$(component_name)",
         start=comp_start_value(ref(wm, nw, comp_sym, a), "q_start", _q_eps))
 
     if bounded # If the variables are bounded, apply the bounds.
@@ -182,16 +182,18 @@ end
 function constraint_sink_flow(
     wm::AbstractWaterModel, n::Int, i::Int, check_valve_fr::Array{Int},
     check_valve_to::Array{Int}, pipe_fr::Array{Int}, pipe_to::Array{Int},
-    pressure_reducing_valve_fr::Array{Int}, pressure_reducing_valve_to::Array{Int},
-    shutoff_valve_fr::Array{Int}, shutoff_valve_to::Array{Int})
+    pump_fr::Array{Int}, pump_to::Array{Int}, pressure_reducing_valve_fr::Array{Int},
+    pressure_reducing_valve_to::Array{Int}, shutoff_valve_fr::Array{Int},
+    shutoff_valve_to::Array{Int})
     # For undirected formulations, there are no constraints, here.
 end
 
 function constraint_source_flow(
     wm::AbstractWaterModel, n::Int, i::Int, check_valve_fr::Array{Int},
     check_valve_to::Array{Int}, pipe_fr::Array{Int}, pipe_to::Array{Int},
-    pressure_reducing_valve_fr::Array{Int}, pressure_reducing_valve_to::Array{Int},
-    shutoff_valve_fr::Array{Int}, shutoff_valve_to::Array{Int})
+    pump_fr::Array{Int}, pump_to::Array{Int}, pressure_reducing_valve_fr::Array{Int},
+    pressure_reducing_valve_to::Array{Int}, shutoff_valve_fr::Array{Int},
+    shutoff_valve_to::Array{Int})
     # For undirected formulations, there are no constraints, here.
 end
 

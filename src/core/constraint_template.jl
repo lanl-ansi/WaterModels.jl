@@ -40,11 +40,11 @@ function constraint_flow_conservation(wm::AbstractWaterModel, i::Int; nw::Int=wm
     shutoff_valve_to = _collect_comps_to(wm, i, :shutoff_valve; nw=nw)
 
     # Collect various indices for node-type components connected to node `i`.
-    reservoir_nodes = ref(wm, nw, :node_reservoir, i)
-    tank_nodes = ref(wm, nw, :node_tank, i)
+    reservoirs = ref(wm, nw, :node_reservoir, i) # Reservoirs attached to node `i`.
+    tanks = ref(wm, nw, :node_tank, i) # Tanks attached to node `i`.
 
     # Sum the constant demands required at node `i`.
-    ids = ref(wm, nw, :node_junction, i)
+    ids = ref(wm, nw, :node_junction, i) # Junctions attached to node `i`.
     demand = length(ids) > 0 ? sum([ref(wm, nw, :junction, i)["demand"] for i in ids]) : 0.0
 
     # Initialize the flow conservation constraint dictionary entry.
@@ -54,7 +54,7 @@ function constraint_flow_conservation(wm::AbstractWaterModel, i::Int; nw::Int=wm
     constraint_flow_conservation(
         wm, nw, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to, pump_fr, pump_to,
         pressure_reducing_valve_fr, pressure_reducing_valve_to, shutoff_valve_fr,
-        shutoff_valve_to, reservoir_nodes, tank_nodes, demand)
+        shutoff_valve_to, reservoirs, tanks, demand)
 end
 
 
@@ -65,6 +65,8 @@ function constraint_sink_flow(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
     check_valve_to = _collect_comps_to(wm, i, :check_valve; nw=nw)
     pipe_fr = _collect_comps_fr(wm, i, :pipe; nw=nw)
     pipe_to = _collect_comps_to(wm, i, :pipe; nw=nw)
+    pump_fr = _collect_comps_fr(wm, i, :pump; nw=nw)
+    pump_to = _collect_comps_to(wm, i, :pump; nw=nw)
     pressure_reducing_valve_fr = _collect_comps_fr(wm, i, :pressure_reducing_valve; nw=nw)
     pressure_reducing_valve_to = _collect_comps_to(wm, i, :pressure_reducing_valve; nw=nw)
     shutoff_valve_fr = _collect_comps_fr(wm, i, :shutoff_valve; nw=nw)
@@ -75,7 +77,7 @@ function constraint_sink_flow(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
 
     # Add the sink flow directionality constraint.
     constraint_sink_flow(
-        wm, nw, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to,
+        wm, nw, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to, pump_fr, pump_to,
         pressure_reducing_valve_fr, pressure_reducing_valve_to, shutoff_valve_fr,
         shutoff_valve_to)
 end
@@ -95,6 +97,8 @@ function constraint_source_flow(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
     check_valve_to = _collect_comps_to(wm, i, :check_valve; nw=nw)
     pipe_fr = _collect_comps_fr(wm, i, :pipe; nw=nw)
     pipe_to = _collect_comps_to(wm, i, :pipe; nw=nw)
+    pump_fr = _collect_comps_fr(wm, i, :pump; nw=nw)
+    pump_to = _collect_comps_to(wm, i, :pump; nw=nw)
     pressure_reducing_valve_fr = _collect_comps_fr(wm, i, :pressure_reducing_valve; nw=nw)
     pressure_reducing_valve_to = _collect_comps_to(wm, i, :pressure_reducing_valve; nw=nw)
     shutoff_valve_fr = _collect_comps_fr(wm, i, :shutoff_valve; nw=nw)
@@ -105,9 +109,9 @@ function constraint_source_flow(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
 
     # Add the source flow directionality constraint.
     constraint_source_flow(
-        wm, nw, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to,
-        pressure_reducing_valve_fr, pressure_reducing_valve_to,
-        shutoff_valve_fr, shutoff_valve_to)
+        wm, nw, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to, pump_fr, pump_to,
+        pressure_reducing_valve_fr, pressure_reducing_valve_to, shutoff_valve_fr,
+        shutoff_valve_to)
 end
 
 
@@ -227,17 +231,9 @@ end
 
 ### Shutoff Valve Constraints ###
 function constraint_shutoff_valve_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    # Add all common shutoff valve constraints.
     node_fr = ref(wm, nw, :shutoff_valve, a)["node_fr"]
     node_to = ref(wm, nw, :shutoff_valve, a)["node_to"]
-    alpha, L = ref(wm, nw, :alpha), ref(wm, nw, :shutoff_valve, a)["length"]
-    r = maximum(ref(wm, nw, :resistance, a))
-
-    ## Since shutoff valves exist along pipes, add all common pipe constraints.
-    #_initialize_con_dict(wm, :pipe, nw=nw, is_array=true)
-    #con(wm, nw, :pipe)[a] = Array{JuMP.ConstraintRef}([])
-    #constraint_pipe_common(wm, nw, a, node_fr, node_to, alpha, L, r)
-
-    # Add all common shutoff valve constraints.
     _initialize_con_dict(wm, :sv, nw=nw, is_array=true)
     con(wm, nw, :sv)[a] = Array{JuMP.ConstraintRef}([])
     constraint_sv_common(wm, nw, a, node_fr, node_to)

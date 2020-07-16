@@ -126,31 +126,31 @@
     end
 
     @testset "Hazen-Williams Head Loss (Tank)" begin
-        network = WaterModels.parse_file("../test/data/epanet/snapshot/tank-hw-lps.inp")
+        network = parse_file("../test/data/epanet/snapshot/tank-hw-lps.inp")
 
-        wm = instantiate_model(network, NLPWaterModel, build_wf)
+        wm = instantiate_model(deepcopy(network), NLPWaterModel, build_wf)
         result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
         @test result["termination_status"] == LOCALLY_SOLVED
         @test isapprox(result["solution"]["node"]["1"]["h"], 20.0, rtol=1.0e-3)
         @test isapprox(result["solution"]["node"]["2"]["h"], 17.89, rtol=1.0e-3)
-        @test isapprox(result["solution"]["shutoff_valve"]["1"]["q"], 1.0, rtol=1.0e-3)
+        @test isapprox(result["solution"]["pipe"]["1"]["q"], 1.0, rtol=1.0e-3)
 
-        wm = instantiate_model(network, MICPRWaterModel, build_wf)
+        wm = instantiate_model(deepcopy(network), MICPRWaterModel, build_wf)
         result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
         @test result["termination_status"] == LOCALLY_SOLVED
         @test isapprox(result["solution"]["node"]["1"]["h"], 20.0, rtol=1.0e-3)
-        @test isapprox(result["solution"]["shutoff_valve"]["1"]["q"], 1.0, rtol=1.0e-3)
+        @test isapprox(result["solution"]["pipe"]["1"]["q"], 1.0, rtol=1.0e-3)
 
-        result = run_wf(network, MILPWaterModel, cbc, ext=Dict(:pipe_breakpoints=>4))
+        result = run_wf(deepcopy(network), MILPWaterModel, cbc, ext=Dict(:pipe_breakpoints=>4))
         @test result["termination_status"] == OPTIMAL
         @test isapprox(result["solution"]["node"]["1"]["h"], 20.0, rtol=1.0e-3)
         @test isapprox(result["solution"]["node"]["2"]["h"], 17.89, rtol=1.0e-1)
-        @test isapprox(result["solution"]["shutoff_valve"]["1"]["q"], 1.0, rtol=1.0e-3)
+        @test isapprox(result["solution"]["pipe"]["1"]["q"], 1.0, rtol=1.0e-3)
 
-        result = run_wf(network, MILPRWaterModel, cbc, ext=Dict(:pipe_breakpoints=>3))
+        result = run_wf(deepcopy(network), MILPRWaterModel, cbc, ext=Dict(:pipe_breakpoints=>3))
         @test result["termination_status"] == OPTIMAL
         @test isapprox(result["solution"]["node"]["1"]["h"], 20.0, rtol=1.0e-3)
-        @test isapprox(result["solution"]["shutoff_valve"]["1"]["q"], 1.0, rtol=1.0e-3)
+        @test isapprox(result["solution"]["pipe"]["1"]["q"], 1.0, rtol=1.0e-3)
     end
 end
 
@@ -328,38 +328,38 @@ end
         network = WaterModels.parse_file("../test/data/epanet/multinetwork/tank-hw-lps.inp")
         network = WaterModels.make_multinetwork(network)
 
-        wm = instantiate_model(network, NLPWaterModel, build_mn_wf)
+        wm = instantiate_model(deepcopy(network), NLPWaterModel, build_mn_wf)
         result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
         @test result["termination_status"] == LOCALLY_SOLVED
         @test isapprox(result["solution"]["nw"]["1"]["node"]["1"]["h"], 60.00, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["1"]["node"]["2"]["h"], 59.42, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["3"]["node"]["1"]["h"], 25.62, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["3"]["node"]["2"]["h"], 25.58, rtol=1.0e-3)
-        @test isapprox(result["solution"]["nw"]["1"]["shutoff_valve"]["1"]["q"], 0.500, rtol=1.0e-3)
-        @test isapprox(result["solution"]["nw"]["3"]["shutoff_valve"]["1"]["q"], 0.125, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["pipe"]["1"]["q"], 0.500, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["3"]["pipe"]["1"]["q"], 0.125, rtol=1.0e-3)
 
-        wm = instantiate_model(network, MICPRWaterModel, build_mn_wf)
+        wm = instantiate_model(deepcopy(network), MICPRWaterModel, build_mn_wf)
         result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
         @test result["termination_status"] == LOCALLY_SOLVED
         @test isapprox(result["solution"]["nw"]["1"]["node"]["1"]["h"], 60.00, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["3"]["node"]["1"]["h"], 25.62, rtol=1.0e-3)
-        @test isapprox(result["solution"]["nw"]["1"]["shutoff_valve"]["1"]["q"], 0.500, rtol=1.0e-3)
-        @test isapprox(result["solution"]["nw"]["3"]["shutoff_valve"]["1"]["q"], 0.125, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["pipe"]["1"]["q"], 0.500, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["3"]["pipe"]["1"]["q"], 0.125, rtol=1.0e-3)
 
-        result = run_mn_wf(network, MILPWaterModel, cbc, ext=Dict(:pipe_breakpoints=>4))
+        result = run_mn_wf(deepcopy(network), MILPWaterModel, cbc, ext=Dict(:pipe_breakpoints=>4))
         @test result["termination_status"] == OPTIMAL
         @test isapprox(result["solution"]["nw"]["1"]["node"]["1"]["h"], 60.00, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["1"]["node"]["2"]["h"], 59.42, rtol=1.0e-2)
         @test isapprox(result["solution"]["nw"]["3"]["node"]["1"]["h"], 25.62, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["3"]["node"]["2"]["h"], 25.58, rtol=1.0e-2)
-        @test isapprox(result["solution"]["nw"]["1"]["shutoff_valve"]["1"]["q"], 0.500, rtol=1.0e-3)
-        @test isapprox(result["solution"]["nw"]["3"]["shutoff_valve"]["1"]["q"], 0.125, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["pipe"]["1"]["q"], 0.500, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["3"]["pipe"]["1"]["q"], 0.125, rtol=1.0e-3)
 
-        result = run_mn_wf(network, MILPRWaterModel, cbc, ext=Dict(:pipe_breakpoints=>3))
+        result = run_mn_wf(deepcopy(network), MILPRWaterModel, cbc, ext=Dict(:pipe_breakpoints=>3))
         @test result["termination_status"] == OPTIMAL
         @test isapprox(result["solution"]["nw"]["1"]["node"]["1"]["h"], 60.00, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["3"]["node"]["1"]["h"], 25.62, rtol=1.0e-3)
-        @test isapprox(result["solution"]["nw"]["1"]["shutoff_valve"]["1"]["q"], 0.500, rtol=1.0e-3)
-        @test isapprox(result["solution"]["nw"]["3"]["shutoff_valve"]["1"]["q"], 0.125, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["pipe"]["1"]["q"], 0.500, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["3"]["pipe"]["1"]["q"], 0.125, rtol=1.0e-3)
     end
 end

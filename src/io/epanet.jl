@@ -67,18 +67,6 @@ function _add_link_ids!(data::Dict{String, <:Any})
     end
 end
 
-"Adds shutoff valves for all pipes connected to tanks."
-function _add_shutoff_valves!(data::Dict{String,<:Any})
-    tank_ids = [tank["index"] for tank in values(data["tank"])]
-
-    for (id, pipe) in data["pipe"]
-        i, j = pipe["node_fr"], pipe["node_to"]
-
-        if any(x in tank_ids for x in [i, j])
-            pipe["status"] = "SV" # Has a shutoff valve.
-        end
-    end
-end
 
 function _correct_pump!(data::Dict{String,<:Any})
     for (id, pump) in data["pump"]
@@ -87,6 +75,7 @@ function _correct_pump!(data::Dict{String,<:Any})
         end
     end
 end
+
 
 function _correct_status!(data::Dict{String,<:Any})
     for (id, pump) in data["pump"]
@@ -607,9 +596,6 @@ function parse_epanet(filename::String)
 
     # Add or remove time series information.
     _correct_time_series!(data)
-
-    # Add shutoff valves to pipes connected to tanks.
-    _add_shutoff_valves!(data)
 
     # Delete the data that has now been properly parsed.
     delete!(data, "section")

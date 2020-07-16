@@ -114,11 +114,11 @@ function constraint_shutoff_valve_head_loss(wm::AbstractMICPModel, n::Int, a::In
     dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
 
     # Add constraints for flow in the positive and negative directions.
-    lhs_p = JuMP.@NLexpression(wm.model, r*head_loss(qp) - inv(L)*dhp)
+    lhs_p = JuMP.@NLexpression(wm.model, L * r * head_loss(qp) - dhp)
     c_1 = JuMP.@NLconstraint(wm.model, lhs_p <= dhp_ub * y)
     c_2 = JuMP.@NLconstraint(wm.model, lhs_p <= dhp_ub * (1.0 - z))
 
-    lhs_n = JuMP.@NLexpression(wm.model, r*head_loss(qn) - inv(L)*dhn)
+    lhs_n = JuMP.@NLexpression(wm.model, L * r * head_loss(qn) - dhn)
     c_3 = JuMP.@NLconstraint(wm.model, lhs_n <= dhn_ub * (1.0 - y))
     c_4 = JuMP.@NLconstraint(wm.model, lhs_n <= dhn_ub * (1.0 - z))
 

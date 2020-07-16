@@ -173,9 +173,9 @@ function constraint_shutoff_valve_head_loss(wm::AbstractMILPModel, n::Int, a::In
     lhs = inv(L) * (h_i - h_j) - loss
 
     dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
-    c_6 = JuMP.@constraint(wm.model, lhs <= inv(L) * (1.0 - z) * dh_ub)
+    c_6 = JuMP.@constraint(wm.model, L * lhs <= (1.0 - z) * dh_ub)
     dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
-    c_7 = JuMP.@constraint(wm.model, lhs >= inv(L) * (1.0 - z) * dh_lb)
+    c_7 = JuMP.@constraint(wm.model, L * lhs >= (1.0 - z) * dh_lb)
 
     # Append the constraint array with the above-generated constraints.
     append!(con(wm, n, :head_loss, a), [c_1, c_2, c_3, c_4, c_5, c_6, c_7])

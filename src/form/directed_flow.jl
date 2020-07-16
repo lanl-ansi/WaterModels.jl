@@ -406,17 +406,17 @@ function constraint_source_flow(
     y_pressure_reducing_valve = var(wm, n, :y_pressure_reducing_valve)
     y_shutoff_valve = var(wm, n, :y_shutoff_valve)
 
-    y_out = length(check_valve_fr) > 0 ? sum(y_check_valve[check_valve_fr...]) : 0.0
-          + length(pipe_fr) > 0 ? sum(y_pipe[pipe_fr...]) : 0.0
-          + length(pump_fr) > 0 ? sum(y_pump[pump_fr...]) : 0.0
-          + length(pressure_reducing_valve_fr) > 0 ? sum(y_pressure_reducing_valve[pressure_reducing_valve_fr...]) : 0.0
-          + length(shutoff_valve_fr) > 0 ? sum(y_shutoff_valve[shutoff_valve_fr...]) : 0.0
+    y_out = JuMP.@expression(wm.model,
+            sum(y_check_valve[a] for a in check_valve_fr)
+          + sum(y_pipe[a] for a in pipe_fr) + sum(y_pump[a] for a in pump_fr)
+          + sum(y_pressure_reducing_valve[a] for a in pressure_reducing_valve_fr)
+          + sum(y_shutoff_valve[a] for a in shutoff_valve_fr))
 
-    y_in = length(check_valve_to) > 0 ? sum(y_check_valve[check_valve_to...]) : 0.0
-         + length(pipe_to) > 0 ? sum(y_pipe[pipe_to...]) : 0.0
-         + length(pump_to) > 0 ? sum(y_pump[pump_to...]) : 0.0
-         + length(pressure_reducing_valve_to) > 0 ? sum(y_pressure_reducing_valve[pressure_reducing_valve_to...]) : 0.0
-         + length(shutoff_valve_to) > 0 ? sum(y_shutoff_valve[shutoff_valve_to...]) : 0.0
+    y_in = JuMP.@expression(wm.model,
+            sum(y_check_valve[a] for a in check_valve_to)
+          + sum(y_pipe[a] for a in pipe_to) + sum(y_pump[a] for a in pump_to)
+          + sum(y_pressure_reducing_valve[a] for a in pressure_reducing_valve_to)
+          + sum(y_shutoff_valve[a] for a in shutoff_valve_to))
 
     y_in_length = length(check_valve_to) + length(pipe_to) + length(pump_to)
                 + length(pressure_reducing_valve_to) + length(shutoff_valve_to)
@@ -440,20 +440,20 @@ function constraint_sink_flow(
     y_pressure_reducing_valve = var(wm, n, :y_pressure_reducing_valve)
     y_shutoff_valve = var(wm, n, :y_shutoff_valve)
 
-    y_out = length(check_valve_fr) > 0 ? sum(y_check_valve[check_valve_fr...]) : 0.0
-          + length(pipe_fr) > 0 ? sum(y_pipe[pipe_fr...]) : 0.0
-          + length(pump_fr) > 0 ? sum(y_pump[pump_fr...]) : 0.0
-          + length(pressure_reducing_valve_fr) > 0 ? sum(y_pressure_reducing_valve[pressure_reducing_valve_fr...]) : 0.0
-          + length(shutoff_valve_fr) > 0 ? sum(y_shutoff_valve[shutoff_valve_fr...]) : 0.0
+    y_out = JuMP.@expression(wm.model,
+            sum(y_check_valve[a] for a in check_valve_fr)
+          + sum(y_pipe[a] for a in pipe_fr) + sum(y_pump[a] for a in pump_fr)
+          + sum(y_pressure_reducing_valve[a] for a in pressure_reducing_valve_fr)
+          + sum(y_shutoff_valve[a] for a in shutoff_valve_fr))
 
-    y_in = length(check_valve_to) > 0 ? sum(y_check_valve[check_valve_to...]) : 0.0
-         + length(pipe_to) > 0 ? sum(y_pipe[pipe_to...]) : 0.0
-         + length(pump_to) > 0 ? sum(y_pump[pump_to...]) : 0.0
-         + length(pressure_reducing_valve_to) > 0 ? sum(y_pressure_reducing_valve[pressure_reducing_valve_to...]) : 0.0
-         + length(shutoff_valve_to) > 0 ? sum(y_shutoff_valve[shutoff_valve_to...]) : 0.0
+    y_in = JuMP.@expression(wm.model,
+            sum(y_check_valve[a] for a in check_valve_to)
+          + sum(y_pipe[a] for a in pipe_to) + sum(y_pump[a] for a in pump_to)
+          + sum(y_pressure_reducing_valve[a] for a in pressure_reducing_valve_to)
+          + sum(y_shutoff_valve[a] for a in shutoff_valve_to))
 
-     y_out_length = length(check_valve_fr) + length(pipe_fr) + length(pump_fr)
-                  + length(pressure_reducing_valve_fr) + length(shutoff_valve_fr)
+    y_out_length = length(check_valve_fr) + length(pipe_fr) + length(pump_fr)
+                 + length(pressure_reducing_valve_fr) + length(shutoff_valve_fr)
 
     # Add the sink flow direction constraint.
     c = JuMP.@constraint(wm.model, y_in - y_out >= 1.0 - y_out_length)

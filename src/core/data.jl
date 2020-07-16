@@ -3,6 +3,7 @@ function calc_resistance_hw(diameter::Float64, roughness::Float64)
     return 7.8828 * inv(0.849^1.852 * roughness^1.852 * diameter^4.8704)
 end
 
+
 """
 Turns given single network data into multinetwork data with a `count` replicate
 of the given network. Note that this function performs a deepcopy of the
@@ -13,6 +14,7 @@ data replication.
 function replicate(data::Dict{String,<:Any}, count::Int; global_keys::Set{String}=Set{String}())
     return _IM.replicate(data, count, union(global_keys, _wm_global_keys))
 end
+
 
 function calc_resistances_hw(pipes::Dict{<:Any, <:Any})
     resistances = Dict([(a, Array{Float64, 1}()) for a in keys(pipes)])
@@ -38,6 +40,7 @@ function calc_resistances_hw(pipes::Dict{<:Any, <:Any})
     return resistances
 end
 
+
 function calc_resistance_dw(diameter::Float64, roughness::Float64, viscosity::Float64, speed::Float64, density::Float64)
     # Compute Reynold's number.
     reynolds_number = density * speed * diameter * inv(viscosity)
@@ -49,6 +52,7 @@ function calc_resistance_dw(diameter::Float64, roughness::Float64, viscosity::Fl
     y3 = -8.685889638e-01 * log(y2)
     return 0.0826 * inv(diameter^5) * inv(y3*y3)
 end
+
 
 function calc_resistances_dw(pipes::Dict{<:Any, <:Any}, viscosity::Float64)
     resistances = Dict([(a, Array{Float64, 1}()) for a in keys(pipes)])
@@ -109,6 +113,7 @@ function calc_resistance_costs_hw(pipes::Dict{Int, <:Any})
     return costs
 end
 
+
 function calc_resistance_costs_dw(pipes::Dict{Int, <:Any}, viscosity::Float64)
     # Create placeholder costs dictionary.
     costs = Dict([(a, Array{Float64, 1}()) for a in keys(pipes)])
@@ -135,6 +140,7 @@ function calc_resistance_costs_dw(pipes::Dict{Int, <:Any}, viscosity::Float64)
     return costs
 end
 
+
 function calc_resistances(pipes::Dict{<:Any, <:Any}, viscosity::Float64, head_loss_type::String)
     if head_loss_type == "H-W"
         return calc_resistances_hw(pipes)
@@ -144,6 +150,7 @@ function calc_resistances(pipes::Dict{<:Any, <:Any}, viscosity::Float64, head_lo
         Memento.error(_LOGGER, "Head loss formulation type \"$(head_loss_type)\" is not recognized.")
     end
 end
+
 
 function calc_resistance_costs(pipes::Dict{Int, <:Any}, viscosity::Float64, head_loss_type::String)
     if head_loss_type == "H-W"
@@ -155,29 +162,36 @@ function calc_resistance_costs(pipes::Dict{Int, <:Any}, viscosity::Float64, head
     end
 end
 
+
 function has_known_flow_direction(comp::Pair{Int, <:Any})
     return comp.second["flow_direction"] != UNKNOWN
 end
+
 
 function has_check_valve(pipe::Dict{String, <:Any})
     return uppercase(pipe["status"]) == "CV"
 end
 
+
 function has_check_valve(pipe::Pair{Int64, <:Any})
     return uppercase(pipe.second["status"]) == "CV"
 end
+
 
 function has_shutoff_valve(pipe::Dict{String, <:Any})
     return uppercase(pipe["status"]) == "SV"
 end
 
+
 function has_shutoff_valve(pipe::Pair{Int64, <:Any})
     return uppercase(pipe.second["status"]) == "SV"
 end
 
+
 function is_pressure_reducing_valve(pipe::Dict{String, <:Any})
     return uppercase(pipe["type"]) == "PRV"
 end
+
 
 function is_pressure_reducing_valve(pipe::Pair{Int64, <:Any})
     return uppercase(pipe.second["type"]) == "PRV"

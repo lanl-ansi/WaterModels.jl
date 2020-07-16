@@ -38,8 +38,8 @@ function constraint_flow_conservation(
         + sum(q_pressure_reducing_valve[a] for a in pressure_reducing_valve_to)
         - sum(q_shutoff_valve[a] for a in shutoff_valve_fr)
         + sum(q_shutoff_valve[a] for a in shutoff_valve_to) ==
-        - sum(var(wm, n, :qr, id) for id in reservoirs)
-        - sum(var(wm, n, :qt, id) for id in tanks) + demand)
+        - sum(var(wm, n, :qr, k) for k in reservoirs)
+        - sum(var(wm, n, :qt, k) for k in tanks) + demand)
 end
 
 

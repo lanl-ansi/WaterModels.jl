@@ -52,9 +52,9 @@ function constraint_shutoff_valve_head_loss(wm::AbstractNLPModel, n::Int, a::Int
     # this case, the constraints below reduce to lhs = 0.0, as would be
     # expected. Otherwise, (ii) z = 0, and the head difference must be
     # decoupled from the traditional head loss relationship.
-    lhs = JuMP.@NLexpression(wm.model, inv(L) * (h_i - h_j) - r * head_loss(q))
-    c_1 = JuMP.@NLconstraint(wm.model, lhs <= inv(L) * (1.0 - z) * dh_ub)
-    c_2 = JuMP.@NLconstraint(wm.model, lhs >= inv(L) * (1.0 - z) * dh_lb)
+    lhs = JuMP.@NLexpression(wm.model, (h_i - h_j) - L * r * head_loss(q))
+    c_1 = JuMP.@NLconstraint(wm.model, lhs <= (1.0 - z) * dh_ub)
+    c_2 = JuMP.@NLconstraint(wm.model, lhs >= (1.0 - z) * dh_lb)
 
     # Append the :head_loss constraint array.
     append!(con(wm, n, :head_loss)[a], [c_1, c_2])

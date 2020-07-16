@@ -142,14 +142,6 @@ function variable_shutoff_valve_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw
     end
 
     report && sol_component_value(wm, nw, :shutoff_valve, :status, ids(wm, nw, :shutoff_valve), z_shutoff_valve)
-
-    ## TODO: Move the below two variable declarations somewhere more appropriate.
-    #var(wm, nw)[:yp] = JuMP.@variable(wm.model, [a in ids(wm, nw, :shutoff_valve)],
-    #    base_name="$(nw)_yp", binary=true,
-    #    start=comp_start_value(ref(wm, nw, :shutoff_valve, a), "yp_start"))
-    #var(wm, nw)[:yn] = JuMP.@variable(wm.model, [a in ids(wm, nw, :shutoff_valve)],
-    #    base_name="$(nw)_yn", binary=true,
-    #    start=comp_start_value(ref(wm, nw, :shutoff_valve, a), "yn_start"))
 end
 
 "Creates binary variables for all PRVs in the network, i.e.,
