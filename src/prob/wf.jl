@@ -23,14 +23,22 @@ function build_wf(wm::AbstractWaterModel)
     variable_reservoir(wm)
     variable_tank(wm)
 
+    # Flow conservation at all nodes.
+    for (i, node) in ref(wm, :node)
+        constraint_flow_conservation(wm, i)
+    end
+
+    # Head loss along pipes without valves.
     for (a, pipe) in ref(wm, :pipe)
         constraint_pipe_head_loss(wm, a)
     end
 
+    # Head loss along pipes with check valves.
     for (a, check_valve) in ref(wm, :check_valve)
         constraint_check_valve_head_loss(wm, a)
     end
 
+    # Head loss along pipes with shutoff valves.
     for (a, shutoff_valve) in ref(wm, :shutoff_valve)
         constraint_shutoff_valve_head_loss(wm, a)
     end
@@ -43,11 +51,6 @@ function build_wf(wm::AbstractWaterModel)
     # Head gain along pumps.
     for a in ids(wm, :pump)
         constraint_pump_head_gain(wm, a)
-    end
-
-    # Flow conservation at all nodes.
-    for (i, node) in ref(wm, :node)
-        constraint_flow_conservation(wm, i)
     end
 
     # Set source node hydraulic heads.
@@ -108,14 +111,17 @@ function build_mn_wf(wm::AbstractWaterModel)
             constraint_flow_conservation(wm, i; nw=n)
         end
 
+        # Head loss along pipes without valves.
         for (a, pipe) in ref(wm, :pipe, nw=n)
             constraint_pipe_head_loss(wm, a, nw=n)
         end
 
+        # Head loss along pipes with check valves.
         for (a, check_valve) in ref(wm, :check_valve, nw=n)
             constraint_check_valve_head_loss(wm, a, nw=n)
         end
 
+        # Head loss along pipes with shutoff valves.
         for (a, shutoff_valve) in ref(wm, :shutoff_valve, nw=n)
             constraint_shutoff_valve_head_loss(wm, a, nw=n)
         end
@@ -130,7 +136,7 @@ function build_mn_wf(wm::AbstractWaterModel)
             constraint_pump_head_gain(wm, a; nw=n)
         end
 
-        # Set source node hydraulic heads.
+        # Constraint source node hydraulic heads and flow directions.
         for (i, reservoir) in ref(wm, :reservoir; nw=n)
             constraint_source_head(wm, i; nw=n)
             constraint_source_flow(wm, i; nw=n)
@@ -168,7 +174,7 @@ function build_mn_wf(wm::AbstractWaterModel)
             constraint_tank_state(wm, i, n_1, n_2)
         end
 
-        n_1 = n_2
+        n_1 = n_2 # Update the first network used for integration.
     end
 
     # Add the objective.

@@ -369,8 +369,8 @@ function objective_owf(wm::AbstractMILPModel)
                 end
 
                 # Add the cost corresponding to the current pump's operation.
-                inner_expr = inv.(eff) .* f
-                cost = constant*price*sum(inner_expr[k]*lambda[a, k] for k in 1:pump_breakpoints)
+                inner_expr = constant * price * inv.(eff) .* f
+                cost = sum(inner_expr[k]*lambda[a, k] for k in 1:pump_breakpoints)
                 JuMP.add_to_expression!(objective, cost)
             else
                 Memento.error(_LOGGER, "No cost given for pump \"$(pump["name"])\"")
