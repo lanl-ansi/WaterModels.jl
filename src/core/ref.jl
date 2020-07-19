@@ -100,6 +100,7 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     return head_min, head_max
 end
 
+
 function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     h_lb, h_ub = calc_head_bounds(wm, n)
     alpha = ref(wm, n, :alpha)
@@ -119,7 +120,7 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
 
     for (a, pipe) in pipes
         L = pipe["length"]
-        i, j = [pipe["node_fr"], pipe["node_to"]]
+        i, j = pipe["node_fr"], pipe["node_to"]
 
         resistances = ref(wm, n, :resistance, a)
         num_resistances = length(resistances)
@@ -163,6 +164,7 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
 
     return lb, ub
 end
+
 
 function calc_tank_volume_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     lb = Dict{Int64, Float64}(i => 0.0 for i in ids(wm, n, :tank))
