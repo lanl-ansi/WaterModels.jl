@@ -107,9 +107,6 @@ function parse_epanet(filename::String)
     # Create consistent node "index" fields.
     _add_node_ids!(data)
 
-    ## Parse [COORDINATES] section.
-    #_read_coordinate!(data)
-
     # Parse [PIPES] section.
     _read_pipe!(data)
 
@@ -192,15 +189,18 @@ function epanet_to_watermodels!(data::Dict{String,<:Any}; import_all::Bool = fal
     node_index =
         length(data["node"]) > 0 ? maximum([x["index"] for (i, x) in data["node"]]) + 1 : 1
 
-    edge_index =
-        length(data["pipe"]) > 0 ? maximum([x["index"] for (i, x) in data["pipe"]]) + 1 : 1
+    # TODO: Tidy the way new edge indices are obtained. 
+    pipe_index = length(data["pipe"]) > 0 ? maximum([x["index"] for (i, x) in data["pipe"]]) : 0
+    valve_index = length(data["valve"]) > 0 ? maximum([x["index"] for (i, x) in data["valve"]]) : 0
+    pump_index = length(data["pump"]) > 0 ? maximum([x["index"] for (i, x) in data["pump"]]) : 0
+    edge_index = max(pipe_index, valve_index, pump_index) + 1
 
     # Modify the network for standard modeling of tanks.
     for (i, tank) in data["tank"]
         # Create a new node, which will be connected to the tank with a shutoff valve.
         node = deepcopy(data["node"][string(tank["tank_node"])])
-        node["index"] = node_index
-        node["source_id"] = ["node", "$(node_index)"]
+        node["index"], node["name"] = node_index, string(node_index)
+        node["source_id"] = AbstractString["node", "$(node_index)"]
         data["node"][string(node_index)] = node
 
         # Instantiate the properties that define the auxiliary pipe.
@@ -397,7 +397,7 @@ function _add_node_ids!(data::Dict{String,<:Any})
             comp[nid_field] = comp["index"]
             node = Dict{String,Any}(
                 "index" => comp["index"],
-                "source_id" => [node_type, comp["source_id"]],
+                "source_id" => [node_type, comp["source_id"][2]],
             )
 
             if haskey(comp, "name")

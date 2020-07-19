@@ -139,6 +139,7 @@
         result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
         @test result["termination_status"] == LOCALLY_SOLVED
         @test isapprox(result["solution"]["node"]["1"]["h"], 20.0, rtol=1.0e-3)
+        @test result["solution"]["node"]["2"]["h"] <= 17.89
         @test isapprox(result["solution"]["pipe"]["1"]["q"], 1.0, rtol=1.0e-3)
 
         result = run_wf(network, MILPWaterModel, cbc, ext=Dict(:pipe_breakpoints=>4))
@@ -342,7 +343,9 @@ end
         result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
         @test result["termination_status"] == LOCALLY_SOLVED
         @test isapprox(result["solution"]["nw"]["1"]["node"]["1"]["h"], 60.00, rtol=1.0e-3)
+        @test result["solution"]["nw"]["1"]["node"]["2"]["h"] <= 59.42
         @test isapprox(result["solution"]["nw"]["3"]["node"]["1"]["h"], 25.62, rtol=1.0e-3)
+        @test result["solution"]["nw"]["3"]["node"]["2"]["h"] <= 25.58
         @test isapprox(result["solution"]["nw"]["1"]["pipe"]["1"]["q"], 0.500, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["3"]["pipe"]["1"]["q"], 0.125, rtol=1.0e-3)
 

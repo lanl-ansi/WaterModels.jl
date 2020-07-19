@@ -103,6 +103,11 @@ function build_mn_wf(wm::AbstractWaterModel)
         variable_reservoir(wm; nw=n)
         variable_tank(wm; nw=n)
 
+        # Flow conservation at all nodes.
+        for i in ids(wm, :node; nw=n)
+            constraint_flow_conservation(wm, i; nw=n)
+        end
+
         for (a, pipe) in ref(wm, :pipe, nw=n)
             constraint_pipe_head_loss(wm, a, nw=n)
         end
@@ -123,11 +128,6 @@ function build_mn_wf(wm::AbstractWaterModel)
         # Head gain along pumps.
         for a in ids(wm, :pump; nw=n)
             constraint_pump_head_gain(wm, a; nw=n)
-        end
-
-        # Flow conservation at all nodes.
-        for (i, node) in ref(wm, :node; nw=n)
-            constraint_flow_conservation(wm, i; nw=n)
         end
 
         # Set source node hydraulic heads.

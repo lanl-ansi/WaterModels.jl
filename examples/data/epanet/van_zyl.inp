@@ -1,5 +1,5 @@
 [TITLE]
-van Zyl (2004) network, modified by Byron Tasseff
+ van Zyl (2004) network, modified by Byron Tasseff
 
 [JUNCTIONS]
 ;ID    Elev   Demand  Pattern
@@ -56,7 +56,7 @@ van Zyl (2004) network, modified by Byron Tasseff
 [TAGS]
 
 [DEMANDS]
-;Junction        	Demand      	Pattern         	Category
+;Junction            Demand          Pattern             Category
 
 [STATUS]
 ;ID   Status/Setting
@@ -90,17 +90,17 @@ van Zyl (2004) network, modified by Byron Tasseff
 [RULES]
 
 [ENERGY]
- Global Efficiency  	    85
- Global Price       	    0.0
- Demand Charge      	    0.0
- Pump  pmp1  Efficiency  leff
- Pump  pmp1  Price       1
- Pump  pmp1  Pattern   	 pumptariff
- Pump  pmp2  Efficiency  leff
- Pump  pmp2  Price       1
- Pump  pmp2  Pattern   	 pumptariff
- Pump  pmp6  Price       1
- Pump  pmp6  Pattern   	 pumptariff
+ Global Efficiency  85.0
+ Global Price       0.0
+ Demand Charge      0.0
+ Pump  pmp1         Efficiency   leff
+ Pump  pmp1         Price        1.0
+ Pump  pmp1         Pattern      pumptariff
+ Pump  pmp2         Efficiency   leff
+ Pump  pmp2         Price        1.0
+ Pump  pmp2         Pattern      pumptariff
+ Pump  pmp6         Price        1.0
+ Pump  pmp6         Pattern      pumptariff
 
 [EMITTERS]
 ;Junction  Coefficient
@@ -120,15 +120,15 @@ van Zyl (2004) network, modified by Byron Tasseff
 ;Tank  Model
 
 [TIMES]
- Duration           	24:00
- Hydraulic Timestep 	1:00
- Quality Timestep   	0:05
- Pattern Timestep   	1:00
- Pattern Start      	0:00
- Report Timestep    	1:00
- Report Start       	0:00
- Start ClockTime    	12 am
- Statistic          	NONE
+ Duration               24:00
+ Hydraulic Timestep     1:00
+ Quality Timestep       0:05
+ Pattern Timestep       1:00
+ Pattern Start          0:00
+ Report Timestep        1:00
+ Report Start           0:00
+ Start ClockTime        12 am
+ Statistic              NONE
 
 [REPORT]
  Status   Yes
@@ -136,19 +136,19 @@ van Zyl (2004) network, modified by Byron Tasseff
  Page     0
 
 [OPTIONS]
- Units              	LPS
- Headloss           	H-W
- Specific Gravity   	1.0
- Viscosity          	1.0
- Trials             	40
- Accuracy           	0.00001
- Unbalanced         	Continue 10
+ Units                  LPS
+ Headloss               H-W
+ Specific Gravity       1.0
+ Viscosity              1.0
+ Trials                 40
+ Accuracy               0.00001
+ Unbalanced             Continue 10
  Pattern                1
- Demand Multiplier  	1.0
- Emitter Exponent   	0.5
- Quality            	None mg/L
- Diffusivity        	1.0
- Tolerance          	0.01
+ Demand Multiplier      1.0
+ Emitter Exponent       0.5
+ Quality                None mg/L
+ Diffusivity            1.0
+ Tolerance              0.01
 
 [COORDINATES]
 ;Node   X-Coord  Y-Coord

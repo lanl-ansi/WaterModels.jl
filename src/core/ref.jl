@@ -106,7 +106,7 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     alpha = ref(wm, n, :alpha)
 
     junctions = values(ref(wm, n, :junction))
-    sum_demand = sum(abs(junction["demand"]) for junction in junctions)
+    sum_demand = sum(junction["demand"] for junction in junctions)
 
     if :time_step in keys(ref(wm, n))
         time_step = ref(wm, n, :time_step)
@@ -119,9 +119,7 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     lb, ub = Dict{Int,Array{Float64}}(), Dict{Int,Array{Float64}}()
 
     for (a, pipe) in pipes
-        L = pipe["length"]
-        i, j = pipe["node_fr"], pipe["node_to"]
-
+        L, i, j = pipe["length"], pipe["node_fr"], pipe["node_to"]
         resistances = ref(wm, n, :resistance, a)
         num_resistances = length(resistances)
 

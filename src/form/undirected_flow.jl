@@ -11,6 +11,7 @@ function variable_flow(wm::AbstractUndirectedModel; nw::Int=wm.cnw, bounded::Boo
     end
 end
 
+
 "Create flow variables that are common to all directed flow models for a component."
 function variable_component_flow(
     wm::AbstractUndirectedModel, component_name::String; nw::Int=wm.cnw,
@@ -157,8 +158,7 @@ end
 
 function constraint_pump_common(wm::AbstractUndirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
     # Gather common variables.
-    z = var(wm, n, :z_pump, a)
-    q, g = var(wm, n, :q_pump, a), var(wm, n, :g, a)
+    q, g, z = var(wm, n, :q_pump, a), var(wm, n, :g, a), var(wm, n, :z_pump, a)
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
     # If the pump is off, the flow along the pump must be zero.

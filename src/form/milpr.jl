@@ -7,6 +7,7 @@ function _get_owf_oa(q::JuMP.VariableRef, z::JuMP.VariableRef, q_hat::Float64, c
     return f*z + df*(q - q_hat*z)
 end
 
+
 function _get_head_loss_oa(q::JuMP.VariableRef, q_hat::Float64, alpha::Float64)
     return q_hat^alpha + alpha * q_hat^(alpha - 1.0) * (q - q_hat)
 end
@@ -42,6 +43,7 @@ function variable_pump_operation(wm::AbstractMILPRModel; nw::Int=wm.cnw, report:
             start=comp_start_value(ref(wm, nw, :pump, a), "x_pw_start", k))
     end
 end
+
 
 "Pump head gain constraint when the pump status is ambiguous."
 function constraint_pump_head_gain(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
@@ -111,6 +113,7 @@ function constraint_pipe_head_loss_des(wm::AbstractMILPRModel, n::Int, a::Int, a
     end
 end
 
+
 function constraint_pipe_head_loss(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
     # If the number of breakpoints is not positive, no constraints are added.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
@@ -135,6 +138,7 @@ function constraint_pipe_head_loss(wm::AbstractMILPRModel, n::Int, a::Int, node_
     end
 end
 
+
 function constraint_check_valve_head_loss(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # If the number of breakpoints is not positive, no constraints are added.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
@@ -151,6 +155,7 @@ function constraint_check_valve_head_loss(wm::AbstractMILPRModel, n::Int, a::Int
         append!(con(wm, n, :head_loss)[a], [c_p])
     end
 end
+
 
 function constraint_shutoff_valve_head_loss(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # If the number of breakpoints is not positive, no constraints are added.
@@ -176,6 +181,7 @@ function constraint_shutoff_valve_head_loss(wm::AbstractMILPRModel, n::Int, a::I
         append!(con(wm, n, :head_loss)[a], [c_n])
     end
 end
+
 
 function objective_owf(wm::AbstractMILPRModel)
     # If the number of breakpoints is not positive, no objective is added.
