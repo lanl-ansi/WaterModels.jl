@@ -164,8 +164,8 @@ function objective_owf(wm::AbstractMICPModel)
             if haskey(pump, "energy_price")
                 # Get price and pump curve data.
                 price = pump["energy_price"]
-                pump_curve = ref(wm, n, :pump, a)["pump_curve"]
-                curve_fun = _get_function_from_pump_curve(pump_curve)
+                head_curve = ref(wm, n, :pump, a)["head_curve"]
+                curve_fun = _get_function_from_head_curve(head_curve)
 
                 # Get flow-related variables and data.
                 qp, z = var(wm, n, :qp_pump, a), var(wm, n, :z_pump, a)

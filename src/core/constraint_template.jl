@@ -42,10 +42,11 @@ function constraint_flow_conservation(wm::AbstractWaterModel, i::Int; nw::Int=wm
     # Collect various indices for node-type components connected to node `i`.
     reservoirs = ref(wm, nw, :node_reservoir, i) # Reservoirs attached to node `i`.
     tanks = ref(wm, nw, :node_tank, i) # Tanks attached to node `i`.
+    junctions = ref(wm, nw, :node_junction, i) # Junctions attached to node `i`.
 
     # Sum the constant demands required at node `i`.
-    ids = ref(wm, nw, :node_junction, i) # Junctions attached to node `i`.
-    demand = length(ids) > 0 ? sum([ref(wm, nw, :junction, i)["demand"] for i in ids]) : 0.0
+    demands = [ref(wm, nw, :junction, k)["demand"] for k in junctions]
+    net_demand = length(demands) > 0 ? sum(demands) : 0.0
 
     # Initialize the flow conservation constraint dictionary entry.
     _initialize_con_dict(wm, :flow_conservation, nw=nw)
@@ -54,7 +55,7 @@ function constraint_flow_conservation(wm::AbstractWaterModel, i::Int; nw::Int=wm
     constraint_flow_conservation(
         wm, nw, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to, pump_fr, pump_to,
         pressure_reducing_valve_fr, pressure_reducing_valve_to, shutoff_valve_fr,
-        shutoff_valve_to, reservoirs, tanks, demand)
+        shutoff_valve_to, reservoirs, tanks, net_demand)
 end
 
 
@@ -84,10 +85,11 @@ end
 
 
 ### Reservoir Constraints ###
-function constraint_source_head(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
-    h_src = ref(wm, nw, :reservoir, i)["elevation"]
-    _initialize_con_dict(wm, :source_head, nw=nw)
-    constraint_source_head(wm, nw, i, h_src)
+function constraint_reservoir_head(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
+    node_index = ref(wm, nw, :reservoir, i)["reservoir_node"]
+    head = ref(wm, nw, :node, node_index)["head"]
+    _initialize_con_dict(wm, :reservoir_head, nw=nw)
+    constraint_reservoir_head(wm, nw, i, head)
 end
 
 
@@ -266,8 +268,8 @@ end
 function constraint_pump_head_gain(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, force_on::Bool=false, kwargs...)
     # Get data common to all pump-related constraints.
     node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
-    pump_curve = ref(wm, nw, :pump, a)["pump_curve"]
-    coeffs = _get_function_from_pump_curve(pump_curve)
+    head_curve = ref(wm, nw, :pump, a)["head_curve"]
+    coeffs = _get_function_from_head_curve(head_curve)
 
     # Add common constraints used to model pump behavior.
     _initialize_con_dict(wm, :pump, nw=nw, is_array=true)
@@ -286,17 +288,4 @@ function constraint_head_difference_pump(wm::AbstractWaterModel, a::Int; nw::Int
     con(wm, nw, :head_difference)[a] = Array{JuMP.ConstraintRef}([])
     node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
     constraint_head_difference_pump(wm, nw, a, node_fr, node_to)
-end
-
-
-function constraint_pump_control(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
-    pump = ref(wm, nw, :pump, a)
-
-    if "initial_status" in keys(pump)
-        initial_status = uppercase(pump["initial_status"]) != "CLOSED"
-        _initialize_con_dict(wm, :pump_control, nw=nw)
-        constraint_pump_control_initial(wm, nw, a, initial_status)
-    else
-        Memento.error(_LOGGER, "Initial status not found for pump.")
-    end
 end

@@ -32,7 +32,7 @@ Test for Hazen-Williams Head Loss with a Tank
 
 [PATTERNS]
 ;ID              Multipliers
-demand           1.0 0.5 0.25
+ demand           1.0 0.5 0.25
 
 [CURVES]
 ;ID              X-Value        Y-Value

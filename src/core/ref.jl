@@ -16,16 +16,16 @@ function _calc_efficiencies(points::Array{Float64}, curve::Array{Tuple{Float64,F
         extrapolation_bc=Interpolations.Flat()).(points)
 end
 
-function _get_function_from_pump_curve(pump_curve::Array{Tuple{Float64,Float64}})
+function _get_function_from_head_curve(head_curve::Array{Tuple{Float64,Float64}})
     LsqFit.@. func(x, p) = p[1]*x*x + p[2]*x + p[3]
 
-    if length(pump_curve) > 1
-        fit = LsqFit.curve_fit(func, first.(pump_curve), last.(pump_curve), [0.0, 0.0, 0.0])
+    if length(head_curve) > 1
+        fit = LsqFit.curve_fit(func, first.(head_curve), last.(head_curve), [0.0, 0.0, 0.0])
         return LsqFit.coef(fit)
-    elseif length(pump_curve) == 1
-        new_points = [(0.0, 1.33 * pump_curve[1][2]), (2.0 * pump_curve[1][1], 0.0)]
-        pump_curve = vcat(new_points, pump_curve)
-        fit = LsqFit.curve_fit(func, first.(pump_curve), last.(pump_curve), [0.0, 0.0, 0.0])
+    elseif length(head_curve) == 1
+        new_points = [(0.0, 1.33 * head_curve[1][2]), (2.0 * head_curve[1][1], 0.0)]
+        head_curve = vcat(new_points, head_curve)
+        fit = LsqFit.curve_fit(func, first.(head_curve), last.(head_curve), [0.0, 0.0, 0.0])
         return LsqFit.coef(fit)
     end
 end
@@ -44,8 +44,8 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
 
     # Add potential gains from pumps in the network to max_elev.
     for (a, pump) in ref(wm, n, :pump)
-        pump_curve = ref(wm, n, :pump, a)["pump_curve"]
-        c = _get_function_from_pump_curve(pump_curve)
+        head_curve = ref(wm, n, :pump, a)["head_curve"]
+        c = _get_function_from_head_curve(head_curve)
         max_elev += c[3] - 0.25 * c[2]*c[2] * inv(c[1])
     end
 
@@ -80,20 +80,17 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     end
 
     for (i, reservoir) in ref(wm, n, :reservoir)
-        # Head values at reservoirs are fixed.
+        # Fix head values at nodes with reservoirs to predefined values.
         node_id = reservoir["reservoir_node"]
-
-        # TODO: Elevation should be a node attribute only.
-        node = ref(wm, n, :reservoir, node_id)
-        head_min[node_id] = node["elevation"]
-        head_max[node_id] = node["elevation"]
+        head_min[node_id] = ref(wm, n, :node, node_id)["head"]
+        head_max[node_id] = ref(wm, n, :node, node_id)["head"]
     end
 
     for (i, tank) in ref(wm, n, :tank)
         node_id = tank["tank_node"]
-        node = ref(wm, n, :node, node_id)
-        head_min[node_id] = node["elevation"] + tank["min_level"]
-        head_max[node_id] = node["elevation"] + tank["max_level"]
+        elevation = ref(wm, n, :node, node_id)["elevation"]
+        head_min[node_id] = elevation + tank["min_level"]
+        head_max[node_id] = elevation + tank["max_level"]
     end
 
     # Return the dictionaries of lower and upper bounds.
@@ -133,7 +130,7 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
             ub[a][r_id] = sign(dh_ub) * (abs(dh_ub) * inv(L*r))^inv(alpha)
             ub[a][r_id] = min(ub[a][r_id], sum_demand)
 
-            if pipe["flow_direction"] == POSITIVE || has_check_valve(pipe)
+            if pipe["flow_direction"] == POSITIVE
                 lb[a][r_id] = max(lb[a][r_id], 0.0)
             elseif pipe["flow_direction"] == NEGATIVE
                 ub[a][r_id] = min(ub[a][r_id], 0.0)
@@ -153,8 +150,8 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     end
 
     for (a, pump) in ref(wm, n, :pump)
-        pump_curve = ref(wm, n, :pump, a)["pump_curve"]
-        c = _get_function_from_pump_curve(pump_curve)
+        head_curve = ref(wm, n, :pump, a)["head_curve"]
+        c = _get_function_from_head_curve(head_curve)
         q_max = (-c[2] + sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1])
         q_max = max(q_max, (-c[2] - sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1]))
         lb[a], ub[a] = [[0.0], [q_max]]

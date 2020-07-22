@@ -4,6 +4,8 @@ WaterModels.jl Change Log
 ### v0.3.1
 - Removed unnecessary dependencies.
 - Removed the `link` component abstraction.
+- Removed complex control logic that was not being used.
+- Refactored EPANET parser and corrected nodal attributes.
 
 ### v0.3.0
 - Updated to InfrastructureModels v0.5.

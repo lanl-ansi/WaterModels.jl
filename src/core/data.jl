@@ -89,6 +89,7 @@ function calc_resistances_dw(pipes::Dict{<:Any, <:Any}, viscosity::Float64)
     return resistances
 end
 
+
 function calc_resistance_costs_hw(pipes::Dict{Int, <:Any})
     # Create placeholder costs dictionary.
     costs = Dict([(a, Array{Float64, 1}()) for a in keys(pipes)])
@@ -168,47 +169,21 @@ function has_known_flow_direction(comp::Pair{Int, <:Any})
 end
 
 
-function has_check_valve(pipe::Dict{String, <:Any})
-    return uppercase(pipe["status"]) == "CV"
-end
-
-
-function has_check_valve(pipe::Pair{Int64, <:Any})
-    return uppercase(pipe.second["status"]) == "CV"
-end
-
-
-function has_shutoff_valve(pipe::Dict{String, <:Any})
-    return uppercase(pipe["status"]) == "SV"
-end
-
-
-function has_shutoff_valve(pipe::Pair{Int64, <:Any})
-    return uppercase(pipe.second["status"]) == "SV"
-end
-
-
-function is_pressure_reducing_valve(pipe::Dict{String, <:Any})
-    return uppercase(pipe["type"]) == "PRV"
-end
-
-
-function is_pressure_reducing_valve(pipe::Pair{Int64, <:Any})
-    return uppercase(pipe.second["type"]) == "PRV"
-end
-
 function is_des_pipe(pipe::Pair{Int64, <:Any})
     return any([x in ["diameters", "resistances"] for x in keys(pipe.second)])
 end
+
 
 function is_des_pipe(pipe::Pair{String, <:Any})
     return any([x in ["diameters", "resistances"] for x in keys(pipe.second)])
 end
 
+
 "turns a single network and a time_series data block into a multi-network"
 function make_multinetwork(data::Dict{String, <:Any}; global_keys::Set{String}=Set{String}())
     return InfrastructureModels.make_multinetwork(data, union(global_keys, _wm_global_keys))
 end
+
 
 function set_start_head!(data)
     for (i, node) in data["node"]
@@ -216,11 +191,13 @@ function set_start_head!(data)
     end
 end
 
+
 function set_start_reservoir!(data)
     for (i, reservoir) in data["reservoir"]
         reservoir["qr_start"] = reservoir["qr"]
     end
 end
+
 
 function set_start_undirected_flow_rate!(data::Dict{String, <:Any})
     for (a, pipe) in data["pipe"]
@@ -228,12 +205,14 @@ function set_start_undirected_flow_rate!(data::Dict{String, <:Any})
     end
 end
 
+
 function set_start_directed_flow_rate!(data::Dict{String, <:Any})
     for (a, pipe) in data["pipe"]
         pipe["qn_start"] = pipe["q"] < 0.0 ? abs(pipe["q"]) : 0.0
         pipe["qp_start"] = pipe["q"] >= 0.0 ? abs(pipe["q"]) : 0.0
     end
 end
+
 
 function set_start_directed_head_difference!(data::Dict{String, <:Any})
     for (a, pipe) in data["pipe"]
@@ -243,6 +222,7 @@ function set_start_directed_head_difference!(data::Dict{String, <:Any})
         pipe["dhn_start"] = max(0.0, -dh)
     end
 end
+
 
 function set_start_resistance_des!(data::Dict{String, <:Any})
     viscosity = data["viscosity"]
@@ -257,6 +237,7 @@ function set_start_resistance_des!(data::Dict{String, <:Any})
     end
 end
 
+
 function set_start_undirected_flow_rate_des!(data::Dict{String, <:Any})
     viscosity = data["viscosity"]
     head_loss_type = data["head_loss"]
@@ -269,6 +250,7 @@ function set_start_undirected_flow_rate_des!(data::Dict{String, <:Any})
         pipe["q_des_start"][r_id] = pipe["q"]
     end
 end
+
 
 function set_start_directed_flow_rate_des!(data::Dict{String, <:Any})
     viscosity = data["viscosity"]
@@ -286,11 +268,13 @@ function set_start_directed_flow_rate_des!(data::Dict{String, <:Any})
     end
 end
 
+
 function set_start_flow_direction!(data::Dict{String, <:Any})
     for (a, pipe) in data["pipe"]
         pipe["y_start"] = pipe["q"] >= 0.0 ? 1.0 : 0.0
     end
 end
+
 
 function set_start_all!(data::Dict{String, <:Any})
     set_start_head!(data)

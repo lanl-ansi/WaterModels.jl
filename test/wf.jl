@@ -48,7 +48,7 @@
         @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
         @test isapprox(result["solution"]["pipe"]["1"]["q"], 0.9, rtol=1.0e-3)
 
-        result = run_wf(network, MILPWaterModel, cbc, ext=Dict(:pipe_breakpoints=>4))
+        result = run_wf(network, MILPWaterModel, cbc, ext=Dict(:pipe_breakpoints=>10))
         @test result["termination_status"] == OPTIMAL
         @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
         @test isapprox(result["solution"]["node"]["2"]["p"], 8.27, rtol=1.0e-2)
@@ -218,7 +218,7 @@ end
         @test isapprox(result["solution"]["nw"]["1"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["3"]["pipe"]["1"]["q"], 0.9, rtol=1.0e-3)
 
-        result = run_mn_wf(network, MILPWaterModel, cbc, ext=Dict(:pipe_breakpoints=>4))
+        result = run_mn_wf(network, MILPWaterModel, cbc, ext=Dict(:pipe_breakpoints=>10))
         @test result["termination_status"] == OPTIMAL
         @test isapprox(result["solution"]["nw"]["1"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["2"]["node"]["2"]["p"], 8.27, rtol=1.0e-2)

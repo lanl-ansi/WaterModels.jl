@@ -3,9 +3,13 @@
 #########################################################################
 
 
-function constraint_source_head(wm::AbstractWaterModel, n::Int, i::Int, h_s::Float64)
-    c = JuMP.@constraint(wm.model, var(wm, n, :h, i) == h_s)
-    con(wm, n, :source_head)[i] = c
+"""
+    constraint_reservoir_head(wm, n, i, head)
+"""
+function constraint_reservoir_head(wm::AbstractWaterModel, n::Int, i::Int, head::Float64)
+    h = var(wm, n, :h, i)
+    c = JuMP.@constraint(wm.model, h == head)
+    con(wm, n, :reservoir_head)[i] = c
 end
 
 
@@ -47,12 +51,6 @@ function constraint_volume(wm::AbstractWaterModel, n::Int, i::Int, elevation::Fl
     h, V = var(wm, n, :h, i), var(wm, n, :V, i)
     c = JuMP.@constraint(wm.model, h - elevation == V * inv(surface_area))
     con(wm, n, :volume)[i] = c
-end
-
-
-function constraint_pump_control_initial(wm::AbstractWaterModel, n::Int, a::Int, status::Bool)
-    z = var(wm, n, :z_pump, a)
-    c = JuMP.@constraint(wm.model, z == status)
 end
 
 

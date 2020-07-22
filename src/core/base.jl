@@ -159,12 +159,10 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any})
             calc_resistance_costs(ref[:pipe], ref[:viscosity], ref[:head_loss])
 
         # TODO: Check and shutoff valves should not have pipe properties.
-        ref[:check_valve] = filter(has_check_valve, ref[:pipe])
-        ref[:shutoff_valve] = filter(has_shutoff_valve, ref[:pipe])
-        ref[:pipe] = filter(!has_check_valve, ref[:pipe])
-        ref[:pipe] = filter(!has_shutoff_valve, ref[:pipe])
-
-        ref[:pressure_reducing_valve] = filter(is_pressure_reducing_valve, ref[:valve])
+        ref[:check_valve] = filter(x -> x.second["has_check_valve"], ref[:pipe])
+        ref[:shutoff_valve] = filter(x -> x.second["has_shutoff_valve"], ref[:pipe])
+        ref[:pipe] = filter(x -> !x.second["has_check_valve"], ref[:pipe])
+        ref[:pipe] = filter(x -> !x.second["has_shutoff_valve"], ref[:pipe])
         ref[:pipe_des] = filter(is_des_pipe, ref[:pipe])
         ref[:pipe_fixed] = filter(!is_des_pipe, ref[:pipe])
 

@@ -55,7 +55,7 @@ function build_wf(wm::AbstractWaterModel)
 
     # Set source node hydraulic heads.
     for (i, reservoir) in ref(wm, :reservoir)
-        constraint_source_head(wm, i)
+        constraint_reservoir_head(wm, i)
         constraint_source_flow(wm, i)
     end
 
@@ -138,7 +138,7 @@ function build_mn_wf(wm::AbstractWaterModel)
 
         # Constraint source node hydraulic heads and flow directions.
         for (i, reservoir) in ref(wm, :reservoir; nw=n)
-            constraint_source_head(wm, i; nw=n)
+            constraint_reservoir_head(wm, i; nw=n)
             constraint_source_flow(wm, i; nw=n)
         end
 

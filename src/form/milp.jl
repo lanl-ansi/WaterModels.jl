@@ -121,7 +121,7 @@ function constraint_check_valve_head_loss(wm::AbstractMILPModel, n::Int, a::Int,
     c_4 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
 
     # Generate a set of uniform flow and head loss breakpoints.
-    q_lb, q_ub = [JuMP.lower_bound(q), JuMP.upper_bound(q)]
+    q_lb, q_ub = JuMP.lower_bound(q), JuMP.upper_bound(q)
     breakpoints = range(q_lb, stop=q_ub, length=pipe_breakpoints)
     f = _calc_head_loss_values(collect(breakpoints), ref(wm, :alpha))
 
@@ -349,8 +349,8 @@ function objective_owf(wm::AbstractMILPModel)
             if haskey(pump, "energy_price")
                 # Get price and pump curve data.
                 price = pump["energy_price"]
-                pump_curve = ref(wm, n, :pump, a)["pump_curve"]
-                curve_fun = _get_function_from_pump_curve(pump_curve)
+                head_curve = ref(wm, n, :pump, a)["head_curve"]
+                curve_fun = _get_function_from_head_curve(head_curve)
 
                 # Get flow-related variables and data.
                 q, z = var(wm, n, :q_pump, a), var(wm, n, :z_pump, a)
