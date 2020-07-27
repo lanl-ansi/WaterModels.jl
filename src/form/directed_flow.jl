@@ -339,7 +339,17 @@ end
 
 
 function constraint_shutoff_valve_head_loss_ub(wm::AbstractDirectedModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64)
-    # TODO: Fill this in later.
+    z = var(wm, n, :z_shutoff_valve, a)
+
+    qp, dhp = var(wm, n, :qp_shutoff_valve, a), var(wm, n, :dhp_shutoff_valve, a)
+    rhs_p = JuMP.upper_bound(dhp) * (1.0 - z) + L*r*JuMP.upper_bound(qp)^(alpha - 1.0) * qp
+    c_p = JuMP.@constraint(wm.model, dhp <= rhs_p)
+
+    qn, dhn = var(wm, n, :qn_shutoff_valve, a), var(wm, n, :dhn_shutoff_valve, a)
+    rhs_n = JuMP.upper_bound(dhn) * (1.0 - z) + L*r*JuMP.upper_bound(qn)^(alpha - 1.0) * qn
+    c_n = JuMP.@constraint(wm.model, dhn <= rhs_n)
+
+    append!(con(wm, n, :head_loss)[a], [c_p, c_n])
 end
 
 
