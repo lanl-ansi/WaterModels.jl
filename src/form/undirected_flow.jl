@@ -148,11 +148,13 @@ function constraint_prv_common(wm::AbstractUndirectedModel, n::Int, a::Int, node
     c_4 = JuMP.@constraint(wm.model, h_j <= (1.0 - z) * h_ub + z * h_prv)
 
     # When the pressure reducing valve is open, the head loss is nonnegative.
-    dh_lb = JuMP.lower_bound(h_i) - JuMP.lower_bound(h_j)
-    c_5 = JuMP.@constraint(wm.model, h_i - h_j >= dh_lb * (1.0 - z))
+    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
+    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
+    c_5 = JuMP.@constraint(wm.model, h_i - h_j <= dh_ub * z)
+    c_6 = JuMP.@constraint(wm.model, h_i - h_j >= dh_lb * (1.0 - z))
 
     # Append the constraint array.
-    append!(con(wm, n, :prv, a), [c_1, c_2, c_3, c_4, c_5])
+    append!(con(wm, n, :prv, a), [c_1, c_2, c_3, c_4, c_5, c_6])
 end
 
 

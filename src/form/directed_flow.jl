@@ -262,7 +262,7 @@ function constraint_prv_common(wm::AbstractDirectedModel, n::Int, a::Int, node_f
     qp = var(wm, n, :qp_pressure_reducing_valve, a)
     z = var(wm, n, :z_pressure_reducing_valve, a)
 
-    # If the pressure reducing valve is open, flow must be appreciably nonnegative.
+    # If the pressure reducing valve is open, flow must be appreciably positive.
     c_1 = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * z)
     c_2 = JuMP.@constraint(wm.model, qp >= _q_eps * z)
 
@@ -278,10 +278,11 @@ function constraint_prv_common(wm::AbstractDirectedModel, n::Int, a::Int, node_f
     c_4 = JuMP.@constraint(wm.model, h_j <= (1.0 - z) * h_ub + z * h_prv)
 
     # When the pressure reducing valve is open, the head loss is nonnegative.
-    c_5 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - z))
+    c_5 = JuMP.@constraint(wm.model, dhp <= z * dhp_ub)
+    c_6 = JuMP.@constraint(wm.model, dhn <= (1.0 - z) * dhn_ub)
 
     # Append the constraint array.
-    append!(con(wm, n, :prv, a), [c_1, c_2, c_3, c_4, c_5])
+    append!(con(wm, n, :prv, a), [c_1, c_2, c_3, c_4, c_5, c_6])
 end
 
 
