@@ -10,7 +10,6 @@ function build_wf(wm::AbstractWaterModel)
     variable_head(wm)
     variable_head_gain(wm)
     variable_flow(wm)
-    variable_volume(wm)
 
     # Indicator (status) variables.
     variable_check_valve_indicator(wm)
@@ -69,9 +68,6 @@ function build_wf(wm::AbstractWaterModel)
     end
 
     for i in ids(wm, :tank)
-        # Link tank volume variables with tank head variables.
-        constraint_volume(wm, i)
-
         # Set the initial tank volume.
         constraint_tank_state(wm, i)
     end
@@ -93,7 +89,6 @@ function build_mn_wf(wm::AbstractWaterModel)
         variable_head(wm; nw=n)
         variable_head_gain(wm; nw=n)
         variable_flow(wm; nw=n)
-        variable_volume(wm; nw=n)
 
         # Indicator (status) variables.
         variable_check_valve_indicator(wm; nw=n)
@@ -149,11 +144,6 @@ function build_mn_wf(wm::AbstractWaterModel)
             elseif junction["demand"] < 0.0
                 constraint_source_flow(wm, i; nw=n)
             end
-        end
-
-        # Link tank volume variables with tank head variables.
-        for i in ids(wm, :tank; nw=n)
-            constraint_volume(wm, i; nw=n)
         end
     end
 

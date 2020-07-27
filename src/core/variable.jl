@@ -76,34 +76,15 @@ function variable_tank(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true
         start=comp_start_value(ref(wm, nw, :tank, i), "qt_start"))
 
     report && sol_component_value(wm, nw, :tank, :qt, ids(wm, nw, :tank), qt)
-end
 
-"Creates bounded (by default) or unbounded (but still nonnegative) volume
-variables for all tanks in the network, i.e., `V[i]` for `i` in `tank`."
-function variable_volume(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
-    V = var(wm, nw)[:V] = JuMP.@variable(wm.model,
-        [i in ids(wm, nw, :tank)], base_name="$(nw)_V", lower_bound=0.0,
-        start=comp_start_value(ref(wm, nw, :tank, i), "V_start"))
-       
-    if bounded
-        V_lb, V_ub = calc_tank_volume_bounds(wm, nw)
-
-        for (i, tank) in ref(wm, nw, :tank)
-            JuMP.set_lower_bound(V[i], V_lb[i])
-            JuMP.set_upper_bound(V[i], V_ub[i])
-
-            # Ensure the start value resides within these bounds.
-            start = JuMP.start_value(V[i])
-
-            if !(start >= V_lb[i] && start <= V_ub[i])
-                start = V_lb[i] + 0.5 * (V_ub[i] - V_lb[i])
-                JuMP.set_start_value(V[i], start)
-            end
-        end
-    end
+    V = var(wm, nw)[:V] = JuMP.@expression(wm.model,
+        [i in ids(wm, nw, :tank)],
+        var(wm, nw, :p, ref(wm, nw, :tank, i)["tank_node"]) * 0.25
+        * pi * ref(wm, nw, :tank, i)["diameter"]^2)
 
     report && sol_component_value(wm, nw, :tank, :V, ids(wm, nw, :tank), V)
 end
+
 
 ### Link variables. ###
 "Creates binary variables for all check valves in the network, i.e.,

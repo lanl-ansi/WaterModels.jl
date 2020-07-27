@@ -1,24 +1,6 @@
 # Define common MICP (mixed-integer convex program) implementations of water
 # distribution constraints, which use directed flow variables.
 
-function variable_pump_operation(wm::AbstractMICPModel; nw::Int=wm.cnw, report::Bool=true)
-    # If the number of breakpoints is zero, the variables below are not added.
-    pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
-
-    if pump_breakpoints > 0
-        # Create weights involved in convex combination constraints.
-        lambda = var(wm, nw)[:lambda_pump] = JuMP.@variable(wm.model,
-            [a in ids(wm, nw, :pump), k in 1:pump_breakpoints],
-            base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
-            start=comp_start_value(ref(wm, nw, :pump, a), "lambda_start", k))
-
-        # Create binary variables involved in convex combination constraints.
-        x_pw = var(wm, nw)[:x_pw_pump] = JuMP.@variable(wm.model,
-            [a in ids(wm, nw, :pump), k in 1:pump_breakpoints-1],
-            base_name="$(nw)_x_pw", binary=true,
-            start=comp_start_value(ref(wm, nw, :pump, a), "x_pw_start", k))
-    end
-end
 
 function constraint_pipe_head_loss_des(wm::AbstractMICPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances)
     # Collect head difference variables.
@@ -26,7 +8,7 @@ function constraint_pipe_head_loss_des(wm::AbstractMICPModel, n::Int, a::Int, al
 
     for (r_id, r) in enumerate(pipe_resistances)
         # Collect directed flow variables.
-        qp, qn = [var(wm, n, :qp_des, a)[r_id], var(wm, n, :qn_des, a)[r_id]]
+        qp, qn = var(wm, n, :qp_des, a)[r_id], var(wm, n, :qn_des, a)[r_id]
 
         # Build the relaxed head loss constraints.
         c_p = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= inv(L) * dhp)

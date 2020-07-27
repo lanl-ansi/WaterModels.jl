@@ -25,26 +25,6 @@ function _get_head_gain_oa(q::JuMP.VariableRef, z::JuMP.VariableRef, q_hat::Floa
 end
 
 
-function variable_pump_operation(wm::AbstractMILPRModel; nw::Int=wm.cnw, report::Bool=true)
-    # If the number of breakpoints is not positive, return.
-    pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
-
-    if pump_breakpoints > 0
-        # Create weights involved in convex combination constraints.
-        lambda = var(wm, nw)[:lambda_pump] = JuMP.@variable(wm.model,
-            [a in ids(wm, nw, :pump), k in 1:pump_breakpoints],
-            base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
-            start=comp_start_value(ref(wm, nw, :pump, a), "lambda_start", k))
-
-        # Create binary variables involved in convex combination constraints.
-        x_pw = var(wm, nw)[:x_pw_pump] = JuMP.@variable(wm.model,
-            [a in ids(wm, nw, :pump), k in 1:pump_breakpoints-1],
-            base_name="$(nw)_x_pw", binary=true,
-            start=comp_start_value(ref(wm, nw, :pump, a), "x_pw_start", k))
-    end
-end
-
-
 "Pump head gain constraint when the pump status is ambiguous."
 function constraint_pump_head_gain(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
     # If the number of breakpoints is not positive, no constraints are added.

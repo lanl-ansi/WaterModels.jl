@@ -47,13 +47,6 @@ function constraint_flow_conservation(
 end
 
 
-function constraint_volume(wm::AbstractWaterModel, n::Int, i::Int, elevation::Float64, surface_area::Float64)
-    h, V = var(wm, n, :h, i), var(wm, n, :V, i)
-    c = JuMP.@constraint(wm.model, h - elevation == V * inv(surface_area))
-    con(wm, n, :volume)[i] = c
-end
-
-
 function constraint_tank_state_initial(wm::AbstractWaterModel, n::Int, i::Int, V_0::Float64, time_step::Float64)
     V = var(wm, n, :V, i)
     c = JuMP.@constraint(wm.model, V == V_0)

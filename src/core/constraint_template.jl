@@ -118,16 +118,6 @@ end
 
 
 ### Tank Constraints ###
-function constraint_volume(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
-    tank = ref(wm, nw, :tank, i)
-    elevation = ref(wm, nw, :node, tank["tank_node"])["elevation"]
-    surface_area = 0.25 * pi * tank["diameter"]^2
-
-    _initialize_con_dict(wm, :volume, nw=nw)
-    constraint_volume(wm, nw, i, elevation, surface_area)
-end
-
-
 function constraint_tank_state(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
     if !(:time_step in keys(ref(wm, nw)))
         Memento.error(_LOGGER, "Tank states cannot be controlled without a time step.")
