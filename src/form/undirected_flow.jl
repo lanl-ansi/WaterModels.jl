@@ -28,8 +28,8 @@ function variable_component_flow(
         q_lb, q_ub = calc_flow_bounds(wm, nw)
 
         for (a, comp) in ref(wm, nw, comp_sym)
-            JuMP.set_lower_bound(q[a], minimum(q_lb[a]))
-            JuMP.set_upper_bound(q[a], maximum(q_ub[a]))
+            JuMP.set_lower_bound(q[a], minimum(q_lb[component_name][a]))
+            JuMP.set_upper_bound(q[a], maximum(q_ub[component_name][a]))
         end
     end
 
@@ -55,8 +55,8 @@ function variable_flow_des_common(wm::AbstractUndirectedModel; nw::Int=wm.cnw, b
 
         for a in ids(wm, nw, :pipe_des)
             for r in 1:length(ref(wm, nw, :resistance, a))
-                JuMP.set_lower_bound(q_des[a][r], q_lb[a][r])
-                JuMP.set_upper_bound(q_des[a][r], q_ub[a][r])
+                JuMP.set_lower_bound(q_des[a][r], q_lb["pipe"][a][r])
+                JuMP.set_upper_bound(q_des[a][r], q_ub["pipe"][a][r])
             end
         end
     end
@@ -181,7 +181,7 @@ function constraint_pipe_common(wm::AbstractUndirectedModel, n::Int, a::Int, nod
     # For undirected formulations, there are no constraints, here.
 end
 
-function constraint_sink_flow(
+function constraint_sink_directionality(
     wm::AbstractWaterModel, n::Int, i::Int, check_valve_fr::Array{Int},
     check_valve_to::Array{Int}, pipe_fr::Array{Int}, pipe_to::Array{Int},
     pump_fr::Array{Int}, pump_to::Array{Int}, pressure_reducing_valve_fr::Array{Int},
@@ -190,7 +190,7 @@ function constraint_sink_flow(
     # For undirected formulations, there are no constraints, here.
 end
 
-function constraint_source_flow(
+function constraint_source_directionality(
     wm::AbstractWaterModel, n::Int, i::Int, check_valve_fr::Array{Int},
     check_valve_to::Array{Int}, pipe_fr::Array{Int}, pipe_to::Array{Int},
     pump_fr::Array{Int}, pump_to::Array{Int}, pressure_reducing_valve_fr::Array{Int},

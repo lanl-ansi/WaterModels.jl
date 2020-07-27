@@ -42,16 +42,16 @@ function build_des(wm::AbstractWaterModel)
 
     # Set source node hydraulic heads.
     for (i, reservoir) in ref(wm, :reservoir)
-        constraint_reservoir_head(wm, i)
-        constraint_source_flow(wm, i)
+        constraint_reservoir_head(wm, reservoir["node"])
+        constraint_source_directionality(wm, reservoir["node"])
     end
 
     # Constrain flow directions based on demand.
     for (i, junction) in ref(wm, :junction)
         if junction["demand"] > 0.0
-            constraint_sink_flow(wm, i)
+            constraint_sink_directionality(wm, junction["node"])
         elseif junction["demand"] < 0.0
-            constraint_source_flow(wm, i)
+            constraint_source_directionality(wm, junction["node"])
         end
     end
 end

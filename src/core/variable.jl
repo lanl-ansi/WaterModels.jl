@@ -79,8 +79,9 @@ function variable_tank(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true
 
     V = var(wm, nw)[:V] = JuMP.@expression(wm.model,
         [i in ids(wm, nw, :tank)],
-        var(wm, nw, :p, ref(wm, nw, :tank, i)["tank_node"]) * 0.25
-        * pi * ref(wm, nw, :tank, i)["diameter"]^2)
+        (var(wm, nw, :h, ref(wm, nw, :tank, i)["node"]) -
+         ref(wm, nw, :node, ref(wm, nw, :tank, i)["node"])["elevation"])
+         * 0.25 * pi * ref(wm, nw, :tank, i)["diameter"]^2)
 
     report && sol_component_value(wm, nw, :tank, :V, ids(wm, nw, :tank), V)
 end

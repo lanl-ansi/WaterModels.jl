@@ -32,65 +32,56 @@ end
 
 
 function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
-    nodes = ref(wm, n, :node)
-    tanks = ref(wm, n, :tank)
-    reservoirs = ref(wm, n, :reservoir)
-    max_elev = maximum(node["elevation"] for (i, node) in nodes)
+    # Compute the maximum elevation of all nodes in the network.
+    max_head = maximum(node["elevation"] for (i, node) in ref(wm, n, :node))
 
-    # Add potential contributions from tanks to max_elev.
-    for (i, tank) in ref(wm, n, :tank)
-        max_elev += tank["max_level"] - tank["min_level"]
+    # Add contributions from tanks in the network to max_head.
+    if length(ref(wm, n, :tank)) > 0
+        max_head += sum(tank["max_level"] for (i, tank) in ref(wm, n, :tank))
     end
 
-    # Add potential gains from pumps in the network to max_elev.
+    # Add potential gains from pumps in the network to max_head.
     for (a, pump) in ref(wm, n, :pump)
         head_curve = ref(wm, n, :pump, a)["head_curve"]
         c = _get_function_from_head_curve(head_curve)
-        max_elev += c[3] - 0.25 * c[2]*c[2] * inv(c[1])
+        max_head += c[3] - 0.25 * c[2]*c[2] * inv(c[1])
     end
 
     # Initialize the dictionaries for minimum and maximum heads.
-    head_min = Dict((i, -Inf) for (i, node) in nodes)
-    head_max = Dict((i, Inf) for (i, node) in nodes)
+    head_min = Dict((i, node["elevation"]) for (i, node) in ref(wm, n, :node))
+    head_max = Dict((i, max_head) for (i, node) in ref(wm, n, :node))
 
-    for (i, node) in nodes
-        # The minimum head at junctions must be above the initial elevation.
+    for (i, node) in ref(wm, n, :node)
+        # Override the minimum head value at node i, if additional data is present.
         if haskey(node, "minimumHead")
-            head_min[i] = max(node["elevation"], node["minimumHead"])
-        else
-            head_min[i] = node["elevation"]
-
-            num_junctions = length(ref(wm, n, :node_junction, i))
-            num_reservoirs = length(ref(wm, n, :node_reservoir, i))
-            num_tanks = length(ref(wm, n, :node_tank, i))
-
-            # If the node has zero demand, pressures can be negative.
-            if num_junctions + num_reservoirs + num_tanks == 0
-                head_min[i] -= 100.0
-            end
+            head_min[i] = max(head_min[i], node["minimumHead"])
         end
 
-        # The maximum head at junctions must be below the max elevation.
+        # Override the maximum head value at node i, if additional data is present.
         if haskey(node, "maximumHead")
-            head_max[i] = min(max_elev, node["maximumHead"])
-        else
-            # TODO: Is there a better general bound, here?
-            head_max[i] = max_elev
+            head_max[i] = min(head_max[i], node["maximumHead"])
         end
     end
 
     for (i, reservoir) in ref(wm, n, :reservoir)
         # Fix head values at nodes with reservoirs to predefined values.
-        node_id = reservoir["reservoir_node"]
+        node_id = reservoir["node"]
         head_min[node_id] = ref(wm, n, :node, node_id)["head"]
         head_max[node_id] = ref(wm, n, :node, node_id)["head"]
     end
 
     for (i, tank) in ref(wm, n, :tank)
-        node_id = tank["tank_node"]
+        node_id = tank["node"]
         elevation = ref(wm, n, :node, node_id)["elevation"]
         head_min[node_id] = elevation + tank["min_level"]
         head_max[node_id] = elevation + tank["max_level"]
+    end
+
+    for (a, pressure_reducing_valve) in ref(wm, n, :pressure_reducing_valve)
+        p_setting = ref(wm, n, :pressure_reducing_valve, a)["setting"]
+        node_to = pressure_reducing_valve["node_to"]
+        h_setting = ref(wm, n, :node, node_to)["elevation"] + p_setting
+        head_min[node_to] = min(head_min[node_to], h_setting)
     end
 
     # Return the dictionaries of lower and upper bounds.
@@ -111,50 +102,58 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
         sum_demand += sum([(V_ub[i] - V_lb[i]) / time_step for i in ids(wm, n, :tank)])
     end
 
-    # TODO: Make separate calculations per merge component.
-    pipes = merge(ref(wm, n, :pipe), ref(wm, n, :check_valve), ref(wm, n, :shutoff_valve))
-    lb, ub = Dict{Int,Array{Float64}}(), Dict{Int,Array{Float64}}()
+    lb, ub = Dict{String,Any}(), Dict{String,Any}()
 
-    for (a, pipe) in pipes
-        L, i, j = pipe["length"], pipe["node_fr"], pipe["node_to"]
-        resistances = ref(wm, n, :resistance, a)
-        num_resistances = length(resistances)
+    for name in ["check_valve", "pipe", "shutoff_valve"]
+        lb[name], ub[name] = Dict{Int,Array{Float64}}(), Dict{Int,Array{Float64}}()
 
-        dh_lb, dh_ub = h_lb[i] - h_ub[j], h_ub[i] - h_lb[j]
-        lb[a], ub[a] = zeros(num_resistances), zeros(num_resistances)
+        for (a, comp) in ref(wm, n, Symbol(name))
+            L, i, j = comp["length"], comp["node_fr"], comp["node_to"]
+            resistances = ref(wm, n, :resistance, a)
+            num_resistances = length(resistances)
 
-        for (r_id, r) in enumerate(resistances)
-            lb[a][r_id] = sign(dh_lb) * (abs(dh_lb) * inv(L*r))^inv(alpha)
-            lb[a][r_id] = max(lb[a][r_id], -sum_demand)
+            dh_lb, dh_ub = h_lb[i] - h_ub[j], h_ub[i] - h_lb[j]
+            lb[name][a], ub[name][a] = zeros(num_resistances), zeros(num_resistances)
 
-            ub[a][r_id] = sign(dh_ub) * (abs(dh_ub) * inv(L*r))^inv(alpha)
-            ub[a][r_id] = min(ub[a][r_id], sum_demand)
+            for (r_id, r) in enumerate(resistances)
+                lb[name][a][r_id] = sign(dh_lb) * (abs(dh_lb) * inv(L*r))^inv(alpha)
+                lb[name][a][r_id] = max(lb[name][a][r_id], -sum_demand)
 
-            if pipe["flow_direction"] == POSITIVE
-                lb[a][r_id] = max(lb[a][r_id], 0.0)
-            elseif pipe["flow_direction"] == NEGATIVE
-                ub[a][r_id] = min(ub[a][r_id], 0.0)
-            end
+                ub[name][a][r_id] = sign(dh_ub) * (abs(dh_ub) * inv(L*r))^inv(alpha)
+                ub[name][a][r_id] = min(ub[name][a][r_id], sum_demand)
 
-            if haskey(pipe, "diameters") && haskey(pipe, "maximumVelocity")
-                D_a = pipe["diameters"][r_id]["diameter"]
-                rate_bound = 0.25 * pi * pipe["maximumVelocity"] * D_a * D_a
-                lb[a][r_id] = max(lb[a][r_id], -rate_bound)
-                ub[a][r_id] = min(ub[a][r_id], rate_bound)
+                if comp["flow_direction"] == POSITIVE
+                    lb[name][a][r_id] = max(lb[name][a][r_id], 0.0)
+                elseif comp["flow_direction"] == NEGATIVE
+                    ub[name][a][r_id] = min(ub[name][a][r_id], 0.0)
+                end
+
+                if haskey(comp, "diameters") && haskey(comp, "maximumVelocity")
+                    D_a = comp["diameters"][r_id]["diameter"]
+                    rate_bound = 0.25 * pi * comp["maximumVelocity"] * D_a * D_a
+                    lb[name][a][r_id] = max(lb[name][a][r_id], -rate_bound)
+                    ub[name][a][r_id] = min(ub[name][a][r_id], rate_bound)
+                end
             end
         end
     end
 
+    lb["pressure_reducing_valve"] = Dict{Int,Array{Float64}}()
+    ub["pressure_reducing_valve"] = Dict{Int,Array{Float64}}()
+
     for (a, prv) in ref(wm, n, :pressure_reducing_valve)
-        lb[a], ub[a] = [0.0], [sum_demand]
+        lb["pressure_reducing_valve"][a] = [0.0]
+        ub["pressure_reducing_valve"][a] = [sum_demand]
     end
+
+    lb["pump"], ub["pump"] = Dict{Int,Array{Float64}}(), Dict{Int,Array{Float64}}()
 
     for (a, pump) in ref(wm, n, :pump)
         head_curve = ref(wm, n, :pump, a)["head_curve"]
         c = _get_function_from_head_curve(head_curve)
         q_max = (-c[2] + sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1])
         q_max = max(q_max, (-c[2] - sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1]))
-        lb[a], ub[a] = [[0.0], [q_max]]
+        lb["pump"][a], ub["pump"][a] = [[0.0], [q_max]]
     end
 
     return lb, ub

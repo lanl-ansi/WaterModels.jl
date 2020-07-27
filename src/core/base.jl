@@ -180,7 +180,7 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any})
             ref[name_sym] = Dict{Int,Array{Int,1}}(i => Int[] for (i, node) in ref[:node])
 
             for (i, comp) in ref[Symbol(name)]
-                push!(ref[name_sym][comp["$(name)_node"]], i)
+                push!(ref[name_sym][comp["node"]], i)
             end
         end
 

@@ -27,7 +27,6 @@
     result = run_owf_agm(network, MILPRWaterModel, cbc, ext=Dict(:pump_breakpoints=>3))
     @test result["termination_status"] == OPTIMAL
     @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
-    @test result["solution"]["node"]["2"]["h"] <= 98.99
     @test isapprox(result["solution"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
     @test result["objective"] <= 128.302
 end

@@ -55,15 +55,15 @@ function build_wf(wm::AbstractWaterModel)
     # Set source node hydraulic heads.
     for (i, reservoir) in ref(wm, :reservoir)
         constraint_reservoir_head(wm, i)
-        constraint_source_flow(wm, i)
+        constraint_source_directionality(wm, reservoir["node"])
     end
 
     # Constrain flow directions based on demand.
     for (i, junction) in ref(wm, :junction)
         if junction["demand"] > 0.0
-            constraint_sink_flow(wm, i)
+            constraint_sink_directionality(wm, junction["node"])
         elseif junction["demand"] < 0.0
-            constraint_source_flow(wm, i)
+            constraint_source_directionality(wm, junction["node"])
         end
     end
 
@@ -131,18 +131,18 @@ function build_mn_wf(wm::AbstractWaterModel)
             constraint_pump_head_gain(wm, a; nw=n)
         end
 
-        # Constraint source node hydraulic heads and flow directions.
+        # Constrain source node hydraulic heads and flow directions.
         for (i, reservoir) in ref(wm, :reservoir; nw=n)
             constraint_reservoir_head(wm, i; nw=n)
-            constraint_source_flow(wm, i; nw=n)
+            constraint_source_directionality(wm, reservoir["node"]; nw=n)
         end
 
         # Constrain flow directions based on demand.
         for (i, junction) in ref(wm, :junction; nw=n)
             if junction["demand"] > 0.0
-                constraint_sink_flow(wm, i; nw=n)
+                constraint_sink_directionality(wm, junction["node"]; nw=n)
             elseif junction["demand"] < 0.0
-                constraint_source_flow(wm, i; nw=n)
+                constraint_source_directionality(wm, junction["node"]; nw=n)
             end
         end
     end

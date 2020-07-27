@@ -28,26 +28,30 @@ function constraint_flow_conservation(
     reservoirs::Array{Int64,1}, tanks::Array{Int64,1}, demand::Float64)
     # Collect flow variable references per component.
     q_check_valve = var(wm, n, :q_check_valve)
-    q_pipe, q_pump = var(wm, n, :q_pipe), var(wm, n, :q_pump)
+    q_pipe = var(wm, n, :q_pipe)
+    q_pump = var(wm, n, :q_pump)
     q_pressure_reducing_valve = var(wm, n, :q_pressure_reducing_valve)
     q_shutoff_valve = var(wm, n, :q_shutoff_valve)
 
     # Add the flow conservation constraint.
-    con(wm, n, :flow_conservation)[i] = JuMP.@constraint(wm.model,
-        - sum(q_check_valve[a] for a in check_valve_fr)
-        + sum(q_check_valve[a] for a in check_valve_to)
-        - sum(q_pipe[a] for a in pipe_fr) + sum(q_pipe[a] for a in pipe_to)
-        - sum(q_pump[a] for a in pump_fr) + sum(q_pump[a] for a in pump_to)
-        - sum(q_pressure_reducing_valve[a] for a in pressure_reducing_valve_fr)
-        + sum(q_pressure_reducing_valve[a] for a in pressure_reducing_valve_to)
-        - sum(q_shutoff_valve[a] for a in shutoff_valve_fr)
-        + sum(q_shutoff_valve[a] for a in shutoff_valve_to) ==
-        - sum(var(wm, n, :qr, k) for k in reservoirs)
-        - sum(var(wm, n, :qt, k) for k in tanks) + demand)
+    con(wm, n, :flow_conservation)[i] = JuMP.@constraint(wm.model, -
+         sum(q_check_valve[a] for a in check_valve_fr) +
+         sum(q_check_valve[a] for a in check_valve_to) -
+         sum(q_pipe[a] for a in pipe_fr) +
+         sum(q_pipe[a] for a in pipe_to) -
+         sum(q_pump[a] for a in pump_fr) +
+         sum(q_pump[a] for a in pump_to) -
+         sum(q_pressure_reducing_valve[a] for a in pressure_reducing_valve_fr) +
+         sum(q_pressure_reducing_valve[a] for a in pressure_reducing_valve_to) -
+         sum(q_shutoff_valve[a] for a in shutoff_valve_fr) +
+         sum(q_shutoff_valve[a] for a in shutoff_valve_to) == -
+         sum(var(wm, n, :qr, k) for k in reservoirs) -
+         sum(var(wm, n, :qt, k) for k in tanks) +
+         demand)
 end
 
 
-function constraint_tank_state_initial(wm::AbstractWaterModel, n::Int, i::Int, V_0::Float64, time_step::Float64)
+function constraint_tank_state_initial(wm::AbstractWaterModel, n::Int, i::Int, V_0::Float64)
     V = var(wm, n, :V, i)
     c = JuMP.@constraint(wm.model, V == V_0)
     con(wm, n, :tank_state)[i] = c

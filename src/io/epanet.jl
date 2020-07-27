@@ -188,7 +188,7 @@ function epanet_to_watermodels!(data::Dict{String,<:Any}; import_all::Bool = fal
     # Modify the network for standard modeling of tanks.
     for (i, tank) in data["tank"]
         # Create a new node, which will be connected to the tank with a shutoff valve.
-        node = deepcopy(data["node"][string(tank["tank_node"])])
+        node = deepcopy(data["node"][string(tank["node"])])
         node["index"], node["name"] = node_index, string(node_index)
         node["source_id"] = AbstractString["node", "$(node_index)"]
         data["node"][string(node_index)] = node
@@ -196,14 +196,14 @@ function epanet_to_watermodels!(data::Dict{String,<:Any}; import_all::Bool = fal
         # Instantiate the properties that define the auxiliary pipe.
         pipe = Dict{String,Any}("name" => string(edge_index), "status" => 1)
         pipe["source_id"] = ["pipe", string(edge_index)]
-        pipe["node_fr"], pipe["node_to"] = tank["tank_node"], node_index
+        pipe["node_fr"], pipe["node_to"] = tank["node"], node_index
         pipe["length"], pipe["diameter"], pipe["flow_direction"] = 0.0, 1.0, UNKNOWN
         pipe["has_check_valve"], pipe["has_shutoff_valve"] = false, true
         pipe["minor_loss"], pipe["roughness"] = 0.0, 100.0
         data["pipe"][string(edge_index)] = pipe
 
         # Set the tank node index to the index of the dummy node.
-        tank["tank_node"] = node_index
+        tank["node"] = node_index
 
         # Update the auxiliary node and edge indices.
         node_index, edge_index = node_index + 1, edge_index + 1
@@ -274,7 +274,7 @@ function _update_reservoir_ts!(data::Dict{String,<:Any})
     # Ensure that reservoir time series data use new reservoir indices.
     for (i, reservoir) in data["time_series"]["reservoir"]
         key = findfirst(x -> x["source_id"][2] == i, data["reservoir"])
-        node_index = data["reservoir"][key]["reservoir_node"]
+        node_index = data["reservoir"][key]["node"]
         node_ts[key] = reservoir
     end
 
@@ -313,7 +313,7 @@ function _add_nodes!(data::Dict{String,<:Any})
             data["node"][key] = node
 
             # Store the index of the node in the component dictionary.
-            comp["$(comp_type)_node"] = node["index"]
+            comp["node"] = node["index"]
         end
     end
 end
@@ -714,7 +714,7 @@ function _add_node_map!(data::Dict{String,<:Any})
 
     # Map component names to node indices.
     for type in ["junction", "reservoir", "tank"]
-        map = Dict{String,Int}(x["name"] => x["$(type)_node"] for (i, x) in data[type])
+        map = Dict{String,Int}(x["name"] => x["node"] for (i, x) in data[type])
         data["node_map"] = merge(data["node_map"], map)
     end
 

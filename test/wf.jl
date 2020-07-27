@@ -321,8 +321,6 @@ end
         @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["q"], 0.125, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["3"]["pump"]["1"]["q"], 0.03125, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
-        @test result["solution"]["nw"]["1"]["pump"]["1"]["g"] <= 88.99
-        @test result["solution"]["nw"]["3"]["pump"]["1"]["g"] <= 99.60
     end
 
     @testset "Hazen-Williams Head Loss (Tank)" begin
