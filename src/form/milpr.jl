@@ -33,7 +33,7 @@ function constraint_pump_head_gain(wm::AbstractMILPRModel, n::Int, a::Int, node_
 
     # Gather flow, head gain, and convex combination variables.
     qp, g, z = var(wm, n, :qp_pump, a), var(wm, n, :g, a), var(wm, n, :z_pump, a)
-    lambda, x_pw = [var(wm, n, :lambda_pump), var(wm, n, :x_pw_pump)]
+    lambda, x_pw = var(wm, n, :lambda_pump), var(wm, n, :x_pw_pump)
 
     # Add the required SOS constraints.
     c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == z)

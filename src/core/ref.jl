@@ -61,6 +61,15 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
         if haskey(node, "maximumHead")
             head_max[i] = min(head_max[i], node["maximumHead"])
         end
+
+        num_junctions = length(ref(wm, n, :node_junction, i))
+        num_reservoirs = length(ref(wm, n, :node_reservoir, i))
+        num_tanks = length(ref(wm, n, :node_tank, i))
+
+        # If the node has zero demand, pressures can be negative.
+        if num_junctions + num_reservoirs + num_tanks == 0
+            head_min[i] -= 100.0
+        end
     end
 
     for (i, reservoir) in ref(wm, n, :reservoir)

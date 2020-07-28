@@ -190,9 +190,6 @@ function constraint_check_valve_common(wm::AbstractDirectedModel, n::Int, a::Int
     qp, qn = var(wm, n, :qp_check_valve, a), var(wm, n, :qn_check_valve, a)
     y, z = var(wm, n, :y_check_valve, a), var(wm, n, :z_check_valve, a)
 
-    # Fix flow in the negative direction to zero.
-    JuMP.fix(qn, 0.0, force=true)
-
     # If the check valve is open, flow must be appreciably nonnegative.
     c_1 = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * z)
     c_2 = JuMP.@constraint(wm.model, qp >= _q_eps * z)
@@ -227,6 +224,7 @@ function constraint_sv_common(wm::AbstractDirectedModel, n::Int, a::Int, node_fr
     # Get flow and shutoff valve status variables.
     y, z = var(wm, n, :y_shutoff_valve, a), var(wm, n, :z_shutoff_valve, a)
     qp, qn = var(wm, n, :qp_shutoff_valve, a), var(wm, n, :qn_shutoff_valve, a)
+    qp_ub, qn_ub = JuMP.upper_bound(qp), JuMP.upper_bound(qn)
 
     # Get common head variables and associated data.
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
@@ -238,14 +236,14 @@ function constraint_sv_common(wm::AbstractDirectedModel, n::Int, a::Int, node_fr
     c_2 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - y))
 
     # Constrain directed flows based on direction.
-    c_3 = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * y)
-    c_4 = JuMP.@constraint(wm.model, qn <= JuMP.upper_bound(qn) * (1.0 - y))
+    c_3 = JuMP.@constraint(wm.model, qp <= qp_ub * y)
+    c_4 = JuMP.@constraint(wm.model, qn <= qn_ub * (1.0 - y))
 
     # Constrain directed flows based on shutoff valve status.
-    c_5 = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * z)
-    c_6 = JuMP.@constraint(wm.model, qn <= JuMP.upper_bound(qn) * z)
+    c_5 = JuMP.@constraint(wm.model, qp <= qp_ub * z)
+    c_6 = JuMP.@constraint(wm.model, qn <= qn_ub * z)
 
-    # Relate head differences with head variables
+    # Relate head differences with head variables.
     c_7 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
 
     # Append the constraint array.

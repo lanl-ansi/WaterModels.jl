@@ -208,6 +208,12 @@ function epanet_to_watermodels!(data::Dict{String,<:Any}; import_all::Bool = fal
         # Update the auxiliary node and edge indices.
         node_index, edge_index = node_index + 1, edge_index + 1
     end
+
+    for (i, junction) in data["junction"]
+        if isapprox(junction["demand"], 0.0, atol=1.0e-7)
+            delete!(data["junction"], i)
+        end
+    end
 end
 
 
@@ -1010,7 +1016,6 @@ function _read_reservoir!(data::Dict{String,<:Any})
     # Replace with a new dictionary that uses integer component indices.
     data["reservoir"] = _transform_component_indices(data["reservoir"])
 end
-
 
 function _read_tank!(data::Dict{String,<:Any})
     # Initialize dictionaries associated with tanks.
