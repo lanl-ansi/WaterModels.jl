@@ -212,6 +212,7 @@ function epanet_to_watermodels!(data::Dict{String,<:Any}; import_all::Bool = fal
     for (i, junction) in data["junction"]
         if isapprox(junction["demand"], 0.0, atol=1.0e-7)
             delete!(data["junction"], i)
+            haskey(data, "time_series") && delete!(data["time_series"]["junction"], i)
         end
     end
 end
