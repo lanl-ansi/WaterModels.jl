@@ -270,6 +270,7 @@ function constraint_pump_head_gain(wm::AbstractWaterModel, a::Int; nw::Int=wm.cn
     _initialize_con_dict(wm, :head_gain, nw=nw, is_array=true)
     con(wm, nw, :head_gain)[a] = Array{JuMP.ConstraintRef}([])
     constraint_pump_head_gain(wm, nw, a, node_fr, node_to, coeffs)
+    constraint_pump_head_gain_lb(wm, nw, a, node_fr, node_to, coeffs)
 end
 
 

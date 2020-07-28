@@ -190,6 +190,9 @@ function constraint_check_valve_common(wm::AbstractDirectedModel, n::Int, a::Int
     qp, qn = var(wm, n, :qp_check_valve, a), var(wm, n, :qn_check_valve, a)
     y, z = var(wm, n, :y_check_valve, a), var(wm, n, :z_check_valve, a)
 
+    # Ensure that negative flow is fixed to zero.
+    JuMP.fix(qn, 0.0; force=true)
+
     # If the check valve is open, flow must be appreciably nonnegative.
     c_1 = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * z)
     c_2 = JuMP.@constraint(wm.model, qp >= _q_eps * z)
@@ -279,8 +282,12 @@ end
 function constraint_prv_common(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, h_prv::Float64)
     # Get common flow variables.
     qp = var(wm, n, :qp_pressure_reducing_valve, a)
+    qn = var(wm, n, :qn_pressure_reducing_valve, a)
     y = var(wm, n, :y_pressure_reducing_valve, a)
     z = var(wm, n, :z_pressure_reducing_valve, a)
+
+    # Ensure that negative flow is fixed to zero.
+    JuMP.fix(qn, 0.0; force=true)
 
     # If the pressure reducing valve is open, flow must be appreciably positive.
     c_1 = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * z)
@@ -308,11 +315,33 @@ function constraint_prv_common(wm::AbstractDirectedModel, n::Int, a::Int, node_f
 end
 
 
+"Constraint for lower-bounding relaxations of pump head gain."
+function constraint_pump_head_gain_lb(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
+    # If the number of breakpoints is not positive, no constraints are added.
+    pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
+    if pump_breakpoints <= 0 return end
+
+    # Gather flow, head gain, and convex combination variables.
+    qp, g = var(wm, n, :qp_pump, a), var(wm, n, :g, a)
+    lambda = var(wm, n, :lambda_pump)
+
+    # Add a constraint that lower-bounds the head gain variable.
+    breakpoints = range(0.0, stop=JuMP.upper_bound(qp), length=pump_breakpoints)
+    f = (pc[1] .* breakpoints.^2) .+ (pc[2] .* breakpoints) .+ pc[3]
+    gain_lb = sum(f[k] .* lambda[a, k] for k in 1:pump_breakpoints)
+    c = JuMP.@constraint(wm.model, gain_lb <= g)
+    append!(con(wm, n, :head_gain, a), [c])
+end
+
+
 function constraint_pump_common(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
     # Gather variables common to all formulations involving pumps.
     y, z = var(wm, n, :y_pump, a), var(wm, n, :z_pump, a)
     qp, g = var(wm, n, :qp_pump, a), var(wm, n, :g, a)
     dhp, dhn = var(wm, n, :dhp_pump, a), var(wm, n, :dhn_pump, a)
+
+    # Ensure that negative flow is fixed to zero.
+    JuMP.fix(var(wm, n, :qn_pump, a), 0.0; force=true)
 
     # If the pump is off, flow across the pump must be zero.
     qp_ub = JuMP.upper_bound(qp)
@@ -326,7 +355,7 @@ function constraint_pump_common(wm::AbstractDirectedModel, n::Int, a::Int, node_
     c_5 = JuMP.@constraint(wm.model, dhn >= g)
 
     # If the pump is on, flow across the pump must be nonnegative.
-    c_6 = JuMP.@constraint(wm.model, y == z)
+    c_6 = JuMP.@constraint(wm.model, y >= z)
 
     # Equate head difference variables with heads.
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
