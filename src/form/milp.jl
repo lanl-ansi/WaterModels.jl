@@ -211,7 +211,7 @@ function constraint_pump_head_gain(wm::AbstractMILPModel, n::Int, a::Int, node_f
     c_4 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
 
     # Generate a set of uniform flow breakpoints.
-    breakpoints = range(0.0, stop=JuMP.upper_bound(q), length=pump_breakpoints)
+    breakpoints = range(_q_eps, stop=JuMP.upper_bound(q), length=pump_breakpoints)
 
     # Add a constraint for the flow piecewise approximation.
     q_lhs = sum(breakpoints[k] * lambda[a, k] for k in 1:pump_breakpoints)
@@ -357,7 +357,7 @@ function objective_owf(wm::AbstractMILPModel)
                 q_ub = JuMP.upper_bound(q)
 
                 # Generate a set of uniform flow and cubic function breakpoints.
-                breakpoints = range(0.0, stop=q_ub, length=pump_breakpoints)
+                breakpoints = range(_q_eps, stop=q_ub, length=pump_breakpoints)
                 f = _calc_cubic_flow_values(collect(breakpoints), curve_fun)
 
                 # Get pump efficiency data.

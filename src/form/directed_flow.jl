@@ -326,7 +326,7 @@ function constraint_pump_head_gain_lb(wm::AbstractDirectedModel, n::Int, a::Int,
     lambda = var(wm, n, :lambda_pump)
 
     # Add a constraint that lower-bounds the head gain variable.
-    breakpoints = range(0.0, stop=JuMP.upper_bound(qp), length=pump_breakpoints)
+    breakpoints = range(_q_eps, stop=JuMP.upper_bound(qp), length=pump_breakpoints)
     f = (pc[1] .* breakpoints.^2) .+ (pc[2] .* breakpoints) .+ pc[3]
     gain_lb = sum(f[k] .* lambda[a, k] for k in 1:pump_breakpoints)
     c = JuMP.@constraint(wm.model, gain_lb <= g)
