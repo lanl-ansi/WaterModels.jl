@@ -576,7 +576,6 @@ function _read_energy!(data::Dict{String,<:Any})
                 # Obtain and scale head-versus-flow pump curve.
                 x = first.(data["curve"][current[4]]) # Flow rate.
                 y = 0.01 .* last.(data["curve"][current[4]]) # Efficiency.
-                y = x > 0.0 && y > 1.0e-2 ? y : 1.0e-2 # Mitigate zero efficiencies.
 
                 if data["flow_units"] == "LPS" # If liters per second...
                     # Convert from liters per second to cubic meters per second.
@@ -586,6 +585,10 @@ function _read_energy!(data::Dict{String,<:Any})
                     x *= 6.30902e-5
                 else
                     Memento.error(_LOGGER, "Could not find a valid \"units\" option type.")
+                end
+
+                for k in 1:length(y)
+                    y[k] = x[k] > 0.0 && y[k] > 1.0e-2 ? y[k] : 1.0e-2
                 end
 
                 # Curve of efficiency (unitless) versus the flow rate through a pump.
