@@ -580,6 +580,9 @@ function _read_energy!(data::Dict{String,<:Any})
                 if data["flow_units"] == "LPS" # If liters per second...
                     # Convert from liters per second to cubic meters per second.
                     x *= 1.0e-3
+                elseif data["flow_units"] == "CMH" # If cubic meters per hour...
+                    # Convert from cubic meters per hour to cubic meters per second.
+                    x *= inv(3600.0)
                 elseif data["flow_units"] == "GPM" # If gallons per minute...
                     # Convert from gallons per minute to cubic meters per second.
                     x *= 6.30902e-5
@@ -667,7 +670,7 @@ function _read_junction!(data::Dict{String,<:Any})
         junction["source_id"] = ["junction", current[1]]
 
         # Parse the elevation of the junction (in meters).
-        if data["flow_units"] == "LPS" # If liters per second...
+        if data["flow_units"] == "LPS" || data["flow_units"] == "CMH"
             # Retain the original value (in meters).
             junction["elevation"] = parse(Float64, current[2])
         elseif data["flow_units"] == "GPM" # If gallons per minute...
@@ -686,6 +689,9 @@ function _read_junction!(data::Dict{String,<:Any})
             if data["flow_units"] == "LPS" # If liters per second...
                 # Convert from liters per second to cubic meters per second.
                 junction["demand"] = 1.0e-3 * demand_unscaled
+            elseif data["flow_units"] == "CMH" # If cubic meters per hour...
+                # Convert from cubic meters per hour to cubic meters per second.
+                junction["demand"] = inv(3600.0) * demand_unscaled
             elseif data["flow_units"] == "GPM" # If gallons per minute...
                 # Convert from gallons per minute to cubic meters per second.
                 junction["demand"] = 6.30902e-5 * demand_unscaled
@@ -853,7 +859,7 @@ function _read_pipe!(data::Dict{String,<:Any})
         pipe["node_to"] = data["node_map"][current[3]]
 
         # Store all measurements associated with pipes in metric units.
-        if data["flow_units"] == "LPS" # If liters per second...
+        if data["flow_units"] == "LPS" || data["flow_units"] == "CMH"
             # Retain the original value (in meters).
             pipe["length"] = parse(Float64, current[4])
 
@@ -937,6 +943,9 @@ function _read_pump!(data::Dict{String,<:Any})
             if data["flow_units"] == "LPS" # If liters per second...
                 # Convert from liters per second to cubic meters per second.
                 flow *= 1.0e-3
+            elseif data["flow_units"] == "CMH" # If cubic meters per hour...
+                # Convert from cubic meters per hour to cubic meters per second.
+                flow *= inv(3600.0)
             elseif data["flow_units"] == "GPM" # If gallons per minute...
                 # Convert from gallons per minute to cubic meters per second.
                 flow *= 6.30902e-5
@@ -984,7 +993,7 @@ function _read_reservoir!(data::Dict{String,<:Any})
         reservoir["source_id"] = ["reservoir", current[1]]
 
         # Parse the head of the reservoir (in meters).
-        if data["flow_units"] == "LPS" # If liters per second...
+        if data["flow_units"] == "LPS" || data["flow_units"] == "CMH"
             # Retain the original value (in meters).
             reservoir["head"] = parse(Float64, current[2])
         elseif data["flow_units"] == "GPM" # If gallons per minute...
@@ -1039,7 +1048,7 @@ function _read_tank!(data::Dict{String,<:Any})
         tank["source_id"] = ["tank", current[1]]
 
         # Store all measurements associated with tanks in metric units.
-        if data["flow_units"] == "LPS" # If liters per second...
+        if data["flow_units"] == "LPS" || data["flow_units"] == "CMH"
             # Retain the original length values (in meters).
             tank["elevation"] = parse(Float64, current[2])
             tank["init_level"] = parse(Float64, current[3])
@@ -1141,7 +1150,7 @@ function _read_valve!(data::Dict{String,<:Any})
         end
 
         # Store all measurements associated with pipes in metric units.
-        if data["flow_units"] == "LPS" # If liters per second...
+        if data["flow_units"] == "LPS" || data["flow_units"] == "CMH"
             # Retain the original setting value (in meters).
             valve["setting"] = parse(Float64, current[6])
 
