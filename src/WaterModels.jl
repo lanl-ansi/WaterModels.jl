@@ -67,5 +67,7 @@ include("prob/owf.jl")
 include("prob/owf_agm.jl")
 include("prob/des.jl")
 
+include("util/unbinarize.jl")
+
 include("core/export.jl")
 end
