@@ -42,8 +42,6 @@ include("common.jl")
 
     include("owf.jl")
 
-    include("owf_agm.jl")
-
     include("des.jl")
 
     include("warm_start.jl")
