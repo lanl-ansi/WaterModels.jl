@@ -1,11 +1,15 @@
 WaterModels.jl Change Log
 =========================
 
-### v0.3.1
+### v0.4.0
 - Removed unnecessary dependencies.
 - Removed the `link` component abstraction.
 - Removed complex control logic that was not being used.
 - Refactored EPANET parser and corrected nodal attributes.
+- Fixed various bugs related to component indices.
+- Added new constraints to tighten `owf` formulations.
+- Added utility function for "unbinarizing" indicator variables.
+- Simplified integration tests and removed previous tests.
 
 ### v0.3.0
 - Updated to InfrastructureModels v0.5.
