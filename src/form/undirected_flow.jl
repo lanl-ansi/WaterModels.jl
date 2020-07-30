@@ -106,7 +106,7 @@ function constraint_check_valve_common(wm::AbstractUndirectedModel, n::Int, a::I
 
     # When the check valve is open, negative head loss is not possible.
     dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
-    c_3 = JuMP.@constraint(wm.model, h_i - h_j >= (1.0 - z) * dh_lb)
+    c_3 = JuMP.@constraint(wm.model, h_i - h_j >= (1.0 - z) * min(0.0, dh_lb))
 
     # When the check valve is closed, positive head loss is not possible.
     dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
@@ -168,9 +168,9 @@ function constraint_pump_common(wm::AbstractUndirectedModel, n::Int, a::Int, nod
     c_2 = JuMP.@constraint(wm.model, q >= _q_eps * z)
 
     # If the pump is off, decouple the head difference relationship.
-    dhn_lb = JuMP.lower_bound(h_j) - JuMP.upper_bound(h_i)
+    dhn_lb = min(0.0, JuMP.lower_bound(h_j) - JuMP.upper_bound(h_i))
     c_3 = JuMP.@constraint(wm.model, h_j - h_i - g >= dhn_lb * (1.0 - z))
-    dhn_ub = JuMP.upper_bound(h_j) - JuMP.lower_bound(h_i)
+    dhn_ub = max(0.0, JuMP.upper_bound(h_j) - JuMP.lower_bound(h_i))
     c_4 = JuMP.@constraint(wm.model, h_j - h_i - g <= dhn_ub * (1.0 - z))
 
     # Append the constraint array.
