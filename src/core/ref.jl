@@ -53,13 +53,13 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
 
     for (i, node) in ref(wm, n, :node)
         # Override the minimum head value at node i, if additional data is present.
-        if haskey(node, "minimumHead")
-            head_min[i] = max(head_min[i], node["minimumHead"])
+        if haskey(node, "h_min")
+            head_min[i] = max(head_min[i], node["h_min"])
         end
 
         # Override the maximum head value at node i, if additional data is present.
-        if haskey(node, "maximumHead")
-            head_max[i] = min(head_max[i], node["maximumHead"])
+        if haskey(node, "h_max")
+            head_max[i] = min(head_max[i], node["h_max"])
         end
 
         num_junctions = length(ref(wm, n, :node_junction, i))

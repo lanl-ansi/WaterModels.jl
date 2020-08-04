@@ -56,6 +56,14 @@ function _get_obbt_node_var_ub(wm::AbstractWaterModel, v::Symbol)
         for i in ids(wm, nw, :node)) for nw in network_ids)
 end
 
+function _relax_model!(wm::AbstractWaterModel)
+    # Further relax all binary variables in the model.
+    bin_vars = filter(v -> JuMP.is_binary(v), JuMP.all_variables(wm.model))
+    JuMP.unset_binary.(bin_vars) # Make all binary variables free and continuous.
+    JuMP.set_lower_bound.(bin_vars, 0.0) # Lower-bound the relaxed binary variables.
+    JuMP.set_upper_bound.(bin_vars, 1.0) # Upper-bound the relaxed binary variables.
+end
+
 function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
     model_type::Type = MICPRWaterModel,
     max_iter::Int = 100,
@@ -84,11 +92,8 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
         Memento.error(_LOGGER, "OBBT termination criteria can only be :max or :avg.")
     end
 
-    # Further relax all binary variables in the model.
-    bin_vars = filter(v -> JuMP.is_binary(v), JuMP.all_variables(model_relaxation.model))
-    JuMP.unset_binary.(bin_vars) # Make all binary variables free and continuous.
-    JuMP.set_lower_bound.(bin_vars, 0.0) # Lower-bound the relaxed binary variables.
-    JuMP.set_upper_bound.(bin_vars, 1.0) # Upper-bound the relaxed binary variables.
+    # Relax the model.
+    _relax_model!(model_relaxation)
 
     # Declare possible pass statuses.
     pass_statuses = [_MOI.LOCALLY_SOLVED, _MOI.OPTIMAL]
@@ -119,12 +124,7 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
 
     model_bt = instantiate_model(data, model_type, WaterModels.build_mn_owf)
     upper_bound_constraint && _constraint_obj_bound(model_bt, upper_bound)
-
-    # Further relax all binary variables in the bound tightening model.
-    bin_vars = filter(v -> JuMP.is_binary(v), JuMP.all_variables(model_bt.model))
-    JuMP.unset_binary.(bin_vars) # Make all binary variables free and continuous.
-    JuMP.set_lower_bound.(bin_vars, 0.0) # Lower-bound the relaxed binary variables.
-    JuMP.set_upper_bound.(bin_vars, 1.0) # Upper-bound the relaxed binary variables.
+    _relax_model!(model_bt)
 
     # Initialize the statistics dictionary.
     stats = Dict{String,Any}()
@@ -153,10 +153,13 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
 
     # Set whether or not the algorithm should immediately terminate.
     if termination == :avg
-        terminate = avg_h_reduction <= improvement_tol && avg_q_reduction <= improvement_tol
+        terminate = avg_h_reduction <= improvement_tol
     elseif termination == :max
-        terminate = max_h_reduction <= improvement_tol && max_q_reduction <= improvement_tol
+        terminate = max_h_reduction <= improvement_tol
     end
+
+    # Set the optimizer for model_bt.
+    JuMP.set_optimizer(model_bt.model, optimizer)
 
     while !terminate # Algorithmic loop.
         # Set important metadata describing the current round.
@@ -165,11 +168,8 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
 
         # Loop over all subnetworks in the multinetwork.
         for nw in sort(collect(nw_ids(model_bt)))
-
             # Loop over all nodes in the network.
             for i in ids(model_bt, nw, :node)
-                println(nw, " ", i)
-
                 # If the lower and upper bounds are already close, skip.
                 if h_ub[nw][i] - h_lb[nw][i] < min_bound_width
                     continue
@@ -180,7 +180,7 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
 
                 # Minimize the variable whose bounds are being tightened.
                 JuMP.@objective(model_bt.model, _MOI.MIN_SENSE, var(model_bt, nw, :h, i))
-                result_bt = optimize_model!(model_bt, optimizer=optimizer)
+                result_bt = optimize_model!(model_bt)
 
                 # Store the new lower bound or print a warning and continue.
                 if result_bt["termination_status"] in pass_statuses
@@ -195,7 +195,7 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
 
                 # Maximize the variable whose bounds are being tightened.
                 JuMP.@objective(model_bt.model, _MOI.MAX_SENSE, var(model_bt, nw, :h, i))
-                result_bt = optimize_model!(model_bt, optimizer=optimizer)
+                result_bt = optimize_model!(model_bt)
 
                 # Store the new lower bound or print a warning and continue.
                 if result_bt["termination_status"] in pass_statuses
@@ -219,110 +219,117 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
                 end
 
                 # Revert to old bounds if new bounds are nonsensical or NaN.
-                (!isnan(lb) && lb > h_ub[i]) && (lb = h_lb[i])
-                (!isnan(ub) && ub < h_lb[i]) && (ub = h_ub[i])
-                isnan(lb) && (lb = h_lb[i])
-                isnan(ub) && (ub = h_ub[i])
+                (!isnan(lb) && lb > h_ub[nw][i]) && (lb = h_lb[nw][i])
+                (!isnan(ub) && ub < h_lb[nw][i]) && (ub = h_ub[nw][i])
+                isnan(lb) && (lb = h_lb[nw][i])
+                isnan(ub) && (ub = h_ub[nw][i])
+
+                # Compute the h bound reduction.
+                h_reduction = 0.0
+
+                if (ub - lb >= min_bound_width)
+                    h_reduction = (h_ub[nw][i] - h_lb[nw][i]) - (ub - lb)
+                    h_lb[nw][i], h_ub[nw][i] = lb, ub
+                else
+                    mean = 0.5 * (ub + lb)
+
+                    if mean - 0.5 * min_bound_width < h_lb[nw][i]
+                        lb, ub = h_lb[nw][i], h_lb[nw][i] + min_bound_width
+                    elseif mean + 0.5 * min_bound_width > h_ub[nw][i]
+                        ub, lb = h_ub[nw][i], h_ub[nw][i] - min_bound_width
+                    else
+                        lb, ub = mean - 0.5 * min_bound_width, mean + 0.5 * min_bound_width
+                    end
+
+                    h_reduction = (h_ub[nw][i] - h_lb[nw][i]) - (ub - lb)
+                    h_lb[nw][i], h_ub[nw][i] = lb, ub
+                end
+
+                total_h_reduction += h_reduction
+                max_h_reduction = max(h_reduction, max_h_reduction)
             end
+        end
+
+        total_count, h_range_final, avg_h_range = 0, 0.0, 0.0
+
+        for nw in sort(collect(nw_ids(model_bt)))
+            node_ids = ids(model_bt, nw, :node)
+            h_range_nw = sum(h_ub[nw][i] - h_lb[nw][i] for i in node_ids)
+            h_range_final += h_range_nw
+            avg_h_range += h_range_nw * inv(length(node_ids))
+            total_count += length(node_ids)
+        end
+
+        avg_h_reduction = total_h_reduction * inv(total_count)
+        parallel_time_elapsed += max_h_iteration_time
+        time_elapsed += time() - iter_start_time
+
+        # Populate the modifications, update the data, and rebuild the bound tightening model.
+        modifications = _create_modifications(model_bt, h_lb, h_ub)
+        _IM.update_data!(data, modifications)
+
+        # Further relax all binary variables in the bound tightening model.
+        model_bt = instantiate_model(data, model_type, WaterModels.build_mn_owf)
+        _relax_model!(model_bt)
+
+        JuMP.set_optimizer(model_bt.model, optimizer)
+        upper_bound_constraint && _constraint_obj_bound(model_bt, upper_bound)
+        h = var(model_bt, :h)
+
+        # Solve the relaxation for the updated bounds.
+        model_relaxation = instantiate_model(data, model_type, WaterModels.build_mn_owf)
+        _relax_model!(model_relaxation)
+        result_relaxation = optimize_model!(model_relaxation, optimizer=optimizer)
+
+        if result_relaxation["termination_status"] in pass_statuses
+            current_rel_gap = (upper_bound - result_relaxation["objective"]) * inv(upper_bound)
+            final_relaxation_objective = result_relaxation["objective"]
+        else
+            Memento.warn(_LOGGER, "Relaxation solve failed in iteration $(current_iteration+1).")
+            Memento.warn(_LOGGER, "Using the previous iteration's gap to check relative gap stopping criteria.")
+        end
+
+        Memento.info(_LOGGER, "Iteration $(current_iteration+1), h range: $(h_range_final), relaxation obj: $(final_relaxation_objective).")
+
+        # Set whether or not the algorithm should terminate.
+        if termination == :avg
+            terminate = avg_h_reduction <= improvement_tol
+        elseif termination == :max
+            terminate = max_h_reduction <= improvement_tol
+        end
+
+        # Iteration counter update.
+        current_iteration += 1
+
+        # Check termination criteria.
+        if current_iteration >= max_iter
+            Memento.info(_LOGGER, "Maximum iteration limit reached.")
+            terminate = true
+        elseif time_elapsed > time_limit
+            Memento.info(_LOGGER, "Maximum time limit reached.")
+            terminate = true
+        elseif !isinf(rel_gap_tol) && current_rel_gap < rel_gap_tol
+            Memento.info(_LOGGER, "Relative optimality gap < $(rel_gap_tol).")
+            terminate = true
         end
     end
 
-    #        # vm bound-reduction computation
-    #        h_reduction = 0.0
-    #        if (ub - lb >= min_bound_width)
-    #            h_reduction = (h_ub[node] - h_lb[node]) - (ub - lb)
-    #            h_lb[node] = lb
-    #            h_ub[node] = ub
-    #        else
-    #            mean = 0.5 * (ub + lb)
-    #            if (mean - 0.5 * min_bound_width < h_lb[node])
-    #                lb = h_lb[node]
-    #                ub = h_lb[node] + min_bound_width
-    #            elseif (mean + 0.5 * min_bound_width > h_ub[node])
-    #                ub = h_ub[node]
-    #                lb = h_ub[node] - min_bound_width
-    #            else
-    #                lb = mean - 0.5 * min_bound_width
-    #                ub = mean + 0.5 * min_bound_width
-    #            end
-    #            h_reduction = (h_ub[node] - h_lb[node]) - (ub - lb)
-    #            h_lb[node] = lb
-    #            h_ub[node] = ub
-    #        end
+    stats["final_relaxation_objective"] = final_relaxation_objective
+    stats["final_rel_gap_from_ub"] = isnan(upper_bound) ? Inf : current_rel_gap
+    stats["avg_h_range_final"], stats["h_range_final"] = 0.0, 0.0
 
-    #        total_h_reduction += (h_reduction)
-    #        max_h_reduction = max(h_reduction, max_h_reduction)
-    #    end
-    #    avg_h_reduction = total_h_reduction/length(nodes)
+    for nw in sort(collect(nw_ids(model_bt)))
+        node_ids = ids(model_bt, nw, :node)
+        h_range_nw = sum(h_ub[nw][i] - h_lb[nw][i] for i in node_ids)
+        stats["h_range_final"] += h_range_nw
+        stats["avg_h_range_final"] += h_range_nw * inv(length(node_ids))
+    end
 
-    #    h_range_final = sum([h_ub[node] - h_lb[node] for node in nodes])
+    stats["run_time"] = time_elapsed
+    stats["iteration_count"] = current_iteration
+    stats["sim_parallel_run_time"] = parallel_time_elapsed
 
-    #    q_range_final = sum([q_ub[bp] - q_lb[bp] for bp in pipes])
-
-    #    parallel_time_elapsed += max(max_h_iteration_time, max_q_iteration_time)
-
-    #    time_elapsed += (time() - iter_start_time)
-
-    #    # populate the modifications, update the data, and rebuild the bound tightening model
-    #    modifications = _create_modifications(model_bt, h_lb, h_ub, q_lb, q_ub)
-    #    WaterModels.update_data!(data, modifications)
-    #    model_bt = instantiate_model(data, model_type, WaterModels.build_mn_owf)
-    #    (upper_bound_constraint) && (_constraint_obj_bound(model_bt, upper_bound))
-    #    vm = var(model_bt, :vm)
-    #    q = var(model_bt, :q)
-
-    #    # run the qc relaxation for the updated bounds
-    #    result_relaxation = run_owf(data, model_type::Type, optimizer)
-
-    #    if result_relaxation["termination_status"] in pass_statuses
-    #        current_rel_gap = (upper_bound - result_relaxation["objective"])/upper_bound
-    #        final_relaxation_objective = result_relaxation["objective"]
-    #    else
-    #        Memento.warn(_LOGGER, "relaxation solve failed in iteration $(current_iteration+1)")
-    #        Memento.warn(_LOGGER, "using the previous iteration's gap to check relative gap stopping criteria")
-    #    end
-
-    #    Memento.info(_LOGGER, "iteration $(current_iteration+1), vm range: $h_range_final, q range: $q_range_final, relaxation obj: $final_relaxation_objective")
-
-    #    # Update the termination flag.
-    #    if termination == :avg
-    #        terminate = avg_h_reduction <= improvement_tol && avg_q_reduction <= improvement_tol
-    #    else
-    #        terminate = max_h_reduction <= improvement_tol && max_q_reduction <= improvement_tol
-    #    end
-
-    #    # iteration counter update
-    #    current_iteration += 1
-    #    # check all the stopping criteria
-    #    (current_iteration >= max_iter) && (Memento.info(_LOGGER, "maximum iteration limit reached"); break)
-    #    (time_elapsed > time_limit) && (Memento.info(_LOGGER, "maximum time limit reached"); break)
-    #    if (!isinf(rel_gap_tol)) && (current_rel_gap < rel_gap_tol)
-    #        Memento.info(_LOGGER, "relative optimality gap < $rel_gap_tol")
-    #        break
-    #    end
-
-    #end
-
-    #pipes_vad_same_sign_count = 0
-    #for (key, pipe) in data["pipe"]
-    #    is_same_sign = (pipe["q_max"] >=0 && pipe["q_min"] >= 0) || (pipe["q_max"] <=0 && pipe["q_min"] <= 0)
-    #    (is_same_sign) && (pipes_vad_same_sign_count += 1)
-    #end
-
-    #stats["final_relaxation_objective"] = final_relaxation_objective
-    #stats["final_rel_gap_from_ub"] = isnan(upper_bound) ? Inf : current_rel_gap
-    #stats["h_range_final"] = h_range_final
-    #stats["avg_h_range_final"] = h_range_final * inv(length(nodes))
-
-    #stats["q_range_final"] = q_range_final
-    #stats["avg_q_range_final"] = q_range_final * inv(length(pipes))
-
-    #stats["run_time"] = time_elapsed
-    #stats["iteration_count"] = current_iteration
-    #stats["sim_parallel_run_time"] = parallel_time_elapsed
-
-    #stats["vad_sign_determined"] = pipes_vad_same_sign_count
-
+    # Return new data dictionary and statistics.
     return data, stats
 end
 
@@ -350,19 +357,19 @@ end
 function _constraint_obj_bound(wm::AbstractWaterModel, bound)
 end
 
+function _create_modifications(wm::AbstractWaterModel, h_lb::Dict{Int,<:Any}, h_ub::Dict{Int,<:Any})
+    modifications = Dict{String,Any}("nw"=>Dict{String,Any}(), "per_unit"=>false)
 
-function _create_modifications(wm::AbstractWaterModel,
-    h_lb::Dict{Any,Float64}, h_ub::Dict{Any,Float64},
-    q_lb::Dict{Any,Float64}, q_ub::Dict{Any,Float64})
+    for nw in sort(collect(nw_ids(wm)))
+        nw_str = string(nw)
+        modifications["nw"][nw_str] = Dict{String,Any}()
+        modifications["nw"][nw_str]["node"] = Dict{String,Any}()
 
-    modifications = Dict{String, Any}()
-    modifications["per_unit"] = false
-    modifications["node"] = Dict{String, Any}()
-    modifications["pipe"] = Dict{String, Any}()
-
-    for node in ids(wm, :node)
-        index = string(ref(wm, :node, node, "index"))
-        modifications["node"][index] = Dict("h_min" => h_lb[node], "h_max" => h_ub[node])
+        for i in ids(wm, nw, :node)
+            modifications["nw"][nw_str]["node"][string(i)] = Dict{String,Any}()
+            modifications["nw"][nw_str]["node"][string(i)]["h_min"] = h_lb[nw][i]
+            modifications["nw"][nw_str]["node"][string(i)]["h_max"] = h_ub[nw][i]
+        end
     end
 
     return modifications
