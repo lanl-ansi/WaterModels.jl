@@ -25,6 +25,7 @@ function build_wf(wm::AbstractWaterModel)
     # Flow conservation at all nodes.
     for (i, node) in ref(wm, :node)
         constraint_flow_conservation(wm, i)
+        constraint_node_directionality(wm, i)
     end
 
     # Head loss along pipes without valves.
@@ -104,6 +105,7 @@ function build_mn_wf(wm::AbstractWaterModel)
         # Flow conservation at all nodes.
         for i in ids(wm, :node; nw=n)
             constraint_flow_conservation(wm, i; nw=n)
+            constraint_node_directionality(wm, i; nw=n)
         end
 
         # Head loss along pipes without valves.

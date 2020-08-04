@@ -189,7 +189,7 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
                     lb_new = floor(10.0^precision * val) * inv(10.0^precision)
                     lb_new > h_lb[nw][i] && (lb = lb_new) # Store the new lower bound.
                 else
-                    Memento.warn(_LOGGER, "BT minimization for h[$(i)] errored. Adjust tolerances.")
+                    Memento.warn(_LOGGER, "BT minimization for $(nw)_h[$(i)] errored. Adjust tolerances.")
                     continue
                 end
 
@@ -204,7 +204,7 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
                     ub_new = ceil(10.0^precision * val) * inv(10.0^precision)
                     ub_new < h_ub[nw][i] && (ub = ub_new) # Store the new lower bound.
                 else
-                    Memento.warn(_LOGGER, "BT maximization for h[$(i)] errored. Adjust tolerances.")
+                    Memento.warn(_LOGGER, "BT maximization for $(nw)_h[$(i)] errored. Adjust tolerances.")
                     continue
                 end
 
@@ -214,7 +214,7 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
 
                 # Perform sanity checks on the new bounds.
                 if lb > ub # Check if the lower bound exceeds the upper bound.
-                    Memento.warn(_LOGGER, "BT lb > ub for h[$(i)]. Adjust tolerances.")
+                    Memento.warn(_LOGGER, "BT lb > ub for $(nw)_h[$(i)]. Adjust tolerances.")
                     continue
                 end
 
@@ -270,15 +270,14 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
 
         # Further relax all binary variables in the bound tightening model.
         model_bt = instantiate_model(data, model_type, WaterModels.build_mn_owf)
-        _relax_model!(model_bt)
-
+        _relax_model!(model_bt) # Relax binary variables in the model.
         JuMP.set_optimizer(model_bt.model, optimizer)
         upper_bound_constraint && _constraint_obj_bound(model_bt, upper_bound)
         h = var(model_bt, :h)
 
         # Solve the relaxation for the updated bounds.
         model_relaxation = instantiate_model(data, model_type, WaterModels.build_mn_owf)
-        _relax_model!(model_relaxation)
+        _relax_model!(model_relaxation) # Relax binary variables in the model.
         result_relaxation = optimize_model!(model_relaxation, optimizer=optimizer)
 
         if result_relaxation["termination_status"] in pass_statuses
@@ -319,10 +318,9 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
     stats["avg_h_range_final"], stats["h_range_final"] = 0.0, 0.0
 
     for nw in sort(collect(nw_ids(model_bt)))
-        node_ids = ids(model_bt, nw, :node)
-        h_range_nw = sum(h_ub[nw][i] - h_lb[nw][i] for i in node_ids)
+        h_range_nw = sum(h_ub[nw][i] - h_lb[nw][i] for i in ids(model_bt, nw, :node))
         stats["h_range_final"] += h_range_nw
-        stats["avg_h_range_final"] += h_range_nw * inv(length(node_ids))
+        stats["avg_h_range_final"] += h_range_nw * inv(length(ids(model_bt, nw, :node)))
     end
 
     stats["run_time"] = time_elapsed

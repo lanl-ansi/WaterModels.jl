@@ -181,6 +181,15 @@ function constraint_pipe_common(wm::AbstractUndirectedModel, n::Int, a::Int, nod
     # For undirected formulations, there are no constraints, here.
 end
 
+function constraint_node_directionality(
+    wm::AbstractWaterModel, n::Int, i::Int, check_valve_fr::Array{Int},
+    check_valve_to::Array{Int}, pipe_fr::Array{Int}, pipe_to::Array{Int},
+    pump_fr::Array{Int}, pump_to::Array{Int}, pressure_reducing_valve_fr::Array{Int},
+    pressure_reducing_valve_to::Array{Int}, shutoff_valve_fr::Array{Int},
+    shutoff_valve_to::Array{Int})
+    # For undirected formulations, there are no constraints, here.
+end
+
 function constraint_sink_directionality(
     wm::AbstractWaterModel, n::Int, i::Int, check_valve_fr::Array{Int},
     check_valve_to::Array{Int}, pipe_fr::Array{Int}, pipe_to::Array{Int},

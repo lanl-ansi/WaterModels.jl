@@ -59,6 +59,46 @@ function constraint_flow_conservation(wm::AbstractWaterModel, i::Int; nw::Int=wm
 end
 
 
+function constraint_node_directionality(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
+    # Collect various indices for edge-type components connected to node `i`.
+    check_valve_fr = _collect_comps_fr(wm, i, :check_valve; nw=nw)
+    check_valve_to = _collect_comps_to(wm, i, :check_valve; nw=nw)
+    pipe_fr = _collect_comps_fr(wm, i, :pipe; nw=nw)
+    pipe_to = _collect_comps_to(wm, i, :pipe; nw=nw)
+    pump_fr = _collect_comps_fr(wm, i, :pump; nw=nw)
+    pump_to = _collect_comps_to(wm, i, :pump; nw=nw)
+    pressure_reducing_valve_fr = _collect_comps_fr(wm, i, :pressure_reducing_valve; nw=nw)
+    pressure_reducing_valve_to = _collect_comps_to(wm, i, :pressure_reducing_valve; nw=nw)
+    shutoff_valve_fr = _collect_comps_fr(wm, i, :shutoff_valve; nw=nw)
+    shutoff_valve_to = _collect_comps_to(wm, i, :shutoff_valve; nw=nw)
+
+    # Get the number of nodal components attached to node `i`.
+    junctions = ref(wm, nw, :node_junction)
+    tanks = ref(wm, nw, :node_tank)
+    reservoirs = ref(wm, nw, :node_reservoir)
+    num_components = length(junctions) + length(tanks) + length(reservoirs)
+
+    # Get the degree of node `i`.
+    in_length = length(check_valve_to) + length(pipe_to) + length(pump_to) +
+                length(pressure_reducing_valve_to) + length(shutoff_valve_to)
+
+    out_length = length(check_valve_fr) + length(pipe_fr) + length(pump_fr) +
+                 length(pressure_reducing_valve_fr) + length(shutoff_valve_fr)
+
+    # Check if node directionality constraints should be added.
+    if num_components == 0 && in_length + out_length == 2
+        # Initialize the node directionality constraint dictionary entry.
+        _initialize_con_dict(wm, :node_directionality, nw=nw)
+
+        # Add the node directionality constraint.
+        constraint_node_directionality(
+            wm, nw, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to, pump_fr, pump_to,
+            pressure_reducing_valve_fr, pressure_reducing_valve_to, shutoff_valve_fr,
+            shutoff_valve_to)
+    end
+end
+
+
 ### Junction Constraints ###
 function constraint_sink_directionality(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
     # Collect various indices for edge-type components connected to node `i`.
@@ -107,7 +147,7 @@ function constraint_source_directionality(wm::AbstractWaterModel, i::Int; nw::In
     shutoff_valve_to = _collect_comps_to(wm, i, :shutoff_valve; nw=nw)
 
     # Initialize the source flow constraint dictionary entry.
-    _initialize_con_dict(wm, :source_flow, nw=nw)
+    _initialize_con_dict(wm, :source_directionality, nw=nw)
 
     # Add the source flow directionality constraint.
     constraint_source_directionality(

@@ -457,6 +457,48 @@ end
 
 
 "Constraint to ensure at least one direction is set to take flow away from a source."
+function constraint_node_directionality(
+    wm::AbstractDirectedModel, n::Int, i::Int, check_valve_fr::Array{Int64,1},
+    check_valve_to::Array{Int64,1}, pipe_fr::Array{Int64,1}, pipe_to::Array{Int64,1},
+    pump_fr::Array{Int64,1}, pump_to::Array{Int64,1},
+    pressure_reducing_valve_fr::Array{Int64,1}, pressure_reducing_valve_to::Array{Int64,1},
+    shutoff_valve_fr::Array{Int64,1}, shutoff_valve_to::Array{Int64,1})
+    # Collect direction variable references per component.
+    y_check_valve = var(wm, n, :y_check_valve)
+    y_pipe, y_pump = var(wm, n, :y_pipe), var(wm, n, :y_pump)
+    y_pressure_reducing_valve = var(wm, n, :y_pressure_reducing_valve)
+    y_shutoff_valve = var(wm, n, :y_shutoff_valve)
+
+    y_out = JuMP.@expression(wm.model,
+            sum(y_check_valve[a] for a in check_valve_fr) +
+            sum(y_pipe[a] for a in pipe_fr) + sum(y_pump[a] for a in pump_fr) +
+            sum(y_pressure_reducing_valve[a] for a in pressure_reducing_valve_fr) +
+            sum(y_shutoff_valve[a] for a in shutoff_valve_fr))
+
+    y_out_length = length(check_valve_fr) + length(pipe_fr) + length(pump_fr) +
+                   length(pressure_reducing_valve_fr) + length(shutoff_valve_fr)
+
+    y_in = JuMP.@expression(wm.model,
+            sum(y_check_valve[a] for a in check_valve_to) +
+            sum(y_pipe[a] for a in pipe_to) + sum(y_pump[a] for a in pump_to) +
+            sum(y_pressure_reducing_valve[a] for a in pressure_reducing_valve_to) +
+            sum(y_shutoff_valve[a] for a in shutoff_valve_to))
+
+    y_in_length = length(check_valve_to) + length(pipe_to) + length(pump_to) +
+                  length(pressure_reducing_valve_to) + length(shutoff_valve_to)
+
+    # Add the node directionality constraint.
+    if y_out_length == 1 && y_in_length == 1
+        c = JuMP.@constraint(wm.model, y_out - y_in == 0.0)
+        con(wm, n, :node_directionality)[i] = c
+    elseif y_in_length + y_out_length == 2 && y_in_length*y_out_length == 0
+        c = JuMP.@constraint(wm.model, y_out + y_in == 1.0)
+        con(wm, n, :node_directionality)[i] = c
+    end
+end
+
+
+"Constraint to ensure at least one direction is set to take flow away from a source."
 function constraint_source_directionality(
     wm::AbstractDirectedModel, n::Int, i::Int, check_valve_fr::Array{Int64,1},
     check_valve_to::Array{Int64,1}, pipe_fr::Array{Int64,1}, pipe_to::Array{Int64,1},
@@ -486,7 +528,7 @@ function constraint_source_directionality(
 
     # Add the source flow direction constraint.
     c = JuMP.@constraint(wm.model, y_out - y_in >= 1.0 - y_in_length)
-    con(wm, n, :source_flow)[i] = c
+    con(wm, n, :source_directionality)[i] = c
 end
 
 
