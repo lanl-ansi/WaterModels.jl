@@ -160,6 +160,7 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
 
     # Set the optimizer for model_bt.
     JuMP.set_optimizer(model_bt.model, optimizer)
+    Memento.info(_LOGGER, "Initial h range: $(stats["h_range_init"]).")
 
     while !terminate # Algorithmic loop.
         # Set important metadata describing the current round.
@@ -170,13 +171,16 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
         for nw in sort(collect(nw_ids(model_bt)))
             # Loop over all nodes in the network.
             for i in ids(model_bt, nw, :node)
-                # If the lower and upper bounds are already close, skip.
+                # Capture the start time.
+                start_time = time()
+
+                # If the lower and upper bounds are already sufficiently close, skip.
                 if h_ub[nw][i] - h_lb[nw][i] < min_bound_width
                     continue
                 end
 
                 # Store metadata for variable tightening.
-                lb, ub, start_time = NaN, NaN, time()
+                lb, ub = NaN, NaN
 
                 # Minimize the variable whose bounds are being tightened.
                 JuMP.@objective(model_bt.model, _MOI.MIN_SENSE, var(model_bt, nw, :h, i))
@@ -208,10 +212,6 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
                     continue
                 end
 
-                # Compute the time required for the variable's bound tightening.
-                end_time = time() - start_time
-                max_h_iteration_time = max(end_time, max_h_iteration_time)
-
                 # Perform sanity checks on the new bounds.
                 if lb > ub # Check if the lower bound exceeds the upper bound.
                     Memento.warn(_LOGGER, "BT lb > ub for $(nw)_h[$(i)]. Adjust tolerances.")
@@ -238,7 +238,8 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
                     elseif mean + 0.5 * min_bound_width > h_ub[nw][i]
                         ub, lb = h_ub[nw][i], h_ub[nw][i] - min_bound_width
                     else
-                        lb, ub = mean - 0.5 * min_bound_width, mean + 0.5 * min_bound_width
+                        lb = mean - 0.5 * min_bound_width
+                        ub = mean + 0.5 * min_bound_width
                     end
 
                     h_reduction = (h_ub[nw][i] - h_lb[nw][i]) - (ub - lb)
@@ -247,7 +248,22 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
 
                 total_h_reduction += h_reduction
                 max_h_reduction = max(h_reduction, max_h_reduction)
+
+                # Compute the time required for the variable's bound tightening.
+                end_time = time() - start_time
+                max_h_iteration_time = max(end_time, max_h_iteration_time)
+
+                # Update the time elapsed.
+                time_elapsed += end_time
+
+                # Check time elapsed termination criteria.
+                if time_elapsed > time_limit
+                    (terminate = true) && break
+                end
             end
+
+            # If algorithm is supposed to terminate...
+            terminate && break
         end
 
         total_count, h_range_final, avg_h_range = 0, 0.0, 0.0
@@ -262,7 +278,6 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
 
         avg_h_reduction = total_h_reduction * inv(total_count)
         parallel_time_elapsed += max_h_iteration_time
-        time_elapsed += time() - iter_start_time
 
         # Populate the modifications, update the data, and rebuild the bound tightening model.
         modifications = _create_modifications(model_bt, h_lb, h_ub)
