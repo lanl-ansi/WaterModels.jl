@@ -77,8 +77,8 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
     termination::Symbol = :avg,
     kwargs...)
 
-    Memento.info(_LOGGER, "Maximum number of OBBT iterations set to default value of $(max_iter).")
-    Memento.info(_LOGGER, "Maximum time limit for OBBT set to default value of $(time_limit) seconds.")
+    Memento.info(_LOGGER, "[OBBT] Maximum number of OBBT iterations set to default value of $(max_iter).")
+    Memento.info(_LOGGER, "[OBBT] Maximum time limit for OBBT set to default value of $(time_limit) seconds.")
     model_relaxation = instantiate_model(data, model_type, WaterModels.build_mn_owf)
 
     # Check for model_type compatability with OBBT.
@@ -89,7 +89,7 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
 
     # Check termination norm criteria for OBBT.
     if termination != :avg && termination != :max
-        Memento.error(_LOGGER, "OBBT termination criteria can only be :max or :avg.")
+        Memento.error(_LOGGER, "[OBBT] Termination criteria can only be :max or :avg.")
     end
 
     # Relax the model.
@@ -103,15 +103,15 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
     current_relaxation_objective = result_relaxation["objective"]
 
     if upper_bound < current_relaxation_objective
-        Memento.error(_LOGGER, "The upper bound provided to OBBT is not a valid OWF upper bound.")
+        Memento.error(_LOGGER, "[OBBT] The provided upper bound is not valid.")
     end
 
     if !(result_relaxation["termination_status"] in pass_statuses)
         termination_status = result_relaxation["termination_status"]
-        Memento.warn(_LOGGER, "Initial relaxation solve status is $(termination_status).")
+        Memento.warn(_LOGGER, "[OBBT] Initial relaxation solve status is $(termination_status).")
 
         if termination_status == :SubOptimal
-            Memento.warn(_LOGGER, "Continuing with the bound tightening algorithm.")
+            Memento.warn(_LOGGER, "[OBBT] Continuing with the bound tightening algorithm.")
         end
     end
 
@@ -119,7 +119,7 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
 
     if !isinf(upper_bound)
         current_rel_gap = (upper_bound - current_relaxation_objective) * inv(upper_bound)
-        Memento.info(_LOGGER, "Initial relaxation gap is $(current_rel_gap).")
+        Memento.info(_LOGGER, "[OBBT] Initial relaxation gap is $(current_rel_gap).")
     end
 
     model_bt = instantiate_model(data, model_type, WaterModels.build_mn_owf)
@@ -135,41 +135,37 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
 
     h_lb = _get_obbt_node_var_lb(model_bt, :h)
     h_ub = _get_obbt_node_var_ub(model_bt, :h)
-    stats["h_range_init"], stats["avg_h_range_init"] = 0.0, 0.0
+    total_count, h_range, avg_h_range = 0, 0.0, 0.0
 
     for nw in sort(collect(nw_ids(model_bt)))
         node_ids = ids(model_bt, nw, :node)
         h_range_nw = sum(h_ub[nw][i] - h_lb[nw][i] for i in node_ids)
-        stats["h_range_init"] += h_range_nw
-        stats["avg_h_range_init"] += h_range_nw * inv(length(node_ids))
+        h_range += h_range_nw
+        total_count += length(node_ids)
     end
+
+    avg_h_range = h_range * inv(total_count)
+    stats["h_range_init"] = h_range
+    stats["avg_h_range_init"] = avg_h_range
 
     # Initialize algorithm termination metadata.
-    h_range_final, total_h_reduction = 0.0, Inf
-    max_h_reduction, avg_h_reduction = Inf, Inf
-    final_relaxation_objective = NaN
     current_iteration, time_elapsed = 0, 0.0
     parallel_time_elapsed, terminate = 0.0, false
-
-    # Set whether or not the algorithm should immediately terminate.
-    if termination == :avg
-        terminate = avg_h_reduction <= improvement_tol
-    elseif termination == :max
-        terminate = max_h_reduction <= improvement_tol
-    end
+    final_relaxation_objective = NaN
 
     # Set the optimizer for model_bt.
     JuMP.set_optimizer(model_bt.model, optimizer)
-    Memento.info(_LOGGER, "Initial h range: $(stats["h_range_init"]).")
+    Memento.info(_LOGGER, "[OBBT] Initial average h range: $(stats["avg_h_range_init"]).")
 
     while !terminate # Algorithmic loop.
         # Set important metadata describing the current round.
         iter_start_time, max_h_iteration_time = time(), 0.0
-        total_h_reduction, avg_h_reduction, max_h_reduction = 0.0, 0.0, 0.0
+        total_h_reduction, max_h_reduction = 0.0, 0.0
 
         # Loop over all subnetworks in the multinetwork.
         for nw in sort(collect(nw_ids(model_bt)))
             # Loop over all nodes in the network.
+
             for i in ids(model_bt, nw, :node)
                 # Capture the start time.
                 start_time = time()
@@ -193,7 +189,7 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
                     lb_new = floor(10.0^precision * val) * inv(10.0^precision)
                     lb_new > h_lb[nw][i] && (lb = lb_new) # Store the new lower bound.
                 else
-                    Memento.warn(_LOGGER, "BT minimization for $(nw)_h[$(i)] errored. Adjust tolerances.")
+                    Memento.warn(_LOGGER, "[OBBT] Minimization for $(nw)_h[$(i)] errored. Adjust tolerances.")
                     continue
                 end
 
@@ -208,13 +204,13 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
                     ub_new = ceil(10.0^precision * val) * inv(10.0^precision)
                     ub_new < h_ub[nw][i] && (ub = ub_new) # Store the new lower bound.
                 else
-                    Memento.warn(_LOGGER, "BT maximization for $(nw)_h[$(i)] errored. Adjust tolerances.")
+                    Memento.warn(_LOGGER, "[OBBT] Maximization for $(nw)_h[$(i)] errored. Adjust tolerances.")
                     continue
                 end
 
                 # Perform sanity checks on the new bounds.
                 if lb > ub # Check if the lower bound exceeds the upper bound.
-                    Memento.warn(_LOGGER, "BT lb > ub for $(nw)_h[$(i)]. Adjust tolerances.")
+                    Memento.warn(_LOGGER, "[OBBT] lb > ub for $(nw)_h[$(i)]. Adjust tolerances.")
                     continue
                 end
 
@@ -266,16 +262,16 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
             terminate && break
         end
 
-        total_count, h_range_final, avg_h_range = 0, 0.0, 0.0
+        total_count, h_range = 0, 0.0
 
         for nw in sort(collect(nw_ids(model_bt)))
             node_ids = ids(model_bt, nw, :node)
             h_range_nw = sum(h_ub[nw][i] - h_lb[nw][i] for i in node_ids)
-            h_range_final += h_range_nw
-            avg_h_range += h_range_nw * inv(length(node_ids))
+            h_range += h_range_nw
             total_count += length(node_ids)
         end
 
+        avg_h_range = h_range * inv(total_count)
         avg_h_reduction = total_h_reduction * inv(total_count)
         parallel_time_elapsed += max_h_iteration_time
 
@@ -299,11 +295,11 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
             current_rel_gap = (upper_bound - result_relaxation["objective"]) * inv(upper_bound)
             final_relaxation_objective = result_relaxation["objective"]
         else
-            Memento.warn(_LOGGER, "Relaxation solve failed in iteration $(current_iteration+1).")
-            Memento.warn(_LOGGER, "Using the previous iteration's gap to check relative gap stopping criteria.")
+            Memento.warn(_LOGGER, "[OBBT] Relaxation solve failed in iteration $(current_iteration+1).")
+            Memento.warn(_LOGGER, "[OBBT] Using the previous iteration's gap to check relative gap stopping criteria.")
         end
 
-        Memento.info(_LOGGER, "Iteration $(current_iteration+1), h range: $(h_range_final), relaxation obj: $(final_relaxation_objective).")
+        Memento.info(_LOGGER, "[OBBT] Iteration $(current_iteration+1): average h range: $(avg_h_range).")
 
         # Set whether or not the algorithm should terminate.
         if termination == :avg
@@ -317,26 +313,21 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
 
         # Check termination criteria.
         if current_iteration >= max_iter
-            Memento.info(_LOGGER, "Maximum iteration limit reached.")
+            Memento.info(_LOGGER, "[OBBT] Maximum iteration limit reached.")
             terminate = true
         elseif time_elapsed > time_limit
-            Memento.info(_LOGGER, "Maximum time limit reached.")
+            Memento.info(_LOGGER, "[OBBT] Maximum time limit reached.")
             terminate = true
         elseif !isinf(rel_gap_tol) && current_rel_gap < rel_gap_tol
-            Memento.info(_LOGGER, "Relative optimality gap < $(rel_gap_tol).")
+            Memento.info(_LOGGER, "[OBBT] Relative optimality gap < $(rel_gap_tol).")
             terminate = true
         end
     end
 
+    stats["h_range_final"] = h_range
+    stats["avg_h_range_final"] = avg_h_range
     stats["final_relaxation_objective"] = final_relaxation_objective
     stats["final_rel_gap_from_ub"] = isnan(upper_bound) ? Inf : current_rel_gap
-    stats["avg_h_range_final"], stats["h_range_final"] = 0.0, 0.0
-
-    for nw in sort(collect(nw_ids(model_bt)))
-        h_range_nw = sum(h_ub[nw][i] - h_lb[nw][i] for i in ids(model_bt, nw, :node))
-        stats["h_range_final"] += h_range_nw
-        stats["avg_h_range_final"] += h_range_nw * inv(length(ids(model_bt, nw, :node)))
-    end
 
     stats["run_time"] = time_elapsed
     stats["iteration_count"] = current_iteration
@@ -358,11 +349,11 @@ end
 
 function _check_obbt_options(ub::Float64, rel_gap::Float64, ub_constraint::Bool)
     if ub_constraint && isinf(ub)
-        Memento.error(_LOGGER, "The option \"upper_bound_constraint\" cannot be set to true without specifying an upper bound.")
+        Memento.error(_LOGGER, "[OBBT] The option \"upper_bound_constraint\" cannot be set to true without specifying an upper bound.")
     end
 
     if !isinf(rel_gap) && isinf(ub)
-        Memento.error(_LOGGER, "The option \"rel_gap_tol\" is specified without providing an upper bound.")
+        Memento.error(_LOGGER, "[OBBT] The option \"rel_gap_tol\" is specified without providing an upper bound.")
     end
 end
 
