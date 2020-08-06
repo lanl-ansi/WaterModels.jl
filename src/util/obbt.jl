@@ -75,11 +75,13 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
     improvement_tol::Float64 = 1.0e-3,
     precision::Int = 4,
     termination::Symbol = :avg,
+    relaxed::Bool = true,
+    ext::Dict{Symbol,<:Any} = Dict{Symbol,Any}(:pump_breakpoints=>5),
     kwargs...)
 
     Memento.info(_LOGGER, "[OBBT] Maximum number of OBBT iterations set to default value of $(max_iter).")
     Memento.info(_LOGGER, "[OBBT] Maximum time limit for OBBT set to default value of $(time_limit) seconds.")
-    model_relaxation = instantiate_model(data, model_type, WaterModels.build_mn_owf)
+    model_relaxation = instantiate_model(data, model_type, WaterModels.build_mn_owf; ext=ext)
 
     # Check for model_type compatability with OBBT.
     _check_variables(model_relaxation)
@@ -122,9 +124,9 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
         Memento.info(_LOGGER, "[OBBT] Initial relaxation gap is $(current_rel_gap).")
     end
 
-    model_bt = instantiate_model(data, model_type, WaterModels.build_mn_owf)
+    model_bt = instantiate_model(data, model_type, WaterModels.build_mn_owf; ext=ext)
     upper_bound_constraint && _constraint_obj_bound(model_bt, upper_bound)
-    _relax_model!(model_bt)
+    relaxed && _relax_model!(model_bt)
 
     # Initialize the statistics dictionary.
     stats = Dict{String,Any}()
@@ -280,15 +282,15 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
         _IM.update_data!(data, modifications)
 
         # Further relax all binary variables in the bound tightening model.
-        model_bt = instantiate_model(data, model_type, WaterModels.build_mn_owf)
-        _relax_model!(model_bt) # Relax binary variables in the model.
+        model_bt = instantiate_model(data, model_type, WaterModels.build_mn_owf; ext=ext)
+        relaxed && _relax_model!(model_bt) # Relax binary variables in the model.
         JuMP.set_optimizer(model_bt.model, optimizer)
         upper_bound_constraint && _constraint_obj_bound(model_bt, upper_bound)
         h = var(model_bt, :h)
 
         # Solve the relaxation for the updated bounds.
-        model_relaxation = instantiate_model(data, model_type, WaterModels.build_mn_owf)
-        _relax_model!(model_relaxation) # Relax binary variables in the model.
+        model_relaxation = instantiate_model(data, model_type, WaterModels.build_mn_owf; ext=ext)
+        relaxed && _relax_model!(model_relaxation) # Relax binary variables in the model.
         result_relaxation = optimize_model!(model_relaxation, optimizer=optimizer)
 
         if result_relaxation["termination_status"] in pass_statuses
