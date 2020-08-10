@@ -52,16 +52,6 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     head_max = Dict((i, max_head) for (i, node) in ref(wm, n, :node))
 
     for (i, node) in ref(wm, n, :node)
-        # Override the minimum head value at node i, if additional data is present.
-        if haskey(node, "h_min")
-            head_min[i] = max(head_min[i], node["h_min"])
-        end
-
-        # Override the maximum head value at node i, if additional data is present.
-        if haskey(node, "h_max")
-            head_max[i] = min(head_max[i], node["h_max"])
-        end
-
         num_junctions = length(ref(wm, n, :node_junction, i))
         num_reservoirs = length(ref(wm, n, :node_reservoir, i))
         num_tanks = length(ref(wm, n, :node_tank, i))
@@ -91,6 +81,11 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
         node_to = pressure_reducing_valve["node_to"]
         h_setting = ref(wm, n, :node, node_to)["elevation"] + p_setting
         head_min[node_to] = min(head_min[node_to], h_setting)
+    end
+
+    for (i, node) in ref(wm, n, :node)
+        haskey(node, "h_min") && (head_min[i] = max(head_min[i], node["h_min"]))
+        haskey(node, "h_max") && (head_max[i] = min(head_max[i], node["h_max"]))
     end
 
     # Return the dictionaries of lower and upper bounds.
@@ -144,6 +139,9 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
                     ub[name][a][r_id] = min(ub[name][a][r_id], rate_bound)
                 end
             end
+
+            haskey(comp, "q_min") && (lb[name][a][1] = max(lb[name][a][1], comp["q_min"]))
+            haskey(comp, "q_max") && (ub[name][a][1] = min(ub[name][a][1], comp["q_max"]))
         end
     end
 
@@ -151,8 +149,10 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     ub["pressure_reducing_valve"] = Dict{Int,Array{Float64}}()
 
     for (a, prv) in ref(wm, n, :pressure_reducing_valve)
-        lb["pressure_reducing_valve"][a] = [0.0]
-        ub["pressure_reducing_valve"][a] = [sum_demand]
+        name = "pressure_reducing_valve"
+        lb[name][a], ub[name][a] = [0.0], [sum_demand]
+        haskey(prv, "q_min") && (lb[name][a][1] = max(lb[name][a][1], prv["q_min"]))
+        haskey(prv, "q_max") && (ub[name][a][1] = min(ub[name][a][1], prv["q_max"]))
     end
 
     lb["pump"], ub["pump"] = Dict{Int,Array{Float64}}(), Dict{Int,Array{Float64}}()
@@ -162,7 +162,9 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
         c = _get_function_from_head_curve(head_curve)
         q_max = (-c[2] + sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1])
         q_max = max(q_max, (-c[2] - sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1]))
-        lb["pump"][a], ub["pump"][a] = [[0.0], [q_max]]
+        lb["pump"][a], ub["pump"][a] = [[0.0], [min(sum_demand, q_max)]]
+        haskey(pump, "q_min") && (lb["pump"][a][1] = max(lb["pump"][a][1], pump["q_min"]))
+        haskey(pump, "q_max") && (ub["pump"][a][1] = min(ub["pump"][a][1], pump["q_max"]))
     end
 
     return lb, ub

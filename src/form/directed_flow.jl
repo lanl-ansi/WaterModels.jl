@@ -190,9 +190,6 @@ function constraint_check_valve_common(wm::AbstractDirectedModel, n::Int, a::Int
     qp, qn = var(wm, n, :qp_check_valve, a), var(wm, n, :qn_check_valve, a)
     y, z = var(wm, n, :y_check_valve, a), var(wm, n, :z_check_valve, a)
 
-    # Ensure that negative flow is fixed to zero.
-    JuMP.fix(qn, 0.0; force=true)
-
     # If the check valve is open, flow must be appreciably nonnegative.
     c_1 = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * z)
     c_2 = JuMP.@constraint(wm.model, qp >= _q_eps * z)
@@ -286,9 +283,6 @@ function constraint_prv_common(wm::AbstractDirectedModel, n::Int, a::Int, node_f
     y = var(wm, n, :y_pressure_reducing_valve, a)
     z = var(wm, n, :z_pressure_reducing_valve, a)
 
-    # Ensure that negative flow is fixed to zero.
-    JuMP.fix(qn, 0.0; force=true)
-
     # If the pressure reducing valve is open, flow must be appreciably positive.
     c_1 = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * z)
     c_2 = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * y)
@@ -339,9 +333,6 @@ function constraint_pump_common(wm::AbstractDirectedModel, n::Int, a::Int, node_
     y, z = var(wm, n, :y_pump, a), var(wm, n, :z_pump, a)
     qp, g = var(wm, n, :qp_pump, a), var(wm, n, :g, a)
     dhp, dhn = var(wm, n, :dhp_pump, a), var(wm, n, :dhn_pump, a)
-
-    # Ensure that negative flow is fixed to zero.
-    JuMP.fix(var(wm, n, :qn_pump, a), 0.0; force=true)
 
     # If the pump is off, flow across the pump must be zero.
     qp_ub = JuMP.upper_bound(qp)
