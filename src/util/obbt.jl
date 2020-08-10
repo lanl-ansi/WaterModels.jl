@@ -258,7 +258,7 @@ function _solve_bound(wm::AbstractWaterModel, index::Tuple, sense::_MOI.Optimiza
         candidate = JuMP.objective_value(wm.model)
         return sense === _MOI.MIN_SENSE ? max(candidate, start) : min(candidate, start)
     else
-        message = "[OBBT] Optimization of $(index_1)_$(index[3])[$(index[4])] errored. Adjust tolerances."
+        message = "[OBBT] Optimization of $(index[1])_$(index[3])[$(index[4])] errored. Adjust tolerances."
         JuMP.termination_status(wm.model) !== _MOI.TIME_LIMIT && Memento.warn(_LOGGER, message)
         return start # Optimization was not successful. Return the starting bound.
     end
