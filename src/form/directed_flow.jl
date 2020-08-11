@@ -190,9 +190,8 @@ function constraint_check_valve_common(wm::AbstractDirectedModel, n::Int, a::Int
     qp, qn = var(wm, n, :qp_check_valve, a), var(wm, n, :qn_check_valve, a)
     y, z = var(wm, n, :y_check_valve, a), var(wm, n, :z_check_valve, a)
 
-    # If the check valve is open, flow must be appreciably nonnegative.
+    # If the check valve is closed, flow must be zero.
     c_1 = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * z)
-    c_2 = JuMP.@constraint(wm.model, qp >= _q_eps * z)
 
     # Get common head variables and associated data.
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
@@ -200,23 +199,23 @@ function constraint_check_valve_common(wm::AbstractDirectedModel, n::Int, a::Int
     dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
 
     # When the check valve is closed, positive head loss is not possible.
-    c_3 = JuMP.@constraint(wm.model, dhp <= dhp_ub * z)
+    c_2 = JuMP.@constraint(wm.model, dhp <= dhp_ub * z)
 
     # When the check valve is open, negative head loss is not possible.
-    c_4 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - z))
+    c_3 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - z))
 
     # Constrain head differences based on direction.
-    c_5 = JuMP.@constraint(wm.model, dhp <= dhp_ub * y)
-    c_6 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - y))
+    c_4 = JuMP.@constraint(wm.model, dhp <= dhp_ub * y)
+    c_5 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - y))
 
     # Constrain directed flows based on direction.
-    c_7 = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * y)
+    c_6 = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * y)
 
     # Relate head differences with head variables
-    c_8 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
+    c_7 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
 
     # Append the constraint array.
-    append!(con(wm, n, :check_valve, a), [c_1, c_2, c_3, c_4, c_5, c_6, c_7, c_8])
+    append!(con(wm, n, :check_valve, a), [c_1, c_2, c_3, c_4, c_5, c_6, c_7])
 end
 
 

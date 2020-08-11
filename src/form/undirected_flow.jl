@@ -97,23 +97,22 @@ function constraint_check_valve_common(wm::AbstractUndirectedModel, n::Int, a::I
     # Get flow and check valve status variables.
     q, z = var(wm, n, :q_check_valve, a), var(wm, n, :z_check_valve, a)
 
-    # If the check valve is open, flow must be appreciably nonnegative.
+    # If the check valve is closed, flow must be zero.
     c_1 = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * z)
-    c_2 = JuMP.@constraint(wm.model, q >= _q_eps * z)
 
     # Get head variables for from and to nodes.
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
     # When the check valve is open, negative head loss is not possible.
     dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
-    c_3 = JuMP.@constraint(wm.model, h_i - h_j >= (1.0 - z) * min(0.0, dh_lb))
+    c_2 = JuMP.@constraint(wm.model, h_i - h_j >= (1.0 - z) * min(0.0, dh_lb))
 
     # When the check valve is closed, positive head loss is not possible.
     dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
-    c_4 = JuMP.@constraint(wm.model, h_i - h_j <= z * dh_ub)
+    c_3 = JuMP.@constraint(wm.model, h_i - h_j <= z * dh_ub)
 
     # Append the constraint array.
-    append!(con(wm, n, :check_valve, a), [c_1, c_2, c_3, c_4])
+    append!(con(wm, n, :check_valve, a), [c_1, c_2, c_3])
 end
 
 
