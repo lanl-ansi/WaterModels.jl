@@ -78,10 +78,11 @@ function constraint_node_directionality(wm::AbstractWaterModel, i::Int; nw::Int=
     reservoirs = ref(wm, nw, :node_reservoir)
     num_components = length(junctions) + length(tanks) + length(reservoirs)
 
-    # Get the degree of node `i`.
+    # Get the in degree of node `i`.
     in_length = length(check_valve_to) + length(pipe_to) + length(pump_to) +
                 length(pressure_reducing_valve_to) + length(shutoff_valve_to)
 
+    # Get the out degree of node `i`.
     out_length = length(check_valve_fr) + length(pipe_fr) + length(pump_fr) +
                  length(pressure_reducing_valve_fr) + length(shutoff_valve_fr)
 

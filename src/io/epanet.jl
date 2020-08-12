@@ -282,7 +282,7 @@ function _update_reservoir_ts!(data::Dict{String,<:Any})
     for (i, reservoir) in data["time_series"]["reservoir"]
         key = findfirst(x -> x["source_id"][2] == i, data["reservoir"])
         node_index = data["reservoir"][key]["node"]
-        node_ts[key] = reservoir
+        node_ts[string(node_index)] = reservoir
     end
 
     # Update the reservoir entry in the time series dictionary.

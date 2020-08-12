@@ -99,12 +99,15 @@ function constraint_pipe_head_loss(wm::AbstractMILPRModel, n::Int, a::Int, node_
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
     if pipe_breakpoints <= 0 return end
 
+    # Get the variable denoting flow directionality.
+    y = var(wm, n, :y_pipe, a)
+
     # Add constraints corresponding to positive outer-approximations.
     qp, dhp = var(wm, n, :qp_pipe, a), var(wm, n, :dhp_pipe, a)
 
     for qp_hat in range(0.0, stop=JuMP.upper_bound(qp), length=pipe_breakpoints)
-        lhs = r * _get_head_loss_oa(qp, qp_hat, alpha)
-        c_p = JuMP.@constraint(wm.model, lhs <= inv(L) * dhp)
+        lhs = _get_head_loss_oa_z(qp, y, qp_hat, alpha)
+        c_p = JuMP.@constraint(wm.model, r * lhs <= inv(L) * dhp)
         append!(con(wm, n, :head_loss)[a], [c_p])
     end
 
@@ -112,8 +115,8 @@ function constraint_pipe_head_loss(wm::AbstractMILPRModel, n::Int, a::Int, node_
     qn, dhn = var(wm, n, :qn_pipe, a), var(wm, n, :dhn_pipe, a)
 
     for qn_hat in range(0.0, stop=JuMP.upper_bound(qn), length=pipe_breakpoints)
-        lhs = r * _get_head_loss_oa(qn, qn_hat, alpha)
-        c_n = JuMP.@constraint(wm.model, lhs <= inv(L) * dhn)
+        lhs = _get_head_loss_oa_z(qn, 1.0 - y, qn_hat, alpha)
+        c_n = JuMP.@constraint(wm.model, r * lhs <= inv(L) * dhn)
         append!(con(wm, n, :head_loss)[a], [c_n])
     end
 end
@@ -125,14 +128,16 @@ function constraint_check_valve_head_loss(wm::AbstractMILPRModel, n::Int, a::Int
     if pipe_breakpoints <= 0 return end
 
     # Get common variables for outer approximation constraints.
-    qp, z = var(wm, n, :qp_check_valve, a), var(wm, n, :z_check_valve, a)
-    dhp = var(wm, n, :dhp_check_valve, a)
+    y, z = var(wm, n, :y_check_valve, a), var(wm, n, :z_check_valve, a)
+    qp, dhp = var(wm, n, :qp_check_valve, a), var(wm, n, :dhp_check_valve, a)
 
     # Add outer approximation constraints.
     for qp_hat in range(0.0, stop=JuMP.upper_bound(qp), length=pipe_breakpoints)
-        lhs = _get_head_loss_oa_z(qp, z, qp_hat, ref(wm, n, :alpha))
-        c_p = JuMP.@constraint(wm.model, r * lhs <= inv(L) * dhp)
-        append!(con(wm, n, :head_loss)[a], [c_p])
+        lhs_1 = _get_head_loss_oa_z(qp, y, qp_hat, ref(wm, n, :alpha))
+        c_p_1 = JuMP.@constraint(wm.model, r * lhs_1 <= inv(L) * dhp)
+        lhs_2 = _get_head_loss_oa_z(qp, z, qp_hat, ref(wm, n, :alpha))
+        c_p_2 = JuMP.@constraint(wm.model, r * lhs_2 <= inv(L) * dhp)
+        append!(con(wm, n, :head_loss)[a], [c_p_1, c_p_2])
     end
 end
 
@@ -158,7 +163,7 @@ function constraint_shutoff_valve_head_loss(wm::AbstractMILPRModel, n::Int, a::I
 
     # Add outer approximation constraints for negatively-directed flow.
     for qn_hat in range(0.0, stop=JuMP.upper_bound(qn), length=pipe_breakpoints)
-        lhs_1 = _get_head_loss_oa_z(qn, (1.0 - y), qn_hat, ref(wm, n, :alpha))
+        lhs_1 = _get_head_loss_oa_z(qn, 1.0 - y, qn_hat, ref(wm, n, :alpha))
         c_n_1 = JuMP.@constraint(wm.model, L * r * lhs_1 <= dhn)
         lhs_2 = _get_head_loss_oa_z(qn, z, qn_hat, ref(wm, n, :alpha))
         c_n_2 = JuMP.@constraint(wm.model, L * r * lhs_2 <= dhn)
