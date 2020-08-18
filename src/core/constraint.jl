@@ -25,7 +25,8 @@ function constraint_flow_conservation(
     pump_fr::Array{Int64,1}, pump_to::Array{Int64,1},
     pressure_reducing_valve_fr::Array{Int64,1}, pressure_reducing_valve_to::Array{Int64,1},
     shutoff_valve_fr::Array{Int64,1}, shutoff_valve_to::Array{Int64,1},
-    reservoirs::Array{Int64,1}, tanks::Array{Int64,1}, demand::Float64)
+    reservoirs::Array{Int64,1}, tanks::Array{Int64,1},
+    dispatchable_junctions::Array{Int64,1}, fixed_demand::Float64)
     # Collect flow variable references per component.
     q_check_valve = var(wm, n, :q_check_valve)
     q_pipe, q_pump = var(wm, n, :q_pipe), var(wm, n, :q_pump)
@@ -43,7 +44,8 @@ function constraint_flow_conservation(
          sum(q_shutoff_valve[a] for a in shutoff_valve_fr) +
          sum(q_shutoff_valve[a] for a in shutoff_valve_to) == -
          sum(var(wm, n, :qr, k) for k in reservoirs) -
-         sum(var(wm, n, :qt, k) for k in tanks) + demand)
+         sum(var(wm, n, :qt, k) for k in tanks) +
+         sum(var(wm, n, :demand, k) for k in dispatchable_junctions) + fixed_demand)
 
     con(wm, n, :flow_conservation)[i] = c
 end

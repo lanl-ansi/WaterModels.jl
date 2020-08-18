@@ -68,6 +68,25 @@ function variable_reservoir(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool
     report && sol_component_value(wm, nw, :reservoir, :qr, ids(wm, nw, :reservoir), qr)
 end
 
+"Creates demand variables for all dispatchable junctions in the network, i.e., `demand[i]`
+for `i` in `dispatchable_junction`."
+function variable_dispatchable_junction(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+    demand = var(wm, nw)[:demand] = JuMP.@variable(wm.model,
+        [i in ids(wm, nw, :dispatchable_junction)], base_name="$(nw)_demand",
+        start=comp_start_value(ref(wm, nw, :dispatchable_junction, i), "demand_start"))
+
+    if bounded
+        demand_lb, demand_ub = calc_demand_bounds(wm, nw)
+
+        for (i, junction) in ref(wm, nw, :dispatchable_junction)
+            JuMP.set_lower_bound(demand[i], demand_lb[i])
+            JuMP.set_upper_bound(demand[i], demand_ub[i])
+        end
+    end
+
+    report && sol_component_value(wm, nw, :junction, :demand, ids(wm, nw, :dispatchable_junction), demand)
+end
+
 "Creates outgoing flow variables for all tanks in the network, i.e., `qt[i]`
 for `i` in `tank`. Note that, unlike reservoirs, tanks can have inflow."
 function variable_tank(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
@@ -77,6 +96,7 @@ function variable_tank(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true
 
     report && sol_component_value(wm, nw, :tank, :qt, ids(wm, nw, :tank), qt)
 
+    # Create an expression that maps total hydraulic head to volume.
     V = var(wm, nw)[:V] = JuMP.@expression(wm.model,
         [i in ids(wm, nw, :tank)],
         (var(wm, nw, :h, ref(wm, nw, :tank, i)["node"]) -

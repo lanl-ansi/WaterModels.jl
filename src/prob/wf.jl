@@ -18,6 +18,7 @@ function build_wf(wm::AbstractWaterModel)
     variable_shutoff_valve_indicator(wm)
 
     # Component-specific variables.
+    variable_dispatchable_junction(wm)
     variable_pump_operation(wm)
     variable_reservoir(wm)
     variable_tank(wm)
@@ -63,7 +64,11 @@ function build_wf(wm::AbstractWaterModel)
     for (i, junction) in ref(wm, :junction)
         if !junction["dispatchable"] && junction["demand"] > 0.0
             constraint_sink_directionality(wm, junction["node"])
+        elseif junction["dispatchable"] && junction["demand_min"] > 0.0
+            constraint_sink_directionality(wm, junction["node"])
         elseif !junction["dispatchable"] && junction["demand"] < 0.0
+            constraint_source_directionality(wm, junction["node"])
+        elseif junction["dispatchable"] && junction["demand_max"] < 0.0
             constraint_source_directionality(wm, junction["node"])
         end
     end
@@ -98,6 +103,7 @@ function build_mn_wf(wm::AbstractWaterModel)
         variable_pump_indicator(wm; nw=n)
 
         # Component-specific variables.
+        variable_dispatchable_junction(wm; nw=n)
         variable_pump_operation(wm; nw=n)
         variable_reservoir(wm; nw=n)
         variable_tank(wm; nw=n)

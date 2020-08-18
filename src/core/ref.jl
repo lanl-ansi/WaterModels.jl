@@ -31,6 +31,20 @@ function _get_function_from_head_curve(head_curve::Array{Tuple{Float64,Float64}}
 end
 
 
+function calc_demand_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
+    # Initialize the dictionaries for minimum and maximum heads.
+    demand_min = Dict((i, -Inf) for (i, junc) in ref(wm, n, :dispatchable_junction))
+    demand_max = Dict((i, Inf) for (i, junc) in ref(wm, n, :dispatchable_junction))
+
+    for (i, junction) in ref(wm, n, :dispatchable_junction)
+        demand_min[i] = max(demand_min[i], junction["demand_min"])
+        demand_max[i] = min(demand_max[i], junction["demand_max"])
+    end
+
+    return demand_min, demand_max
+end
+
+
 function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     # Compute the maximum elevation of all nodes in the network.
     max_head = maximum(node["elevation"] for (i, node) in ref(wm, n, :node))
@@ -103,8 +117,10 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     h_lb, h_ub = calc_head_bounds(wm, n)
     alpha = ref(wm, n, :alpha)
 
-    junctions = values(ref(wm, n, :junction))
-    sum_demand = sum(junction["demand"] for junction in junctions)
+    nondispatchable_junctions = values(ref(wm, n, :nondispatchable_junction))
+    sum_demand = length(nondispatchable_junctions) > 0 ? sum(junc["demand"] for junc in nondispatchable_junctions) : 0.0
+    dispatchable_junctions = values(ref(wm, n, :dispatchable_junction))
+    sum_demand += length(dispatchable_junctions) > 0 ? sum(junc["demand_max"] for junc in dispatchable_junctions) : 0.0
 
     if :time_step in keys(ref(wm, n))
         time_step = ref(wm, n, :time_step)

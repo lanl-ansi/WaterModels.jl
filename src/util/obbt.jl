@@ -68,7 +68,26 @@ function _get_edge_bound_dict(wm::AbstractWaterModel, nw::Int, comp::Symbol)
 end
 
 
-function _create_modifications(wm::AbstractWaterModel)
+function _create_modifications_reduced(wm::AbstractWaterModel)
+    data = Dict{String,Any}("per_unit"=>false)
+    data["node"] = _get_node_bound_dict(wm, wm.cnw)
+    data["pipe"] = Dict{String,Any}()
+
+    for type in [:pipe, :shutoff_valve, :check_valve]
+        qp_sym, qn_sym = Symbol("qp_" * string(type)), Symbol("qn_" * string(type))
+        tmp_data = _get_edge_bound_dict(wm, wm.cnw, type)
+        data["pipe"] = merge(data["pipe"], tmp_data)
+    end
+
+    for type in [:pressure_reducing_valve, :pump]
+        qp_sym, qn_sym = Symbol("qp_" * string(type)), Symbol("qn_" * string(type))
+        data[string(type)] = _get_edge_bound_dict(wm, wm.cnw, type)
+    end
+
+    return data
+end
+
+function _create_modifications_mn(wm::AbstractWaterModel)
     data = Dict{String,Any}("nw"=>Dict{String,Any}(), "per_unit"=>false)
 
     for nw in sort(collect(nw_ids(wm)))
@@ -109,7 +128,13 @@ function _get_existing_bounds(data::Dict{String,<:Any}, index::Tuple)
     nw_str, comp_str, index_str = string(index[1]), string(index[2]), string(index[4])
     comp_str = comp_str in ["check_valve", "shutoff_valve"] ? "pipe" : comp_str
     var_str = occursin("q", string(index[3])) ? "q" : string(index[3])
-    data_index = data["nw"][nw_str][comp_str][index_str]
+
+    if "nw" in keys(data)
+        data_index = data["nw"][nw_str][comp_str][index_str]
+    else
+        data_index = data[comp_str][index_str]
+    end
+
     return data_index[var_str * "_min"], data_index[var_str * "_max"]
 end
 
@@ -120,52 +145,134 @@ function _update_modifications!(data::Dict{String,Any}, var_index_set::Array, bo
         nw_str, comp_str, index_str = string(id[1]), string(id[2]), string(id[4])
         var_str = occursin("q", string(id[3])) ? "q" : string(id[3])
         comp_c = comp_str in ["shutoff_valve", "check_valve"] ? "pipe" : comp_str
-        data["nw"][nw_str][comp_c][index_str][var_str * "_min"] = bounds[i][1]
-        data["nw"][nw_str][comp_c][index_str][var_str * "_max"] = bounds[i][2]
+
+        if _IM.ismultinetwork(data)
+            data["nw"][nw_str][comp_c][index_str][var_str * "_min"] = bounds[i][1]
+            data["nw"][nw_str][comp_c][index_str][var_str * "_max"] = bounds[i][2]
+        else
+            data[comp_c][index_str][var_str * "_min"] = bounds[i][1]
+            data[comp_c][index_str][var_str * "_max"] = bounds[i][2]
+        end
     end
 end
 
 
-function _print_average_widths(data::Dict{String,<:Any})
+function _get_average_widths(data::Dict{String,<:Any})
+    h = sum(x["h_max"] - x["h_min"] for (i, x) in data["node"])
+    message = "[OBBT] Average bound widths: h -> $(h * inv(length(data["node"]))), "
+    avg_vals = [h * inv(length(data["node"]))]
+
+    for type in ["pipe", "pressure_reducing_valve", "pump"]
+        if length(data[type]) > 0
+            q_length = length(data[type])
+            q = sum(x["q_max"] - x["q_min"] for (i, x) in data[type])
+            message *= "q_$(type) -> $(q * inv(q_length)), "
+            avg_vals = vcat(avg_vals, q * inv(q_length))
+        end
+    end
+
+    Memento.info(_LOGGER, message[1:end-2] * ".")
+    return avg_vals
+end
+
+
+function _get_average_widths_mn(data::Dict{String,<:Any})
     h = sum(sum(x["h_max"] - x["h_min"] for (i, x) in nw["node"]) for (n, nw) in data["nw"])
     h_length = sum(length(nw["node"]) for (n, nw) in data["nw"])
     message = "[OBBT] Average bound widths: h -> $(h * inv(h_length)), "
+    avg_vals = [h * inv(length(data["node"]))]
 
     for type in ["pipe", "pressure_reducing_valve", "pump"]
         if sum(length(nw[type]) for (n, nw) in data["nw"]) > 0
             q_length = sum(length(nw[type]) for (n, nw) in data["nw"])
             q = sum(sum(x["q_max"] - x["q_min"] for (i, x) in nw[type]) for (n, nw) in data["nw"])
             message *= "q_$(type) -> $(q * inv(q_length)), "
+            avg_vals = vcat(avg_vals, q * inv(q_length))
         end
     end
 
     Memento.info(_LOGGER, message[1:end-2] * ".")
+    return avg_vals
 end
 
 
-function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
+"Translate a multinetwork dataset to a snapshot dataset with dispatchable components."
+function _make_reduced_data!(ts_data::Dict{String,<:Any})
+    for comp_type in keys(ts_data["time_series"])
+        # If not a component type (Dict), skip parsing.
+        !isa(ts_data["time_series"][comp_type], Dict) && continue
+
+        for (i, comp) in ts_data["time_series"][comp_type]
+            if comp_type == "junction"
+                ts_data["junction"][i]["dispatchable"] = true
+                ts_data["junction"][i]["demand_min"] = minimum(comp["demand"])
+                ts_data["junction"][i]["demand_max"] = maximum(comp["demand"])
+            end
+        end
+    end
+
+    for (i, tank) in ts_data["tank"]
+        tank["dispatchable"] = true
+    end
+end
+
+function _revert_reduced_data!(ts_data::Dict{String,<:Any})
+    for comp_type in keys(ts_data["time_series"])
+        # If not a component type (Dict), skip parsing.
+        !isa(ts_data["time_series"][comp_type], Dict) && continue
+
+        for (i, comp) in ts_data["time_series"][comp_type]
+            if comp_type == "junction"
+                ts_data["junction"][i]["dispatchable"] = false
+                delete!(ts_data["junction"][i], "demand_min")
+                delete!(ts_data["junction"][i], "demand_max")
+            end
+        end
+    end
+
+    for (i, tank) in ts_data["tank"]
+        tank["dispatchable"] = false
+    end
+end
+
+
+function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_reduced_network::Bool = true,
     model_type::Type = MICPRWaterModel, time_limit::Float64 = 3600.0, upper_bound::Float64 =
-    Inf, upper_bound_constraint::Bool = false, rel_gap_tol::Float64 = Inf, max_iter::Int = 10,
-    improvement_tol::Float64 = 1.0e-3, termination::Symbol = :avg, relaxed::Bool = true,
+    Inf, upper_bound_constraint::Bool = false, rel_gap_tol::Float64 = Inf, max_iter::Int = 100,
+    improvement_tol::Float64 = 1.0e-6, termination::Symbol = :avg, relaxed::Bool = true,
     ext::Dict{Symbol,<:Any} = Dict{Symbol,Any}(:pump_breakpoints=>5), kwargs...)
     # Print a message with relevant algorithm limit information.
     Memento.info(_LOGGER, "[OBBT] Maximum time limit for OBBT set to default value of $(time_limit) seconds.")
+
+    if !_IM.ismultinetwork(data) && use_reduced_network
+        _make_reduced_data!(data)
+        build_type = WaterModels.build_wf
+    elseif _IM.ismultinetwork(data) && !use_reduced_network
+        build_type = WaterModels.build_mn_owf
+    else
+        build_type = WaterModels.build_mn_owf
+        Memento.error(_LOGGER, "[OBBT] Ensure input network is the correct type.")
+    end
 
     # Check for keyword argument inconsistencies.
     _check_obbt_options(upper_bound, rel_gap_tol, upper_bound_constraint)
 
     # Instantiate the bound tightening model and relax integrality, if specified.
-    bt = instantiate_model(data, model_type, WaterModels.build_mn_owf; ext=ext)
+    bt = instantiate_model(data, model_type, build_type; ext=ext)
     upper_bound_constraint && _constraint_obj_bound(bt, upper_bound)
-    relaxed && _relax_model!(bt)
+    relaxed && _relax_model!(bt) # Relax integrality, if required.
 
     # Build the dictionary and sets that will store to the network.
-    modifications = _create_modifications(bt)
+    modifications = use_reduced_network ? _create_modifications_reduced(bt) : _create_modifications_mn(bt)
     var_index_set = vcat(_get_head_index_set(bt), _get_flow_index_set(bt))
     bounds = [_get_existing_bounds(modifications, vid) for vid in var_index_set]
 
-    # Print the initial average bound widths.
-    _print_average_widths(modifications)
+    # Get the initial average bound widths.
+    if use_reduced_network
+        avg_widths_initial = _get_average_widths(modifications)
+    else
+        avg_widths_initial = _get_average_widths_mn(modifications)
+    end
 
     # Initialize algorithm termination metadata.
     current_iteration, time_elapsed = 1, 0.0
@@ -202,14 +309,31 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
         _update_modifications!(modifications, var_index_set, bounds)
         _IM.update_data!(data, modifications)
 
-        # Print the current average bound widths.
-        _print_average_widths(data)
+        # Get the current average bound widths.
+        if use_reduced_network
+            avg_widths_final = _get_average_widths(modifications)
+        else
+            avg_widths_final = _get_average_widths_mn(modifications)
+        end
 
-        # Instantiate the new model and set the optimizer.
-        bt = instantiate_model(data, model_type, build_mn_owf; ext=ext)
-        upper_bound_constraint && _constraint_obj_bound(bt, upper_bound)
-        relaxed && _relax_model!(bt)
-        JuMP.set_optimizer(bt.model, optimizer)
+        if maximum(avg_widths_initial - avg_widths_final) < improvement_tol
+            terminate = true
+        end
+
+        if !terminate
+            # Set the initial average widths to the last average widths.
+            avg_widths_initial = avg_widths_final
+
+            # Instantiate the new model and set the optimizer.
+            bt = instantiate_model(data, model_type, build_type; ext=ext)
+            upper_bound_constraint && _constraint_obj_bound(bt, upper_bound)
+            relaxed && _relax_model!(bt)
+            JuMP.set_optimizer(bt.model, optimizer)
+        end
+    end
+
+    if use_reduced_network
+        _revert_reduced_data!(data)
     end
 end
 

@@ -45,8 +45,12 @@ function constraint_flow_conservation(wm::AbstractWaterModel, i::Int; nw::Int=wm
     junctions = ref(wm, nw, :node_junction, i) # Junctions attached to node `i`.
 
     # Sum the constant demands required at node `i`.
-    demands = [ref(wm, nw, :junction, k)["demand"] for k in junctions]
-    net_demand = length(demands) > 0 ? sum(demands) : 0.0
+    nondispatchable_junctions = filter(j -> j in ids(wm, nw, :nondispatchable_junction), junctions)
+    fixed_demands = [ref(wm, nw, :nondispatchable_junction, j)["demand"] for j in nondispatchable_junctions]
+    net_fixed_demand = length(fixed_demands) > 0 ? sum(fixed_demands) : 0.0
+
+    # Get the indices of dispatchable junctions connected to node `i`.
+    dispatchable_junctions = filter(j -> j in ids(wm, nw, :dispatchable_junction), junctions)
 
     # Initialize the flow conservation constraint dictionary entry.
     _initialize_con_dict(wm, :flow_conservation, nw=nw)
@@ -55,7 +59,7 @@ function constraint_flow_conservation(wm::AbstractWaterModel, i::Int; nw::Int=wm
     constraint_flow_conservation(
         wm, nw, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to, pump_fr, pump_to,
         pressure_reducing_valve_fr, pressure_reducing_valve_to, shutoff_valve_fr,
-        shutoff_valve_to, reservoirs, tanks, net_demand)
+        shutoff_valve_to, reservoirs, tanks, dispatchable_junctions, net_fixed_demand)
 end
 
 
