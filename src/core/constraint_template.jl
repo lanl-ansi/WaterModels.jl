@@ -127,10 +127,13 @@ end
 
 ### Reservoir Constraints ###
 function constraint_reservoir_head(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
-    node_index = ref(wm, nw, :reservoir, i)["node"]
-    head = ref(wm, nw, :node, node_index)["head"]
-    _initialize_con_dict(wm, :reservoir_head, nw=nw)
-    constraint_reservoir_head(wm, nw, node_index, head)
+    # Only fix the reservoir head if the reservoir is nondispatchable.
+    if !ref(wm, nw, :reservoir, i)["dispatchable"]
+        node_index = ref(wm, nw, :reservoir, i)["node"]
+        head = ref(wm, nw, :node, node_index)["head"]
+        _initialize_con_dict(wm, :reservoir_head, nw=nw)
+        constraint_reservoir_head(wm, nw, node_index, head)
+    end
 end
 
 
@@ -164,13 +167,15 @@ function constraint_tank_state(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
         Memento.error(_LOGGER, "Tank states cannot be controlled without a time step.")
     end
 
-    tank = ref(wm, nw, :tank, i)
-    initial_level = tank["init_level"]
-    surface_area = 0.25 * pi * tank["diameter"]^2
-    V_initial = surface_area * initial_level
-
-    _initialize_con_dict(wm, :tank_state, nw=nw)
-    constraint_tank_state_initial(wm, nw, i, V_initial)
+    # Only set the tank state if the tank is nondispatchable.
+    if !ref(wm, nw, :tank, i)["dispatchable"]
+        tank = ref(wm, nw, :tank, i)
+        initial_level = tank["init_level"]
+        surface_area = 0.25 * pi * tank["diameter"]^2
+        V_initial = surface_area * initial_level
+        _initialize_con_dict(wm, :tank_state, nw=nw)
+        constraint_tank_state_initial(wm, nw, i, V_initial)
+    end
 end
 
 
@@ -179,10 +184,13 @@ function constraint_tank_state(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2::
         Memento.error(_LOGGER, "Tank states cannot be controlled without a time step.")
     end
 
-    # TODO: What happens if a tank exists in nw_1 but not in nw_2? The index
-    # "i" is assumed to be present in both when this constraint is applied.
-    _initialize_con_dict(wm, :tank_state, nw=nw_2)
-    constraint_tank_state(wm, nw_1, nw_2, i, ref(wm, nw_1, :time_step))
+    # Only set the tank state if the tank is nondispatchable.
+    if !ref(wm, nw_1, :tank, i)["dispatchable"]
+        # TODO: What happens if a tank exists in nw_1 but not in nw_2? The index
+        # "i" is assumed to be present in both when this constraint is applied.
+        _initialize_con_dict(wm, :tank_state, nw=nw_2)
+        constraint_tank_state(wm, nw_1, nw_2, i, ref(wm, nw_1, :time_step))
+    end
 end
 
 

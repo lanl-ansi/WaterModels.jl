@@ -145,7 +145,7 @@ end
 
 function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
     model_type::Type = MICPRWaterModel, time_limit::Float64 = 3600.0, upper_bound::Float64 =
-    Inf, upper_bound_constraint::Bool = false, rel_gap_tol::Float64 = Inf,
+    Inf, upper_bound_constraint::Bool = false, rel_gap_tol::Float64 = Inf, max_iter::Int = 10,
     improvement_tol::Float64 = 1.0e-3, termination::Symbol = :avg, relaxed::Bool = true,
     ext::Dict{Symbol,<:Any} = Dict{Symbol,Any}(:pump_breakpoints=>5), kwargs...)
     # Print a message with relevant algorithm limit information.
@@ -194,6 +194,9 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer;
 
         # Update the iteration counter.
         current_iteration += 1
+
+        # Set the termination variable if max iterations is exceeded.
+        current_iteration >= max_iter && (terminate = true)
 
         # Update the modifications based on the new bounds, then update the original data.
         _update_modifications!(modifications, var_index_set, bounds)

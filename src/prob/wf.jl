@@ -61,9 +61,9 @@ function build_wf(wm::AbstractWaterModel)
 
     # Constrain flow directions based on demand.
     for (i, junction) in ref(wm, :junction)
-        if junction["demand"] > 0.0
+        if !junction["dispatchable"] && junction["demand"] > 0.0
             constraint_sink_directionality(wm, junction["node"])
-        elseif junction["demand"] < 0.0
+        elseif !junction["dispatchable"] && junction["demand"] < 0.0
             constraint_source_directionality(wm, junction["node"])
         end
     end
@@ -141,9 +141,9 @@ function build_mn_wf(wm::AbstractWaterModel)
 
         # Constrain flow directions based on demand.
         for (i, junction) in ref(wm, :junction; nw=n)
-            if junction["demand"] > 0.0
+            if !junction["dispatchable"] && junction["demand"] > 0.0
                 constraint_sink_directionality(wm, junction["node"]; nw=n)
-            elseif junction["demand"] < 0.0
+            elseif !junction["dispatchable"] && junction["demand"] < 0.0
                 constraint_source_directionality(wm, junction["node"]; nw=n)
             end
         end
