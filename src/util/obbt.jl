@@ -111,13 +111,13 @@ function _create_modifications_mn(wm::AbstractWaterModel)
 end
 
 
-function _get_head_index_set(wm::AbstractWaterModel; width::Float64=0.1, prec::Int=4)
+function _get_head_index_set(wm::AbstractWaterModel; width::Float64=1.0e-4, prec::Int=5)
     return vcat([[(nw, :node, :h, i, width, prec) for i in ids(wm, nw, :node)]
         for nw in sort(collect(nw_ids(wm)))]...)
 end
 
 
-function _get_flow_index_set(wm::AbstractWaterModel; width::Float64=1.0e-5, prec::Int=7)
+function _get_flow_index_set(wm::AbstractWaterModel; width::Float64=1.0e-6, prec::Int=7)
     types = [:pipe, :shutoff_valve, :check_valve, :pressure_reducing_valve, :pump]
     return vcat([vcat([[(nw, type, Symbol("q_" * string(type)), a, width, prec) for a in
         ids(wm, nw, type)] for nw in sort(collect(nw_ids(wm)))]...) for type in types]...)
@@ -207,12 +207,19 @@ function _make_reduced_data!(ts_data::Dict{String,<:Any})
                 ts_data["junction"][i]["dispatchable"] = true
                 ts_data["junction"][i]["demand_min"] = minimum(comp["demand"])
                 ts_data["junction"][i]["demand_max"] = maximum(comp["demand"])
+            elseif comp_type == "node"
+                ts_data["node"][i]["h_min"] = minimum(comp["head"])
+                ts_data["node"][i]["h_max"] = maximum(comp["head"])
             end
         end
     end
 
     for (i, tank) in ts_data["tank"]
         tank["dispatchable"] = true
+    end
+
+    for (i, reservoir) in ts_data["reservoir"]
+        reservoir["dispatchable"] = true
     end
 end
 
@@ -232,6 +239,13 @@ function _revert_reduced_data!(ts_data::Dict{String,<:Any})
 
     for (i, tank) in ts_data["tank"]
         tank["dispatchable"] = false
+    end
+
+    for (i, reservoir) in ts_data["reservoir"]
+        node_id = string(reservoir["node"])
+        reservoir["dispatchable"] = false
+        delete!(ts_data["node"][node_id], "h_min")
+        delete!(ts_data["node"][node_id], "h_max")
     end
 end
 
@@ -265,6 +279,7 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_reduced_network:
     # Build the dictionary and sets that will store to the network.
     modifications = use_reduced_network ? _create_modifications_reduced(bt) : _create_modifications_mn(bt)
     var_index_set = vcat(_get_head_index_set(bt), _get_flow_index_set(bt))
+    #var_index_set = _get_flow_index_set(bt)
     bounds = [_get_existing_bounds(modifications, vid) for vid in var_index_set]
 
     # Get the initial average bound widths.
