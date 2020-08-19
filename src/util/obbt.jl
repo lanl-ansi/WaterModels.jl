@@ -220,8 +220,10 @@ function _make_reduced_data!(ts_data::Dict{String,<:Any})
     end
 
     for (i, reservoir) in ts_data["reservoir"]
-        if string(reservoir["node"]) in keys(ts_data["time_series"]["node"])
-            reservoir["dispatchable"] = true
+        if "node" in keys(ts_data["time_series"])
+            if string(reservoir["node"]) in keys(ts_data["time_series"]["node"])
+                reservoir["dispatchable"] = true
+            end
         end
     end
 end
