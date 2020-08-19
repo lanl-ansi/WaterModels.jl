@@ -220,7 +220,9 @@ function _make_reduced_data!(ts_data::Dict{String,<:Any})
     end
 
     for (i, reservoir) in ts_data["reservoir"]
-        reservoir["dispatchable"] = true
+        if string(reservoir["node"]) in keys(ts_data["time_series"]["node"])
+            reservoir["dispatchable"] = true
+        end
     end
 end
 
@@ -281,7 +283,6 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_reduced_network:
     # Build the dictionary and sets that will store to the network.
     modifications = use_reduced_network ? _create_modifications_reduced(bt) : _create_modifications_mn(bt)
     var_index_set = vcat(_get_head_index_set(bt), _get_flow_index_set(bt))
-    #var_index_set = _get_flow_index_set(bt)
     bounds = [_get_existing_bounds(modifications, vid) for vid in var_index_set]
 
     # Get the initial average bound widths.
