@@ -87,6 +87,7 @@ function _create_modifications_reduced(wm::AbstractWaterModel)
     return data
 end
 
+
 function _create_modifications_mn(wm::AbstractWaterModel)
     data = Dict{String,Any}("nw"=>Dict{String,Any}(), "per_unit"=>false)
 
@@ -111,13 +112,13 @@ function _create_modifications_mn(wm::AbstractWaterModel)
 end
 
 
-function _get_head_index_set(wm::AbstractWaterModel; width::Float64=1.0e-4, prec::Int=5)
+function _get_head_index_set(wm::AbstractWaterModel; width::Float64=1.0e-6, prec::Int=10)
     return vcat([[(nw, :node, :h, i, width, prec) for i in ids(wm, nw, :node)]
         for nw in sort(collect(nw_ids(wm)))]...)
 end
 
 
-function _get_flow_index_set(wm::AbstractWaterModel; width::Float64=1.0e-6, prec::Int=7)
+function _get_flow_index_set(wm::AbstractWaterModel; width::Float64=1.0e-8, prec::Int=12)
     types = [:pipe, :shutoff_valve, :check_valve, :pressure_reducing_valve, :pump]
     return vcat([vcat([[(nw, type, Symbol("q_" * string(type)), a, width, prec) for a in
         ids(wm, nw, type)] for nw in sort(collect(nw_ids(wm)))]...) for type in types]...)
@@ -222,6 +223,7 @@ function _make_reduced_data!(ts_data::Dict{String,<:Any})
         reservoir["dispatchable"] = true
     end
 end
+
 
 function _revert_reduced_data!(ts_data::Dict{String,<:Any})
     for comp_type in keys(ts_data["time_series"])
