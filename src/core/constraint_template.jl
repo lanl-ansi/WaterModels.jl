@@ -189,7 +189,7 @@ function constraint_tank_state(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2::
     end
 
     # Only set the tank state if the tank is nondispatchable.
-    if !ref(wm, nw_1, :tank, i)["dispatchable"]
+    if !ref(wm, nw_2, :tank, i)["dispatchable"]
         # TODO: What happens if a tank exists in nw_1 but not in nw_2? The index
         # "i" is assumed to be present in both when this constraint is applied.
         _initialize_con_dict(wm, :tank_state, nw=nw_2)
