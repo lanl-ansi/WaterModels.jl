@@ -115,6 +115,18 @@ function calc_resistance_costs_hw(pipes::Dict{Int, <:Any})
 end
 
 
+function make_tank_start_dispatchable!(data::Dict{String,<:Any})
+    if _IM.ismultinetwork(data)
+        nw_ids = sort(collect(keys(data["nw"])))
+        start_nw = string(sort([parse(Int, i) for i in nw_ids])[1])
+
+        for (i, tank) in data["nw"][start_nw]["tank"]
+            tank["dispatchable"] = true
+        end
+    end
+end
+
+
 function calc_resistance_costs_dw(pipes::Dict{Int, <:Any}, viscosity::Float64)
     # Create placeholder costs dictionary.
     costs = Dict([(a, Array{Float64, 1}()) for a in keys(pipes)])
