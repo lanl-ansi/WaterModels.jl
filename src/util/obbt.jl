@@ -112,13 +112,13 @@ function _create_modifications_mn(wm::AbstractWaterModel)
 end
 
 
-function _get_head_index_set(wm::AbstractWaterModel; width::Float64=1.0e-6, prec::Int=10)
+function _get_head_index_set(wm::AbstractWaterModel; width::Float64=1.0e-2, prec::Int=4)
     return vcat([[(nw, :node, :h, i, width, prec) for i in ids(wm, nw, :node)]
         for nw in sort(collect(nw_ids(wm)))]...)
 end
 
 
-function _get_flow_index_set(wm::AbstractWaterModel; width::Float64=1.0e-8, prec::Int=12)
+function _get_flow_index_set(wm::AbstractWaterModel; width::Float64=1.0e-5, prec::Int=7)
     types = [:pipe, :shutoff_valve, :check_valve, :pressure_reducing_valve, :pump]
     return vcat([vcat([[(nw, type, Symbol("q_" * string(type)), a, width, prec) for a in
         ids(wm, nw, type)] for nw in sort(collect(nw_ids(wm)))]...) for type in types]...)
