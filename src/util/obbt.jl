@@ -1,5 +1,5 @@
 ### Optimization-based Bound Tightening for Optimal Water Flow Problems ###
-### This is built upon https://github.com/lanl-ansi/WaterModels.jl/blob/master/src/util/obbt.jl
+### This is built upon https://github.com/lanl-ansi/PowerModels.jl/blob/master/src/util/obbt.jl
 
 """
 Iteratively tighten bounds on head and flow variables.
@@ -89,7 +89,7 @@ end
 
 
 function _create_modifications_mn(wm::AbstractWaterModel)
-    data = Dict{String,Any}("nw"=>Dict{String,Any}(), "per_unit"=>false)
+    data = Dict{String,Any}("nw"=>Dict{String,Any}(), "per_unit"=>false, "multinetwork"=>true)
 
     for nw in sort(collect(nw_ids(wm)))
         dnw = data["nw"][string(nw)] = Dict{String,Any}()
@@ -181,7 +181,7 @@ function _get_average_widths_mn(data::Dict{String,<:Any})
     h = sum(sum(x["h_max"] - x["h_min"] for (i, x) in nw["node"]) for (n, nw) in data["nw"])
     h_length = sum(length(nw["node"]) for (n, nw) in data["nw"])
     message = "[OBBT] Average bound widths: h -> $(h * inv(h_length)), "
-    avg_vals = [h * inv(length(data["node"]))]
+    avg_vals = [h * inv(h_length)]
 
     for type in ["pipe", "pressure_reducing_valve", "pump"]
         if sum(length(nw[type]) for (n, nw) in data["nw"]) > 0
