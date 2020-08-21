@@ -154,6 +154,15 @@ end
 
 function _ref_add_core!(nw_refs::Dict{Int,<:Any})
     for (nw, ref) in nw_refs
+        # Collect dispatchable and nondispatchable nodal components in the network.
+        ref[:dispatchable_junction] = filter(x -> x.second["dispatchable"], ref[:junction])
+        ref[:nondispatchable_junction] = filter(x -> !x.second["dispatchable"], ref[:junction])
+        ref[:dispatchable_reservoir] = filter(x -> x.second["dispatchable"], ref[:reservoir])
+        ref[:nondispatchable_reservoir] = filter(x -> !x.second["dispatchable"], ref[:reservoir])
+        ref[:dispatchable_tank] = filter(x -> x.second["dispatchable"], ref[:tank])
+        ref[:nondispatchable_tank] = filter(x -> !x.second["dispatchable"], ref[:tank])
+
+        # Compute resistances for pipe-type components in the network.
         ref[:resistance] = calc_resistances(ref[:pipe], ref[:viscosity], ref[:head_loss])
         ref[:resistance_cost] =
             calc_resistance_costs(ref[:pipe], ref[:viscosity], ref[:head_loss])

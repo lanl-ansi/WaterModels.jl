@@ -38,6 +38,7 @@ function build_des(wm::AbstractWaterModel)
     # Flow conservation at all nodes.
     for (i, node) in ref(wm, :node)
         constraint_flow_conservation(wm, i)
+        constraint_node_directionality(wm, i)
     end
 
     # Set source node hydraulic heads.

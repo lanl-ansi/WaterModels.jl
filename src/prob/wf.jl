@@ -18,6 +18,7 @@ function build_wf(wm::AbstractWaterModel)
     variable_shutoff_valve_indicator(wm)
 
     # Component-specific variables.
+    variable_dispatchable_junction(wm)
     variable_pump_operation(wm)
     variable_reservoir(wm)
     variable_tank(wm)
@@ -25,6 +26,7 @@ function build_wf(wm::AbstractWaterModel)
     # Flow conservation at all nodes.
     for (i, node) in ref(wm, :node)
         constraint_flow_conservation(wm, i)
+        constraint_node_directionality(wm, i)
     end
 
     # Head loss along pipes without valves.
@@ -60,9 +62,13 @@ function build_wf(wm::AbstractWaterModel)
 
     # Constrain flow directions based on demand.
     for (i, junction) in ref(wm, :junction)
-        if junction["demand"] > 0.0
+        if !junction["dispatchable"] && junction["demand"] > 0.0
             constraint_sink_directionality(wm, junction["node"])
-        elseif junction["demand"] < 0.0
+        elseif junction["dispatchable"] && junction["demand_min"] > 0.0
+            constraint_sink_directionality(wm, junction["node"])
+        elseif !junction["dispatchable"] && junction["demand"] < 0.0
+            constraint_source_directionality(wm, junction["node"])
+        elseif junction["dispatchable"] && junction["demand_max"] < 0.0
             constraint_source_directionality(wm, junction["node"])
         end
     end
@@ -97,6 +103,7 @@ function build_mn_wf(wm::AbstractWaterModel)
         variable_pump_indicator(wm; nw=n)
 
         # Component-specific variables.
+        variable_dispatchable_junction(wm; nw=n)
         variable_pump_operation(wm; nw=n)
         variable_reservoir(wm; nw=n)
         variable_tank(wm; nw=n)
@@ -104,6 +111,7 @@ function build_mn_wf(wm::AbstractWaterModel)
         # Flow conservation at all nodes.
         for i in ids(wm, :node; nw=n)
             constraint_flow_conservation(wm, i; nw=n)
+            constraint_node_directionality(wm, i; nw=n)
         end
 
         # Head loss along pipes without valves.
@@ -139,9 +147,9 @@ function build_mn_wf(wm::AbstractWaterModel)
 
         # Constrain flow directions based on demand.
         for (i, junction) in ref(wm, :junction; nw=n)
-            if junction["demand"] > 0.0
+            if !junction["dispatchable"] && junction["demand"] > 0.0
                 constraint_sink_directionality(wm, junction["node"]; nw=n)
-            elseif junction["demand"] < 0.0
+            elseif !junction["dispatchable"] && junction["demand"] < 0.0
                 constraint_source_directionality(wm, junction["node"]; nw=n)
             end
         end

@@ -45,8 +45,12 @@ function constraint_flow_conservation(wm::AbstractWaterModel, i::Int; nw::Int=wm
     junctions = ref(wm, nw, :node_junction, i) # Junctions attached to node `i`.
 
     # Sum the constant demands required at node `i`.
-    demands = [ref(wm, nw, :junction, k)["demand"] for k in junctions]
-    net_demand = length(demands) > 0 ? sum(demands) : 0.0
+    nondispatchable_junctions = filter(j -> j in ids(wm, nw, :nondispatchable_junction), junctions)
+    fixed_demands = [ref(wm, nw, :nondispatchable_junction, j)["demand"] for j in nondispatchable_junctions]
+    net_fixed_demand = length(fixed_demands) > 0 ? sum(fixed_demands) : 0.0
+
+    # Get the indices of dispatchable junctions connected to node `i`.
+    dispatchable_junctions = filter(j -> j in ids(wm, nw, :dispatchable_junction), junctions)
 
     # Initialize the flow conservation constraint dictionary entry.
     _initialize_con_dict(wm, :flow_conservation, nw=nw)
@@ -55,7 +59,48 @@ function constraint_flow_conservation(wm::AbstractWaterModel, i::Int; nw::Int=wm
     constraint_flow_conservation(
         wm, nw, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to, pump_fr, pump_to,
         pressure_reducing_valve_fr, pressure_reducing_valve_to, shutoff_valve_fr,
-        shutoff_valve_to, reservoirs, tanks, net_demand)
+        shutoff_valve_to, reservoirs, tanks, dispatchable_junctions, net_fixed_demand)
+end
+
+
+function constraint_node_directionality(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
+    # Collect various indices for edge-type components connected to node `i`.
+    check_valve_fr = _collect_comps_fr(wm, i, :check_valve; nw=nw)
+    check_valve_to = _collect_comps_to(wm, i, :check_valve; nw=nw)
+    pipe_fr = _collect_comps_fr(wm, i, :pipe; nw=nw)
+    pipe_to = _collect_comps_to(wm, i, :pipe; nw=nw)
+    pump_fr = _collect_comps_fr(wm, i, :pump; nw=nw)
+    pump_to = _collect_comps_to(wm, i, :pump; nw=nw)
+    pressure_reducing_valve_fr = _collect_comps_fr(wm, i, :pressure_reducing_valve; nw=nw)
+    pressure_reducing_valve_to = _collect_comps_to(wm, i, :pressure_reducing_valve; nw=nw)
+    shutoff_valve_fr = _collect_comps_fr(wm, i, :shutoff_valve; nw=nw)
+    shutoff_valve_to = _collect_comps_to(wm, i, :shutoff_valve; nw=nw)
+
+    # Get the number of nodal components attached to node `i`.
+    junctions = ref(wm, nw, :node_junction)
+    tanks = ref(wm, nw, :node_tank)
+    reservoirs = ref(wm, nw, :node_reservoir)
+    num_components = length(junctions) + length(tanks) + length(reservoirs)
+
+    # Get the in degree of node `i`.
+    in_length = length(check_valve_to) + length(pipe_to) + length(pump_to) +
+                length(pressure_reducing_valve_to) + length(shutoff_valve_to)
+
+    # Get the out degree of node `i`.
+    out_length = length(check_valve_fr) + length(pipe_fr) + length(pump_fr) +
+                 length(pressure_reducing_valve_fr) + length(shutoff_valve_fr)
+
+    # Check if node directionality constraints should be added.
+    if num_components == 0 && in_length + out_length == 2
+        # Initialize the node directionality constraint dictionary entry.
+        _initialize_con_dict(wm, :node_directionality, nw=nw)
+
+        # Add the node directionality constraint.
+        constraint_node_directionality(
+            wm, nw, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to, pump_fr, pump_to,
+            pressure_reducing_valve_fr, pressure_reducing_valve_to, shutoff_valve_fr,
+            shutoff_valve_to)
+    end
 end
 
 
@@ -86,10 +131,13 @@ end
 
 ### Reservoir Constraints ###
 function constraint_reservoir_head(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
-    node_index = ref(wm, nw, :reservoir, i)["node"]
-    head = ref(wm, nw, :node, node_index)["head"]
-    _initialize_con_dict(wm, :reservoir_head, nw=nw)
-    constraint_reservoir_head(wm, nw, node_index, head)
+    # Only fix the reservoir head if the reservoir is nondispatchable.
+    if !ref(wm, nw, :reservoir, i)["dispatchable"]
+        node_index = ref(wm, nw, :reservoir, i)["node"]
+        head = ref(wm, nw, :node, node_index)["head"]
+        _initialize_con_dict(wm, :reservoir_head, nw=nw)
+        constraint_reservoir_head(wm, nw, node_index, head)
+    end
 end
 
 
@@ -107,7 +155,7 @@ function constraint_source_directionality(wm::AbstractWaterModel, i::Int; nw::In
     shutoff_valve_to = _collect_comps_to(wm, i, :shutoff_valve; nw=nw)
 
     # Initialize the source flow constraint dictionary entry.
-    _initialize_con_dict(wm, :source_flow, nw=nw)
+    _initialize_con_dict(wm, :source_directionality, nw=nw)
 
     # Add the source flow directionality constraint.
     constraint_source_directionality(
@@ -123,13 +171,15 @@ function constraint_tank_state(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
         Memento.error(_LOGGER, "Tank states cannot be controlled without a time step.")
     end
 
-    tank = ref(wm, nw, :tank, i)
-    initial_level = tank["init_level"]
-    surface_area = 0.25 * pi * tank["diameter"]^2
-    V_initial = surface_area * initial_level
-
-    _initialize_con_dict(wm, :tank_state, nw=nw)
-    constraint_tank_state_initial(wm, nw, i, V_initial)
+    # Only set the tank state if the tank is nondispatchable.
+    if !ref(wm, nw, :tank, i)["dispatchable"]
+        tank = ref(wm, nw, :tank, i)
+        initial_level = tank["init_level"]
+        surface_area = 0.25 * pi * tank["diameter"]^2
+        V_initial = surface_area * initial_level
+        _initialize_con_dict(wm, :tank_state, nw=nw)
+        constraint_tank_state_initial(wm, nw, i, V_initial)
+    end
 end
 
 
@@ -138,10 +188,13 @@ function constraint_tank_state(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2::
         Memento.error(_LOGGER, "Tank states cannot be controlled without a time step.")
     end
 
-    # TODO: What happens if a tank exists in nw_1 but not in nw_2? The index
-    # "i" is assumed to be present in both when this constraint is applied.
-    _initialize_con_dict(wm, :tank_state, nw=nw_2)
-    constraint_tank_state(wm, nw_1, nw_2, i, ref(wm, nw_1, :time_step))
+    # Only set the tank state if the tank is nondispatchable.
+    if !ref(wm, nw_2, :tank, i)["dispatchable"]
+        # TODO: What happens if a tank exists in nw_1 but not in nw_2? The index
+        # "i" is assumed to be present in both when this constraint is applied.
+        _initialize_con_dict(wm, :tank_state, nw=nw_2)
+        constraint_tank_state(wm, nw_1, nw_2, i, ref(wm, nw_1, :time_step))
+    end
 end
 
 

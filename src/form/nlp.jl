@@ -23,7 +23,7 @@ function constraint_check_valve_head_loss(wm::AbstractNLPModel, n::Int, a::Int, 
     # Gather common variables and data.
     q, z = var(wm, n, :q_check_valve, a), var(wm, n, :z_check_valve, a)
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
+    dh_lb = min(0.0, JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j))
 
     # There are two possibilities, here: (i) z = 1, in which the check valve is
     # open, and the head loss relationship should be met with equality. In this
@@ -44,8 +44,8 @@ function constraint_shutoff_valve_head_loss(wm::AbstractNLPModel, n::Int, a::Int
     # Gather common variables and data.
     q, z = var(wm, n, :q_shutoff_valve, a), var(wm, n, :z_shutoff_valve, a)
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
-    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
+    dh_lb = min(0.0, JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j))
+    dh_ub = max(0.0, JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j))
 
     # There are two possibilities, here: (i) z = 1, in which the shutoff valve
     # is open, and the head loss relationship should be met with equality. In

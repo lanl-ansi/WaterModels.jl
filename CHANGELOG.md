@@ -9,6 +9,7 @@ WaterModels.jl Change Log
 - Fixed various bugs related to component indices.
 - Added new constraints to tighten `owf` formulations.
 - Added utility function for "unbinarizing" indicator variables.
+- Added utility function for optimization-based bound tightening.
 - Simplified integration tests and removed previous tests.
 
 ### v0.3.0

@@ -12,15 +12,6 @@ function objective_wf(wm::AbstractWaterModel)
     JuMP.set_objective_sense(wm.model, _MOI.FEASIBILITY_SENSE)
 end
 
-"""
-    objective_owf(wm::AbstractWaterModel)
-
-Sets the objective function for optimal water flow (owf) problem
-specifications. By default, only feasibility must be satisfied.
-"""
-function objective_owf(wm::AbstractWaterModel) 
-    JuMP.set_objective_sense(wm.model, _MOI.FEASIBILITY_SENSE)
-end
 
 """
     objective_des(wm::AbstractWaterModel)

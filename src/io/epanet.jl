@@ -285,7 +285,7 @@ function _update_reservoir_ts!(data::Dict{String,<:Any})
     for (i, reservoir) in data["time_series"]["reservoir"]
         key = findfirst(x -> x["source_id"][2] == i, data["reservoir"])
         node_index = data["reservoir"][key]["node"]
-        node_ts[key] = reservoir
+        node_ts[string(node_index)] = reservoir
     end
 
     # Update the reservoir entry in the time series dictionary.
@@ -671,6 +671,7 @@ function _read_junction!(data::Dict{String,<:Any})
         # Initialize the junction entry to be added.
         junction = Dict{String,Any}("name" => current[1], "status" => 1)
         junction["source_id"] = ["junction", current[1]]
+        junction["dispatchable"] = false
 
         # Parse the elevation of the junction (in meters).
         if data["flow_units"] == "LPS" || data["flow_units"] == "CMH"
@@ -994,6 +995,7 @@ function _read_reservoir!(data::Dict{String,<:Any})
         # Initialize the reservoir entry to be added.
         reservoir = Dict{String,Any}("name" => current[1], "status" => 1)
         reservoir["source_id"] = ["reservoir", current[1]]
+        reservoir["dispatchable"] = false
 
         # Parse the head of the reservoir (in meters).
         if data["flow_units"] == "LPS" || data["flow_units"] == "CMH"
@@ -1049,6 +1051,7 @@ function _read_tank!(data::Dict{String,<:Any})
         # Initialize the tank entry to be added.
         tank = Dict{String,Any}("name" => current[1], "status" => 1)
         tank["source_id"] = ["tank", current[1]]
+        tank["dispatchable"] = false
 
         # Store all measurements associated with tanks in metric units.
         if data["flow_units"] == "LPS" || data["flow_units"] == "CMH"
@@ -1126,11 +1129,13 @@ end
 
 
 function _read_valve!(data::Dict{String,<:Any})
-    # Create a shorthand variable for the pressure reducing valve type.
+    # Create a shorthand variable for each of the valve types.
     prv_type = "pressure_reducing_valve"
+    tcv_type = "throttle_control_valve"
 
     # Initialize dictionaries associated with valves.
     data[prv_type] = Dict{String,Dict{String,Any}}()
+    data[tcv_type] = Dict{String,Dict{String,Any}}()
 
     # Initialize a temporary index to be updated while parsing.
     index::Int64 = 0
@@ -1148,6 +1153,9 @@ function _read_valve!(data::Dict{String,<:Any})
         # Parse the valve type and throw an error if not supported.
         if uppercase(current[5]) == "PRV"
             valve["source_id"] = [prv_type, current[1]]
+        elseif uppercase(current[5]) == "TCV"
+            valve["source_id"] = [tcv_type, current[1]]
+            Memento.error(_LOGGER, "Valves of type $(current[5]) are not supported.")
         else
             Memento.error(_LOGGER, "Valves of type $(current[5]) are not supported.")
         end

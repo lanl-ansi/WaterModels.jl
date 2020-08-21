@@ -32,7 +32,7 @@ function constraint_pump_head_gain(wm::AbstractMICPModel, n::Int, a::Int, node_f
 
     # Define the (relaxed) head gain caused by the pump.
     g_expr = pc[1]*qp^2 + pc[2]*qp + pc[3]*z
-    c = JuMP.@constraint(wm.model, g_expr >= g) # Concavified.
+    c = JuMP.@constraint(wm.model, g <= g_expr) # Concavified.
 
     # Append the constraint array.
     append!(con(wm, n, :head_gain, a), [c])
@@ -52,7 +52,7 @@ function constraint_pump_head_gain(wm::AbstractMICPModel, n::Int, a::Int, node_f
 
     # Add a constraint for the flow piecewise approximation.
     qp_ub = JuMP.upper_bound(qp)
-    breakpoints = range(_q_eps, stop=qp_ub, length=pump_breakpoints)
+    breakpoints = range(0.0, stop=qp_ub, length=pump_breakpoints)
     qp_lhs = sum(breakpoints[k] * lambda[a, k] for k in 1:pump_breakpoints)
     c_5 = JuMP.@constraint(wm.model, qp_lhs == qp)
 
@@ -80,10 +80,9 @@ function constraint_check_valve_head_loss(wm::AbstractMICPModel, n::Int, a::Int,
     # Add constraints for flow in the positive and negative directions.
     lhs = JuMP.@NLexpression(wm.model, r*head_loss(qp) - inv(L)*dhp)
     c_p = JuMP.@NLconstraint(wm.model, lhs <= inv(L) * dhp_ub * (1.0 - z))
-    c_n = JuMP.@NLconstraint(wm.model, dhn <= inv(L) * dhn_ub * (1.0 - z))
 
     # Append the constraint array.
-    append!(con(wm, n, :head_loss)[a], [c_p, c_n])
+    append!(con(wm, n, :head_loss)[a], [c_p])
 end
 
 function constraint_shutoff_valve_head_loss(wm::AbstractMICPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
@@ -154,7 +153,7 @@ function objective_owf(wm::AbstractMICPModel)
                 qp_ub = JuMP.upper_bound(qp)
 
                 # Generate a set of uniform flow and cubic function breakpoints.
-                breakpoints = range(_q_eps, stop=qp_ub, length=pump_breakpoints)
+                breakpoints = range(0.0, stop=qp_ub, length=pump_breakpoints)
                 f = _calc_cubic_flow_values(collect(breakpoints), curve_fun)
 
                 # Get pump efficiency data.
