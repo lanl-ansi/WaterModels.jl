@@ -9,9 +9,9 @@ The code is engineered to decouple problem specifications (e.g., network design,
 This decoupling enables the definition of a wide variety of optimization formulations and their comparison on common problem specifications.
 
 **Core Problem Specifications**
-* Water Flow (wf) - obtain feasible flows for a fixed network
-* Optimal Water Flow (owf) - minimize the cost required for network operation
-* Network Design (des) - minimize the cost of network design
+* Water Flow (`wf` and `wf_mn`) - obtain feasible flows for a network
+* Optimal Water Flow (`owf` and `owf_mn`) - minimize the cost of network operation
+* Network Design (`des`) - minimize the cost of network design
 
 **Core Network Formulations**
 * NLP - nonconvex nonlinear program
@@ -20,7 +20,7 @@ This decoupling enables the definition of a wide variety of optimization formula
 * MILP-R - relaxation-based mixed-integer linear program
 
 ## Documentation
-The package [documentation](https://lanl-ansi.github.io/WaterModels.jl/latest/) includes a [quick start guide](https://lanl-ansi.github.io/WaterModels.jl/latest/quickguide).
+The package [documentation](https://lanl-ansi.github.io/WaterModels.jl/latest) includes a [quick start guide](https://lanl-ansi.github.io/WaterModels.jl/latest/quickguide).
 
 ## Development
 Community-driven development and enhancement of WaterModels is welcomed and encouraged.
@@ -38,6 +38,7 @@ The primary developer is [Byron Tasseff](https://github.com/tasseff) with suppor
 - [Russell Bent](https://github.com/rb004f), Los Alamos National Laboratory
 - [Carleton Coffrin](https://github.com/ccoffrin), Los Alamos National Laboratory
 - Donatella Pasqualini, Los Alamos National Laboratory
+- [Jonathan Stickel](https://github.com/jjstickel), National Renewable Energy Laboratory
 
 ## License
 This code is provided under a [modified BSD license](https://github.com/lanl-ansi/WaterModels.jl/blob/master/LICENSE.md) as part of the Multi-Infrastructure Control and Optimization Toolkit (MICOT), LA-CC-13-108.

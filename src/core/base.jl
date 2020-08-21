@@ -19,7 +19,7 @@ end
 function run_model(
     file::String,
     model_type::Type,
-    optimizer::Union{_MOI.AbstractOptimizer,_MOI.OptimizerWithAttributes},
+    optimizer,
     build_method::Function;
     kwargs...,
 )
@@ -38,7 +38,7 @@ end
 function run_model(
     data::Dict{String,<:Any},
     model_type::Type,
-    optimizer::Union{_MOI.AbstractOptimizer,_MOI.OptimizerWithAttributes},
+    optimizer,
     build_method::Function;
     ref_extensions::Vector{<:Function} = Vector{Function}([]),
     solution_processors::Vector{<:Function} = Vector{Function}([]),

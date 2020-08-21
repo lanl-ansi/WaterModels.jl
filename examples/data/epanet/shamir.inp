@@ -1,0 +1,130 @@
+[TITLE]
+Shamir (Two-loop) Water Network
+
+[JUNCTIONS]
+;ID                  Elev            Demand         Pattern
+ 2                   180             27.77                 ;
+ 3                   190             27.77                 ;
+ 4                   185             33.33                 ;
+ 5                   180             75                    ;
+ 6                   195             91.67                 ;
+ 7                   190             55.55                 ;
+
+[RESERVOIRS]
+;ID                  Head            Pattern
+ 1                   210.00                 ;
+
+[TANKS]
+;ID                  Elevation       InitLevel       MinLevel        MaxLevel        Diameter        MinVol          VolCurve
+
+[PIPES]
+;ID               Node1             Node2             Length        Diameter        Roughness      MinorLoss      Status
+ 1                1                 2                 1000.00        457.20         130.00         0.00           Open   ;
+ 2                2                 3                 1000.00        254.00         130.00         0.00           Open   ;
+ 3                2                 4                 1000.00        406.40         130.00         0.00           Open   ;
+ 4                4                 5                 1000.00        101.60         130.00         0.00           Open   ;
+ 5                4                 6                 1000.00        406.40         130.00         0.00           Open   ;
+ 6                6                 7                 1000.00        254.00         130.00         0.00           Open   ;
+ 7                3                 5                 1000.00        254.00         130.00         0.00           Open   ;
+ 8                5                 7                 1000.00        25.40          130.00         0.00           Open   ;
+
+[PUMPS]
+;ID                  Node1               Node2               Parameters
+
+[VALVES]
+;ID                  Node1               Node2               Diameter        Type    Setting         MinorLoss   
+
+[TAGS]
+
+[DEMANDS]
+;Junction            Demand          Pattern             Category
+
+[STATUS]
+;ID                  Status/Setting
+
+[PATTERNS]
+;ID                  Multipliers
+
+[CURVES]
+;ID                  X-Value         Y-Value
+
+[CONTROLS]
+ 
+
+[RULES]
+
+
+[ENERGY]
+
+[EMITTERS]
+;Junction            Coefficient
+
+[QUALITY]
+;Node                InitQual
+
+[SOURCES]
+;Node                Type            Quality         Pattern
+
+[REACTIONS]
+;Type         Pipe/Tank           Coefficient
+
+
+[REACTIONS]
+
+[MIXING]
+;Tank                Model
+
+[TIMES]
+ Duration               0:00
+ Hydraulic Timestep     1:00 
+ Quality Timestep       0:05 
+ Pattern Timestep       2:00 
+ Pattern Start          0:00 
+ Report Timestep        1:00 
+ Report Start           0:00 
+ Start ClockTime        12 am
+ Statistic              NONE
+
+[REPORT]
+ Status                 Yes
+ Summary                No
+ Page                   0
+
+[OPTIONS]
+ Units                  LPS
+ Headloss               H-W
+ Specific Gravity       1.0
+ Viscosity              1.0
+ Trials                 40
+ Accuracy               0.001
+ Unbalanced             Continue 10
+ Pattern                1
+ Demand Multiplier      1.0
+ Emitter Exponent       0.5
+ Quality                Chlorine mg/L
+ Diffusivity            1.0
+ Tolerance              0.01
+
+[COORDINATES]
+;Node                X-Coord             Y-Coord
+ 2                   2000.00             3000.00         
+ 3                   1000.00             3000.00         
+ 4                   2000.00             2000.00         
+ 5                   1000.00             2000.00         
+ 6                   2000.00             1000.00         
+ 7                   1000.00             1000.00         
+ 1                   3000.00             3000.00         
+
+[VERTICES]
+;Link              X-Coord             Y-Coord
+
+[LABELS]
+;X-Coord           Y-Coord          Label & Anchor Node
+
+[BACKDROP]
+ DIMENSIONS         980.00              980.00              5000.00             5000.00         
+ UNITS              None
+ FILE               
+ OFFSET             0.00                0.00            
+
+[END]
