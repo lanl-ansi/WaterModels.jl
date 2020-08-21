@@ -6,8 +6,6 @@ Iteratively tighten bounds on head and flow variables.
 
 The function can be invoked on any convex relaxation which explicitly has these variables.
 By default, the function uses the MICP-R relaxation for performing bound tightening.
-Interested readers are referred to the paper "Strengthening Convex Relaxations with Bound
-Tightening for Water Network Optimization."
 
 # Example
 
@@ -15,29 +13,21 @@ The function can be invoked as follows:
 
 ```
 ipopt = JuMP.optimizer_with_attributes(Ipopt.Optimizer)
-data, stats = run_obbt_owf!("examples/data/epanet/van_zyl.inp", ipopt)
+run_obbt_owf!("examples/data/epanet/van_zyl.inp", ipopt)
 ```
-
-`data` contains the parsed network data with tightened bounds.
-`stats` contains information output from the bound tightening algorithm.
 
 # Keyword Arguments
 * `model_type`: relaxation to use for performing bound tightening.
 * `max_iter`: maximum number of bound tightening iterations to perform.
+* `min_width`: domain width beyond which bound tightening is not performed.
+* `precision`: decimal precision to round the tightened bounds to.
 * `time_limit`: maximum amount of time (seconds) for the bound tightening algorithm.
 * `upper_bound`: can be used to specify a local feasible solution objective for the owf problem.
 * `upper_bound_constraint`: boolean option that can be used to add an additional
    constraint to reduce the search space of each of the bound tightening
    solves. This cannot be set to `true` without specifying an upper bound.
-* `rel_gap_tol`: tolerance used to terminate the algorithm when the objective
-   value of the relaxation is close to the upper bound specified using the
-   `upper_bound` keyword.
-* `min_width`: domain beyond which bound tightening is not performed.
-* `termination`: Bound-tightening algorithm terminates if the improvement in
-   the average or maximum bound improvement, specified using either the
-   `termination = :avg` or the `termination = :max` option, is less than
-   `improvement_tol`.
-* `precision`: number of decimal digits to round the tightened bounds to.
+* `use_reduced_network`: boolean option that specifies whether or not to use a reduced,
+   snapshot, dispatchable version of the origin multinetwork problem for bound tightening.
 """
 function run_obbt_owf!(file::String, optimizer; kwargs...)
     data = WaterModels.parse_file(file)
@@ -112,13 +102,13 @@ function _create_modifications_mn(wm::AbstractWaterModel)
 end
 
 
-function _get_head_index_set(wm::AbstractWaterModel; width::Float64=1.0e-2, prec::Int=4)
+function _get_head_index_set(wm::AbstractWaterModel; width::Float64=1.0e-3, prec::Float64=1.0e-4)
     return vcat([[(nw, :node, :h, i, width, prec) for i in ids(wm, nw, :node)]
         for nw in sort(collect(nw_ids(wm)))]...)
 end
 
 
-function _get_flow_index_set(wm::AbstractWaterModel; width::Float64=1.0e-5, prec::Int=7)
+function _get_flow_index_set(wm::AbstractWaterModel; width::Float64=1.0e-3, prec::Float64=1.0e-4)
     types = [:pipe, :shutoff_valve, :check_valve, :pressure_reducing_valve, :pump]
     return vcat([vcat([[(nw, type, Symbol("q_" * string(type)), a, width, prec) for a in
         ids(wm, nw, type)] for nw in sort(collect(nw_ids(wm)))]...) for type in types]...)
@@ -258,8 +248,8 @@ end
 
 function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_reduced_network::Bool = true,
     model_type::Type = MICPRWaterModel, time_limit::Float64 = 3600.0, upper_bound::Float64 =
-    Inf, upper_bound_constraint::Bool = false, rel_gap_tol::Float64 = Inf, max_iter::Int = 100,
-    improvement_tol::Float64 = 1.0e-6, termination::Symbol = :avg, relaxed::Bool = true,
+    Inf, upper_bound_constraint::Bool = false, max_iter::Int = 100, improvement_tol::Float64
+    = 1.0e-6, relaxed::Bool = true, precision=1.0e-4, min_width::Float64 = 1.0e-3,
     ext::Dict{Symbol,<:Any} = Dict{Symbol,Any}(:pump_breakpoints=>5), kwargs...)
     # Print a message with relevant algorithm limit information.
     Memento.info(_LOGGER, "[OBBT] Maximum time limit for OBBT set to default value of $(time_limit) seconds.")
@@ -275,7 +265,7 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_reduced_network:
     end
 
     # Check for keyword argument inconsistencies.
-    _check_obbt_options(upper_bound, rel_gap_tol, upper_bound_constraint)
+    _check_obbt_options(upper_bound, upper_bound_constraint)
 
     # Instantiate the bound tightening model and relax integrality, if specified.
     bt = instantiate_model(data, model_type, build_type; ext=ext)
@@ -284,7 +274,9 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_reduced_network:
 
     # Build the dictionary and sets that will store to the network.
     modifications = use_reduced_network ? _create_modifications_reduced(bt) : _create_modifications_mn(bt)
-    var_index_set = vcat(_get_head_index_set(bt), _get_flow_index_set(bt))
+    head_index_set = _get_head_index_set(bt; width=min_width, prec=precision)
+    flow_index_set = _get_flow_index_set(bt; width=min_width, prec=precision)
+    var_index_set = vcat(head_index_set, flow_index_set)
     bounds = [_get_existing_bounds(modifications, vid) for vid in var_index_set]
 
     # Get the initial average bound widths.
@@ -358,21 +350,17 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_reduced_network:
 end
 
 
-function _check_obbt_options(ub::Float64, rel_gap::Float64, ub_constraint::Bool)
+function _check_obbt_options(ub::Float64, ub_constraint::Bool)
     if ub_constraint && isinf(ub)
         Memento.error(_LOGGER, "[OBBT] The option \"upper_bound_constraint\" cannot be set to true without specifying an upper bound.")
-    end
-
-    if !isinf(rel_gap) && isinf(ub)
-        Memento.error(_LOGGER, "[OBBT] The option \"rel_gap_tol\" is specified without providing an upper bound.")
     end
 end
 
 
-function _compute_corrected_bounds(lb::Float64, ub::Float64, lb_old::Float64, ub_old::Float64, width::Float64, prec::Int)
+function _compute_corrected_bounds(lb::Float64, ub::Float64, lb_old::Float64, ub_old::Float64, width::Float64, prec::Float64)
     # Convert new bounds to the desired decimal precision.
-    lb = max(floor(10.0^prec * lb) * inv(10.0^prec), lb_old)
-    ub = min(ceil(10.0^prec * ub) * inv(10.0^prec), ub_old)
+    lb = max(floor(inv(prec) * lb) * prec, lb_old)
+    ub = min(ceil(inv(prec) * ub) * prec, ub_old)
 
     # If the bounds satisfy the minimum width, return them.
     ub - lb >= width && return lb, ub
