@@ -82,7 +82,7 @@ result["objective"]
 The `"solution"` field contains detailed information about the solution produced by the `run` method.
 For example, the following dictionary comprehension can be used to inspect the flows in the solution:
 ```
-Dict(name => data["q"] for (name, data) in result["solution"]["pipe_des"])
+Dict(name => data["q"] for (name, data) in result["solution"]["des_pipe"])
 ```
 
 For more information about WaterModels result data see the [WaterModels Result Data Format](@ref) section.
@@ -95,13 +95,9 @@ For example, the full mixed-integer nonconvex formulation for design (NLP) can b
 import KNITRO
 run_des(data, NLPWaterModel, KNITRO.Optimizer)
 ```
-and the mixed-integer convex formulation (MICP) can be solved via
-```julia
-run_des(data, MICPWaterModel, KNITRO.Optimizer)
-```
 
 ## Modifying Network Data
-The following example demonstrates one way to perform multiple WaterModels solves while modifing network data in Julia.
+The following example demonstrates one way to perform multiple WaterModels solves while modifying network data:
 ```julia
 run_des(data, MILPRWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>5))
 
