@@ -9,8 +9,8 @@ The code is engineered to decouple problem specifications (e.g., network design,
 This decoupling enables the definition of a wide variety of optimization formulations and their comparison on common problem specifications.
 
 **Core Problem Specifications**
-* Water Flow (`wf` and `wf_mn`) - obtain feasible flows for a network
-* Optimal Water Flow (`owf` and `owf_mn`) - minimize the cost of network operation
+* Water Flow (`wf` and `mn_wf`) - obtain feasible flows for a network
+* Optimal Water Flow (`owf` and `mn_owf`) - minimize the cost of network operation
 * Network Design (`des`) - minimize the cost of network design
 
 **Core Network Formulations**
@@ -21,6 +21,7 @@ This decoupling enables the definition of a wide variety of optimization formula
 
 ## Documentation
 The package [documentation](https://lanl-ansi.github.io/WaterModels.jl/latest) includes a [quick start guide](https://lanl-ansi.github.io/WaterModels.jl/latest/quickguide).
+Be advised that aside from the quick start guide, documentation is under development and may currently be inaccurate.
 
 ## Development
 Community-driven development and enhancement of WaterModels is welcomed and encouraged.
