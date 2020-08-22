@@ -1,5 +1,5 @@
 @testset "Network Design Problems (Single Network)" begin
-    network = parse_file("../test/data/epanet/shamir.inp")
+    network = parse_file("../examples/data/epanet/shamir.inp")
     modifications = parse_file("../test/data/json/shamir-reduced.json")
     _IM.update_data!(network, modifications)
 

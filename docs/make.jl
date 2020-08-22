@@ -2,7 +2,7 @@ using Documenter, WaterModels
 
 makedocs(
     modules = [WaterModels],
-    format = Documenter.HTML(analytics="UA-367975-10", mathengine=Documenter.MathJax()),
+    format = Documenter.HTML(analytics="UA-367975-10", mathengine=Documenter.MathJax(), prettyurls=false),
     sitename = "WaterModels",
     authors = "Byron Tasseff and contributors",
     pages = [

@@ -15,21 +15,24 @@ end
 
 """
     constraint_flow_conservation(
-        wm, n, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to, pump_fr, pump_to,
-        pressure_reducing_valve_fr, pressure_reducing_valve_to, shutoff_valve_fr,
-        shutoff_valve_to, reservoirs, tanks, demand)
+        wm, n, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to, des_pipe_fr,
+        des_pipe_to, pump_fr, pump_to, pressure_reducing_valve_fr,
+        pressure_reducing_valve_to, shutoff_valve_fr, shutoff_valve_to, reservoirs, tanks,
+        dispatachable_junctions, fixed_demand)
 """
 function constraint_flow_conservation(
     wm::AbstractWaterModel, n::Int, i::Int, check_valve_fr::Array{Int64,1},
     check_valve_to::Array{Int64,1}, pipe_fr::Array{Int64,1}, pipe_to::Array{Int64,1},
-    pump_fr::Array{Int64,1}, pump_to::Array{Int64,1},
-    pressure_reducing_valve_fr::Array{Int64,1}, pressure_reducing_valve_to::Array{Int64,1},
-    shutoff_valve_fr::Array{Int64,1}, shutoff_valve_to::Array{Int64,1},
-    reservoirs::Array{Int64,1}, tanks::Array{Int64,1},
+    des_pipe_fr::Array{Int64,1}, des_pipe_to::Array{Int64,1}, pump_fr::Array{Int64,1},
+    pump_to::Array{Int64,1}, pressure_reducing_valve_fr::Array{Int64,1},
+    pressure_reducing_valve_to::Array{Int64,1}, shutoff_valve_fr::Array{Int64,1},
+    shutoff_valve_to::Array{Int64,1}, reservoirs::Array{Int64,1}, tanks::Array{Int64,1},
     dispatchable_junctions::Array{Int64,1}, fixed_demand::Float64)
     # Collect flow variable references per component.
     q_check_valve = var(wm, n, :q_check_valve)
-    q_pipe, q_pump = var(wm, n, :q_pipe), var(wm, n, :q_pump)
+    q_pipe = var(wm, n, :q_pipe)
+    q_des_pipe = var(wm, n, :q_des_pipe_sum)
+    q_pump = var(wm, n, :q_pump)
     q_pressure_reducing_valve = var(wm, n, :q_pressure_reducing_valve)
     q_shutoff_valve = var(wm, n, :q_shutoff_valve)
 
@@ -38,6 +41,7 @@ function constraint_flow_conservation(
          sum(q_check_valve[a] for a in check_valve_fr) +
          sum(q_check_valve[a] for a in check_valve_to) -
          sum(q_pipe[a] for a in pipe_fr) + sum(q_pipe[a] for a in pipe_to) -
+         sum(q_des_pipe[a] for a in des_pipe_fr) + sum(q_des_pipe[a] for a in des_pipe_to) -
          sum(q_pump[a] for a in pump_fr) + sum(q_pump[a] for a in pump_to) -
          sum(q_pressure_reducing_valve[a] for a in pressure_reducing_valve_fr) +
          sum(q_pressure_reducing_valve[a] for a in pressure_reducing_valve_to) -

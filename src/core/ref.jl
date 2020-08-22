@@ -130,7 +130,7 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
 
     lb, ub = Dict{String,Any}(), Dict{String,Any}()
 
-    for name in ["check_valve", "pipe", "shutoff_valve"]
+    for name in ["check_valve", "pipe", "des_pipe", "shutoff_valve"]
         lb[name], ub[name] = Dict{Int,Array{Float64}}(), Dict{Int,Array{Float64}}()
 
         for (a, comp) in ref(wm, n, Symbol(name))

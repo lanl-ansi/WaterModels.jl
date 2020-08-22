@@ -72,7 +72,7 @@ function constraint_pipe_head_loss_des(wm::AbstractMILPRModel, n::Int, a::Int, a
 
     for (r_id, r) in enumerate(resistances)
         # Add constraints corresponding to positive outer approximations.
-        qp, dhp = var(wm, n, :qp_des, a)[r_id], var(wm, n, :dhp_pipe, a)
+        qp, dhp = var(wm, n, :qp_des_pipe, a)[r_id], var(wm, n, :dhp_des_pipe, a)
         qp_ub = JuMP.upper_bound(qp)
 
         for qp_hat in range(0.0, stop=qp_ub, length=pipe_breakpoints)
@@ -82,7 +82,7 @@ function constraint_pipe_head_loss_des(wm::AbstractMILPRModel, n::Int, a::Int, a
         end
 
         # Add constraints corresponding to negative outer approximations.
-        qn, dhn = var(wm, n, :qn_des, a)[r_id], var(wm, n, :dhn_pipe, a)
+        qn, dhn = var(wm, n, :qn_des_pipe, a)[r_id], var(wm, n, :dhn_des_pipe, a)
         qn_ub = JuMP.upper_bound(qn)
 
         for qn_hat in range(0.0, stop=qn_ub, length=pipe_breakpoints)

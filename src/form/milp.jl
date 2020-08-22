@@ -7,9 +7,9 @@ function variable_flow_piecewise_weights(wm::AbstractMILPModel; nw::Int=wm.cnw, 
     if pipe_breakpoints > 0
         # Create weights involved in convex combination constraints for pipes.
         lambda_pipe = var(wm, nw)[:lambda_pipe] = JuMP.@variable(wm.model,
-            [a in ids(wm, nw, :pipe_fixed), k in 1:pipe_breakpoints],
+            [a in ids(wm, nw, :pipe), k in 1:pipe_breakpoints],
             base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
-            start=comp_start_value(ref(wm, nw, :pipe_fixed, a), "lambda_start", k))
+            start=comp_start_value(ref(wm, nw, :pipe, a), "lambda_start", k))
 
         # Create weights involved in convex combination constraints for check valves.
         lambda_check_valve = var(wm, nw)[:lambda_check_valve] = JuMP.@variable(wm.model,
@@ -22,6 +22,14 @@ function variable_flow_piecewise_weights(wm::AbstractMILPModel; nw::Int=wm.cnw, 
             [a in ids(wm, nw, :shutoff_valve), k in 1:pipe_breakpoints],
             base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
             start=comp_start_value(ref(wm, nw, :shutoff_valve, a), "lambda_start", k))
+
+        # Create weights involved in convex combination constraints.
+        n_r = Dict(a=>length(ref(wm, nw, :resistance, a)) for a in ids(wm, nw, :des_pipe))
+
+        lambda_des_pipe = var(wm, nw)[:lambda_des_pipe] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :des_pipe), r in 1:n_r[a], k in 1:pipe_breakpoints],
+            base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
+            start=comp_start_value(ref(wm, nw, :des_pipe, a), "lambda_start", r))
     end
 
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
@@ -32,21 +40,6 @@ function variable_flow_piecewise_weights(wm::AbstractMILPModel; nw::Int=wm.cnw, 
             [a in ids(wm, nw, :pump), k in 1:pump_breakpoints],
             base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
             start=comp_start_value(ref(wm, nw, :pump, a), "lambda_start", k))
-    end
-end
-
-
-function variable_flow_piecewise_weights_des(wm::AbstractMILPModel; nw::Int=wm.cnw, report::Bool=false)
-    pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
-
-    if pipe_breakpoints > 0
-        n_r = Dict(a=>length(ref(wm, nw, :resistance, a)) for a in ids(wm, nw, :pipe_des))
-
-        # Create weights involved in convex combination constraints.
-        lambda_pipe = var(wm, nw)[:lambda_pipe] = JuMP.@variable(wm.model,
-            [a in ids(wm, nw, :pipe_des), r in 1:n_r[a], k in 1:pipe_breakpoints],
-            base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
-            start=comp_start_value(ref(wm, nw, :pipe_des, a), "lambda_start", r))
     end
 end
 
@@ -69,6 +62,11 @@ function variable_flow_piecewise_adjacency(wm::AbstractMILPModel; nw::Int=wm.cnw
         x_pw_shutoff_valve = var(wm, nw)[:x_pw_shutoff_valve] = JuMP.@variable(wm.model,
             [a in ids(wm, nw, :shutoff_valve), k in 1:pipe_breakpoints-1], base_name="$(nw)_x_pw", binary=true,
             start=comp_start_value(ref(wm, nw, :shutoff_valve, a), "x_pw_start"))
+
+        # Create binary variables for design pipe convex combination constraints.
+        x_pw_des_pipe = var(wm, nw)[:x_pw_des_pipe] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :des_pipe), k in 1:pipe_breakpoints-1], base_name="$(nw)_x_pw", binary=true,
+            start=comp_start_value(ref(wm, nw, :des_pipe, a), "x_pw_start"))
     end
 
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
@@ -92,14 +90,16 @@ function variable_flow(wm::AbstractMILPModel; nw::Int=wm.cnw, bounded::Bool=true
     # Create variables required for convex combination piecewise approximation.
     variable_flow_piecewise_weights(wm, nw=nw)
     variable_flow_piecewise_adjacency(wm, nw=nw)
+
+    # Create common flow variables.
+    variable_flow_des_common(wm, nw=nw, bounded=bounded, report=report)
 end
 
 
-"Creates network design flow variables for `MILP` formulations (`q_des`, `lambda`, `x_pw`)."
+"Creates network design flow variables for `MILP` formulations (`q_des_pipe`, `lambda`, `x_pw`)."
 function variable_flow_des(wm::AbstractMILPModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
     # Create common flow variables.
     variable_flow_des_common(wm, nw=nw, bounded=bounded, report=report)
-    variable_flow_piecewise_weights_des(wm, nw=nw)
 end
 
 
@@ -241,14 +241,14 @@ function constraint_pipe_head_loss_des(wm::AbstractMILPModel, n::Int, a::Int, al
 
     # Get common variables and data.
     n_b = pipe_breakpoints
-    lambda, x_pw = var(wm, n, :lambda_pipe), var(wm, n, :x_pw_pipe)
+    lambda, x_pw = var(wm, n, :lambda_des_pipe), var(wm, n, :x_pw_des_pipe)
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
     # Initialize flow expression in the head loss relationship.
     q_loss_expr = JuMP.AffExpr(0.0)
 
     for (r_id, r) in enumerate(resistances)
-        q, x_res = var(wm, n, :q_des, a)[r_id], var(wm, n, :x_res, a)[r_id]
+        q, x_res = var(wm, n, :q_des_pipe, a)[r_id], var(wm, n, :x_res, a)[r_id]
         q_lb, q_ub = JuMP.lower_bound(q), JuMP.upper_bound(q)
 
         # Add the first required SOS constraints.

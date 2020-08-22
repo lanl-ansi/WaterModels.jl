@@ -12,7 +12,7 @@
 #end
 
 
-"Creates network design flow variables for `NLP` formulations (`q_des`, `x_des`)."
+"Creates network design flow variables for `NLP` formulations (`q_des_pipe`, `x_des`)."
 function variable_flow_des(wm::AbstractNLPModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
     variable_flow_des_common(wm, nw=nw, bounded=bounded, report=report)
 end
@@ -78,7 +78,7 @@ end
 "Add head loss constraints for design pipes (without check valves) in `NLP` formulations."
 function constraint_pipe_head_loss_des(wm::AbstractNLPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, res)
     # Gather common flow and head variables, as well as design indices.
-    q, R = var(wm, n, :q_des, a), 1:length(res)
+    q, R = var(wm, n, :q_des_pipe, a), 1:length(res)
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
     # Add the nonconvex, design-expanded head loss constraint.

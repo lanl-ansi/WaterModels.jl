@@ -4,11 +4,11 @@
 
 function constraint_pipe_head_loss_des(wm::AbstractMICPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances)
     # Collect head difference variables.
-    dhp, dhn = var(wm, n, :dhp_pipe, a), var(wm, n, :dhn_pipe, a)
+    dhp, dhn = var(wm, n, :dhp_des_pipe, a), var(wm, n, :dhn_des_pipe, a)
 
     for (r_id, r) in enumerate(pipe_resistances)
         # Collect directed flow variables.
-        qp, qn = var(wm, n, :qp_des, a)[r_id], var(wm, n, :qn_des, a)[r_id]
+        qp, qn = var(wm, n, :qp_des_pipe, a)[r_id], var(wm, n, :qn_des_pipe, a)[r_id]
 
         # Build the relaxed head loss constraints.
         c_p = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= inv(L) * dhp)

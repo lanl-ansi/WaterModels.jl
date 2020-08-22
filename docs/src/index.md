@@ -7,7 +7,7 @@ CurrentModule = WaterModels
 ## Overview
 WaterModels.jl is a Julia/JuMP package for steady state potable water distribution network optimization.
 It is designed to enable the computational evaluation of historical and emerging water network optimization formulations and algorithms using a common platform.
-The code is engineered to decouple [Problem Specifications](@ref) (e.g., water flow, optimal water flow, network design) from [Network Formulations](@ref) (e.g., mixed-integer linear, mixed-integer nonlinear).
+The code is specifically engineered to decouple [Problem Specifications](@ref) (e.g., water flow, optimal water flow, network design) from [Network Formulations](@ref) (e.g., mixed-integer linear, mixed-integer nonlinear).
 This decoupling enables the definition of a wide variety of water network optimization formulations and their comparison across several common problem specifications.
 
 ## Installation
