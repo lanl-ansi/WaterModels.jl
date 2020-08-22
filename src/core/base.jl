@@ -19,7 +19,7 @@ end
 function run_model(
     file::String,
     model_type::Type,
-    optimizer::Union{_MOI.AbstractOptimizer,_MOI.OptimizerWithAttributes},
+    optimizer,
     build_method::Function;
     kwargs...,
 )
@@ -38,7 +38,7 @@ end
 function run_model(
     data::Dict{String,<:Any},
     model_type::Type,
-    optimizer::Union{_MOI.AbstractOptimizer,_MOI.OptimizerWithAttributes},
+    optimizer,
     build_method::Function;
     ref_extensions::Vector{<:Function} = Vector{Function}([]),
     solution_processors::Vector{<:Function} = Vector{Function}([]),
@@ -157,10 +157,6 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any})
         # Collect dispatchable and nondispatchable nodal components in the network.
         ref[:dispatchable_junction] = filter(x -> x.second["dispatchable"], ref[:junction])
         ref[:nondispatchable_junction] = filter(x -> !x.second["dispatchable"], ref[:junction])
-        ref[:dispatchable_reservoir] = filter(x -> x.second["dispatchable"], ref[:reservoir])
-        ref[:nondispatchable_reservoir] = filter(x -> !x.second["dispatchable"], ref[:reservoir])
-        ref[:dispatchable_tank] = filter(x -> x.second["dispatchable"], ref[:tank])
-        ref[:nondispatchable_tank] = filter(x -> !x.second["dispatchable"], ref[:tank])
 
         # Compute resistances for pipe-type components in the network.
         ref[:resistance] = calc_resistances(ref[:pipe], ref[:viscosity], ref[:head_loss])
@@ -172,8 +168,8 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any})
         ref[:shutoff_valve] = filter(x -> x.second["has_shutoff_valve"], ref[:pipe])
         ref[:pipe] = filter(x -> !x.second["has_check_valve"], ref[:pipe])
         ref[:pipe] = filter(x -> !x.second["has_shutoff_valve"], ref[:pipe])
-        ref[:pipe_des] = filter(is_des_pipe, ref[:pipe])
-        ref[:pipe_fixed] = filter(!is_des_pipe, ref[:pipe])
+        ref[:des_pipe] = filter(is_des_pipe, ref[:pipe])
+        ref[:pipe] = filter(!is_des_pipe, ref[:pipe])
 
         # Create mappings of "from" and "to" arcs for link- (i.e., edge-) type components.
         for name in

@@ -4,13 +4,6 @@
 # qn is nonzero, qp should be zero.
 
 
-function _collect_directions(wm::AbstractWaterModel, n::Int, a::Int)
-    comps = ["check_valve", "pipe", "pressure_reducing_valve", "pump", "shutoff_valve"]
-    comps = filter(x -> a in ids(wm, n, Symbol(x)), comps)
-    return sum(var(wm, n, Symbol("y_" * c), a) for c in comps)
-end
-
-
 "Initialize variables associated with flow direction. If this variable is equal
 to one, the flow direction is from i to j. If it is equal to zero, the flow
 direction is from j to i."
@@ -119,46 +112,55 @@ function variable_flow(wm::AbstractDirectedModel; nw::Int=wm.cnw, bounded::Bool=
         # Create directed flow binary direction variables (`y`) for each component.
         _variable_component_direction(wm, name; nw=nw, report=report)
     end
+
+    # Create flow-related variables for design components.
+    variable_flow_des(wm; nw=nw, bounded=bounded, report=report)
 end
 
 
 "Create network design flow variables for directed flow formulations."
 function variable_flow_des(wm::AbstractDirectedModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
-    # Create dictionary for undirected design flow variables (qp_des and qn_des).
-    qp_des = var(wm, nw)[:qp_des] = Dict{Int,Array{JuMP.VariableRef}}()
-    qn_des = var(wm, nw)[:qn_des] = Dict{Int,Array{JuMP.VariableRef}}()
+    # Create dictionary for undirected design flow variables (qp_des_pipe and qn_des_pipe).
+    qp_des_pipe = var(wm, nw)[:qp_des_pipe] = Dict{Int,Array{JuMP.VariableRef}}()
+    qn_des_pipe = var(wm, nw)[:qn_des_pipe] = Dict{Int,Array{JuMP.VariableRef}}()
 
     # Initialize the variables. (The default start value of _q_eps is crucial.)
-    for a in ids(wm, nw, :pipe_des)
-        var(wm, nw, :qp_des)[a] = JuMP.@variable(wm.model,
+    for a in ids(wm, nw, :des_pipe)
+        var(wm, nw, :qp_des_pipe)[a] = JuMP.@variable(wm.model,
             [r in 1:length(ref(wm, nw, :resistance, a))], lower_bound=0.0,
-            base_name="$(nw)_qp_des[$(a)]",
-            start=comp_start_value(ref(wm, nw, :pipe_des, a), "qp_des_start", r, _q_eps))
+            base_name="$(nw)_qp_des_pipe[$(a)]",
+            start=comp_start_value(ref(wm, nw, :des_pipe, a), "qp_des_pipe_start", r, _q_eps))
 
-        var(wm, nw, :qn_des)[a] = JuMP.@variable(wm.model,
+        var(wm, nw, :qn_des_pipe)[a] = JuMP.@variable(wm.model,
             [r in 1:length(ref(wm, nw, :resistance, a))], lower_bound=0.0,
-            base_name="$(nw)_qn_des[$(a)]",
-            start=comp_start_value(ref(wm, nw, :pipe_des, a), "qn_des_start", r, _q_eps))
+            base_name="$(nw)_qn_des_pipe[$(a)]",
+            start=comp_start_value(ref(wm, nw, :des_pipe, a), "qn_des_pipe_start", r, _q_eps))
     end
 
     if bounded # If the variables are bounded, apply the bounds.
         q_lb, q_ub = calc_flow_bounds(wm, nw)
 
-        for a in ids(wm, nw, :pipe_des)
+        for a in ids(wm, nw, :des_pipe)
             for r in 1:length(ref(wm, nw, :resistance, a))
-                JuMP.set_upper_bound(qp_des[a][r], max(0.0, q_ub["pipe"][a][r]))
-                JuMP.set_upper_bound(qn_des[a][r], max(0.0, -q_lb["pipe"][a][r]))
+                JuMP.set_upper_bound(qp_des_pipe[a][r], max(0.0, q_ub["des_pipe"][a][r]))
+                JuMP.set_upper_bound(qn_des_pipe[a][r], max(0.0, -q_lb["des_pipe"][a][r]))
             end
         end
     end
 
-    # Create expressions capturing the relationships among q, qp_des, and qn_des.
-    q = var(wm, nw)[:q] = JuMP.@expression(
-        wm.model, [a in ids(wm, nw, :pipe_des)],
-        sum(var(wm, nw, :qp_des, a)) - sum(var(wm, nw, :qn_des, a)))
+    # Create directed head difference (`dhp` and `dhn`) variables for each component.
+    _variable_component_head_difference(wm, "des_pipe"; nw=nw, bounded=bounded, report=report)
+
+    # Create directed flow binary direction variables (`y`) for each component.
+    _variable_component_direction(wm, "des_pipe"; nw=nw, report=report)
+
+    # Create expressions capturing the relationships among q, qp_des_pipe, and qn_des_pipe.
+    q = var(wm, nw)[:q_des_pipe_sum] = JuMP.@expression(
+        wm.model, [a in ids(wm, nw, :des_pipe)],
+        sum(var(wm, nw, :qp_des_pipe, a)) - sum(var(wm, nw, :qn_des_pipe, a)))
 
     # Initialize the solution reporting data structures.
-    report && sol_component_value(wm, nw, :pipe_des, :q, ids(wm, nw, :pipe_des), q)
+    report && sol_component_value(wm, nw, :des_pipe, :q, ids(wm, nw, :des_pipe), q)
 
     # Create resistance binary variables.
     variable_resistance(wm, nw=nw)
@@ -362,10 +364,10 @@ end
 
 
 function constraint_flow_direction_selection_des(wm::AbstractDirectedModel, n::Int, a::Int, pipe_resistances)
-    y = var(wm, n, :y_pipe, a)
+    y = var(wm, n, :y_des_pipe, a)
 
     for r_id in 1:length(pipe_resistances)
-        qp, qn = var(wm, n, :qp_des, a)[r_id], var(wm, n, :qn_des, a)[r_id]
+        qp, qn = var(wm, n, :qp_des_pipe, a)[r_id], var(wm, n, :qn_des_pipe, a)[r_id]
         c_p = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * y)
         c_n = JuMP.@constraint(wm.model, qn <= JuMP.upper_bound(qn) * (1.0 - y))
         append!(con(wm, n, :head_loss)[a], [c_p, c_n])
@@ -410,17 +412,17 @@ end
 
 
 function constraint_pipe_head_loss_ub_des(wm::AbstractDirectedModel, n::Int, a::Int, alpha::Float64, L::Float64, pipe_resistances)
-    dhp = var(wm, n, :dhp_pipe, a)
-    qp_des = var(wm, n, :qp_des, a)
-    qp_des_ub = JuMP.upper_bound.(qp_des)
-    slopes_p = pipe_resistances .* qp_des_ub.^(alpha - 1.0)
-    c_p = JuMP.@constraint(wm.model, inv(L)*dhp <= sum(slopes_p .* qp_des))
+    dhp = var(wm, n, :dhp_des_pipe, a)
+    qp_des_pipe = var(wm, n, :qp_des_pipe, a)
+    qp_des_pipe_ub = JuMP.upper_bound.(qp_des_pipe)
+    slopes_p = pipe_resistances .* qp_des_pipe_ub.^(alpha - 1.0)
+    c_p = JuMP.@constraint(wm.model, inv(L)*dhp <= sum(slopes_p .* qp_des_pipe))
 
-    dhn = var(wm, n, :dhn_pipe, a)
-    qn_des = var(wm, n, :qn_des, a)
-    qn_des_ub = JuMP.upper_bound.(qn_des)
-    slopes_n = pipe_resistances .* qn_des_ub.^(alpha - 1.0)
-    c_n = JuMP.@constraint(wm.model, inv(L)*dhn <= sum(slopes_n .* qn_des))
+    dhn = var(wm, n, :dhn_des_pipe, a)
+    qn_des_pipe = var(wm, n, :qn_des_pipe, a)
+    qn_des_pipe_ub = JuMP.upper_bound.(qn_des_pipe)
+    slopes_n = pipe_resistances .* qn_des_pipe_ub.^(alpha - 1.0)
+    c_n = JuMP.@constraint(wm.model, inv(L)*dhn <= sum(slopes_n .* qn_des_pipe))
 
     append!(con(wm, n, :head_loss)[a], [c_p, c_n])
 end
@@ -433,16 +435,59 @@ function constraint_resistance_selection_des(wm::AbstractDirectedModel, n::Int, 
     for (r_id, r) in enumerate(pipe_resistances)
         x_res = var(wm, n, :x_res, a)[r_id]
 
-        qp_des = var(wm, n, :qp_des, a)[r_id]
-        qp_ub = JuMP.upper_bound(qp_des)
-        c_p = JuMP.@constraint(wm.model, qp_des <= qp_ub * x_res)
+        qp_des_pipe = var(wm, n, :qp_des_pipe, a)[r_id]
+        qp_ub = JuMP.upper_bound(qp_des_pipe)
+        c_p = JuMP.@constraint(wm.model, qp_des_pipe <= qp_ub * x_res)
 
-        qn_des = var(wm, n, :qn_des, a)[r_id]
-        qn_ub = JuMP.upper_bound(qn_des)
-        c_n = JuMP.@constraint(wm.model, qn_des <= qn_ub * x_res)
+        qn_des_pipe = var(wm, n, :qn_des_pipe, a)[r_id]
+        qn_ub = JuMP.upper_bound(qn_des_pipe)
+        c_n = JuMP.@constraint(wm.model, qn_des_pipe <= qn_ub * x_res)
 
         append!(con(wm, n, :head_loss)[a], [c_p, c_n])
     end
+end
+
+
+function _gather_directionality_data(
+    wm::AbstractDirectedModel, n::Int, check_valve_fr::Array{Int64,1},
+    check_valve_to::Array{Int64,1}, pipe_fr::Array{Int64,1}, pipe_to::Array{Int64,1},
+    des_pipe_fr::Array{Int64,1}, des_pipe_to::Array{Int64,1}, pump_fr::Array{Int64,1},
+    pump_to::Array{Int64,1}, pressure_reducing_valve_fr::Array{Int64,1},
+    pressure_reducing_valve_to::Array{Int64,1}, shutoff_valve_fr::Array{Int64,1},
+    shutoff_valve_to::Array{Int64,1})
+    # Collect direction variable references per component.
+    y_check_valve = var(wm, n, :y_check_valve)
+    y_pipe = var(wm, n, :y_pipe)
+    y_des_pipe = var(wm, n, :y_des_pipe)
+    y_pump = var(wm, n, :y_pump)
+    y_pressure_reducing_valve = var(wm, n, :y_pressure_reducing_valve)
+    y_shutoff_valve = var(wm, n, :y_shutoff_valve)
+
+    sum_out = JuMP.@expression(wm.model,
+            sum(y_check_valve[a] for a in check_valve_fr) +
+            sum(y_pipe[a] for a in pipe_fr) +
+            sum(y_des_pipe[a] for a in des_pipe_fr) +
+            sum(y_pump[a] for a in pump_fr) +
+            sum(y_pressure_reducing_valve[a] for a in pressure_reducing_valve_fr) +
+            sum(y_shutoff_valve[a] for a in shutoff_valve_fr))
+
+    sum_in = JuMP.@expression(wm.model,
+            sum(y_check_valve[a] for a in check_valve_to) +
+            sum(y_pipe[a] for a in pipe_to) +
+            sum(y_des_pipe[a] for a in des_pipe_to) +
+            sum(y_pump[a] for a in pump_to) +
+            sum(y_pressure_reducing_valve[a] for a in pressure_reducing_valve_to) +
+            sum(y_shutoff_valve[a] for a in shutoff_valve_to))
+
+    # Get the in degree of node `i`.
+    in_length = length(check_valve_to) + length(pipe_to) + length(des_pipe_to) +
+        length(pump_to) + length(pressure_reducing_valve_to) + length(shutoff_valve_to)
+
+    # Get the out degree of node `i`.
+    out_length = length(check_valve_fr) + length(pipe_fr) + length(des_pipe_fr) +
+        length(pump_fr) + length(pressure_reducing_valve_fr) + length(shutoff_valve_fr)
+
+    return sum_in, sum_out, in_length, out_length
 end
 
 
@@ -450,39 +495,22 @@ end
 function constraint_node_directionality(
     wm::AbstractDirectedModel, n::Int, i::Int, check_valve_fr::Array{Int64,1},
     check_valve_to::Array{Int64,1}, pipe_fr::Array{Int64,1}, pipe_to::Array{Int64,1},
-    pump_fr::Array{Int64,1}, pump_to::Array{Int64,1},
-    pressure_reducing_valve_fr::Array{Int64,1}, pressure_reducing_valve_to::Array{Int64,1},
-    shutoff_valve_fr::Array{Int64,1}, shutoff_valve_to::Array{Int64,1})
-    # Collect direction variable references per component.
-    y_check_valve = var(wm, n, :y_check_valve)
-    y_pipe, y_pump = var(wm, n, :y_pipe), var(wm, n, :y_pump)
-    y_pressure_reducing_valve = var(wm, n, :y_pressure_reducing_valve)
-    y_shutoff_valve = var(wm, n, :y_shutoff_valve)
-
-    y_out = JuMP.@expression(wm.model,
-            sum(y_check_valve[a] for a in check_valve_fr) +
-            sum(y_pipe[a] for a in pipe_fr) + sum(y_pump[a] for a in pump_fr) +
-            sum(y_pressure_reducing_valve[a] for a in pressure_reducing_valve_fr) +
-            sum(y_shutoff_valve[a] for a in shutoff_valve_fr))
-
-    y_out_length = length(check_valve_fr) + length(pipe_fr) + length(pump_fr) +
-                   length(pressure_reducing_valve_fr) + length(shutoff_valve_fr)
-
-    y_in = JuMP.@expression(wm.model,
-            sum(y_check_valve[a] for a in check_valve_to) +
-            sum(y_pipe[a] for a in pipe_to) + sum(y_pump[a] for a in pump_to) +
-            sum(y_pressure_reducing_valve[a] for a in pressure_reducing_valve_to) +
-            sum(y_shutoff_valve[a] for a in shutoff_valve_to))
-
-    y_in_length = length(check_valve_to) + length(pipe_to) + length(pump_to) +
-                  length(pressure_reducing_valve_to) + length(shutoff_valve_to)
+    des_pipe_fr::Array{Int64,1}, des_pipe_to::Array{Int64,1}, pump_fr::Array{Int64,1},
+    pump_to::Array{Int64,1}, pressure_reducing_valve_fr::Array{Int64,1},
+    pressure_reducing_valve_to::Array{Int64,1}, shutoff_valve_fr::Array{Int64,1},
+    shutoff_valve_to::Array{Int64,1})
+    # Gather data required to build the constraint.
+    sum_in, sum_out, in_length, out_length = _gather_directionality_data(
+        wm, n, check_valve_fr, check_valve_to, pipe_fr, pipe_to, des_pipe_fr, des_pipe_to,
+        pump_fr, pump_to, pressure_reducing_valve_fr, pressure_reducing_valve_to,
+        shutoff_valve_fr, shutoff_valve_to)
 
     # Add the node directionality constraint.
-    if y_out_length == 1 && y_in_length == 1
-        c = JuMP.@constraint(wm.model, y_out - y_in == 0.0)
+    if out_length == 1 && in_length == 1
+        c = JuMP.@constraint(wm.model, sum_out - sum_in == 0.0)
         con(wm, n, :node_directionality)[i] = c
-    elseif y_in_length + y_out_length == 2 && y_in_length*y_out_length == 0
-        c = JuMP.@constraint(wm.model, y_out + y_in == 1.0)
+    elseif in_length + out_length == 2 && in_length*out_length == 0
+        c = JuMP.@constraint(wm.model, sum_out + sum_in == 1.0)
         con(wm, n, :node_directionality)[i] = c
     end
 end
@@ -492,32 +520,18 @@ end
 function constraint_source_directionality(
     wm::AbstractDirectedModel, n::Int, i::Int, check_valve_fr::Array{Int64,1},
     check_valve_to::Array{Int64,1}, pipe_fr::Array{Int64,1}, pipe_to::Array{Int64,1},
-    pump_fr::Array{Int64,1}, pump_to::Array{Int64,1},
-    pressure_reducing_valve_fr::Array{Int64,1}, pressure_reducing_valve_to::Array{Int64,1},
-    shutoff_valve_fr::Array{Int64,1}, shutoff_valve_to::Array{Int64,1})
-    # Collect direction variable references per component.
-    y_check_valve = var(wm, n, :y_check_valve)
-    y_pipe, y_pump = var(wm, n, :y_pipe), var(wm, n, :y_pump)
-    y_pressure_reducing_valve = var(wm, n, :y_pressure_reducing_valve)
-    y_shutoff_valve = var(wm, n, :y_shutoff_valve)
-
-    y_out = JuMP.@expression(wm.model,
-            sum(y_check_valve[a] for a in check_valve_fr) +
-            sum(y_pipe[a] for a in pipe_fr) + sum(y_pump[a] for a in pump_fr) +
-            sum(y_pressure_reducing_valve[a] for a in pressure_reducing_valve_fr) +
-            sum(y_shutoff_valve[a] for a in shutoff_valve_fr))
-
-    y_in = JuMP.@expression(wm.model,
-            sum(y_check_valve[a] for a in check_valve_to) +
-            sum(y_pipe[a] for a in pipe_to) + sum(y_pump[a] for a in pump_to) +
-            sum(y_pressure_reducing_valve[a] for a in pressure_reducing_valve_to) +
-            sum(y_shutoff_valve[a] for a in shutoff_valve_to))
-
-    y_in_length = length(check_valve_to) + length(pipe_to) + length(pump_to) +
-                  length(pressure_reducing_valve_to) + length(shutoff_valve_to)
+    des_pipe_fr::Array{Int64,1}, des_pipe_to::Array{Int64,1}, pump_fr::Array{Int64,1},
+    pump_to::Array{Int64,1}, pressure_reducing_valve_fr::Array{Int64,1},
+    pressure_reducing_valve_to::Array{Int64,1}, shutoff_valve_fr::Array{Int64,1},
+    shutoff_valve_to::Array{Int64,1})
+    # Gather data required to build the constraint.
+    sum_in, sum_out, in_length, out_length = _gather_directionality_data(
+        wm, n, check_valve_fr, check_valve_to, pipe_fr, pipe_to, des_pipe_fr, des_pipe_to,
+        pump_fr, pump_to, pressure_reducing_valve_fr, pressure_reducing_valve_to,
+        shutoff_valve_fr, shutoff_valve_to)
 
     # Add the source flow direction constraint.
-    c = JuMP.@constraint(wm.model, y_out - y_in >= 1.0 - y_in_length)
+    c = JuMP.@constraint(wm.model, sum_out - sum_in >= 1.0 - in_length)
     con(wm, n, :source_directionality)[i] = c
 end
 
@@ -526,31 +540,17 @@ end
 function constraint_sink_directionality(
     wm::AbstractDirectedModel, n::Int, i::Int, check_valve_fr::Array{Int64,1},
     check_valve_to::Array{Int64,1}, pipe_fr::Array{Int64,1}, pipe_to::Array{Int64,1},
-    pump_fr::Array{Int64,1}, pump_to::Array{Int64,1},
-    pressure_reducing_valve_fr::Array{Int64,1}, pressure_reducing_valve_to::Array{Int64,1},
-    shutoff_valve_fr::Array{Int64,1}, shutoff_valve_to::Array{Int64,1})
-    # Collect direction variable references per component.
-    y_check_valve = var(wm, n, :y_check_valve)
-    y_pipe, y_pump = var(wm, n, :y_pipe), var(wm, n, :y_pump)
-    y_pressure_reducing_valve = var(wm, n, :y_pressure_reducing_valve)
-    y_shutoff_valve = var(wm, n, :y_shutoff_valve)
-
-    y_out = JuMP.@expression(wm.model,
-            sum(y_check_valve[a] for a in check_valve_fr) +
-            sum(y_pipe[a] for a in pipe_fr) + sum(y_pump[a] for a in pump_fr) +
-            sum(y_pressure_reducing_valve[a] for a in pressure_reducing_valve_fr) +
-            sum(y_shutoff_valve[a] for a in shutoff_valve_fr))
-
-    y_in = JuMP.@expression(wm.model,
-          sum(y_check_valve[a] for a in check_valve_to) +
-          sum(y_pipe[a] for a in pipe_to) + sum(y_pump[a] for a in pump_to) +
-          sum(y_pressure_reducing_valve[a] for a in pressure_reducing_valve_to) +
-          sum(y_shutoff_valve[a] for a in shutoff_valve_to))
-
-    y_out_length = length(check_valve_fr) + length(pipe_fr) + length(pump_fr) +
-                   length(pressure_reducing_valve_fr) + length(shutoff_valve_fr)
+    des_pipe_fr::Array{Int64,1}, des_pipe_to::Array{Int64,1}, pump_fr::Array{Int64,1},
+    pump_to::Array{Int64,1}, pressure_reducing_valve_fr::Array{Int64,1},
+    pressure_reducing_valve_to::Array{Int64,1}, shutoff_valve_fr::Array{Int64,1},
+    shutoff_valve_to::Array{Int64,1})
+    # Gather data required to build the constraint.
+    sum_in, sum_out, in_length, out_length = _gather_directionality_data(
+        wm, n, check_valve_fr, check_valve_to, pipe_fr, pipe_to, des_pipe_fr, des_pipe_to,
+        pump_fr, pump_to, pressure_reducing_valve_fr, pressure_reducing_valve_to,
+        shutoff_valve_fr, shutoff_valve_to)
 
     # Add the sink flow direction constraint.
-    c = JuMP.@constraint(wm.model, y_in - y_out >= 1.0 - y_out_length)
+    c = JuMP.@constraint(wm.model, sum_in - sum_out >= 1.0 - out_length)
     con(wm, n, :sink_directionality)[i] = c
 end

@@ -9,6 +9,9 @@ function variable_flow(wm::AbstractUndirectedModel; nw::Int=wm.cnw, bounded::Boo
         # Create directed flow (`qp` and `qn`) variables for each component.
         variable_component_flow(wm, name; nw=nw, bounded=bounded, report=report)
     end
+
+    # Create flow-related variables for design components.
+    variable_flow_des_common(wm, nw=nw, bounded=bounded, report=report)
 end
 
 
@@ -40,33 +43,33 @@ end
 
 "Create common network design flow variables for undirected flow formulations."
 function variable_flow_des_common(wm::AbstractUndirectedModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
-    # Create dictionary for undirected design flow variables (i.e., q_des).
-    q_des = var(wm, nw)[:q_des] = Dict{Int,Array{JuMP.VariableRef}}()
+    # Create dictionary for undirected design flow variables (i.e., q_des_pipe).
+    q_des_pipe = var(wm, nw)[:q_des_pipe] = Dict{Int,Array{JuMP.VariableRef}}()
 
     # Initialize the variables. (The default start value of _q_eps is crucial.)
-    for a in ids(wm, nw, :pipe_des)
-        var(wm, nw, :q_des)[a] = JuMP.@variable(wm.model,
-            [r in 1:length(ref(wm, nw, :resistance, a))], base_name="$(nw)_q_des",
-            start=comp_start_value(ref(wm, nw, :pipe_des, a), "q_des_start", r, _q_eps))
+    for a in ids(wm, nw, :des_pipe)
+        var(wm, nw, :q_des_pipe)[a] = JuMP.@variable(wm.model,
+            [r in 1:length(ref(wm, nw, :resistance, a))], base_name="$(nw)_q_des_pipe",
+            start=comp_start_value(ref(wm, nw, :des_pipe, a), "q_des_pipe_start", r, _q_eps))
     end
 
     if bounded # If the variables are bounded, apply the bounds.
         q_lb, q_ub = calc_flow_bounds(wm, nw)
 
-        for a in ids(wm, nw, :pipe_des)
+        for a in ids(wm, nw, :des_pipe)
             for r in 1:length(ref(wm, nw, :resistance, a))
-                JuMP.set_lower_bound(q_des[a][r], q_lb["pipe"][a][r])
-                JuMP.set_upper_bound(q_des[a][r], q_ub["pipe"][a][r])
+                JuMP.set_lower_bound(q_des_pipe[a][r], q_lb["des_pipe"][a][r])
+                JuMP.set_upper_bound(q_des_pipe[a][r], q_ub["des_pipe"][a][r])
             end
         end
     end
 
-    # Create expressions capturing the relationships among q and q_des.
-    q = var(wm, nw)[:q] = JuMP.@expression(
-        wm.model, [a in ids(wm, nw, :pipe_des)], sum(var(wm, nw, :q_des, a)))
+    # Create expressions capturing the relationships among q and q_des_pipe.
+    q = var(wm, nw)[:q_des_pipe_sum] = JuMP.@expression(
+        wm.model, [a in ids(wm, nw, :des_pipe)], sum(var(wm, nw, :q_des_pipe, a)))
 
     # Initialize the solution reporting data structures.
-    report && sol_component_value(wm, nw, :pipe_des, :q, ids(wm, nw, :pipe_des), q)
+    report && sol_component_value(wm, nw, :des_pipe, :q, ids(wm, nw, :des_pipe), q)
 
     # Create resistance binary variables.
     variable_resistance(wm, nw=nw)
@@ -79,14 +82,14 @@ function constraint_resistance_selection_des(wm::AbstractUndirectedModel, n::Int
     append!(con(wm, n, :head_loss)[a], [c])
 
     for r in 1:length(pipe_resistances)
-        q_des = var(wm, n, :q_des, a)[r]
+        q_des_pipe = var(wm, n, :q_des_pipe, a)[r]
         x_res = var(wm, n, :x_res, a)[r]
 
-        q_des_lb = JuMP.lower_bound(q_des)
-        c_lb = JuMP.@constraint(wm.model, q_des >= q_des_lb * x_res)
+        q_des_pipe_lb = JuMP.lower_bound(q_des_pipe)
+        c_lb = JuMP.@constraint(wm.model, q_des_pipe >= q_des_pipe_lb * x_res)
 
-        q_des_ub = JuMP.upper_bound(q_des)
-        c_ub = JuMP.@constraint(wm.model, q_des <= q_des_ub * x_res)
+        q_des_pipe_ub = JuMP.upper_bound(q_des_pipe)
+        c_ub = JuMP.@constraint(wm.model, q_des_pipe <= q_des_pipe_ub * x_res)
 
         append!(con(wm, n, :head_loss)[a], [c_lb, c_ub])
     end
@@ -180,30 +183,36 @@ function constraint_pipe_common(wm::AbstractUndirectedModel, n::Int, a::Int, nod
     # For undirected formulations, there are no constraints, here.
 end
 
+
 function constraint_node_directionality(
-    wm::AbstractWaterModel, n::Int, i::Int, check_valve_fr::Array{Int},
-    check_valve_to::Array{Int}, pipe_fr::Array{Int}, pipe_to::Array{Int},
-    pump_fr::Array{Int}, pump_to::Array{Int}, pressure_reducing_valve_fr::Array{Int},
-    pressure_reducing_valve_to::Array{Int}, shutoff_valve_fr::Array{Int},
-    shutoff_valve_to::Array{Int})
+    wm::AbstractUndirectedModel, n::Int, i::Int, check_valve_fr::Array{Int64,1},
+    check_valve_to::Array{Int64,1}, pipe_fr::Array{Int64,1}, pipe_to::Array{Int64,1},
+    des_pipe_fr::Array{Int64,1}, des_pipe_to::Array{Int64,1}, pump_fr::Array{Int64,1},
+    pump_to::Array{Int64,1}, pressure_reducing_valve_fr::Array{Int64,1},
+    pressure_reducing_valve_to::Array{Int64,1}, shutoff_valve_fr::Array{Int64,1},
+    shutoff_valve_to::Array{Int64,1})
     # For undirected formulations, there are no constraints, here.
 end
+
 
 function constraint_sink_directionality(
-    wm::AbstractWaterModel, n::Int, i::Int, check_valve_fr::Array{Int},
-    check_valve_to::Array{Int}, pipe_fr::Array{Int}, pipe_to::Array{Int},
-    pump_fr::Array{Int}, pump_to::Array{Int}, pressure_reducing_valve_fr::Array{Int},
-    pressure_reducing_valve_to::Array{Int}, shutoff_valve_fr::Array{Int},
-    shutoff_valve_to::Array{Int})
+    wm::AbstractUndirectedModel, n::Int, i::Int, check_valve_fr::Array{Int64,1},
+    check_valve_to::Array{Int64,1}, pipe_fr::Array{Int64,1}, pipe_to::Array{Int64,1},
+    des_pipe_fr::Array{Int64,1}, des_pipe_to::Array{Int64,1}, pump_fr::Array{Int64,1},
+    pump_to::Array{Int64,1}, pressure_reducing_valve_fr::Array{Int64,1},
+    pressure_reducing_valve_to::Array{Int64,1}, shutoff_valve_fr::Array{Int64,1},
+    shutoff_valve_to::Array{Int64,1})
     # For undirected formulations, there are no constraints, here.
 end
 
+
 function constraint_source_directionality(
-    wm::AbstractWaterModel, n::Int, i::Int, check_valve_fr::Array{Int},
-    check_valve_to::Array{Int}, pipe_fr::Array{Int}, pipe_to::Array{Int},
-    pump_fr::Array{Int}, pump_to::Array{Int}, pressure_reducing_valve_fr::Array{Int},
-    pressure_reducing_valve_to::Array{Int}, shutoff_valve_fr::Array{Int},
-    shutoff_valve_to::Array{Int})
+    wm::AbstractUndirectedModel, n::Int, i::Int, check_valve_fr::Array{Int64,1},
+    check_valve_to::Array{Int64,1}, pipe_fr::Array{Int64,1}, pipe_to::Array{Int64,1},
+    des_pipe_fr::Array{Int64,1}, des_pipe_to::Array{Int64,1}, pump_fr::Array{Int64,1},
+    pump_to::Array{Int64,1}, pressure_reducing_valve_fr::Array{Int64,1},
+    pressure_reducing_valve_to::Array{Int64,1}, shutoff_valve_fr::Array{Int64,1},
+    shutoff_valve_to::Array{Int64,1})
     # For undirected formulations, there are no constraints, here.
 end
 

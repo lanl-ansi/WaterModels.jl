@@ -23,7 +23,7 @@ function objective_des(wm::AbstractWaterModel)
     obj = JuMP.AffExpr(0.0)
 
     for n in nw_ids(wm)
-        for (a, pipe) in ref(wm, n, :pipe_des)
+        for (a, pipe) in ref(wm, n, :des_pipe)
             costs = pipe["length"] .* ref(wm, n, :resistance_cost, a)
             JuMP.add_to_expression!(obj, sum(costs .* var(wm, n, :x_res, a)))
         end

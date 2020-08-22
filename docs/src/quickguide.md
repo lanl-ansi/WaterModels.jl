@@ -15,18 +15,13 @@ For the current development version, install the package using
 ] add WaterModels#master
 ```
 
-Next, test that the package works by executing
+Finally, test that the package works as expected by executing
 ```julia
 ] test WaterModels
 ```
 
-Install [Cbc](https://github.com/JuliaOpt/Cbc.jl) using
-```julia
-] add Cbc
-```
-
 ## Solving a Network Design Problem
-Once the above dependencies have been installed, obtain the files [`shamir.inp`](https://raw.githubusercontent.com/lanl-ansi/WaterModels.jl/master/test/data/epanet/shamir.inp) and [`shamir.json`](https://raw.githubusercontent.com/lanl-ansi/WaterModels.jl/master/test/data/json/shamir.json).
+Once the above dependencies have been installed, obtain the files [`shamir.inp`](https://raw.githubusercontent.com/lanl-ansi/WaterModels.jl/master/examples/data/epanet/shamir.inp) and [`shamir.json`](https://raw.githubusercontent.com/lanl-ansi/WaterModels.jl/master/examples/data/json/shamir.json).
 Here, `shamir.inp` is an EPANET file describing a simple seven-node, eight-link water distribution network with one reservoir, six junctions, and eight pipes.
 In accord, `shamir.json` is a JSON file specifying possible pipe diameters and associated costs per unit length, per diameter setting.
 The combination of data from these two files provides the required information to set up a corresponding network design problem, where the goal is to select the most cost-efficient pipe diameters while satisfying all demand in the network.
@@ -36,12 +31,12 @@ To read in the EPANET data, execute the following:
 
 ```julia
 using WaterModels
-data = parse_file("shamir.inp")
+data = parse_file("examples/data/epanet/shamir.inp")
 ```
 
 Next, to read in the JSON diameter and cost data, execute the following:
 ```julia
-modifications = parse_file("shamir.json")
+modifications = parse_file("examples/data/json/shamir.json")
 ```
 
 To merge these data together, InfrastructureModels is used to update the original network data using
@@ -52,7 +47,6 @@ WaterModels._IM.update_data!(data, modifications)
 Finally, the MILP formulation for the network design specification can be solved using
 ```julia
 import Cbc
-
 run_des(data, MILPWaterModel, Cbc.Optimizer)
 ```
 
@@ -67,7 +61,7 @@ However, because of the finer discretization, a better approximation of the phys
 
 Instead of linear approximation, head loss curves can also be linearly outer-approximated via the MILP-R formulation.
 This formulation employs less strict requirements and avoids the use of binary variables, but solutions (e.g., diameters) may not necessarily be feasible with respect to the full (nonconvex) water network physics.
-To employ five outer approximation points per (positive or negative) head loss curve in this formulation, the following can be executed
+To employ five outer approximation points per (positive or negative) head loss curve in this formulation, the following can be executed:
 ```julia
 run_des(data, MILPRWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>5))
 ```
@@ -88,7 +82,7 @@ result["objective"]
 The `"solution"` field contains detailed information about the solution produced by the `run` method.
 For example, the following dictionary comprehension can be used to inspect the flows in the solution:
 ```
-Dict(name => data["q"] for (name, data) in result["solution"]["link"])
+Dict(name => data["q"] for (name, data) in result["solution"]["des_pipe"])
 ```
 
 For more information about WaterModels result data see the [WaterModels Result Data Format](@ref) section.
@@ -99,17 +93,11 @@ Mixed-integer nonconvex formulations can be solved with dedicated solvers, as we
 For example, the full mixed-integer nonconvex formulation for design (NLP) can be solved via
 ```julia
 import KNITRO
-
-run_des(data, NCNLPWaterModel, KNITRO.Optimizer)
-```
-and the mixed-integer convex formulation (MICP) can be solved via
-
-```julia
-run_des(data, MICPWaterModel, KNITRO.Optimizer)
+run_des(data, NLPWaterModel, KNITRO.Optimizer)
 ```
 
 ## Modifying Network Data
-The following example demonstrates one way to perform multiple WaterModels solves while modifing network data in Julia.
+The following example demonstrates one way to perform multiple WaterModels solves while modifying network data:
 ```julia
 run_des(data, MILPRWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>5))
 

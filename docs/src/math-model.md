@@ -1,26 +1,20 @@
 # Mathematical Models in WaterModels
 
 ## Notation for Sets
-A water distribution network is represented by a directed graph $\mathcal{G} := (\mathcal{N}, \mathcal{L})$, where $\mathcal{N}$ is the set of nodes (e.g., [junctions](http://wateranalytics.org/EPANET/_juncs_page.html) and [reservoirs](http://wateranalytics.org/EPANET/_resv_page.html)) and $\mathcal{L}$ is the set of arcs (conventionally "links," e.g., [pipes](http://wateranalytics.org/EPANET/_pipes_page.html) and [valves](http://wateranalytics.org/EPANET/_valves_page.html)).
+A water distribution network is represented by a directed graph $\mathcal{G} := (\mathcal{N}, \mathcal{L})$, where $\mathcal{N}$ is the set of nodes and $\mathcal{L}$ is the set of arcs (conventionally "links," e.g., [pipes](http://wateranalytics.org/EPANET/_pipes_page.html) and [valves](http://wateranalytics.org/EPANET/_valves_page.html)).
 Temporal evolution of the network is represented by a set $\mathcal{K}$, denoting the set of all time steps considered.
-The set of junctions is denoted by $\mathcal{J} \subset \mathcal{N}$, the set of reservoirs (or sources) by $\mathcal{R} \subset \mathcal{N}$, and the set of tanks by $\mathcal{T} \subset \mathcal{N}$.
-The set of pipes in the network is denoted by $\mathcal{A} \subset \mathcal{L}$, the set of pipes with check valves by $\mathcal{C} \subset \mathcal{A}$, and the set of pumps by $\mathcal{P} \subset \mathcal{L}$.
-The set of links incident to node $i \in \mathcal{N}$, where $i$ is the tail of the arc, is denoted by $\delta^{+}_{i} := \{(i, j) \in \mathcal{L}\}$.
-The set of links incident to node $i \in \mathcal{N}$, where $i$ is the head of the arc, is denoted by $\delta^{-}_{i} := \{(j, i) \in \mathcal{L}\}$.
 In summary, the following sets are commonly used when defining a WaterModels problem formulation:
 
 | Notation                                         | WaterModels Translation           | Description                                                                  |
 | :--------------------------------------          | :-----------------------------    | :-------------------------                                                   |
-| $\mathcal{N}$                                    | `wm.ref[:nw][n][:node]`           | nodes                                                                        |
+| $\mathcal{N}$                                    | `wm.ref[:nw][n][:node]`           | nodes (to which nodal-type components are attached)                          |
 | $\mathcal{K}$                                    | `nw_ids(wm)`                      | time indices (multinetwork indices labeled by `n`)                           |
-| $\mathcal{J} \subset \mathcal{N}$                | `wm.ref[:nw][n][:junction]`       | [junctions](http://wateranalytics.org/EPANET/_juncs_page.html)               |
-| $\mathcal{R} \subset \mathcal{N}$                | `wm.ref[:nw][n][:reservoir]`      | [reservoirs](http://wateranalytics.org/EPANET/_resv_page.html)               |
-| $\mathcal{T} \subset \mathcal{N}$                | `wm.ref[:nw][n][:tank]`           | [tanks](http://wateranalytics.org/EPANET/_tanks_page.html)                   |
+| $\mathcal{J}$                                    | `wm.ref[:nw][n][:junction]`       | [junctions](http://wateranalytics.org/EPANET/_juncs_page.html)               |
+| $\mathcal{R}$                                    | `wm.ref[:nw][n][:reservoir]`      | [reservoirs](http://wateranalytics.org/EPANET/_resv_page.html)               |
+| $\mathcal{T}$                                    | `wm.ref[:nw][n][:tank]`           | [tanks](http://wateranalytics.org/EPANET/_tanks_page.html)                   |
 | $\mathcal{A} \subset \mathcal{L}$                | `wm.ref[:nw][n][:pipe]`           | [pipes](http://wateranalytics.org/EPANET/_pipes_page.html)                   |
 | $\mathcal{C} \subset \mathcal{L}$                | `wm.ref[:nw][n][:check_valve]`    | [pipes with check valves](http://wateranalytics.org/EPANET/_pipes_page.html) |
 | $\mathcal{P} \subset \mathcal{L}$                | `wm.ref[:nw][n][:pump]`           | [pumps](http://wateranalytics.org/EPANET/_pumps_page.html)                   |
-| $\delta_{i}^{+} \subset \mathcal{A}$             | `wm.ref[:nw][n][:link_to][i]`     | links "from" node $i$                                                        |
-| $\delta_{i}^{-} \subset \mathcal{A}$             | `wm.ref[:nw][n][:link_fr][i]`     | links "to" node $i$                                                          |
 
 ## Physical Feasibility
 ### Nodes
@@ -37,10 +31,14 @@ In summary, the following sets are commonly used when defining a WaterModels pro
 
 #### Pipes with Check Valves
 
+#### Pipes with Shutoff Valves
+
+#### Pressure Reducing Valves
+
 #### Pumps
 
 ### Satisfaction of Flow Bounds
-For each arc $(i, j) \in \mathcal{A}$, a variable $q_{ij}$ is used to represent the volumetric flow of water across the arc (in $\textrm{m}^{3}/\textrm{s}$).
+For each arc $(i, j) \in \mathcal{L}$, a variable $q_{ij}$ is used to represent the volumetric flow of water across the arc (in $\textrm{m}^{3}/\textrm{s}$).
 When $q_{ij}$ is positive, flow on arc $(i, j)$ travels from node $i$ to node $j$.
 When $q_{ij}$ is negative, flow travels from node $j$ to node $i$.
 The absolute value of flow along the arc can be bounded by physical capacity, engineering judgment, or network analysis.
@@ -54,44 +52,28 @@ where $D_{ij}$ is the diameter of pipe $(i, j)$ and $v^{\max}_{ij}$ is the maxim
 ### Satisfaction of Head Bounds
 Each node potential is denoted by $h_{i}$, $i \in \mathcal{N}$, and represents the hydraulic head in units of length ($\textrm{m}$).
 The hydraulic head assimilates the elevation and pressure heads at each node, while the velocity head can typically be neglected.
-For each reservoir $i \in \mathcal{S}$, the hydraulic head is assumed to be fixed at a value $h_{i}^{\textrm{src}}$, i.e.,
+For each reservoir $i \in \mathcal{R}$, the hydraulic head is assumed to be fixed at a value $h_{i}^{\textrm{src}}$, i.e.,
 ```math
-    h_{i} = h_{i}^{\textrm{src}}, \; \forall i \in \mathcal{S}.
+    h_{i} = h_{i}^{\textrm{src}}, \; \forall i \in \mathcal{R}.
 ```
 For each junction $i \in \mathcal{J}$, a minimum hydraulic head $\underline{h}_{i}$, determined a priori, must first be satisfied.
 In the interest of tightening the optimization formulation, upper bounds on hydraulic heads can also typically be implied from other network data, e.g.,
 ```math
-    \underline{h}_{i} \leq h_{i} \leq \overline{h}_{i} = \max_{i \in \mathcal{S}}\{h_{i}^{\textrm{src}}\}.
+    \underline{h}_{i} \leq h_{i} \leq \overline{h}_{i} = \max_{i \in \mathcal{R}}\{h_{i}^{\textrm{src}}\}.
 ```
 
-### Conservation of Flow at Non-supply Nodes
-Flow must be delivered throughout the network to satisfy fixed demand, $q_{i}^{\textrm{dem}}$, at non-supply nodes, i.e.,
-```math
-	\sum_{(j, i) \in \mathcal{A}^{-}(i)} q_{ji} - \sum_{(i, j) \in \mathcal{A}^{+}(i)} q_{ij} = q_{i}^{\textrm{dem}}, ~ \forall i \in \mathcal{J},
-```
-where $\mathcal{A}^{-}(i)$ and $\mathcal{A}^{+}(i)$ are the sets of incoming and outgoing arcs of node $i$, respectively.
-
-### Conservation of Flow at Supply Nodes
-The _outflow_ from each reservoir will be nonnegative by definition, i.e.,
-```math
-	\sum_{(i, j) \in \mathcal{A}^{+}(i)} q_{ij} - \sum_{(j, i) \in \mathcal{A}^{-}(i)} q_{ji} \geq 0, ~ \forall i \in \mathcal{S}.
-```
-Additionally, an upper bound on the amount of flow delivered by a reservoir may be written
-```math
-	 \sum_{(i, j) \in \mathcal{A}^{+}(i)} q_{ij} - \sum_{(j, i) \in \mathcal{A}^{-}(i)} q_{ji} \leq \sum_{k \in \mathcal{J}} q^{\textrm{dem}}_{k}, ~ \forall i \in \mathcal{R},
-```
-i.e., a reservoir will never send more flow than the amount required to serve all demand.
+### Conservation of Flow
 
 ### Head Loss Relationships
-In water distribution networks, flow along an arc is induced by the difference in potential (head) between the two nodes that connect that arc.
+In water distribution networks, flow along a pipe is induced by the difference in potential (head) between the two nodes that connect that pipe.
 The relationships that link flow and hydraulic head are commonly referred to as the "head loss equations" or "potential-flow constraints," and are generally of the form
 ```math
 	h_{i} - h_{j} = \Phi_{ij}(q_{ij}),
 ```
 where $\Phi_{ij} : \mathbb{R} \to \mathbb{R}$ is a strictly increasing function with rotational symmetry about the origin.
-Embedding the above equation in a mathematical program clearly introduces non-convexity.
-(That is, the function $\Phi_{ij}(q_{ij})$ is non-convex _and_ the relationship must be satisfied with equality.)
-As such, different formulations primarily aim to effectively deal with these types of non-convex constraints in an optimization setting.
+Embedding the above equation in a mathematical program clearly introduces nonconvexity.
+(That is, the function $\Phi_{ij}(q_{ij})$ is nonconvex _and_ the relationship must be satisfied with equality.)
+As such, different formulations primarily aim to effectively deal with these types of nonconvex constraints in an optimization setting.
 
 Explicit forms of the head loss equation include the [Darcy-Weisbach](https://en.wikipedia.org/wiki/Darcy-Weisbach_equation) equation, i.e.,
 ```math
@@ -129,8 +111,8 @@ and the Hazen-Williams resistance per unit length is
 	r_{ij} = \frac{10.67}{\kappa_{ij}^{1.852} D_{ij}^{4.87}}.
 ```
 
-## Non-convex Nonlinear Program
-The full non-convex formulation of the physical feasibility problem (NCNLP), which incorporates all requirements from [Physical Feasibility](#Physical-Feasibility-1), may be written as a system that satisfies the following constraints:
+## Nonconvex Nonlinear Program
+The full nonconvex formulation of the physical feasibility problem (NCNLP), which incorporates all requirements from [Physical Feasibility](#Physical-Feasibility-1), may be written as a system that satisfies the following constraints:
 ```math
 \begin{align}
     h_{i} - h_{j} &= L_{ij} r_{ij} q_{ij} \lvert q_{ij} \rvert^{\alpha}, ~ \forall (i, j) \in \mathcal{A} \label{eqn:ncnlp-head-loss} \\
@@ -140,62 +122,9 @@ The full non-convex formulation of the physical feasibility problem (NCNLP), whi
     \underline{q}_{ij} \leq q_{ij} &\leq \overline{q}_{ij}, ~ \forall (i, j) \in \mathcal{A} \label{eqn:ncnlp-flow-bounds}.
 \end{align}
 ```
-Here, Constraints $\eqref{eqn:ncnlp-head-loss}$ are [head loss relationships](#Head-Loss-Relationships-1), Constraints $\eqref{eqn:ncnlp-head-source}$ are [head bounds](#Satisfaction-of-Head-Bounds-1) at source nodes, Constraints $\eqref{eqn:ncnlp-flow-conservation}$ are [flow conservation constraints](#Conservation-of-Flow-at-Non-supply-Nodes-1), Constraints $\eqref{eqn:ncnlp-head-bounds}$ [head bounds](#Satisfaction-of-Head-Bounds-1) at junctions, and Constraints $\eqref{eqn:ncnlp-flow-bounds}$ are [flow bounds](#Satisfaction-of-Flow-Bounds-1).
-Note that the sources of non-convexity and nonlinearity are Constraints $\eqref{eqn:ncnlp-head-loss}$.
-
-## Convex Nonlinear Program
-Note that the sources of non-convexity and nonlinearity in the full [non-convex formulation of the physical feasibility problem](#Non-convex-Nonlinear-Program-1) are Constraints $\eqref{eqn:ncnlp-head-loss}$.
-Because of the symmetry of the head loss relationship, the problem can be modeled instead as a disjunctive program.
-Here, the disjunction arises from the direction of flow, i.e.,
-```math
-\begin{equation}
-   \left[
-	\begin{aligned}[c]
-		 h_{i} - h_{j} &= L_{ij} r_{ij} q_{ij}^{1 + \alpha} \\
-              q_{ij} &\geq 0
-	\end{aligned}
-   \right]
-   \lor
-   \left[
-	\begin{aligned}[c]
-		 h_{i} - h_{j} &= L_{ij} r_{ij} (-q_{ij})^{1 + \alpha} \\
-              q_{ij} &< 0
-	\end{aligned}
-   \right], ~ \forall (i, j) \in \mathcal{A}, \label{eqn:dnlp-head-loss}
-\end{equation}
-```
-which replaces Constraints $\eqref{eqn:ncnlp-head-loss}$ in the [NCNLP formulation](#Non-convex-Nonlinear-Program-1).
-To model the disjunction, each flow variable $q_{ij}$ can be decomposed into two nonnegative flow variables, $q_{ij}^{+}$ and $q_{ij}^{-}$, where $q_{ij} := q_{ij}^{+} - q_{ij}^{-}$.
-With this in mind, the following _convex_ nonlinear program (CNLP) can be formulated, which is adapted from Section 3 of [_Global Optimization of Nonlinear Network Design_ by Raghunathan (2013)](https://epubs.siam.org/doi/abs/10.1137/110827387):
-```math
-\begin{align}
-    & \text{minimize}
-    & & \sum_{(i, j) \in \mathcal{A}} \frac{L_{ij} r_{ij}}{2 + \alpha} \left[(q_{ij}^{+})^{2 + \alpha} + (q_{ij}^{-})^{2 + \alpha}\right] - \sum_{i \in \mathcal{S}} h_{i}^{\textrm{src}} \left(\sum_{(i, j) \in \mathcal{A}^{-}(i)} (q_{ij}^{+} - q_{ij}^{-}) - \sum_{(j, i) \in \mathcal{A}^{+}(i)} (q_{ji}^{+} - q_{ji}^{-})\right) \\
-    & \text{subject to}
-    & & \sum_{(j, i) \in \mathcal{A}^{-}(i)} (q_{ji}^{+} - q_{ji}^{-}) - \sum_{(i, j) \in \mathcal{A}^{+}(i)} (q_{ij}^{+} - q_{ij}^{-}) = q_{i}^{\textrm{dem}}, ~ \forall i \in \mathcal{J} \label{eqn:cnlp-flow-conservation} \\
-    & & & q_{ij}^{+}, q_{ij}^{-} \geq 0, ~ \forall (i, j) \in \mathcal{A} \label{eqn:cnlp-flow-bounds}.
-\end{align}
-```
-$\renewcommand{\hat}[1]{\widehat{#1}}$
-Suppose that $\hat{\mathbf{q}}^{+}, \hat{\mathbf{q}}^{-} \in \mathbb{R}^{\lvert A \rvert}$ solves (CNLP) with the associated dual solution $\hat{\mathbf{h}} \in \mathbb{R}^{\lvert \mathcal{J} \rvert}$, corresponding to the flow conservation Constraints $\eqref{eqn:cnlp-flow-conservation}$, and $\hat{\mathbf{u}}^{+}, \hat{\mathbf{u}}^{-} \in \mathbb{R}^{\lvert \mathcal{A} \rvert}$, corresponding to the nonnegativity Constraints $\eqref{eqn:cnlp-flow-bounds}$.
-This solution must satisfy the first-order necessary conditions
-```math
-\begin{align}
-    \hat{h}_{i} - \hat{h}_{j} &= L_{ij} r_{ij} \hat{q}_{ij} \lvert q_{ij} \rvert^{\alpha}, ~ \forall (i, j) \in \mathcal{A} \\
-    h_{i} &= h_{i}^{\textrm{src}}, ~ \forall i \in \mathcal{S} \\
-    \sum_{(j, i) \in \mathcal{A}^{-}(i)} q_{ji} - \sum_{(i, j) \in \mathcal{A}^{+}(i)} q_{ij} &= q_{i}^{\textrm{dem}}, ~ \forall i \in \mathcal{J} \\
-    \underline{h}_{i} \leq h_{i} &\leq \overline{h}_{i}, ~ \forall i \in \mathcal{J} \\
-    \underline{q}_{ij} \leq q_{ij} &\leq \overline{q}_{ij}, ~ \forall (i, j) \in \mathcal{A}.
-\end{align}
-```
+Here, Constraints $\eqref{eqn:ncnlp-head-loss}$ are [head loss relationships](#Head-Loss-Relationships-1), Constraints $\eqref{eqn:ncnlp-head-source}$ are [head bounds](#Satisfaction-of-Head-Bounds-1) at source nodes, Constraints $\eqref{eqn:ncnlp-flow-conservation}$ are [flow conservation constraints](#Conservation-of-Flow), Constraints $\eqref{eqn:ncnlp-head-bounds}$ [head bounds](#Satisfaction-of-Head-Bounds-1) at junctions, and Constraints $\eqref{eqn:ncnlp-flow-bounds}$ are [flow bounds](#Satisfaction-of-Flow-Bounds-1).
+Note that the sources of nonconvexity and nonlinearity are Constraints $\eqref{eqn:ncnlp-head-loss}$.
 
 ## Mixed-integer Convex Program
 
 ## Mixed-integer Linear Program
-
-## Network Design
-Currently, the primary formulation focuses on the problem of optimally designing a water distribution network.
-More specifically, given a network consisting of reservoirs, junctions, and pipes, the problem aims to select the most cost-effecient resistance from a discrete set of resistances for each pipe to meet demand over the entire network.
-The set of all possible resistances for a given pipe $(i, j) \in \mathcal{A}$ is denoted by $\mathcal{R}_{ij}$, where each resistance is denoted by $r \in \mathcal{R}_{ij}$.
-A binary variable $x^{r}_{ijr}$ is associated with each of these diameters to model the decision, i.e., $x_{ijr}^{r} = 1$ if $r$ is selected to serve as the pipe resistance, and $x_{ijr}^{r} = 0$ otherwise.
-The cost per unit length of installing a pipe of resistance $r$ is denoted by $c_{ijr}$.

@@ -257,9 +257,9 @@ function set_start_undirected_flow_rate_des!(data::Dict{String, <:Any})
 
     for (a, pipe) in filter(is_des_pipe, data["pipe"])
         num_resistances = length(resistances[a])
-        pipe["q_des_start"] = zeros(Float64, num_resistances)
+        pipe["q_des_pipe_start"] = zeros(Float64, num_resistances)
         r_id, val = findmax(pipe["x_res_start"])
-        pipe["q_des_start"][r_id] = pipe["q"]
+        pipe["q_des_pipe_start"][r_id] = pipe["q"]
     end
 end
 

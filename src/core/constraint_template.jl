@@ -32,6 +32,8 @@ function constraint_flow_conservation(wm::AbstractWaterModel, i::Int; nw::Int=wm
     check_valve_to = _collect_comps_to(wm, i, :check_valve; nw=nw)
     pipe_fr = _collect_comps_fr(wm, i, :pipe; nw=nw)
     pipe_to = _collect_comps_to(wm, i, :pipe; nw=nw)
+    des_pipe_fr = _collect_comps_fr(wm, i, :des_pipe; nw=nw)
+    des_pipe_to = _collect_comps_to(wm, i, :des_pipe; nw=nw)
     pump_fr = _collect_comps_fr(wm, i, :pump; nw=nw)
     pump_to = _collect_comps_to(wm, i, :pump; nw=nw)
     pressure_reducing_valve_fr = _collect_comps_fr(wm, i, :pressure_reducing_valve; nw=nw)
@@ -57,9 +59,10 @@ function constraint_flow_conservation(wm::AbstractWaterModel, i::Int; nw::Int=wm
 
     # Add the flow conservation constraint.
     constraint_flow_conservation(
-        wm, nw, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to, pump_fr, pump_to,
-        pressure_reducing_valve_fr, pressure_reducing_valve_to, shutoff_valve_fr,
-        shutoff_valve_to, reservoirs, tanks, dispatchable_junctions, net_fixed_demand)
+        wm, nw, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to, des_pipe_fr,
+        des_pipe_to, pump_fr, pump_to, pressure_reducing_valve_fr,
+        pressure_reducing_valve_to, shutoff_valve_fr, shutoff_valve_to, reservoirs, tanks,
+        dispatchable_junctions, net_fixed_demand)
 end
 
 
@@ -69,6 +72,8 @@ function constraint_node_directionality(wm::AbstractWaterModel, i::Int; nw::Int=
     check_valve_to = _collect_comps_to(wm, i, :check_valve; nw=nw)
     pipe_fr = _collect_comps_fr(wm, i, :pipe; nw=nw)
     pipe_to = _collect_comps_to(wm, i, :pipe; nw=nw)
+    des_pipe_fr = _collect_comps_fr(wm, i, :des_pipe; nw=nw)
+    des_pipe_to = _collect_comps_to(wm, i, :des_pipe; nw=nw)
     pump_fr = _collect_comps_fr(wm, i, :pump; nw=nw)
     pump_to = _collect_comps_to(wm, i, :pump; nw=nw)
     pressure_reducing_valve_fr = _collect_comps_fr(wm, i, :pressure_reducing_valve; nw=nw)
@@ -83,12 +88,12 @@ function constraint_node_directionality(wm::AbstractWaterModel, i::Int; nw::Int=
     num_components = length(junctions) + length(tanks) + length(reservoirs)
 
     # Get the in degree of node `i`.
-    in_length = length(check_valve_to) + length(pipe_to) + length(pump_to) +
-                length(pressure_reducing_valve_to) + length(shutoff_valve_to)
+    in_length = length(check_valve_to) + length(pipe_to) + length(des_pipe_to) +
+        length(pump_to) + length(pressure_reducing_valve_to) + length(shutoff_valve_to)
 
     # Get the out degree of node `i`.
-    out_length = length(check_valve_fr) + length(pipe_fr) + length(pump_fr) +
-                 length(pressure_reducing_valve_fr) + length(shutoff_valve_fr)
+    out_length = length(check_valve_fr) + length(pipe_fr) + length(des_pipe_fr) +
+        length(pump_fr) + length(pressure_reducing_valve_fr) + length(shutoff_valve_fr)
 
     # Check if node directionality constraints should be added.
     if num_components == 0 && in_length + out_length == 2
@@ -97,9 +102,9 @@ function constraint_node_directionality(wm::AbstractWaterModel, i::Int; nw::Int=
 
         # Add the node directionality constraint.
         constraint_node_directionality(
-            wm, nw, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to, pump_fr, pump_to,
-            pressure_reducing_valve_fr, pressure_reducing_valve_to, shutoff_valve_fr,
-            shutoff_valve_to)
+            wm, nw, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to, des_pipe_fr,
+            des_pipe_to, pump_fr, pump_to, pressure_reducing_valve_fr,
+            pressure_reducing_valve_to, shutoff_valve_fr, shutoff_valve_to)
     end
 end
 
@@ -111,6 +116,8 @@ function constraint_sink_directionality(wm::AbstractWaterModel, i::Int; nw::Int=
     check_valve_to = _collect_comps_to(wm, i, :check_valve; nw=nw)
     pipe_fr = _collect_comps_fr(wm, i, :pipe; nw=nw)
     pipe_to = _collect_comps_to(wm, i, :pipe; nw=nw)
+    des_pipe_fr = _collect_comps_fr(wm, i, :des_pipe; nw=nw)
+    des_pipe_to = _collect_comps_to(wm, i, :des_pipe; nw=nw)
     pump_fr = _collect_comps_fr(wm, i, :pump; nw=nw)
     pump_to = _collect_comps_to(wm, i, :pump; nw=nw)
     pressure_reducing_valve_fr = _collect_comps_fr(wm, i, :pressure_reducing_valve; nw=nw)
@@ -123,9 +130,9 @@ function constraint_sink_directionality(wm::AbstractWaterModel, i::Int; nw::Int=
 
     # Add the sink flow directionality constraint.
     constraint_sink_directionality(
-        wm, nw, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to, pump_fr, pump_to,
-        pressure_reducing_valve_fr, pressure_reducing_valve_to, shutoff_valve_fr,
-        shutoff_valve_to)
+        wm, nw, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to, des_pipe_fr,
+        des_pipe_to, pump_fr, pump_to, pressure_reducing_valve_fr,
+        pressure_reducing_valve_to, shutoff_valve_fr, shutoff_valve_to)
 end
 
 
@@ -147,6 +154,8 @@ function constraint_source_directionality(wm::AbstractWaterModel, i::Int; nw::In
     check_valve_to = _collect_comps_to(wm, i, :check_valve; nw=nw)
     pipe_fr = _collect_comps_fr(wm, i, :pipe; nw=nw)
     pipe_to = _collect_comps_to(wm, i, :pipe; nw=nw)
+    des_pipe_fr = _collect_comps_fr(wm, i, :des_pipe; nw=nw)
+    des_pipe_to = _collect_comps_to(wm, i, :des_pipe; nw=nw)
     pump_fr = _collect_comps_fr(wm, i, :pump; nw=nw)
     pump_to = _collect_comps_to(wm, i, :pump; nw=nw)
     pressure_reducing_valve_fr = _collect_comps_fr(wm, i, :pressure_reducing_valve; nw=nw)
@@ -159,9 +168,9 @@ function constraint_source_directionality(wm::AbstractWaterModel, i::Int; nw::In
 
     # Add the source flow directionality constraint.
     constraint_source_directionality(
-        wm, nw, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to, pump_fr,
-        pump_to, pressure_reducing_valve_fr, pressure_reducing_valve_to, shutoff_valve_fr,
-        shutoff_valve_to)
+        wm, nw, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to, des_pipe_fr,
+        des_pipe_to, pump_fr, pump_to, pressure_reducing_valve_fr,
+        pressure_reducing_valve_to, shutoff_valve_fr, shutoff_valve_to)
 end
 
 
@@ -219,7 +228,7 @@ end
 
 function constraint_pipe_head_loss_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     alpha = ref(wm, nw, :alpha)
-    pipe = ref(wm, nw, :pipe, a)
+    pipe = ref(wm, nw, :des_pipe, a)
     resistances = ref(wm, nw, :resistance, a)
     i, j = pipe["node_fr"], pipe["node_to"]
 
@@ -246,7 +255,7 @@ end
 
 
 function constraint_pipe_head_loss_ub_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
-    alpha, L = [ref(wm, nw, :alpha), ref(wm, nw, :pipe, a)["length"]]
+    alpha, L = ref(wm, nw, :alpha), ref(wm, nw, :des_pipe, a)["length"]
     pipe_resistances = ref(wm, nw, :resistance, a)
     constraint_pipe_head_loss_ub_des(wm, nw, a, alpha, L, pipe_resistances)
 end
