@@ -95,13 +95,6 @@ function variable_flow(wm::LAWaterModel; nw::Int=wm.cnw, bounded::Bool=true, rep
 end
 
 
-"Creates network design flow variables for `LA` formulations (`q_des_pipe`, `lambda`, `x_pw`)."
-function variable_flow_des(wm::LAWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
-    # Create common flow variables.
-    variable_flow_des_common(wm, nw=nw, bounded=bounded, report=report)
-end
-
-
 "Adds head loss constraints for check valves in `LA` formulations."
 function constraint_check_valve_head_loss(wm::LAWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # If the number of breakpoints is not positive, no constraints are added.
