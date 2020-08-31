@@ -1,7 +1,7 @@
-# Define MILP (approximation-based mixed-integer linear programming)
+# Define LA (approximation-based mixed-integer linear programming)
 # implementations of common water distribution model specifications.
 
-function variable_flow_piecewise_weights(wm::AbstractMILPModel; nw::Int=wm.cnw, report::Bool=false)
+function variable_flow_piecewise_weights(wm::LAWaterModel; nw::Int=wm.cnw, report::Bool=false)
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
 
     if pipe_breakpoints > 0
@@ -44,7 +44,7 @@ function variable_flow_piecewise_weights(wm::AbstractMILPModel; nw::Int=wm.cnw, 
 end
 
 
-function variable_flow_piecewise_adjacency(wm::AbstractMILPModel; nw::Int=wm.cnw, report::Bool=false)
+function variable_flow_piecewise_adjacency(wm::LAWaterModel; nw::Int=wm.cnw, report::Bool=false)
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
 
     if pipe_breakpoints > 0
@@ -80,8 +80,8 @@ function variable_flow_piecewise_adjacency(wm::AbstractMILPModel; nw::Int=wm.cnw
 end
 
 
-"Creates flow variables for `MILP` formulations (`q`, `lambda`, `x_pw`)."
-function variable_flow(wm::AbstractMILPModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+"Creates flow variables for `LA` formulations (`q`, `lambda`, `x_pw`)."
+function variable_flow(wm::LAWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
     for name in ["check_valve", "pipe", "pressure_reducing_valve", "pump", "shutoff_valve"]
         # Create directed flow (`qp` and `qn`) variables for each component.
         variable_component_flow(wm, name; nw=nw, bounded=bounded, report=report)
@@ -96,15 +96,15 @@ function variable_flow(wm::AbstractMILPModel; nw::Int=wm.cnw, bounded::Bool=true
 end
 
 
-"Creates network design flow variables for `MILP` formulations (`q_des_pipe`, `lambda`, `x_pw`)."
-function variable_flow_des(wm::AbstractMILPModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+"Creates network design flow variables for `LA` formulations (`q_des_pipe`, `lambda`, `x_pw`)."
+function variable_flow_des(wm::LAWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
     # Create common flow variables.
     variable_flow_des_common(wm, nw=nw, bounded=bounded, report=report)
 end
 
 
-"Adds head loss constraints for check valves in `MILP` formulations."
-function constraint_check_valve_head_loss(wm::AbstractMILPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
+"Adds head loss constraints for check valves in `LA` formulations."
+function constraint_check_valve_head_loss(wm::LAWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # If the number of breakpoints is not positive, no constraints are added.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
     if pipe_breakpoints <= 0 return end
@@ -148,8 +148,8 @@ function constraint_check_valve_head_loss(wm::AbstractMILPModel, n::Int, a::Int,
 end
 
 
-"Adds head loss constraints for shutoff valves in `MILP` formulations."
-function constraint_shutoff_valve_head_loss(wm::AbstractMILPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
+"Adds head loss constraints for shutoff valves in `LA` formulations."
+function constraint_shutoff_valve_head_loss(wm::LAWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # If the number of breakpoints is not positive, no constraints are added.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
     if pipe_breakpoints <= 0 return end
@@ -195,7 +195,7 @@ end
 
 
 "Pump head gain constraint when the pump status is ambiguous."
-function constraint_pump_head_gain(wm::AbstractMILPModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64})
+function constraint_pump_head_gain(wm::LAWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64})
     # If the number of breakpoints is not positive, no constraints are added.
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
     if pump_breakpoints <= 0 return end
@@ -234,7 +234,7 @@ function constraint_pump_head_gain(wm::AbstractMILPModel, n::Int, a::Int, node_f
 end
 
 
-function constraint_pipe_head_loss_des(wm::AbstractMILPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, resistances)
+function constraint_pipe_head_loss_des(wm::LAWaterModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, resistances)
     # If the number of breakpoints is not positive, no constraints are added.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
     if pipe_breakpoints <= 0 return end
@@ -287,7 +287,7 @@ function constraint_pipe_head_loss_des(wm::AbstractMILPModel, n::Int, a::Int, al
 end
 
 
-function constraint_pipe_head_loss(wm::AbstractMILPModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
+function constraint_pipe_head_loss(wm::LAWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
     # If the number of breakpoints is not positive, no constraints are added.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
     if pipe_breakpoints <= 0 return end
@@ -328,7 +328,7 @@ function constraint_pipe_head_loss(wm::AbstractMILPModel, n::Int, a::Int, node_f
 end
 
 
-function objective_owf(wm::AbstractMILPModel) 
+function objective_owf(wm::LAWaterModel) 
     # If the number of breakpoints is not positive, no objective is added.
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
     if pump_breakpoints <= 0 return end

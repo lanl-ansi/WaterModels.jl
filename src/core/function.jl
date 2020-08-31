@@ -48,13 +48,13 @@ function get_alpha_min_1(wm::AbstractWaterModel)
     end
 end
 
-function head_loss_args(wm::AbstractMICPModel)
+function head_loss_args(wm::CRDWaterModel)
     alpha_m1 = get_alpha_min_1(wm)
     return (:head_loss, 1, f_alpha(alpha_m1, convex=true),
         df_alpha(alpha_m1, convex=true), d2f_alpha(alpha_m1, convex=true))
 end
 
-function head_loss_args(wm::AbstractNLPModel)
+function head_loss_args(wm::NCWaterModel)
     alpha_m1 = get_alpha_min_1(wm)
     return (:head_loss, 1, f_alpha(alpha_m1, convex=false),
         df_alpha(alpha_m1, convex=false), d2f_alpha(alpha_m1, convex=false))

@@ -1,25 +1,25 @@
-# Define NLP (nonconvex nonlinear programming) implementations of water
+# Define NC (nonconvex nonlinear programming) implementations of water
 # distribution feasibility and optimization problem specifications. Note that
 # here, ``nonconvex nonlinear'' describes the treatment of head loss and head
-# gain constraints, which are nonlinear equalities. NLP formulations also
+# gain constraints, which are nonlinear equalities. NC formulations also
 # include nonlinearites that would be surmised in a full problem formulation
 # (e.g., in the optimal power flow problem, a cubic function of flow is used in
 # this formulation to define the consumption of power by active pumps).
 
-#"Creates flow variables for `NLP` formulations (`q`)."
-#function variable_flow(wm::AbstractNLPModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+#"Creates flow variables for `NC` formulations (`q`)."
+#function variable_flow(wm::NCWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
 #    variable_flow_common(wm, nw=nw, bounded=bounded, report=report)
 #end
 
 
-"Creates network design flow variables for `NLP` formulations (`q_des_pipe`, `x_des`)."
-function variable_flow_des(wm::AbstractNLPModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+"Creates network design flow variables for `NC` formulations (`q_des_pipe`, `x_des`)."
+function variable_flow_des(wm::NCWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
     variable_flow_des_common(wm, nw=nw, bounded=bounded, report=report)
 end
 
 
-"Adds head loss constraints for check valves in `NLP` formulations."
-function constraint_check_valve_head_loss(wm::AbstractNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
+"Adds head loss constraints for check valves in `NC` formulations."
+function constraint_check_valve_head_loss(wm::NCWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # Gather common variables and data.
     q, z = var(wm, n, :q_check_valve, a), var(wm, n, :z_check_valve, a)
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
@@ -39,8 +39,8 @@ function constraint_check_valve_head_loss(wm::AbstractNLPModel, n::Int, a::Int, 
 end
 
 
-"Adds head loss constraints for shutoff valves in `NLP` formulations."
-function constraint_shutoff_valve_head_loss(wm::AbstractNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
+"Adds head loss constraints for shutoff valves in `NC` formulations."
+function constraint_shutoff_valve_head_loss(wm::NCWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # Gather common variables and data.
     q, z = var(wm, n, :q_shutoff_valve, a), var(wm, n, :z_shutoff_valve, a)
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
@@ -61,8 +61,8 @@ function constraint_shutoff_valve_head_loss(wm::AbstractNLPModel, n::Int, a::Int
 end
 
 
-"Adds head loss constraints for pipes (without check valves) in `NLP` formulations."
-function constraint_pipe_head_loss(wm::AbstractNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
+"Adds head loss constraints for pipes (without check valves) in `NC` formulations."
+function constraint_pipe_head_loss(wm::NCWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
     # Gather flow and head variables included in head loss constraints.
     q = var(wm, n, :q_pipe, a)
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
@@ -75,8 +75,8 @@ function constraint_pipe_head_loss(wm::AbstractNLPModel, n::Int, a::Int, node_fr
 end
 
 
-"Add head loss constraints for design pipes (without check valves) in `NLP` formulations."
-function constraint_pipe_head_loss_des(wm::AbstractNLPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, res)
+"Add head loss constraints for design pipes (without check valves) in `NC` formulations."
+function constraint_pipe_head_loss_des(wm::NCWaterModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, res)
     # Gather common flow and head variables, as well as design indices.
     q, R = var(wm, n, :q_des_pipe, a), 1:length(res)
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
@@ -90,8 +90,8 @@ function constraint_pipe_head_loss_des(wm::AbstractNLPModel, n::Int, a::Int, alp
 end
 
 
-"Adds head gain constraints for pumps in `NLP` formulations."
-function constraint_pump_head_gain(wm::AbstractNLPModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
+"Adds head gain constraints for pumps in `NC` formulations."
+function constraint_pump_head_gain(wm::NCWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
     # Gather common flow and pump variables.
     q, g, z = var(wm, n, :q_pump, a), var(wm, n, :g, a), var(wm, n, :z_pump, a)
 
@@ -102,8 +102,8 @@ function constraint_pump_head_gain(wm::AbstractNLPModel, n::Int, a::Int, node_fr
     append!(con(wm, n, :head_gain)[a], [c])
 end
 
-"Defines the objective for the owf problem is `NLP` formulations."
-function objective_owf(wm::AbstractNLPModel)
+"Defines the objective for the owf problem is `NC` formulations."
+function objective_owf(wm::NCWaterModel)
     objective = JuMP.AffExpr(0.0)
 
     for (n, nw_ref) in nws(wm)
