@@ -1,8 +1,7 @@
-# Define common MICP (mixed-integer convex program) implementations of water
-# distribution constraints, which use directed flow variables.
+# Define common CRD (continuous or convex relaxation- and direction-based) implementations
+# of water distribution network constraints, which use directed flow variables.
 
-
-function constraint_pipe_head_loss_des(wm::AbstractMICPModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances)
+function constraint_pipe_head_loss_des(wm::CRDWaterModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances)
     # Collect head difference variables.
     dhp, dhn = var(wm, n, :dhp_des_pipe, a), var(wm, n, :dhn_des_pipe, a)
 
@@ -20,7 +19,7 @@ function constraint_pipe_head_loss_des(wm::AbstractMICPModel, n::Int, a::Int, al
 end
 
 "Pump head gain constraint when the pump status is ambiguous."
-function constraint_pump_head_gain(wm::AbstractMICPModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
+function constraint_pump_head_gain(wm::CRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
     # Gather flow and head gain variables.
     g = var(wm, n, :g, a)
     qp, z = var(wm, n, :qp_pump, a), var(wm, n, :z_pump, a)
@@ -67,7 +66,7 @@ function constraint_pump_head_gain(wm::AbstractMICPModel, n::Int, a::Int, node_f
     end
 end
 
-function constraint_check_valve_head_loss(wm::AbstractMICPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
+function constraint_check_valve_head_loss(wm::CRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # Gather flow- and check valve-related variables.
     qp, qn = var(wm, n, :qp_check_valve, a), var(wm, n, :qn_check_valve, a)
     z = var(wm, n, :z_check_valve, a)
@@ -85,7 +84,7 @@ function constraint_check_valve_head_loss(wm::AbstractMICPModel, n::Int, a::Int,
     append!(con(wm, n, :head_loss)[a], [c_p])
 end
 
-function constraint_shutoff_valve_head_loss(wm::AbstractMICPModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
+function constraint_shutoff_valve_head_loss(wm::CRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # Gather flow- and shutoff valve-related variables.
     qp, qn = var(wm, n, :qp_shutoff_valve, a), var(wm, n, :qn_shutoff_valve, a)
     y, z = var(wm, n, :y_shutoff_valve, a), var(wm, n, :z_shutoff_valve, a)
@@ -107,7 +106,7 @@ function constraint_shutoff_valve_head_loss(wm::AbstractMICPModel, n::Int, a::In
     append!(con(wm, n, :head_loss)[a], [c_1, c_2, c_3, c_4])
 end
 
-function constraint_pipe_head_loss(wm::AbstractMICPModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
+function constraint_pipe_head_loss(wm::CRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
     # Gather common variables.
     qp, qn = var(wm, n, :qp_pipe, a), var(wm, n, :qn_pipe, a)
     dhp, dhn = var(wm, n, :dhp_pipe, a), var(wm, n, :dhn_pipe, a)
@@ -120,11 +119,11 @@ function constraint_pipe_head_loss(wm::AbstractMICPModel, n::Int, a::Int, node_f
     append!(con(wm, n, :head_loss)[a], [c_p, c_n])
 end
 
-function objective_wf(wm::AbstractMICPModel)
+function objective_wf(wm::CRDWaterModel)
     JuMP.set_objective_sense(wm.model, _MOI.FEASIBILITY_SENSE)
 end
 
-function objective_owf(wm::AbstractMICPModel)
+function objective_owf(wm::CRDWaterModel)
     # If the number of breakpoints is not positive, no objective is added.
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
     if pump_breakpoints <= 0 return end

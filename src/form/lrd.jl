@@ -1,5 +1,5 @@
-# Define MILP-R (relaxation-based mixed-integer linear programming)
-# implementations of common water distribution model specifications.
+# Define common LRD (linear relaxation- and direction-based) implementations of water
+# distribution network constraints, which use directed flow variables.
 
 function _get_owf_oa(q::JuMP.VariableRef, z::JuMP.VariableRef, q_hat::Float64, coeffs::Array{Float64})
     f = coeffs[1]*q_hat^3 + coeffs[2]*q_hat^2 + coeffs[3]*q_hat
@@ -26,7 +26,7 @@ end
 
 
 "Pump head gain constraint when the pump status is ambiguous."
-function constraint_pump_head_gain(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
+function constraint_pump_head_gain(wm::LRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
     # If the number of breakpoints is not positive, no constraints are added.
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
     if pump_breakpoints <= 0 return end
@@ -65,7 +65,7 @@ function constraint_pump_head_gain(wm::AbstractMILPRModel, n::Int, a::Int, node_
 end
 
 
-function constraint_pipe_head_loss_des(wm::AbstractMILPRModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, resistances)
+function constraint_pipe_head_loss_des(wm::LRDWaterModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, resistances)
     # If the number of breakpoints is not positive, no constraints are added.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
     if pipe_breakpoints <= 0 return end
@@ -94,7 +94,7 @@ function constraint_pipe_head_loss_des(wm::AbstractMILPRModel, n::Int, a::Int, a
 end
 
 
-function constraint_pipe_head_loss(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
+function constraint_pipe_head_loss(wm::LRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
     # If the number of breakpoints is not positive, no constraints are added.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
     if pipe_breakpoints <= 0 return end
@@ -122,7 +122,7 @@ function constraint_pipe_head_loss(wm::AbstractMILPRModel, n::Int, a::Int, node_
 end
 
 
-function constraint_check_valve_head_loss(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
+function constraint_check_valve_head_loss(wm::LRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # If the number of breakpoints is not positive, no constraints are added.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
     if pipe_breakpoints <= 0 return end
@@ -142,7 +142,7 @@ function constraint_check_valve_head_loss(wm::AbstractMILPRModel, n::Int, a::Int
 end
 
 
-function constraint_shutoff_valve_head_loss(wm::AbstractMILPRModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
+function constraint_shutoff_valve_head_loss(wm::LRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
     # If the number of breakpoints is not positive, no constraints are added.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
     if pipe_breakpoints <= 0 return end
@@ -172,7 +172,7 @@ function constraint_shutoff_valve_head_loss(wm::AbstractMILPRModel, n::Int, a::I
 end
 
 
-function objective_owf(wm::AbstractMILPRModel)
+function objective_owf(wm::LRDWaterModel)
     # If the number of breakpoints is not positive, no objective is added.
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
     if pump_breakpoints <= 0 return end

@@ -14,10 +14,10 @@ This decoupling enables the definition of a wide variety of optimization formula
 * Network Design (`des`) - minimize the cost of network design
 
 **Core Network Formulations**
-* NLP - nonconvex nonlinear program
-* MICP-R - relaxation-based mixed-integer convex program
-* MILP - mixed-integer linear program using piecewise linear approximations
-* MILP-R - relaxation-based mixed-integer linear program
+* NC - nonconvex nonlinear formulation
+* CRD - continuous (convex) relaxation- and direction-based formulation
+* LA - linear approximation-based formulation
+* LRD - linear relaxation- and direction-based formulation
 
 ## Documentation
 The package [documentation](https://lanl-ansi.github.io/WaterModels.jl/latest) includes a [quick start guide](https://lanl-ansi.github.io/WaterModels.jl/latest/quickguide).

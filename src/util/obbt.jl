@@ -5,7 +5,7 @@
 Iteratively tighten bounds on head and flow variables.
 
 The function can be invoked on any convex relaxation which explicitly has these variables.
-By default, the function uses the MICP-R relaxation for performing bound tightening.
+By default, the function uses the CRD relaxation for performing bound tightening.
 
 # Example
 
@@ -247,7 +247,7 @@ end
 
 
 function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_reduced_network::Bool = true,
-    model_type::Type = MICPRWaterModel, time_limit::Float64 = 3600.0, upper_bound::Float64 =
+    model_type::Type = CRDWaterModel, time_limit::Float64 = 3600.0, upper_bound::Float64 =
     Inf, upper_bound_constraint::Bool = false, max_iter::Int = 100, improvement_tol::Float64
     = 1.0e-6, relaxed::Bool = true, precision=1.0e-4, min_width::Float64 = 1.0e-3,
     ext::Dict{Symbol,<:Any} = Dict{Symbol,Any}(:pump_breakpoints=>5), kwargs...)

@@ -1,5 +1,5 @@
 # Quick Start Guide
-The following guide walks through the solution of a water network design (`des`) problem using two mixed-integer linear programming formulations (MILP and MILP-R) of the problem specification.
+The following guide walks through the solution of a water network design (`des`) problem using two mixed-integer linear programming formulations (LA and LRD) of the problem specification.
 This is to enable solution using the readily-available open-source mixed-integer linear programming solver [Cbc](https://github.com/JuliaOpt/Cbc.jl).
 Other formulations rely on the availability of mixed-integer nonlinear programming solvers that support [user-defined nonlinear functions in JuMP](http://www.juliaopt.org/JuMP.jl/dev/nlp/#User-defined-Functions-1).
 However, these solvers (e.g., [Juniper](https://github.com/lanl-ansi/Juniper.jl), [KNITRO](https://github.com/JuliaOpt/KNITRO.jl)) either require additional effort to register user-defined functions or are proprietary and require a commercial license.
@@ -44,33 +44,33 @@ To merge these data together, InfrastructureModels is used to update the origina
 WaterModels._IM.update_data!(data, modifications)
 ```
 
-Finally, the MILP formulation for the network design specification can be solved using
+Finally, the LA formulation for the network design specification can be solved using
 ```julia
 import Cbc
-run_des(data, MILPWaterModel, Cbc.Optimizer)
+run_des(data, LAWaterModel, Cbc.Optimizer)
 ```
 
 By default, no breakpoints are used for the linear approximation of each head loss curve, and the problem is infeasible.
 These approximations can be more finely discretized by using additional arguments to the `run_des` function.
 For example, to employ five breakpoints per head loss curve in this formulation, the following can be executed:
 ```julia
-run_des(data, MILPWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>5))
+run_des(data, LAWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>5))
 ```
 Note that this takes much longer to solve due to the use of more binary variables.
 However, because of the finer discretization, a better approximation of the physics is attained.
 
-Instead of linear approximation, head loss curves can also be linearly outer-approximated via the MILP-R formulation.
+Instead of linear approximation, head loss curves can also be linearly outer-approximated via the LRD formulation.
 This formulation employs less strict requirements and avoids the use of binary variables, but solutions (e.g., diameters) may not necessarily be feasible with respect to the full (nonconvex) water network physics.
 To employ five outer approximation points per (positive or negative) head loss curve in this formulation, the following can be executed:
 ```julia
-run_des(data, MILPRWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>5))
+run_des(data, LRDWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>5))
 ```
 
 ## Obtaining Results
 The `run` commands in WaterModels return detailed results data in the form of a Julia `Dict`.
 This dictionary can be saved for further processing as follows:
 ```julia
-result = run_des(data, MILPRWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>5))
+result = run_des(data, LRDWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>5))
 ```
 
 For example, the algorithm's runtime and final objective value can be accessed with,
@@ -90,22 +90,22 @@ For more information about WaterModels result data see the [WaterModels Result D
 ## Accessing Different Formulations
 The MILP formulations discussed above assume access to a mixed-integer programming (MIP) solver.
 Mixed-integer nonconvex formulations can be solved with dedicated solvers, as well.
-For example, the full mixed-integer nonconvex formulation for design (NLP) can be solved via
+For example, the full mixed-integer nonconvex formulation for design (NC) can be solved via
 ```julia
 import KNITRO
-run_des(data, NLPWaterModel, KNITRO.Optimizer)
+run_des(data, NCWaterModel, KNITRO.Optimizer)
 ```
 
 ## Modifying Network Data
 The following example demonstrates one way to perform multiple WaterModels solves while modifying network data:
 ```julia
-run_des(data, MILPRWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>5))
+run_des(data, LRDWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>5))
 
 data["junction"]["3"]["demand"] *= 2.0
 data["junction"]["4"]["demand"] *= 2.0
 data["junction"]["5"]["demand"] *= 2.0
 
-run_des(data, MILPRWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>5))
+run_des(data, LRDWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>5))
 ```
 Note that the greater demands in the second problem result in an overall larger network cost.
 For additional details about the network data, see the [WaterModels Network Data Format](@ref) section.
@@ -114,7 +114,7 @@ For additional details about the network data, see the [WaterModels Network Data
 The following example demonstrates how to break a `run_des` call into separate model building and solving steps.
 This allows inspection of the JuMP model created by WaterModels for the problem.
 ```julia
-wm = instantiate_model(data, MILPRWaterModel, WaterModels.build_des)
+wm = instantiate_model(data, LRDWaterModel, WaterModels.build_des)
 
 print(wm.model)
 
