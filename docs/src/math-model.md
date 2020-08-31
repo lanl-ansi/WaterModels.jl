@@ -112,7 +112,7 @@ and the Hazen-Williams resistance per unit length is
 ```
 
 ## Nonconvex Nonlinear Program
-The full nonconvex formulation of the physical feasibility problem (NCNC), which incorporates all requirements from [Physical Feasibility](#Physical-Feasibility-1), may be written as a system that satisfies the following constraints:
+The full nonconvex formulation of the physical feasibility problem (NC), which incorporates all requirements from [Physical Feasibility](#Physical-Feasibility-1), may be written as a system that satisfies the following constraints:
 ```math
 \begin{align}
     h_{i} - h_{j} &= L_{ij} r_{ij} q_{ij} \lvert q_{ij} \rvert^{\alpha}, ~ \forall (i, j) \in \mathcal{A} \label{eqn:ncnlp-head-loss} \\

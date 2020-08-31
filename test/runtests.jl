@@ -18,7 +18,7 @@ WaterModels.logger_config!("error")
 
 using Test
 
-# Default MIP and NC optimizers.
+# Default MIP and NLP optimizers.
 cbc = JuMP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
 
 ipopt = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "tol"=>1.0e-8,

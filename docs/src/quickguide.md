@@ -88,7 +88,7 @@ Dict(name => data["q"] for (name, data) in result["solution"]["des_pipe"])
 For more information about WaterModels result data see the [WaterModels Result Data Format](@ref) section.
 
 ## Accessing Different Formulations
-The LA formulations discussed above assume access to a mixed-integer programming (MIP) solver.
+The MILP formulations discussed above assume access to a mixed-integer programming (MIP) solver.
 Mixed-integer nonconvex formulations can be solved with dedicated solvers, as well.
 For example, the full mixed-integer nonconvex formulation for design (NC) can be solved via
 ```julia
