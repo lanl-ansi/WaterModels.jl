@@ -1,6 +1,5 @@
-# Define common MICP (mixed-integer convex program) implementations of water
-# distribution constraints, which use directed flow variables.
-
+# Define common CRD (continuous or convex relaxation- and direction-based) implementations
+# of water distribution network constraints, which use directed flow variables.
 
 function constraint_pipe_head_loss_des(wm::CRDWaterModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances)
     # Collect head difference variables.

@@ -1,21 +1,9 @@
-# Define NC (nonconvex nonlinear programming) implementations of water
-# distribution feasibility and optimization problem specifications. Note that
-# here, ``nonconvex nonlinear'' describes the treatment of head loss and head
-# gain constraints, which are nonlinear equalities. NC formulations also
-# include nonlinearites that would be surmised in a full problem formulation
-# (e.g., in the optimal power flow problem, a cubic function of flow is used in
-# this formulation to define the consumption of power by active pumps).
-
-#"Creates flow variables for `NC` formulations (`q`)."
-#function variable_flow(wm::NCWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
-#    variable_flow_common(wm, nw=nw, bounded=bounded, report=report)
-#end
-
-
-"Creates network design flow variables for `NC` formulations (`q_des_pipe`, `x_des`)."
-function variable_flow_des(wm::NCWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
-    variable_flow_des_common(wm, nw=nw, bounded=bounded, report=report)
-end
+# Define NC (nonconvex nonlinear programming) implementations of water distribution
+# feasibility and optimization problem specifications. Note that here, ``nonconvex
+# nonlinear'' describes the treatment of head loss and head gain constraints, which are
+# nonlinear equalities. NC formulations also include nonlinearites that would be surmised in
+# a full problem formulation (e.g., in the optimal water flow problem, a cubic function of
+# flow is used in this formulation to define the consumption of power by active pumps).
 
 
 "Adds head loss constraints for check valves in `NC` formulations."

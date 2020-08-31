@@ -1,5 +1,5 @@
-# Define LRD (relaxation-based mixed-integer linear programming)
-# implementations of common water distribution model specifications.
+# Define common LRD (linear relaxation- and direction-based) implementations of water
+# distribution network constraints, which use directed flow variables.
 
 function _get_owf_oa(q::JuMP.VariableRef, z::JuMP.VariableRef, q_hat::Float64, coeffs::Array{Float64})
     f = coeffs[1]*q_hat^3 + coeffs[2]*q_hat^2 + coeffs[3]*q_hat

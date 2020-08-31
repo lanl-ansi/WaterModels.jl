@@ -29,7 +29,7 @@ Finally, test that the package works as expected by executing
 ## Usage at a Glance
 At least one optimization solver is required to run WaterModels.
 The solver selected typically depends on the type of problem formulation being employed.
-As an example, to solve a mixed-integer linear programming (LA) formulation of the feasible water flow (`wf`) problem, the open-source mixed-integer programming solver [CBC](https://github.com/coin-or/Cbc) can be used.
+As an example, to solve a mixed-integer linear programming (MILP) formulation of the feasible water flow (`wf`) problem, the open-source mixed-integer programming solver [CBC](https://github.com/coin-or/Cbc) can be used.
 Installation of the JuMP interface to CBC can be performed via the Julia package manager, i.e.,
 
 ```julia

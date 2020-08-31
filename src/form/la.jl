@@ -1,5 +1,4 @@
-# Define LA (approximation-based mixed-integer linear programming)
-# implementations of common water distribution model specifications.
+# Define LA (linear approximation-based) implementations of water models.
 
 function variable_flow_piecewise_weights(wm::LAWaterModel; nw::Int=wm.cnw, report::Bool=false)
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
