@@ -188,10 +188,12 @@ function epanet_to_watermodels!(data::Dict{String,<:Any}; import_all::Bool = fal
     # Modify the network for standard modeling of tanks.
     for (i, tank) in data["tank"]
         # Create a new node, which will be connected to the tank with a shutoff valve.
-        node = deepcopy(data["node"][string(tank["node"])])
+        old_index = string(tank["node"])
+        node = deepcopy(data["node"][old_index])
         node["index"], node["name"] = node_index, string(node_index)
-        node["source_id"] = AbstractString["node", "$(node_index)"]
         data["node"][string(node_index)] = node
+        # adjust the node source-id for the intermediate node 
+        data["node"][old_index]["source_id"] = AbstractString["node", "$(old_index)"] 
 
         # Instantiate the properties that define the auxiliary pipe.
         pipe = Dict{String,Any}("name" => string(edge_index), "status" => 1)
@@ -204,16 +206,13 @@ function epanet_to_watermodels!(data::Dict{String,<:Any}; import_all::Bool = fal
 
         # Set the tank node index to the index of the dummy node.
         tank["node"] = node_index
-
+        
         # Update the auxiliary node and edge indices.
         node_index, edge_index = node_index + 1, edge_index + 1
     end
 
     for (i, junction) in data["junction"]
         if isapprox(junction["demand"], 0.0, atol=1.0e-7)
-            # copy source_id to the corresponding node before deleting the junction
-            nodekey = string(junction["node"])
-            data["node"][nodekey]["source_id"] = junction["source_id"]
             delete!(data["junction"], i)
             haskey(data, "time_series") && delete!(data["time_series"]["junction"], i)
         end
@@ -318,6 +317,7 @@ function _add_nodes!(data::Dict{String,<:Any})
             # Save common data from the component within the node entry.
             node["status"], node["elevation"] = comp["status"], pop!(comp, "elevation")
             node["head"] = "head" in keys(comp) ? pop!(comp, "head") : node["elevation"]
+            node["source_id"] = comp["source_id"]
 
             # Append the node to the node dictionary.
             data["node"][key] = node
