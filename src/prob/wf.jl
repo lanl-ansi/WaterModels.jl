@@ -108,6 +108,9 @@ function build_mn_wf(wm::AbstractWaterModel)
         variable_reservoir(wm; nw=n)
         variable_tank(wm; nw=n)
 
+        ########## Devon's stuff ###########
+        constraint_VE_template(wm, n)
+
         # Flow conservation at all nodes.
         for i in ids(wm, :node; nw=n)
             constraint_flow_conservation(wm, i; nw=n)

@@ -84,3 +84,17 @@ function constraint_recover_volume(wm::AbstractWaterModel, i::Int, n_1::Int, n_f
     c = JuMP.@constraint(wm.model, V_f >= V_1)
     con(wm, n_f, :recover_volume)[i] = c
 end
+
+############ Devon's stuff #########
+function constraint_VE(
+    wm::AbstractWaterModel, intial_time::Int, time_step::Float64, n::Int, remaining_times::Array{Int64,1},
+    tanks::Array{Int64,1}, source_pumps::Array{Int64,1},remaining_demand::Float64)
+    start_time = n
+    intial_tank_volumes = var(wm,intial_time,:V)
+    current_tank_volumes = var(wm,start_time,:V)
+    pump_status = var(wm,start_time,:V)
+    c = JuMP.@constraint(wm.model,
+    sum(intial_tank_volumes[k] for k in tanks) - sum(current_tank_volumes[k] for k in tanks) + RD
+    <= sum( sum((ref(wm,t,:pump)[p]["q_max"] * time_step * var(wm,t,:z_pump)[p]) for p in source_pumps) for t in remaining_times))
+    #con(wm, nw, :VE) = c
+end

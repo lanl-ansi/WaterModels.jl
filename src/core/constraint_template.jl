@@ -342,3 +342,40 @@ function constraint_head_difference_pump(wm::AbstractWaterModel, a::Int; nw::Int
     node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
     constraint_head_difference_pump(wm, nw, a, node_fr, node_to)
 end
+
+################ Devon's stuff #########
+
+function collect_remaining_times(wm::AbstractWaterModel, start_time::Int)
+    times = collect(keys(wm.ref[:nw]))
+    #times = map(x -> parse(Int,x),times)
+    end_time = maximum(times)
+    remaining_times = range(start_time, stop = end_time)
+    remaining_times = convert(Array{Int,1}, remaining_times)
+    return remaining_times
+end
+
+function get_remaining_demand(wm::AbstractWaterModel, start_time::Int)
+    remaining_demand = 0
+    remaining_times = collect_remaining_times(wm, start_time)
+    for time in remaining_times
+        #time = string(time)
+        for junction in keys(ref(wm,time,:junction))
+            remaining_demand += ref(wm,time,:junction)[junction]["demand"]
+        end
+    end
+    return remaining_demand
+end
+
+function constraint_VE_template(wm::AbstractWaterModel, nw::Int=wm.cnw)
+    start_time = nw
+    intial_time = minimum(collect(keys(wm.ref[:nw])))
+    time_step = ref(wm,:time_step)
+    remaining_demand = get_remaining_demand(wm, start_time)
+    remaining_times = collect_remaining_times(wm, start_time)
+    tanks = collect(keys(ref(wm,start_time,:tank)))
+    source_pumps = collect(keys(ref(wm,start_time,:pump)))
+
+    constraint_VE(wm, intial_time, time_step, start_time, remaining_times,
+        tanks, source_pumps,remaining_demand)
+
+end
