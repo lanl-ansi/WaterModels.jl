@@ -9,25 +9,25 @@
             @test result["termination_status"] == LOCALLY_SOLVED
             @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
             @test isapprox(result["solution"]["node"]["2"]["p"], 7.89, rtol=1.0e-3)
-            @test isapprox(result["solution"][name]["1"]["q"], 1.0, rtol=1.0e-3)
+            @test isapprox(result["solution"]["pipe"]["1"]["q"], 1.0, rtol=1.0e-3)
 
             wm = instantiate_model(network, CRDWaterModel, build_wf)
             result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
             @test result["termination_status"] == LOCALLY_SOLVED
             @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
             @test result["solution"]["node"]["2"]["p"] <= 7.89
-            @test isapprox(result["solution"][name]["1"]["q"], 1.0, rtol=1.0e-3)
+            @test isapprox(result["solution"]["pipe"]["1"]["q"], 1.0, rtol=1.0e-3)
 
             result = run_wf(network, LAWaterModel, cbc, ext=Dict(:pipe_breakpoints=>3))
             @test result["termination_status"] == OPTIMAL
             @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
             @test isapprox(result["solution"]["node"]["2"]["p"], 7.89, rtol=1.0e-3)
-            @test isapprox(result["solution"][name]["1"]["q"], 1.0, rtol=1.0e-3)
+            @test isapprox(result["solution"]["pipe"]["1"]["q"], 1.0, rtol=1.0e-3)
 
             result = run_wf(network, LRDWaterModel, cbc, ext=Dict(:pipe_breakpoints=>3))
             @test result["termination_status"] == OPTIMAL
             @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
-            @test isapprox(result["solution"][name]["1"]["q"], 1.0, rtol=1.0e-3)
+            @test isapprox(result["solution"]["pipe"]["1"]["q"], 1.0, rtol=1.0e-3)
         end
     end
 
@@ -169,17 +169,17 @@ end
             @test isapprox(result["solution"]["nw"]["1"]["node"]["2"]["p"], 7.89, rtol=1.0e-3)
             @test isapprox(result["solution"]["nw"]["2"]["node"]["2"]["h"], 9.42, rtol=1.0e-3)
             @test isapprox(result["solution"]["nw"]["3"]["node"]["2"]["h"], 9.84, rtol=1.0e-3)
-            @test isapprox(result["solution"]["nw"]["1"][name]["1"]["q"], 1.0, rtol=1.0e-3)
-            @test isapprox(result["solution"]["nw"]["2"][name]["1"]["q"], 0.5, rtol=1.0e-3)
-            @test isapprox(result["solution"]["nw"]["3"][name]["1"]["q"], 0.25, rtol=1.0e-3)
+            @test isapprox(result["solution"]["nw"]["1"]["pipe"]["1"]["q"], 1.0, rtol=1.0e-3)
+            @test isapprox(result["solution"]["nw"]["2"]["pipe"]["1"]["q"], 0.5, rtol=1.0e-3)
+            @test isapprox(result["solution"]["nw"]["3"]["pipe"]["1"]["q"], 0.25, rtol=1.0e-3)
 
             wm = instantiate_model(network, CRDWaterModel, build_mn_wf)
             result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
             @test result["termination_status"] == LOCALLY_SOLVED
             @test isapprox(result["solution"]["nw"]["2"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
-            @test isapprox(result["solution"]["nw"]["1"][name]["1"]["q"], 1.0, rtol=1.0e-3)
-            @test isapprox(result["solution"]["nw"]["2"][name]["1"]["q"], 0.5, rtol=1.0e-3)
-            @test isapprox(result["solution"]["nw"]["3"][name]["1"]["q"], 0.25, rtol=1.0e-3)
+            @test isapprox(result["solution"]["nw"]["1"]["pipe"]["1"]["q"], 1.0, rtol=1.0e-3)
+            @test isapprox(result["solution"]["nw"]["2"]["pipe"]["1"]["q"], 0.5, rtol=1.0e-3)
+            @test isapprox(result["solution"]["nw"]["3"]["pipe"]["1"]["q"], 0.25, rtol=1.0e-3)
 
             result = run_mn_wf(network, LAWaterModel, cbc, ext=Dict(:pipe_breakpoints=>3))
             @test result["termination_status"] == OPTIMAL
@@ -187,16 +187,16 @@ end
             @test isapprox(result["solution"]["nw"]["1"]["node"]["2"]["p"], 7.89, rtol=1.0e-3)
             @test isapprox(result["solution"]["nw"]["2"]["node"]["2"]["h"], 9.42, rtol=1.0e-3)
             @test isapprox(result["solution"]["nw"]["3"]["node"]["2"]["h"], 9.84, rtol=1.0e-3)
-            @test isapprox(result["solution"]["nw"]["1"][name]["1"]["q"], 1.0, rtol=1.0e-3)
-            @test isapprox(result["solution"]["nw"]["2"][name]["1"]["q"], 0.5, rtol=1.0e-3)
-            @test isapprox(result["solution"]["nw"]["3"][name]["1"]["q"], 0.25, rtol=1.0e-3)
+            @test isapprox(result["solution"]["nw"]["1"]["pipe"]["1"]["q"], 1.0, rtol=1.0e-3)
+            @test isapprox(result["solution"]["nw"]["2"]["pipe"]["1"]["q"], 0.5, rtol=1.0e-3)
+            @test isapprox(result["solution"]["nw"]["3"]["pipe"]["1"]["q"], 0.25, rtol=1.0e-3)
 
             result = run_mn_wf(network, LRDWaterModel, cbc, ext=Dict(:pipe_breakpoints=>3))
             @test result["termination_status"] == OPTIMAL
             @test isapprox(result["solution"]["nw"]["2"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
-            @test isapprox(result["solution"]["nw"]["1"][name]["1"]["q"], 1.0, rtol=1.0e-3)
-            @test isapprox(result["solution"]["nw"]["2"][name]["1"]["q"], 0.5, rtol=1.0e-3)
-            @test isapprox(result["solution"]["nw"]["3"][name]["1"]["q"], 0.25, rtol=1.0e-3)
+            @test isapprox(result["solution"]["nw"]["1"]["pipe"]["1"]["q"], 1.0, rtol=1.0e-3)
+            @test isapprox(result["solution"]["nw"]["2"]["pipe"]["1"]["q"], 0.5, rtol=1.0e-3)
+            @test isapprox(result["solution"]["nw"]["3"]["pipe"]["1"]["q"], 0.25, rtol=1.0e-3)
         end
     end
 
@@ -245,8 +245,8 @@ end
         @test isapprox(result["solution"]["nw"]["2"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["1"]["pipe"]["1"]["q"], 2.00, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["3"]["pipe"]["1"]["q"], 0.50, rtol=1.0e-3)
-        @test isapprox(result["solution"]["nw"]["1"]["pressure_reducing_valve"]["2"]["q"], 1.00, rtol=1.0e-3)
-        @test isapprox(result["solution"]["nw"]["3"]["pressure_reducing_valve"]["2"]["q"], 0.25, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["regulator"]["2"]["q"], 1.00, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["3"]["regulator"]["2"]["q"], 0.25, rtol=1.0e-3)
 
         wm = instantiate_model(network, CRDWaterModel, build_mn_wf)
         result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
@@ -258,8 +258,8 @@ end
         @test isapprox(result["solution"]["nw"]["2"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["1"]["pipe"]["1"]["q"], 2.00, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["3"]["pipe"]["1"]["q"], 0.50, rtol=1.0e-3)
-        @test isapprox(result["solution"]["nw"]["1"]["pressure_reducing_valve"]["2"]["q"], 1.00, rtol=1.0e-3)
-        @test isapprox(result["solution"]["nw"]["3"]["pressure_reducing_valve"]["2"]["q"], 0.25, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["regulator"]["2"]["q"], 1.00, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["3"]["regulator"]["2"]["q"], 0.25, rtol=1.0e-3)
 
         result = run_mn_wf(network, LAWaterModel, cbc, ext=Dict(:pipe_breakpoints=>3))
         @test result["termination_status"] == OPTIMAL
@@ -270,8 +270,8 @@ end
         @test isapprox(result["solution"]["nw"]["2"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["1"]["pipe"]["1"]["q"], 2.00, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["3"]["pipe"]["1"]["q"], 0.50, rtol=1.0e-3)
-        @test isapprox(result["solution"]["nw"]["1"]["pressure_reducing_valve"]["2"]["q"], 1.00, rtol=1.0e-3)
-        @test isapprox(result["solution"]["nw"]["3"]["pressure_reducing_valve"]["2"]["q"], 0.25, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["regulator"]["2"]["q"], 1.00, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["3"]["regulator"]["2"]["q"], 0.25, rtol=1.0e-3)
 
         result = run_mn_wf(network, LRDWaterModel, cbc, ext=Dict(:pipe_breakpoints=>3))
         @test result["termination_status"] == OPTIMAL
@@ -282,8 +282,8 @@ end
         @test isapprox(result["solution"]["nw"]["2"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["1"]["pipe"]["1"]["q"], 2.00, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["3"]["pipe"]["1"]["q"], 0.50, rtol=1.0e-3)
-        @test isapprox(result["solution"]["nw"]["1"]["pressure_reducing_valve"]["2"]["q"], 1.00, rtol=1.0e-3)
-        @test isapprox(result["solution"]["nw"]["3"]["pressure_reducing_valve"]["2"]["q"], 0.25, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["regulator"]["2"]["q"], 1.00, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["3"]["regulator"]["2"]["q"], 0.25, rtol=1.0e-3)
     end
 
     @testset "Head Gain (Pump)" begin

@@ -33,12 +33,12 @@ end
 
 function calc_demand_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     # Initialize the dictionaries for minimum and maximum heads.
-    demand_min = Dict((i, -Inf) for (i, junc) in ref(wm, n, :dispatchable_junction))
-    demand_max = Dict((i, Inf) for (i, junc) in ref(wm, n, :dispatchable_junction))
+    demand_min = Dict((i, -Inf) for (i, demand) in ref(wm, n, :dispatchable_demand))
+    demand_max = Dict((i, Inf) for (i, demand) in ref(wm, n, :dispatchable_demand))
 
-    for (i, junction) in ref(wm, n, :dispatchable_junction)
-        demand_min[i] = max(demand_min[i], junction["demand_min"])
-        demand_max[i] = min(demand_max[i], junction["demand_max"])
+    for (i, demand) in ref(wm, n, :dispatchable_demand)
+        demand_min[i] = max(demand_min[i], demand["demand_min"])
+        demand_max[i] = min(demand_max[i], demand["demand_max"])
     end
 
     return demand_min, demand_max
@@ -66,12 +66,12 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     head_max = Dict((i, max_head) for (i, node) in ref(wm, n, :node))
 
     for (i, node) in ref(wm, n, :node)
-        num_junctions = length(ref(wm, n, :node_junction, i))
+        num_demands = length(ref(wm, n, :node_demand, i))
         num_reservoirs = length(ref(wm, n, :node_reservoir, i))
         num_tanks = length(ref(wm, n, :node_tank, i))
 
         # If the node has zero demand, pressures can be negative.
-        if num_junctions + num_reservoirs + num_tanks == 0
+        if num_demands + num_reservoirs + num_tanks == 0
             head_min[i] -= 100.0
         end
     end
@@ -96,9 +96,9 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
         head_max[node_id] = elevation + tank["max_level"]
     end
 
-    for (a, pressure_reducing_valve) in ref(wm, n, :pressure_reducing_valve)
-        p_setting = ref(wm, n, :pressure_reducing_valve, a)["setting"]
-        node_to = pressure_reducing_valve["node_to"]
+    for (a, regulator) in ref(wm, n, :regulator)
+        p_setting = ref(wm, n, :regulator, a)["setting"]
+        node_to = regulator["node_to"]
         h_setting = ref(wm, n, :node, node_to)["elevation"] + p_setting
         head_min[node_to] = min(head_min[node_to], h_setting)
     end
@@ -117,10 +117,10 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     h_lb, h_ub = calc_head_bounds(wm, n)
     alpha = ref(wm, n, :alpha)
 
-    nondispatchable_junctions = values(ref(wm, n, :nondispatchable_junction))
-    sum_demand = length(nondispatchable_junctions) > 0 ? sum(junc["demand"] for junc in nondispatchable_junctions) : 0.0
-    dispatchable_junctions = values(ref(wm, n, :dispatchable_junction))
-    sum_demand += length(dispatchable_junctions) > 0 ? sum(junc["demand_max"] for junc in dispatchable_junctions) : 0.0
+    nondispatchable_demands = values(ref(wm, n, :nondispatchable_demand))
+    sum_demand = length(nondispatchable_demands) > 0 ? sum(demand["flow_rate"] for demand in nondispatchable_demands) : 0.0
+    dispatchable_demands = values(ref(wm, n, :dispatchable_demand))
+    sum_demand += length(dispatchable_demands) > 0 ? sum(demand["demand_max"] for demand in dispatchable_demands) : 0.0
 
     if :time_step in keys(ref(wm, n))
         time_step = ref(wm, n, :time_step)
@@ -130,7 +130,7 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
 
     lb, ub = Dict{String,Any}(), Dict{String,Any}()
 
-    for name in ["check_valve", "pipe", "des_pipe", "shutoff_valve"]
+    for name in ["pipe", "des_pipe"]
         lb[name], ub[name] = Dict{Int,Array{Float64}}(), Dict{Int,Array{Float64}}()
 
         for (a, comp) in ref(wm, n, Symbol(name))
@@ -167,14 +167,38 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
         end
     end
 
-    lb["pressure_reducing_valve"] = Dict{Int,Array{Float64}}()
-    ub["pressure_reducing_valve"] = Dict{Int,Array{Float64}}()
+    lb["regulator"] = Dict{Int,Array{Float64}}()
+    ub["regulator"] = Dict{Int,Array{Float64}}()
 
-    for (a, prv) in ref(wm, n, :pressure_reducing_valve)
-        name = "pressure_reducing_valve"
+    for (a, regulator) in ref(wm, n, :regulator)
+        name = "regulator"
         lb[name][a], ub[name][a] = [0.0], [sum_demand]
-        haskey(prv, "q_min") && (lb[name][a][1] = max(lb[name][a][1], prv["q_min"]))
-        haskey(prv, "q_max") && (ub[name][a][1] = min(ub[name][a][1], prv["q_max"]))
+        haskey(regulator, "q_min") && (lb[name][a][1] = max(lb[name][a][1], regulator["q_min"]))
+        haskey(regulator, "q_max") && (ub[name][a][1] = min(ub[name][a][1], regulator["q_max"]))
+    end
+
+    lb["short_pipe"] = Dict{Int,Array{Float64}}()
+    ub["short_pipe"] = Dict{Int,Array{Float64}}()
+
+    for (a, short_pipe) in ref(wm, n, :short_pipe)
+        lb["short_pipe"][a], ub["short_pipe"][a] = -sum_demand, sum_demand
+        haskey(short_pipe, "q_min") && (lb["short_pipe"][a] = max(lb["short_pipe"][a], short_pipe["q_min"]))
+        haskey(short_pipe, "q_max") && (ub["short_pipe"][a] = min(ub["short_pipe"][a], short_pipe["q_max"]))
+
+        if comp["flow_direction"] == POSITIVE
+            lb[name][a] = max(lb[name][a], 0.0)
+        elseif comp["flow_direction"] == NEGATIVE
+            ub[name][a] = min(ub[name][a], 0.0)
+        end
+    end
+
+    lb["valve"] = Dict{Int,Array{Float64}}()
+    ub["valve"] = Dict{Int,Array{Float64}}()
+
+    for (a, valve) in ref(wm, n, :valve)
+        lb["valve"][a], ub["valve"][a] = [-sum_demand], [sum_demand]
+        haskey(valve, "q_min") && (lb["valve"][a][1] = max(lb["valve"][a][1], valve["q_min"]))
+        haskey(valve, "q_max") && (ub["valve"][a][1] = min(ub["valve"][a][1], valve["q_max"]))
     end
 
     lb["pump"], ub["pump"] = Dict{Int,Array{Float64}}(), Dict{Int,Array{Float64}}()

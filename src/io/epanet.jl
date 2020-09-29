@@ -105,7 +105,7 @@ function parse_epanet(filename::String)
     _read_pattern!(data)
 
     # Parse [JUNCTIONS] section.
-    _read_junction!(data)
+    _read_demand!(data)
 
     # Parse [RESERVOIRS] section.
     _read_reservoir!(data)
@@ -119,8 +119,8 @@ function parse_epanet(filename::String)
     # Add a data structure mapping names to node indices.
     _add_node_map!(data)
 
-    # Update time series information for junctions.
-    _update_junction_ts!(data)
+    # Update time series information for demands.
+    _update_demand_ts!(data)
 
     # Update time series information for reservoirs.
     _update_reservoir_ts!(data)
@@ -128,11 +128,17 @@ function parse_epanet(filename::String)
     # Parse [PIPES] section.
     _read_pipe!(data)
 
+    # Set up a dictionary containing valve objects.
+    data["valve"] = Dict{String,Any}()
+
+    # Set up a dictionary containing short pipe objects.
+    data["short_pipe"] = Dict{String,Any}()
+
     # Parse [PUMPS] section.
     _read_pump!(data)
 
     # Parse [VALVES] section.
-    _read_valve!(data)
+    _read_regulator!(data)
 
     # Parse [ENERGY] section.
     _read_energy!(data)
@@ -168,56 +174,6 @@ function parse_epanet(filename::String)
 end
 
 
-"""
-    epanet_to_watermodels!(epanet_data; import_all=false)
-
-Converts data parsed from an EPANET file, passed by `epanet_data` into a format suitable for
-internal WaterModels use. Imports all data from the EPANET file if `import_all` is true.
-"""
-function epanet_to_watermodels!(data::Dict{String,<:Any}; import_all::Bool = false)
-    edge_index, node_index = 0, maximum([x["index"] for (i, x) in data["node"]]) + 1
-
-    # Determine the starting index of new edges to be added in the network.
-    for type in ["pipe", "pressure_reducing_valve", "pump"]
-        if length(data[type]) > 0
-            max_component_id = maximum([x["index"] for (i, x) in data[type]])
-            edge_index = max(edge_index, max_component_id + 1)
-        end
-    end
-
-    # Modify the network for standard modeling of tanks.
-    for (i, tank) in data["tank"]
-        # Create a new node, which will be connected to the tank with a shutoff valve.
-        old_index = string(tank["node"])
-        node = deepcopy(data["node"][old_index])
-        node["index"], node["name"] = node_index, string(node_index)
-        data["node"][string(node_index)] = node
-        # adjust the node source-id for the intermediate node 
-        data["node"][old_index]["source_id"] = AbstractString["node", "$(old_index)"] 
-
-        # Instantiate the properties that define the auxiliary pipe.
-        pipe = Dict{String,Any}("name" => string(edge_index), "status" => 1)
-        pipe["source_id"] = ["pipe", string(edge_index)]
-        pipe["node_fr"], pipe["node_to"] = tank["node"], node_index
-        pipe["length"], pipe["diameter"], pipe["flow_direction"] = 0.0, 1.0, UNKNOWN
-        pipe["has_check_valve"], pipe["has_shutoff_valve"] = false, true
-        pipe["minor_loss"], pipe["roughness"] = 0.0, 100.0
-        data["pipe"][string(edge_index)] = pipe
-
-        # Set the tank node index to the index of the dummy node.
-        tank["node"] = node_index
-        
-        # Update the auxiliary node and edge indices.
-        node_index, edge_index = node_index + 1, edge_index + 1
-    end
-
-    for (i, junction) in data["junction"]
-        if isapprox(junction["demand"], 0.0, atol=1.0e-7)
-            delete!(data["junction"], i)
-            haskey(data, "time_series") && delete!(data["time_series"]["junction"], i)
-        end
-    end
-end
 
 
 function _update_time_series!(data::Dict{String,<:Any})
@@ -226,7 +182,7 @@ function _update_time_series!(data::Dict{String,<:Any})
     data["time_step"] = convert(Float64, time_step)
 
     if num_steps >= 1 && keys(data["pattern"]) != ["1"]
-        for type in ["junction", "node", "pump"]
+        for type in ["demand", "node", "pump"]
             length(data["time_series"][type]) == 0 && delete!(data["time_series"], type)
         end
 
@@ -261,18 +217,18 @@ function _transform_component_indices(components::Dict{String,<:Any})
 end
 
 
-function _update_junction_ts!(data::Dict{String,<:Any})
-    # Create a temporary dictionary representing the junction time series.
-    junction_ts = Dict{String,Any}()
+function _update_demand_ts!(data::Dict{String,<:Any})
+    # Create a temporary dictionary representing the demand time series.
+    demand_ts = Dict{String,Any}()
 
-    # Ensure that junction time series data use new junction indices.
-    for (i, junction) in data["time_series"]["junction"]
-        key = findfirst(x -> x["source_id"][2] == i, data["junction"])
-        junction_ts[key] = junction
+    # Ensure that demand time series data use new demand indices.
+    for (i, demand) in data["time_series"]["demand"]
+        key = findfirst(x -> x["source_id"][2] == i, data["demand"])
+        demand_ts[key] = demand
     end
 
-    # Update the junction entry in the time series dictionary.
-    data["time_series"]["junction"] = junction_ts
+    # Update the demand entry in the time series dictionary.
+    data["time_series"]["demand"] = demand_ts
 end
 
 
@@ -295,7 +251,7 @@ end
 
 function _add_nodes!(data::Dict{String,<:Any})
     # Define EPANET nodal types that should be attached to nodes.
-    comp_types = ["junction", "reservoir", "tank"]
+    comp_types = ["demand", "reservoir", "tank"]
 
     # Obtain the original EPANET indices for all nodal components.
     comp_names = vcat([collect(keys(data[t])) for t in comp_types]...)
@@ -654,11 +610,11 @@ function _update_pump_energy!(data::Dict{String,<:Any})
 end
 
 
-"Parse and store junction data from an EPANET-formatted data dictionary."
-function _read_junction!(data::Dict{String,<:Any})
-    # Initialize dictionaries associated with junctions.
-    data["junction"] = Dict{String,Dict{String,Any}}()
-    data["time_series"]["junction"] = Dict{String,Any}()
+"Parse and store demand data from an EPANET-formatted data dictionary."
+function _read_demand!(data::Dict{String,<:Any})
+    # Initialize dictionaries associated with demands.
+    data["demand"] = Dict{String,Dict{String,Any}}()
+    data["time_series"]["demand"] = Dict{String,Any}()
 
     # Initialize a temporary index to be updated while parsing.
     index::Int64 = 0
@@ -668,23 +624,23 @@ function _read_junction!(data::Dict{String,<:Any})
         current = split(split(line, ";")[1])
         length(current) == 0 && continue # Skip.
 
-        # Initialize the junction entry to be added.
-        junction = Dict{String,Any}("name" => current[1], "status" => 1)
-        junction["source_id"] = ["junction", current[1]]
-        junction["dispatchable"] = false
+        # Initialize the demand entry to be added.
+        demand = Dict{String,Any}("name" => current[1], "status" => 1)
+        demand["source_id"] = ["demand", current[1]]
+        demand["dispatchable"] = false
 
-        # Parse the elevation of the junction (in meters).
+        # Parse the elevation of the demand (in meters).
         if data["flow_units"] == "LPS" || data["flow_units"] == "CMH"
             # Retain the original value (in meters).
-            junction["elevation"] = parse(Float64, current[2])
+            demand["elevation"] = parse(Float64, current[2])
         elseif data["flow_units"] == "GPM" # If gallons per minute...
             # Convert elevation from feet to meters.
-            junction["elevation"] = 0.3048 * parse(Float64, current[2])
+            demand["elevation"] = 0.3048 * parse(Float64, current[2])
         else
             Memento.error(_LOGGER, "Could not find a valid \"units\" option type.")
         end
 
-        # Parse the demand at the junction (in cubic meters per second).
+        # Parse the demand at the demand (in cubic meters per second).
         if length(current) > 2 # A value for demand must exist.
             # Calculate the unscaled (unit unknown) demand.
             demand_unscaled = parse(Float64, current[3]) * data["demand_multiplier"]
@@ -692,40 +648,40 @@ function _read_junction!(data::Dict{String,<:Any})
             # Convert the unscaled demand to cubic meters per second.
             if data["flow_units"] == "LPS" # If liters per second...
                 # Convert from liters per second to cubic meters per second.
-                junction["demand"] = 1.0e-3 * demand_unscaled
+                demand["flow_rate"] = 1.0e-3 * demand_unscaled
             elseif data["flow_units"] == "CMH" # If cubic meters per hour...
                 # Convert from cubic meters per hour to cubic meters per second.
-                junction["demand"] = inv(3600.0) * demand_unscaled
+                demand["flow_rate"] = inv(3600.0) * demand_unscaled
             elseif data["flow_units"] == "GPM" # If gallons per minute...
                 # Convert from gallons per minute to cubic meters per second.
-                junction["demand"] = 6.30902e-5 * demand_unscaled
+                demand["flow_rate"] = 6.30902e-5 * demand_unscaled
             end
         else # No value for demand exists in the line.
-            junction["status"] = 0 # Set the status of the junction to zero.
-            junction["demand"] = 0.0 # Initialize demand to zero.
+            demand["status"] = 0 # Set the status of the demand to zero.
+            demand["flow_rate"] = 0.0 # Initialize demand to zero.
         end
 
-        # Parse the name of the pattern used to scale demand at the junction.
+        # Parse the name of the pattern used to scale demand at the demand.
         pattern = length(current) > 3 ? current[4] : data["default_pattern"]
 
         # Scale the parsed demand by the specified pattern, if it exists.
         if pattern != nothing && length(data["pattern"][pattern]) > 1
-            demand = junction["demand"] .* data["pattern"][pattern]
-            entry = Dict{String,Array{Float64}}("demand" => demand)
-            data["time_series"]["junction"][current[1]] = entry
+            flow_rate = demand["flow_rate"] .* data["pattern"][pattern]
+            entry = Dict{String,Array{Float64}}("flow_rate" => flow_rate)
+            data["time_series"]["demand"][current[1]] = entry
         elseif pattern != nothing && pattern != "1"
-            junction["demand"] *= data["pattern"][pattern][1]
+            demand["flow_rate"] *= data["pattern"][pattern][1]
         end
 
         # Add a temporary index to be used in the data dictionary.
-        junction["index"] = string(index += 1)
+        demand["index"] = string(index += 1)
 
-        # Append the junction entry to the data dictionary.
-        data["junction"][current[1]] = junction
+        # Append the demand entry to the data dictionary.
+        data["demand"][current[1]] = demand
     end
    
     # Replace with a new dictionary that uses integer component indices.
-    data["junction"] = _transform_component_indices(data["junction"])
+    data["demand"] = _transform_component_indices(data["demand"])
 end
 
 
@@ -734,13 +690,13 @@ function _add_node_map!(data::Dict{String,<:Any})
     data["node_map"] = Dict{String,Int}()
 
     # Map component names to node indices.
-    for type in ["junction", "reservoir", "tank"]
+    for type in ["demand", "reservoir", "tank"]
         map = Dict{String,Int}(x["name"] => x["node"] for (i, x) in data[type])
         data["node_map"] = merge(data["node_map"], map)
     end
 
     # Ensure the number of node-type components is equal to the number of nodes.
-    num_components = sum(length(data[type]) for type in ["junction", "reservoir", "tank"])
+    num_components = sum(length(data[type]) for type in ["demand", "reservoir", "tank"])
 
     # Ensure the number of node-type components is equal to the length of the map.
     if num_components != length(data["node_map"])
@@ -899,9 +855,8 @@ function _read_pipe!(data::Dict{String,<:Any})
         pipe["minor_loss"] = parse(Float64, current[7])
 
         # Derive important metadata from existing data.
-        pipe["has_check_valve"] = uppercase(current[8]) == "CV"
-        pipe["has_shutoff_valve"] = uppercase(current[8]) == "CLOSED"
-        pipe["flow_direction"] = pipe["has_check_valve"] ? POSITIVE : UNKNOWN
+        pipe["has_valve"] = uppercase(current[8]) in ["CV", "CLOSED"]
+        pipe["flow_direction"] = uppercase(current[8]) == "CV" ? POSITIVE : UNKNOWN
 
         # Add a temporary index to be used in the data dictionary.
         pipe["index"] = string(index += 1)
@@ -1036,6 +991,7 @@ function _read_reservoir!(data::Dict{String,<:Any})
     data["reservoir"] = _transform_component_indices(data["reservoir"])
 end
 
+
 function _read_tank!(data::Dict{String,<:Any})
     # Initialize dictionaries associated with tanks.
     data["tank"] = Dict{String,Dict{String,Any}}()
@@ -1128,13 +1084,12 @@ function _read_title!(data::Dict{String,<:Any})
 end
 
 
-function _read_valve!(data::Dict{String,<:Any})
+function _read_regulator!(data::Dict{String,<:Any})
     # Create a shorthand variable for each of the valve types.
-    prv_type = "pressure_reducing_valve"
     tcv_type = "throttle_control_valve"
 
     # Initialize dictionaries associated with valves.
-    data[prv_type] = Dict{String,Dict{String,Any}}()
+    data["regulator"] = Dict{String,Dict{String,Any}}()
     data[tcv_type] = Dict{String,Dict{String,Any}}()
 
     # Initialize a temporary index to be updated while parsing.
@@ -1152,7 +1107,7 @@ function _read_valve!(data::Dict{String,<:Any})
 
         # Parse the valve type and throw an error if not supported.
         if uppercase(current[5]) == "PRV"
-            valve["source_id"] = [prv_type, current[1]]
+            valve["source_id"] = ["regulator", current[1]]
         elseif uppercase(current[5]) == "TCV"
             valve["source_id"] = [tcv_type, current[1]]
             Memento.error(_LOGGER, "Valves of type $(current[5]) are not supported.")
@@ -1188,5 +1143,94 @@ function _read_valve!(data::Dict{String,<:Any})
     end
 
     # Replace with a new dictionary that uses integer component indices.
-    data[prv_type] = _transform_component_indices(data[prv_type])
+    data["regulator"] = _transform_component_indices(data["regulator"])
+end
+
+
+"""
+    epanet_to_watermodels!(epanet_data; import_all=false)
+
+Converts data parsed from an EPANET file, passed by `epanet_data` into a format suitable for
+internal WaterModels use. Imports all data from the EPANET file if `import_all` is true.
+"""
+function epanet_to_watermodels!(data::Dict{String,<:Any}; import_all::Bool = false)
+    _drop_zero_demands!(data)
+    _add_valves_to_tanks!(data)
+    _add_valves_from_pipes!(data)
+    _drop_pipe_flags!(data)
+end
+
+
+function _get_max_comp_id(data::Dict{String,<:Any}, comp::String)
+    return length(data[comp]) > 0 ? maximum([x["index"] for (i, x) in data[comp]]) : 0
+end
+
+
+function _get_max_link_id(data::Dict{String,<:Any})
+    arc_types = ["pipe", "pump", "regulator", "short_pipe", "valve"]
+    return maximum(maximum([x["index"] for (i, x) in data[t]]) for t in arc_types)
+end
+
+
+function _get_max_node_id(data::Dict{String,<:Any})
+    return maximum([x["index"] for (i, x) in data["node"]])
+end
+
+
+function _drop_zero_demands!(data::Dict{String,<:Any})
+    for (i, demand) in filter(x -> x.second["flow_rate"] == 0.0, data["demand"])
+        delete!(data["demand"], i)
+        haskey(data, "time_series") && delete!(data["time_series"]["demand"], i)
+    end
+end
+
+
+function _drop_pipe_flags!(data::Dict{String,<:Any})
+    # Drop valve statuses to parsed pipes.
+    for (a, pipe) in data["pipe"]
+        delete!(pipe, "has_valve")
+    end
+end
+
+
+function _add_valves_to_tanks!(data::Dict{String,<:Any})
+    # Modify the network for standard modeling of tanks.
+    for (i, tank) in data["tank"]
+        # Create a dummy node to which the valve and pipe will be attached.
+        dummy_node_id = _get_max_comp_id(data, "node") + 1
+        dummy_node = deepcopy(data["node"][string(tank["node"])])
+        dummy_node["index"], dummy_node["name"] = dummy_node_id, string(dummy_node_id)
+        data["node"][string(dummy_node_id)] = dummy_node
+
+        # Add a valve that connects the tank to the dummy node.
+        v_id = _get_max_comp_id(data, "valve") + 1
+        valve = Dict{String,Any}("name" => string(v_id), "status" => 1, "index" => v_id)
+        valve["source_id"] = AbstractString["valve", string(v_id)]
+        valve["node_fr"], valve["node_to"] = dummy_node_id, tank["node"]
+        valve["flow_direction"] = UNKNOWN
+        data["valve"][string(v_id)] = valve
+    end
+end
+
+
+function _add_valves_from_pipes!(data::Dict{String,<:Any})
+    # Add valves to parsed pipes that have the attribute "has_valve" equal to true.
+    for (a, pipe) in filter(x -> x.second["has_valve"], data["pipe"])
+        # Create a dummy node to which the valve and pipe will be attached.
+        dummy_node_id = _get_max_comp_id(data, "node") + 1
+        dummy_node = deepcopy(data["node"][string(pipe["node_fr"])])
+        dummy_node["index"], dummy_node["name"] = dummy_node_id, string(dummy_node_id)
+
+        # Create the valve that will connect to the dummy node.
+        valve = Dict{String,Any}("index" => pipe["index"], "name" => pipe["name"])
+        valve["source_id"], valve["status"] = pipe["source_id"], 1
+        valve["flow_direction"] = pipe["flow_direction"]
+
+        # Modify the start and ends nodes of the valve and pipe.
+        valve["node_fr"], valve["node_to"] = pipe["node_fr"], dummy_node_id
+        pipe["node_fr"], pipe["node_to"] = dummy_node_id, pipe["node_to"]
+
+        # Store the valve object in the valve dictionary.
+        data["valve"][a], data["node"][string(dummy_node_id)] = valve, dummy_node
+    end
 end

@@ -137,13 +137,13 @@ system-wide values that need to be computed globally.
 
 Some of the common keys include:
 
-* `:pipe` -- the set of pipes in the network without valves,
-* `:check_valve` -- the set of pipes in the network with check valves,
-* `:shutoff_valve` -- the set of pipes in the network wiith shutoff valves,
-* `:pressure_reducing_valve` -- the set of pressure reducing valves in the network,
+* `:pipe` -- the set of pipes in the network,
 * `:pump` -- the set of pumps in the network,
+* `:regulator` -- the set of regulators in the network,
+* `:short_pipe` -- the set of short pipes in the network,
+* `:valve` -- the set of valves in the network,
 * `:node` -- the set of all nodes in the network,
-* `:junction` -- the set of junctions in the network,
+* `:demand` -- the set of demands in the network,
 * `:reservoir` -- the set of reservoirs in the network,
 * `:tank` -- the set of tanks in the network
 """
@@ -155,32 +155,24 @@ end
 function _ref_add_core!(nw_refs::Dict{Int,<:Any})
     for (nw, ref) in nw_refs
         # Collect dispatchable and nondispatchable nodal components in the network.
-        ref[:dispatchable_junction] = filter(x -> x.second["dispatchable"], ref[:junction])
-        ref[:nondispatchable_junction] = filter(x -> !x.second["dispatchable"], ref[:junction])
+        ref[:dispatchable_demand] = filter(x -> x.second["dispatchable"], ref[:demand])
+        ref[:nondispatchable_demand] = filter(x -> !x.second["dispatchable"], ref[:demand])
 
         # Compute resistances for pipe-type components in the network.
         ref[:resistance] = calc_resistances(ref[:pipe], ref[:viscosity], ref[:head_loss])
         ref[:resistance_cost] =
             calc_resistance_costs(ref[:pipe], ref[:viscosity], ref[:head_loss])
-
-        # TODO: Check and shutoff valves should not have pipe properties.
-        ref[:check_valve] = filter(x -> x.second["has_check_valve"], ref[:pipe])
-        ref[:shutoff_valve] = filter(x -> x.second["has_shutoff_valve"], ref[:pipe])
-        ref[:pipe] = filter(x -> !x.second["has_check_valve"], ref[:pipe])
-        ref[:pipe] = filter(x -> !x.second["has_shutoff_valve"], ref[:pipe])
         ref[:des_pipe] = filter(is_des_pipe, ref[:pipe])
-        ref[:pipe] = filter(!is_des_pipe, ref[:pipe])
 
         # Create mappings of "from" and "to" arcs for link- (i.e., edge-) type components.
-        for name in
-            ["check_valve", "shutoff_valve", "pipe", "pressure_reducing_valve", "pump"]
+        for name in ["pipe", "pump", "regulator", "short_pipe", "valve"]
             fr_sym, to_sym = Symbol(name * "_fr"), Symbol(name * "_to")
-            ref[fr_sym] = [(i, c["node_fr"], c["node_to"]) for (i, c) in ref[Symbol(name)]]
-            ref[to_sym] = [(i, c["node_to"], c["node_fr"]) for (i, c) in ref[Symbol(name)]]
+            ref[fr_sym] = [(a, c["node_fr"], c["node_to"]) for (a, c) in ref[Symbol(name)]]
+            ref[to_sym] = [(a, c["node_to"], c["node_fr"]) for (a, c) in ref[Symbol(name)]]
         end
 
         # Set up dictionaries mapping node indices to attached component indices.
-        for name in ["junction", "tank", "reservoir"]
+        for name in ["demand", "tank", "reservoir"]
             name_sym = Symbol("node_" * name)
             ref[name_sym] = Dict{Int,Array{Int,1}}(i => Int[] for (i, node) in ref[:node])
 

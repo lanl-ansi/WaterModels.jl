@@ -69,7 +69,7 @@ function _create_modifications_reduced(wm::AbstractWaterModel)
         data["pipe"] = merge(data["pipe"], tmp_data)
     end
 
-    for type in [:pressure_reducing_valve, :pump]
+    for type in [:regulator, :pump]
         qp_sym, qn_sym = Symbol("qp_" * string(type)), Symbol("qn_" * string(type))
         data[string(type)] = _get_edge_bound_dict(wm, wm.cnw, type)
     end
@@ -92,7 +92,7 @@ function _create_modifications_mn(wm::AbstractWaterModel)
             dnw["pipe"] = merge(dnw["pipe"], tmp_dnw)
         end
 
-        for type in [:pressure_reducing_valve, :pump]
+        for type in [:regulator, :pump]
             qp_sym, qn_sym = Symbol("qp_" * string(type)), Symbol("qn_" * string(type))
             dnw[string(type)] = _get_edge_bound_dict(wm, nw, type)
         end
@@ -109,7 +109,7 @@ end
 
 
 function _get_flow_index_set(wm::AbstractWaterModel; width::Float64=1.0e-3, prec::Float64=1.0e-4)
-    types = [:pipe, :shutoff_valve, :check_valve, :pressure_reducing_valve, :pump]
+    types = [:pipe, :shutoff_valve, :check_valve, :regulator, :pump]
     return vcat([vcat([[(nw, type, Symbol("q_" * string(type)), a, width, prec) for a in
         ids(wm, nw, type)] for nw in sort(collect(nw_ids(wm)))]...) for type in types]...)
 end
@@ -153,7 +153,7 @@ function _get_average_widths(data::Dict{String,<:Any})
     message = "[OBBT] Average bound widths: h -> $(h * inv(length(data["node"]))), "
     avg_vals = [h * inv(length(data["node"]))]
 
-    for type in ["pipe", "pressure_reducing_valve", "pump"]
+    for type in ["pipe", "regulator", "pump"]
         if length(data[type]) > 0
             q_length = length(data[type])
             q = sum(x["q_max"] - x["q_min"] for (i, x) in data[type])
@@ -173,7 +173,7 @@ function _get_average_widths_mn(data::Dict{String,<:Any})
     message = "[OBBT] Average bound widths: h -> $(h * inv(h_length)), "
     avg_vals = [h * inv(h_length)]
 
-    for type in ["pipe", "pressure_reducing_valve", "pump"]
+    for type in ["pipe", "regulator", "pump"]
         if sum(length(nw[type]) for (n, nw) in data["nw"]) > 0
             q_length = sum(length(nw[type]) for (n, nw) in data["nw"])
             q = sum(sum(x["q_max"] - x["q_min"] for (i, x) in nw[type]) for (n, nw) in data["nw"])

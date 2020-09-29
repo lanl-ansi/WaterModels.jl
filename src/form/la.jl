@@ -10,18 +10,6 @@ function variable_flow_piecewise_weights(wm::LAWaterModel; nw::Int=wm.cnw, repor
             base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
             start=comp_start_value(ref(wm, nw, :pipe, a), "lambda_start", k))
 
-        # Create weights involved in convex combination constraints for check valves.
-        lambda_check_valve = var(wm, nw)[:lambda_check_valve] = JuMP.@variable(wm.model,
-            [a in ids(wm, nw, :check_valve), k in 1:pipe_breakpoints],
-            base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
-            start=comp_start_value(ref(wm, nw, :check_valve, a), "lambda_start", k))
-
-        # Create weights involved in convex combination constraints for shutoff valves.
-        lambda_shutoff_valve = var(wm, nw)[:lambda_shutoff_valve] = JuMP.@variable(wm.model,
-            [a in ids(wm, nw, :shutoff_valve), k in 1:pipe_breakpoints],
-            base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
-            start=comp_start_value(ref(wm, nw, :shutoff_valve, a), "lambda_start", k))
-
         # Create weights involved in convex combination constraints.
         n_r = Dict(a=>length(ref(wm, nw, :resistance, a)) for a in ids(wm, nw, :des_pipe))
 
@@ -52,16 +40,6 @@ function variable_flow_piecewise_adjacency(wm::LAWaterModel; nw::Int=wm.cnw, rep
             [a in ids(wm, nw, :pipe), k in 1:pipe_breakpoints-1], base_name="$(nw)_x_pw", binary=true,
             start=comp_start_value(ref(wm, nw, :pipe, a), "x_pw_start"))
 
-        # Create binary variables for check valve convex combination constraints.
-        x_pw_check_valve = var(wm, nw)[:x_pw_check_valve] = JuMP.@variable(wm.model,
-            [a in ids(wm, nw, :check_valve), k in 1:pipe_breakpoints-1], base_name="$(nw)_x_pw", binary=true,
-            start=comp_start_value(ref(wm, nw, :check_valve, a), "x_pw_start"))
-
-        # Create binary variables for shutoff valve convex combination constraints.
-        x_pw_shutoff_valve = var(wm, nw)[:x_pw_shutoff_valve] = JuMP.@variable(wm.model,
-            [a in ids(wm, nw, :shutoff_valve), k in 1:pipe_breakpoints-1], base_name="$(nw)_x_pw", binary=true,
-            start=comp_start_value(ref(wm, nw, :shutoff_valve, a), "x_pw_start"))
-
         # Create binary variables for design pipe convex combination constraints.
         x_pw_des_pipe = var(wm, nw)[:x_pw_des_pipe] = JuMP.@variable(wm.model,
             [a in ids(wm, nw, :des_pipe), k in 1:pipe_breakpoints-1], base_name="$(nw)_x_pw", binary=true,
@@ -81,7 +59,7 @@ end
 
 "Creates flow variables for `LA` formulations (`q`, `lambda`, `x_pw`)."
 function variable_flow(wm::LAWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
-    for name in ["check_valve", "pipe", "pressure_reducing_valve", "pump", "shutoff_valve"]
+    for name in ["pipe", "pump", "regulator", "short_pipe", "valve"]
         # Create directed flow (`qp` and `qn`) variables for each component.
         variable_component_flow(wm, name; nw=nw, bounded=bounded, report=report)
     end
@@ -92,97 +70,6 @@ function variable_flow(wm::LAWaterModel; nw::Int=wm.cnw, bounded::Bool=true, rep
 
     # Create common flow variables.
     variable_flow_des_common(wm, nw=nw, bounded=bounded, report=report)
-end
-
-
-"Adds head loss constraints for check valves in `LA` formulations."
-function constraint_check_valve_head_loss(wm::LAWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
-    # If the number of breakpoints is not positive, no constraints are added.
-    pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
-    if pipe_breakpoints <= 0 return end
-
-    # Gather common variables.
-    q, z = var(wm, n, :q_check_valve, a), var(wm, n, :z_check_valve, a)
-    lambda, x_pw = var(wm, n, :lambda_check_valve), var(wm, n, :x_pw_check_valve)
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-
-    # Add the required SOS constraints.
-    c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == z)
-    c_2 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == z)
-    c_3 = JuMP.@constraint(wm.model, lambda[a, 1] <= x_pw[a, 1])
-    c_4 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
-
-    # Generate a set of uniform flow and head loss breakpoints.
-    q_lb, q_ub = JuMP.lower_bound(q), JuMP.upper_bound(q)
-    breakpoints = range(q_lb, stop=q_ub, length=pipe_breakpoints)
-    f = _calc_head_loss_values(collect(breakpoints), ref(wm, :alpha))
-
-    # Add a constraint for the flow piecewise approximation.
-    q_lhs = sum(breakpoints[k] * lambda[a, k] for k in 1:pipe_breakpoints)
-    c_5 = JuMP.@constraint(wm.model, q_lhs == q)
-
-    # Add a constraint for the head gain piecewise approximation.
-    loss = r .* sum(f[k] .* lambda[a, k] for k in 1:pipe_breakpoints)
-    lhs = inv(L) * (h_i - h_j) - loss
-    c_6 = JuMP.@constraint(wm.model, lhs <= 0.0)
-    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
-    c_7 = JuMP.@constraint(wm.model, lhs >= inv(L) * (1.0 - z) * dh_lb)
-
-    # Append the constraint array with the above-generated constraints.
-    append!(con(wm, n, :head_loss, a), [c_1, c_2, c_3, c_4, c_5, c_6, c_7])
-
-    # Add the adjacency constraints.
-    for k in 2:pipe_breakpoints-1
-        adjacency = x_pw[a, k-1] + x_pw[a, k]
-        c_8_k = JuMP.@constraint(wm.model, lambda[a, k] <= adjacency)
-        append!(con(wm, n, :head_loss, a), [c_8_k])
-    end
-end
-
-
-"Adds head loss constraints for shutoff valves in `LA` formulations."
-function constraint_shutoff_valve_head_loss(wm::LAWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
-    # If the number of breakpoints is not positive, no constraints are added.
-    pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
-    if pipe_breakpoints <= 0 return end
-
-    # Gather common variables.
-    q, z = var(wm, n, :q_shutoff_valve, a), var(wm, n, :z_shutoff_valve, a)
-    lambda, x_pw = var(wm, n, :lambda_shutoff_valve), var(wm, n, :x_pw_shutoff_valve)
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-
-    # Add the required SOS constraints.
-    c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == z)
-    c_2 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == z)
-    c_3 = JuMP.@constraint(wm.model, lambda[a, 1] <= x_pw[a, 1])
-    c_4 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
-
-    # Generate a set of uniform flow and head loss breakpoints.
-    q_lb, q_ub = JuMP.lower_bound(q), JuMP.upper_bound(q)
-    breakpoints = range(q_lb, stop=q_ub, length=pipe_breakpoints)
-
-    # Add a constraint for the flow piecewise approximation.
-    q_lhs = sum(breakpoints[k] * lambda[a, k] for k in 1:pipe_breakpoints)
-    c_5 = JuMP.@constraint(wm.model, q_lhs == q)
-
-    # Add a constraint for the head gain piecewise approximation.
-    f = _calc_head_loss_values(collect(breakpoints), ref(wm, :alpha))
-    lhs = (h_i - h_j) - L * r * sum(f[k] .* lambda[a, k] for k in 1:pipe_breakpoints)
-
-    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
-    c_6 = JuMP.@constraint(wm.model, lhs <= (1.0 - z) * dh_ub)
-    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
-    c_7 = JuMP.@constraint(wm.model, lhs >= (1.0 - z) * dh_lb)
-
-    # Append the constraint array with the above-generated constraints.
-    append!(con(wm, n, :head_loss, a), [c_1, c_2, c_3, c_4, c_5, c_6, c_7])
-
-    # Add the adjacency constraints.
-    for k in 2:pipe_breakpoints-1
-        adjacency = x_pw[a, k-1] + x_pw[a, k]
-        c_8_k = JuMP.@constraint(wm.model, lambda[a, k] <= adjacency)
-        append!(con(wm, n, :head_loss, a), [c_8_k])
-    end
 end
 
 
@@ -228,11 +115,10 @@ end
 
 function constraint_pipe_head_loss_des(wm::LAWaterModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, resistances)
     # If the number of breakpoints is not positive, no constraints are added.
-    pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
-    if pipe_breakpoints <= 0 return end
+    n_b = get(wm.ext, :pipe_breakpoints, 0)
+    if n_b <= 0 return end
 
     # Get common variables and data.
-    n_b = pipe_breakpoints
     lambda, x_pw = var(wm, n, :lambda_des_pipe), var(wm, n, :x_pw_des_pipe)
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
