@@ -13,8 +13,8 @@ function _get_head_loss_oa(q::JuMP.VariableRef, q_hat::Float64, alpha::Float64)
 end
 
 
-function _get_head_loss_oa_z(q::JuMP.VariableRef, z::Union{JuMP.VariableRef, JuMP.GenericAffExpr}, q_hat::Float64, alpha::Float64)
-    return q_hat^alpha*z + alpha * q_hat^(alpha - 1.0) * (q - q_hat*z)
+function _get_head_loss_oa_binary(q::JuMP.VariableRef, z::Union{JuMP.VariableRef, JuMP.GenericAffExpr}, q_hat::Float64, exponent::Float64)
+    return q_hat^exponent*z + exponent * q_hat^(exponent - 1.0) * (q - q_hat*z)
 end
 
 
@@ -94,81 +94,48 @@ function constraint_pipe_head_loss_des(wm::LRDWaterModel, n::Int, a::Int, alpha:
 end
 
 
-function constraint_pipe_head_loss(wm::LRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
-    # If the number of breakpoints is not positive, no constraints are added.
-    pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
-    if pipe_breakpoints <= 0 return end
+function constraint_pipe_head_loss(wm::LRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64, L::Float64, r::Float64)
+    # Get the number of breakpoints for the pipe.
+    num_breakpoints = get(wm.ext, :pipe_breakpoints, 1)
 
-    # Get the variable denoting flow directionality.
+    # Get the variable for flow directionality.
     y = var(wm, n, :y_pipe, a)
 
-    # Add constraints corresponding to positive outer-approximations.
+    # Get variables for positive flow and head difference.
     qp, dhp = var(wm, n, :qp_pipe, a), var(wm, n, :dhp_pipe, a)
 
-    for qp_hat in range(0.0, stop=JuMP.upper_bound(qp), length=pipe_breakpoints)
-        lhs = _get_head_loss_oa_z(qp, y, qp_hat, alpha)
-        c_p = JuMP.@constraint(wm.model, r * lhs <= inv(L) * dhp)
-        append!(con(wm, n, :head_loss)[a], [c_p])
+    # Loop over breakpoints strictly between the lower and upper variable bounds.
+    for pt in range(0.0, stop = JuMP.upper_bound(qp), length = num_breakpoints+2)[2:end-1]
+        # Add a linear outer approximation of the convex relaxation at `pt`.
+        lhs = _get_head_loss_oa_binary(qp, y, pt, exponent)
+        c = JuMP.@constraint(wm.model, r * lhs <= inv(L) * dhp)
+        append!(con(wm, n, :pipe_head_loss)[a], [c])
     end
 
-    # Add constraints corresponding to positive outer-approximations.
+    # Add linear upper bounds on the above outer approximations.
+    rhs = r * JuMP.upper_bound(qp)^(exponent - 1.0) * qp
+    c = JuMP.@constraint(wm.model, inv(L) * dhp <= rhs)
+
+    # Append the :pipe_head_loss constraint array.
+    append!(con(wm, n, :pipe_head_loss)[a], [c])
+
+    # Get variables for negative flow and head difference.
     qn, dhn = var(wm, n, :qn_pipe, a), var(wm, n, :dhn_pipe, a)
 
-    for qn_hat in range(0.0, stop=JuMP.upper_bound(qn), length=pipe_breakpoints)
-        lhs = _get_head_loss_oa_z(qn, 1.0 - y, qn_hat, alpha)
-        c_n = JuMP.@constraint(wm.model, r * lhs <= inv(L) * dhn)
-        append!(con(wm, n, :head_loss)[a], [c_n])
-    end
-end
-
-
-function constraint_check_valve_head_loss(wm::LRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
-    # If the number of breakpoints is not positive, no constraints are added.
-    pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
-    if pipe_breakpoints <= 0 return end
-
-    # Get common variables for outer approximation constraints.
-    y, z = var(wm, n, :y_check_valve, a), var(wm, n, :z_check_valve, a)
-    qp, dhp = var(wm, n, :qp_check_valve, a), var(wm, n, :dhp_check_valve, a)
-
-    # Add outer approximation constraints.
-    for qp_hat in range(0.0, stop=JuMP.upper_bound(qp), length=pipe_breakpoints)
-        lhs_1 = _get_head_loss_oa_z(qp, y, qp_hat, ref(wm, n, :alpha))
-        c_p_1 = JuMP.@constraint(wm.model, r * lhs_1 <= inv(L) * dhp)
-        lhs_2 = _get_head_loss_oa_z(qp, z, qp_hat, ref(wm, n, :alpha))
-        c_p_2 = JuMP.@constraint(wm.model, r * lhs_2 <= inv(L) * dhp)
-        append!(con(wm, n, :head_loss)[a], [c_p_1, c_p_2])
-    end
-end
-
-
-function constraint_shutoff_valve_head_loss(wm::LRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
-    # If the number of breakpoints is not positive, no constraints are added.
-    pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 0)
-    if pipe_breakpoints <= 0 return end
-
-    # Get common data for outer approximation constraints.
-    qp, qn = var(wm, n, :qp_shutoff_valve, a), var(wm, n, :qn_shutoff_valve, a)
-    dhp, dhn = var(wm, n, :dhp_shutoff_valve, a), var(wm, n, :dhn_shutoff_valve, a)
-    y, z = var(wm, n, :y_shutoff_valve, a), var(wm, n, :z_shutoff_valve, a)
-
-    # Add outer approximation constraints for positively-directed flow.
-    for qp_hat in range(0.0, stop=JuMP.upper_bound(qp), length=pipe_breakpoints)
-        lhs_1 = _get_head_loss_oa_z(qp, y, qp_hat, ref(wm, n, :alpha))
-        c_p_1 = JuMP.@constraint(wm.model, L * r * lhs_1 <= dhp)
-        lhs_2 = _get_head_loss_oa_z(qp, z, qp_hat, ref(wm, n, :alpha))
-        c_p_2 = JuMP.@constraint(wm.model, L * r * lhs_2 <= dhp)
-        append!(con(wm, n, :head_loss)[a], [c_p_1, c_p_2])
+    # Loop over breakpoints strictly between the lower and upper variable bounds.
+    for pt in range(0.0, stop = JuMP.upper_bound(qn), length = num_breakpoints+2)[2:end-1]
+        # Add a linear outer approximation of the convex relaxation at `pt`.
+        lhs = _get_head_loss_oa_binary(qn, 1.0 - y, pt, exponent)
+        c = JuMP.@constraint(wm.model, r * lhs <= inv(L) * dhn)
+        append!(con(wm, n, :pipe_head_loss)[a], [c])
     end
 
-    # Add outer approximation constraints for negatively-directed flow.
-    for qn_hat in range(0.0, stop=JuMP.upper_bound(qn), length=pipe_breakpoints)
-        lhs_1 = _get_head_loss_oa_z(qn, 1.0 - y, qn_hat, ref(wm, n, :alpha))
-        c_n_1 = JuMP.@constraint(wm.model, L * r * lhs_1 <= dhn)
-        lhs_2 = _get_head_loss_oa_z(qn, z, qn_hat, ref(wm, n, :alpha))
-        c_n_2 = JuMP.@constraint(wm.model, L * r * lhs_2 <= dhn)
-        append!(con(wm, n, :head_loss)[a], [c_n_1, c_n_2])
-    end
+    # Add linear upper bounds on the above outer approximations.
+    rhs = r * JuMP.upper_bound(qn)^(exponent - 1.0) * qn
+    c = JuMP.@constraint(wm.model, inv(L) * dhn <= rhs)
+
+    # Append the :pipe_head_loss constraint array.
+    append!(con(wm, n, :pipe_head_loss)[a], [c])
 end
 
 

@@ -49,140 +49,67 @@ function constraint_flow_conservation(
 end
 
 
-function constraint_pipe_flow(wm::AbstractWaterModel, n::Int, a::Int)
-    # By default, there are no constraints, here.
-end
+function constraint_pump_flow(wm::AbstractWaterModel, n::Int, a::Int, q_min_active::Float64)
+    # Get pump status variable.
+    q, z = var(wm, n, :q_pump), var(wm, n, :z_pump, a)
 
-
-function constraint_pipe_head(wm::AbstractWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int)
-    # Get head variables for from and to nodes.
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-
-    # For pipes, the differences must satisfy lower and upper bounds.
-    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
-    c_1 = JuMP.@constraint(wm.model, h_i - h_j >= dh_lb)
-    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
-    c_2 = JuMP.@constraint(wm.model, h_i - h_j <= dh_ub)
-
-    # Append the constraint array.
-    append!(con(wm, n, :pipe_head, a), [c_1, c_2])
-end
-
-
-function constraint_on_off_regulator_flow(wm::AbstractWaterModel, n::Int, a::Int)
-    # Get flow and regulator status variables.
-    q, z = var(wm, n, :q_regulator, a), var(wm, n, :z_regulator, a)
-
-    # If the regulator is closed, flow must be zero.
-    q_lb, q_ub = JuMP.lower_bound(q), JuMP.upper_bound(q)
-    c_1 = JuMP.@constraint(wm.model, q >= q_lb * z)
+    # If the pump is inactive, flow must be zero.
+    q_ub = JuMP.upper_bound(q)
+    c_1 = JuMP.@constraint(wm.model, q >= q_min_active * z)
     c_2 = JuMP.@constraint(wm.model, q <= q_ub * z)
 
     # Append the constraint array.
-    append!(con(wm, n, :on_off_regulator_flow, a), [c_1, c_2])
+    append!(con(wm, n, :on_off_pump_flow, a), [c_1, c_2])
 end
 
 
-function constraint_on_off_regulator_head(wm::AbstractWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_setting::Float64)
-    # Get regulator status variable.
-    z = var(wm, n, :z_regulator, a)
-
-    # Get head variables for from and to nodes (i.e., `i` and `j`).
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-
-    # When the pressure reducing valve is open, the head at node j is predefined.
-    h_lb, h_ub = JuMP.lower_bound(h_j), JuMP.upper_bound(h_j)
-    c_1 = JuMP.@constraint(wm.model, h_j >= (1.0 - z) * h_lb + z * head_setting)
-    c_2 = JuMP.@constraint(wm.model, h_j <= (1.0 - z) * h_ub + z * head_setting)
-
-    # When the pressure reducing valve is open, the head loss is nonnegative.
-    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
-    c_3 = JuMP.@constraint(wm.model, h_i - h_j >= dh_lb * (1.0 - z))
-    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
-    c_4 = JuMP.@constraint(wm.model, h_i - h_j <= dh_ub * z)
-
-    # Append the constraint array.
-    append!(con(wm, n, :on_off_regulator_head, a), [c_1, c_2, c_3, c_4])
-end
-
-
-function constraint_short_pipe_flow(wm::AbstractWaterModel, n::Int, a::Int)
-    # By default, there are no constraints, here.
-end
-
-
-function constraint_short_pipe_head(wm::AbstractWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int)
+function constraint_pump_head(wm::AbstractWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int)
     # Get head variables for from and to nodes.
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
-    # For short pipes, the heads at adjacent nodes are equal.
-    c = JuMP.@constraint(wm.model, h_i - h_j == 0.0)
+    # Get pump status variable.
+    g, z = var(wm, n, :g_pump), var(wm, n, :z_pump, a)
+
+    # If the pump is off, decouple the head difference relationship.
+    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
+    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
+    c_1 = JuMP.@constraint(wm.model, h_i - h_j <= dh_ub * (1.0 - z))
+    c_2 = JuMP.@constraint(wm.model, h_i - h_j >= g + dh_lb * (1.0 - z))
+    c_3 = JuMP.@constraint(wm.model, h_i - h_j <= g)
 
     # Append the constraint array.
-    append!(con(wm, n, :short_pipe_head, a), [c])
+    append!(con(wm, n, :pump_head, a), [c_1, c_2, c_3])
 end
 
 
-function constraint_tank_state_initial(wm::AbstractWaterModel, n::Int, i::Int, V_0::Float64)
+function constraint_tank_volume_initial(wm::AbstractWaterModel, n::Int, i::Int, V_0::Float64)
     V = var(wm, n, :V, i)
     c = JuMP.@constraint(wm.model, V == V_0)
-    con(wm, n, :tank_state)[i] = c
+    con(wm, n, :tank_volume)[i] = c
 end
 
 
 """
-    constraint_tank_state(wm, n_1, n_2, i, time_step)
+    constraint_tank_volume(wm, n_1, n_2, i, time_step)
 
 Adds a constraint that integrates the volume of a tank forward in time. Here, `wm` is the
 WaterModels object, `n_1` is the index of a subnetwork within a multinetwork, `n_2` is the
 index of another subnetwork forward in time, relative to `n_1`, i is the index of the tank,
 and time_step is the time step (in seconds) between networks `n_1` and `n_2`.
 """
-function constraint_tank_state(wm::AbstractWaterModel, n_1::Int, n_2::Int, i::Int, time_step::Float64)
-    qt = var(wm, n_1, :qt, i) # Tank outflow.
+function constraint_tank_volume(wm::AbstractWaterModel, n_1::Int, n_2::Int, i::Int, time_step::Float64)
+    qt = var(wm, n_1, :q_tank, i) # Tank outflow.
     V_1, V_2 = var(wm, n_1, :V, i), var(wm, n_2, :V, i)
     c = JuMP.@constraint(wm.model, V_1 - time_step * qt == V_2)
-    con(wm, n_2, :tank_state)[i] = c
+    con(wm, n_2, :tank_volume)[i] = c
 end
 
 
-function constraint_on_off_valve_flow(wm::AbstractWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int)
-    # Get flow and valve status variables.
-    q, z = var(wm, n, :q_valve, a), var(wm, n, :z_valve, a)
-
-    # If the valve is closed, flow must be zero.
-    q_lb, q_ub = JuMP.lower_bound(q), JuMP.upper_bound(q)
-    c_1 = JuMP.@constraint(wm.model, q >= q_lb * z)
-    c_2 = JuMP.@constraint(wm.model, q <= q_ub * z)
-
-    # Append the constraint array.
-    append!(con(wm, n, :on_off_valve_flow, a), [c_1, c_2])
-end
-
-
-function constraint_on_off_valve_head(wm::AbstractWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int)
-    # Get flow and valve status variables.
-    q, z = var(wm, n, :q_valve, a), var(wm, n, :z_valve, a)
-
-    # Get head variables for from and to nodes.
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-
-    # When the valve is open, negative head loss is not possible.
-    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
-    c_1 = JuMP.@constraint(wm.model, h_i - h_j >= (1.0 - z) * dh_lb)
-
-    # When the valve is closed, positive head loss is not possible.
-    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
-    c_2 = JuMP.@constraint(wm.model, h_i - h_j <= (1.0 - z) * dh_ub)
-
-    # Append the constraint array.
-    append!(con(wm, n, :on_off_valve_head, a), [c_1, c_2])
-end
-
-
-function constraint_recover_volume(wm::AbstractWaterModel, i::Int, n_1::Int, n_f::Int)
-    _initialize_con_dict(wm, :recover_volume, nw=n_f)
-    V_1, V_f = var(wm, n_1, :V, i), var(wm, n_f, :V, i)
-    c = JuMP.@constraint(wm.model, V_f >= V_1)
-    con(wm, n_f, :recover_volume)[i] = c
+function constraint_tank_volume_recovery(wm::AbstractWaterModel, i::Int, n_1::Int, n_f::Int)
+    if !ref(wm, nw_f, :tank, i)["dispatchable"]
+        _initialize_con_dict(wm, :tank_volume_recovery, nw=n_f)
+        V_1, V_f = var(wm, n_1, :V, i), var(wm, n_f, :V, i)
+        c = JuMP.@constraint(wm.model, V_f >= V_1)
+        con(wm, n_f, :tank_volume_recovery)[i] = c
+    end
 end

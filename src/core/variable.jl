@@ -55,8 +55,7 @@ function variable_head(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=tru
     report && sol_component_value(wm, nw, :node, :p, ids(wm, nw, :node), p)
 
     # Create an expression that maps total hydraulic head to volume for tanks.
-    V = var(wm, nw)[:V] = JuMP.@expression(wm.model,
-        [i in ids(wm, nw, :tank)],
+    V = var(wm, nw)[:V] = JuMP.@expression(wm.model, [i in ids(wm, nw, :tank)],
         (var(wm, nw, :h, ref(wm, nw, :tank, i)["node"]) -
          ref(wm, nw, :node, ref(wm, nw, :tank, i)["node"])["elevation"])
          * 0.25 * pi * ref(wm, nw, :tank, i)["diameter"]^2)
@@ -68,9 +67,9 @@ end
 
 function variable_pump_head_gain(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
     # Initialize variables for total hydraulic head gain from a pump.
-    g = var(wm, nw)[:g] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
-        base_name="$(nw)_g", lower_bound=0.0, # Pump gain is nonnegative.
-        start=comp_start_value(ref(wm, nw, :pump, a), "g_start"))
+    g = var(wm, nw)[:g_pump] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
+        base_name="$(nw)_g_pump", lower_bound=0.0, # Pump gain is nonnegative.
+        start=comp_start_value(ref(wm, nw, :pump, a), "g_pump_start"))
 
     # Initialize an entry to the solution component dictionary for head gains.
     report && sol_component_value(wm, nw, :pump, :g, ids(wm, nw, :pump), g)

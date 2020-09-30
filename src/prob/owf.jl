@@ -25,7 +25,7 @@ function build_mn_owf(wm::AbstractWaterModel)
     n_1, n_f = network_ids[1], network_ids[end]
 
     for i in ids(wm, :tank; nw=n_f)
-        constraint_recover_volume(wm, i, n_1, n_f)
+        constraint_tank_volume_recovery(wm, i, n_1, n_f)
     end
 
     # Add the optimal water flow objective.

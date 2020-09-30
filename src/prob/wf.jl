@@ -30,8 +30,15 @@ function build_wf(wm::AbstractWaterModel)
     # Constraints on pipe flows, heads, and physics.
     for (a, pipe) in ref(wm, :pipe)
         constraint_pipe_head(wm, a)
-        constraint_pipe_flow(wm, a)
         constraint_pipe_head_loss(wm, a)
+        constraint_pipe_flow(wm, a)
+    end
+
+    # Constraints on pump flows, heads, and physics.
+    for (a, pump) in ref(wm, :pump)
+        constraint_on_off_pump_head(wm, a)
+        constraint_on_off_pump_head_gain(wm, a)
+        constraint_on_off_pump_flow(wm, a)
     end
 
     # Constraints on short pipe flows and heads.
@@ -52,34 +59,10 @@ function build_wf(wm::AbstractWaterModel)
         constraint_on_off_valve_flow(wm, a)
     end
 
-    ## Head gain along pumps.
-    #for a in ids(wm, :pump)
-    #    constraint_pump_head_gain(wm, a)
-    #end
-
-    ## Set source node hydraulic heads.
-    #for (i, reservoir) in ref(wm, :reservoir)
-    #    constraint_reservoir_head(wm, i)
-    #    constraint_source_directionality(wm, reservoir["node"])
-    #end
-
-    ## Constrain flow directions based on demand.
-    #for (i, demand) in ref(wm, :demand)
-    #    if !demand["dispatchable"] && demand["flow_rate"] > 0.0
-    #        constraint_sink_directionality(wm, demand["node"])
-    #    elseif demand["dispatchable"] && demand["demand_min"] > 0.0
-    #        constraint_sink_directionality(wm, demand["node"])
-    #    elseif !demand["dispatchable"] && demand["flow_rate"] < 0.0
-    #        constraint_source_directionality(wm, demand["node"])
-    #    elseif demand["dispatchable"] && demand["demand_max"] < 0.0
-    #        constraint_source_directionality(wm, demand["node"])
-    #    end
-    #end
-
-    #for i in ids(wm, :tank)
-    #    # Set the initial tank volume.
-    #    constraint_tank_state(wm, i)
-    #end
+    for i in ids(wm, :tank)
+        # Set the initial tank volume.
+        constraint_tank_volume(wm, i)
+    end
 
     # Add the objective.
     objective_wf(wm)
@@ -118,8 +101,15 @@ function build_mn_wf(wm::AbstractWaterModel)
         # Constraints on pipe flows, heads, and physics.
         for (a, pipe) in ref(wm, :pipe; nw=n)
             constraint_pipe_head(wm, a; nw=n)
-            constraint_pipe_flow(wm, a; nw=n)
             constraint_pipe_head_loss(wm, a; nw=n)
+            constraint_pipe_flow(wm, a; nw=n)
+        end
+
+        # Constraints on pump flows, heads, and physics.
+        for (a, pump) in ref(wm, :pump; nw=n)
+            constraint_on_off_pump_head(wm, a; nw=n)
+            constraint_on_off_pump_head_gain(wm, a; nw=n)
+            constraint_on_off_pump_flow(wm, a; nw=n)
         end
 
         # Constraints on short pipe flows and heads.
@@ -139,47 +129,27 @@ function build_mn_wf(wm::AbstractWaterModel)
             constraint_on_off_valve_head(wm, a; nw=n)
             constraint_on_off_valve_flow(wm, a; nw=n)
         end
-
-        ## Head gain along pumps.
-        #for a in ids(wm, :pump; nw=n)
-        #    constraint_pump_head_gain(wm, a; nw=n)
-        #end
-
-        ## Constrain source node hydraulic heads and flow directions.
-        #for (i, reservoir) in ref(wm, :reservoir; nw=n)
-        #    constraint_reservoir_head(wm, i; nw=n)
-        #    constraint_source_directionality(wm, reservoir["node"]; nw=n)
-        #end
-
-        ## Constrain flow directions based on demand.
-        #for (i, demand) in ref(wm, :demand; nw=n)
-        #    if !demand["dispatchable"] && demand["flow_rate"] > 0.0
-        #        constraint_sink_directionality(wm, demand["node"]; nw=n)
-        #    elseif !demand["dispatchable"] && demand["flow_rate"] < 0.0
-        #        constraint_source_directionality(wm, demand["node"]; nw=n)
-        #    end
-        #end
     end
 
-    ## Get all network IDs in the multinetwork.
-    #network_ids = sort(collect(nw_ids(wm)))
+    # Get all network IDs in the multinetwork.
+    network_ids = sort(collect(nw_ids(wm)))
 
-    ## Start with the first network, representing the initial time step.
-    #n_1 = network_ids[1]
+    # Start with the first network, representing the initial time step.
+    n_1 = network_ids[1]
 
-    ## Set initial conditions of tanks.
-    #for i in ids(wm, :tank; nw=n_1)
-    #    constraint_tank_state(wm, i; nw=n_1)
-    #end
+    # Set initial conditions of tanks.
+    for i in ids(wm, :tank; nw=n_1)
+        constraint_tank_volume(wm, i; nw=n_1)
+    end
 
-    #for n_2 in network_ids[2:end]
-    #    # Set tank states after the initial time step.
-    #    for i in ids(wm, :tank; nw=n_2)
-    #        constraint_tank_state(wm, i, n_1, n_2)
-    #    end
+    for n_2 in network_ids[2:end]
+        # Set tank states after the initial time step.
+        for i in ids(wm, :tank; nw=n_2)
+            constraint_tank_volume(wm, i, n_1, n_2)
+        end
 
-    #    n_1 = n_2 # Update the first network used for integration.
-    #end
+        n_1 = n_2 # Update the first network used for integration.
+    end
 
     # Add the objective.
     objective_wf(wm)

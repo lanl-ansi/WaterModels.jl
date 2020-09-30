@@ -1,6 +1,26 @@
 # Define common CRD (continuous or convex relaxation- and direction-based) implementations
 # of water distribution network constraints, which use directed flow variables.
 
+function constraint_pipe_head_loss(wm::CRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64, L::Float64, r::Float64)
+    # Gather directed flow and head difference variables.
+    qp, qn = var(wm, n, :qp_pipe, a), var(wm, n, :qn_pipe, a)
+    dhp, dhn = var(wm, n, :dhp_pipe, a), var(wm, n, :dhn_pipe, a)
+
+    # Add relaxed constraints for head loss in the positive and negative directions.
+    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= inv(L) * dhp)
+    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) <= inv(L) * dhn)
+
+    # Add linear upper bounds on the above convex relaxations.
+    rhs_p = r * JuMP.upper_bound(qp)^(exponent - 1.0) * qp
+    c_3 = JuMP.@constraint(wm.model, inv(L) * dhp <= rhs_p)
+    rhs_n = r * JuMP.upper_bound(qn)^(exponent - 1.0) * qn
+    c_4 = JuMP.@constraint(wm.model, inv(L) * dhn <= rhs_n)
+
+    # Append the :pipe_head_loss constraint array.
+    append!(con(wm, n, :pipe_head_loss)[a], [c_1, c_2, c_3, c_4])
+end
+
+
 function constraint_pipe_head_loss_des(wm::CRDWaterModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, pipe_resistances)
     # Collect head difference variables.
     dhp, dhn = var(wm, n, :dhp_des_pipe, a), var(wm, n, :dhn_des_pipe, a)
@@ -66,67 +86,17 @@ function constraint_pump_head_gain(wm::CRDWaterModel, n::Int, a::Int, node_fr::I
     end
 end
 
-function constraint_check_valve_head_loss(wm::CRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
-    # Gather flow- and check valve-related variables.
-    qp, qn = var(wm, n, :qp_check_valve, a), var(wm, n, :qn_check_valve, a)
-    z = var(wm, n, :z_check_valve, a)
 
-    # Gather head variables and upper bound data.
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-    dhp, dhn = var(wm, n, :dhp_check_valve, a), var(wm, n, :dhn_check_valve, a)
-    dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
 
-    # Add constraints for flow in the positive and negative directions.
-    lhs = JuMP.@NLexpression(wm.model, r*head_loss(qp) - inv(L)*dhp)
-    c_p = JuMP.@NLconstraint(wm.model, lhs <= inv(L) * dhp_ub * (1.0 - z))
-
-    # Append the constraint array.
-    append!(con(wm, n, :head_loss)[a], [c_p])
-end
-
-function constraint_shutoff_valve_head_loss(wm::CRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
-    # Gather flow- and shutoff valve-related variables.
-    qp, qn = var(wm, n, :qp_shutoff_valve, a), var(wm, n, :qn_shutoff_valve, a)
-    y, z = var(wm, n, :y_shutoff_valve, a), var(wm, n, :z_shutoff_valve, a)
-
-    # Gather head variables and upper bound data.
-    dhp, dhn = var(wm, n, :dhp_shutoff_valve, a), var(wm, n, :dhn_shutoff_valve, a)
-    dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
-
-    # Add constraints for flow in the positive and negative directions.
-    lhs_p = JuMP.@NLexpression(wm.model, L * r * head_loss(qp) - dhp)
-    c_1 = JuMP.@NLconstraint(wm.model, lhs_p <= dhp_ub * (1.0 - y))
-    c_2 = JuMP.@NLconstraint(wm.model, lhs_p <= dhp_ub * (1.0 - z))
-
-    lhs_n = JuMP.@NLexpression(wm.model, L * r * head_loss(qn) - dhn)
-    c_3 = JuMP.@NLconstraint(wm.model, lhs_n <= dhn_ub * y)
-    c_4 = JuMP.@NLconstraint(wm.model, lhs_n <= dhn_ub * (1.0 - z))
-
-    # Append the constraint array.
-    append!(con(wm, n, :head_loss)[a], [c_1, c_2, c_3, c_4])
-end
-
-function constraint_pipe_head_loss(wm::CRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
-    # Gather common variables.
-    qp, qn = var(wm, n, :qp_pipe, a), var(wm, n, :qn_pipe, a)
-    dhp, dhn = var(wm, n, :dhp_pipe, a), var(wm, n, :dhn_pipe, a)
-
-    # Add constraints for head loss in the positive and negative directions.
-    c_p = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= inv(L) * dhp)
-    c_n = JuMP.@NLconstraint(wm.model, r * head_loss(qn) <= inv(L) * dhn)
-
-    # Append the constraint array.
-    append!(con(wm, n, :head_loss)[a], [c_p, c_n])
-end
 
 function objective_wf(wm::CRDWaterModel)
     JuMP.set_objective_sense(wm.model, _MOI.FEASIBILITY_SENSE)
 end
 
+
 function objective_owf(wm::CRDWaterModel)
-    # If the number of breakpoints is not positive, no objective is added.
-    pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
-    if pump_breakpoints <= 0 return end
+    # Get the number of breakpoints for the pump.
+    pump_breakpoints = get(wm.ext, :pump_breakpoints, 2)
 
     # Initialize the objective function.
     objective = JuMP.AffExpr(0.0)

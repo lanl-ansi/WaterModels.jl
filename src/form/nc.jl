@@ -6,60 +6,16 @@
 # flow is used in this formulation to define the consumption of power by active pumps).
 
 
-"Adds head loss constraints for check valves in `NC` formulations."
-function constraint_check_valve_head_loss(wm::NCWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
-    # Gather common variables and data.
-    q, z = var(wm, n, :q_check_valve, a), var(wm, n, :z_check_valve, a)
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-    dh_lb = min(0.0, JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j))
-
-    # There are two possibilities, here: (i) z = 1, in which the check valve is
-    # open, and the head loss relationship should be met with equality. In this
-    # case, the constraints below reduce to lhs = 0.0, as would be expected.
-    # Otherwise, (ii) z = 0, and the head difference must be negative and
-    # decoupled from the traditional head loss relationship.
-    lhs = JuMP.@NLexpression(wm.model, inv(L) * (h_i - h_j) - r * head_loss(q))
-    c_1 = JuMP.@NLconstraint(wm.model, lhs <= 0.0)
-    c_2 = JuMP.@NLconstraint(wm.model, lhs >= inv(L) * (1.0 - z) * dh_lb)
-
-    # Append the :head_loss constraint array.
-    append!(con(wm, n, :head_loss)[a], [c_1, c_2])
-end
-
-
-"Adds head loss constraints for shutoff valves in `NC` formulations."
-function constraint_shutoff_valve_head_loss(wm::NCWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, L::Float64, r::Float64)
-    # Gather common variables and data.
-    q, z = var(wm, n, :q_shutoff_valve, a), var(wm, n, :z_shutoff_valve, a)
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-    dh_lb = min(0.0, JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j))
-    dh_ub = max(0.0, JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j))
-
-    # There are two possibilities, here: (i) z = 1, in which the shutoff valve
-    # is open, and the head loss relationship should be met with equality. In
-    # this case, the constraints below reduce to lhs = 0.0, as would be
-    # expected. Otherwise, (ii) z = 0, and the head difference must be
-    # decoupled from the traditional head loss relationship.
-    lhs = JuMP.@NLexpression(wm.model, (h_i - h_j) - L * r * head_loss(q))
-    c_1 = JuMP.@NLconstraint(wm.model, lhs <= (1.0 - z) * dh_ub)
-    c_2 = JuMP.@NLconstraint(wm.model, lhs >= (1.0 - z) * dh_lb)
-
-    # Append the :head_loss constraint array.
-    append!(con(wm, n, :head_loss)[a], [c_1, c_2])
-end
-
-
-"Adds head loss constraints for pipes (without check valves) in `NC` formulations."
+"Adds head loss constraints for pipes in `NC` formulations."
 function constraint_pipe_head_loss(wm::NCWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
     # Gather flow and head variables included in head loss constraints.
-    q = var(wm, n, :q_pipe, a)
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+    q, h_i, h_j = var(wm, n, :q_pipe, a), var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
     # Add nonconvex constraint for the head loss relationship.
     c = JuMP.@NLconstraint(wm.model, r * head_loss(q) == inv(L) * (h_i - h_j))
 
-    # Append the :head_loss constraint array.
-    append!(con(wm, n, :head_loss)[a], [c])
+    # Append the :pipe_head_loss constraint array.
+    append!(con(wm, n, :pipe_head_loss)[a], [c])
 end
 
 

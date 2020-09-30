@@ -1,6 +1,11 @@
 WaterModels.jl Change Log
 =========================
 
+### v0.6.0
+- Decoupled `check_valve` and `shutoff_valve` objects from `pipe` objects.
+- Introduced a new `valve` component.
+- Renamed `pressure_reducing_valve` to `regulator`.
+
 ### v0.5.0
 - Rename formulation types.
 

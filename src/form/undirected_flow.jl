@@ -76,6 +76,26 @@ function variable_flow_des_common(wm::AbstractUndirectedModel; nw::Int=wm.cnw, b
 end
 
 
+function constraint_pipe_flow(wm::AbstractUndirectedModel, n::Int, a::Int)
+    # By default, there are no constraints, here.
+end
+
+
+function constraint_pipe_head(wm::AbstractUndirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int)
+    # Get head variables for from and to nodes.
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+
+    # For pipes, the differences must satisfy lower and upper bounds.
+    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
+    c_1 = JuMP.@constraint(wm.model, h_i - h_j >= dh_lb)
+    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
+    c_2 = JuMP.@constraint(wm.model, h_i - h_j <= dh_ub)
+
+    # Append the constraint array.
+    append!(con(wm, n, :pipe_head, a), [c_1, c_2])
+end
+
+
 "Constrain flow variables, based on design selections, in undirected flow formulations."
 function constraint_resistance_selection_des(wm::AbstractUndirectedModel, n::Int, a::Int, pipe_resistances)
     c = JuMP.@constraint(wm.model, sum(var(wm, n, :x_res, a)) == 1.0)
@@ -96,32 +116,6 @@ function constraint_resistance_selection_des(wm::AbstractUndirectedModel, n::Int
 end
 
 
-function constraint_regulator_common(wm::AbstractUndirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, h_regulator::Float64)
-    # Get flow and pressure reducing valve status variables.
-    q = var(wm, n, :q_regulator, a)
-    z = var(wm, n, :z_regulator, a)
-
-    # If the pressure reducing valve is open, flow must be appreciably nonnegative.
-    c_1 = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * z)
-    c_2 = JuMP.@constraint(wm.model, q >= _q_eps * z)
-
-    # Get head variables for from and to nodes.
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-
-    # When the pressure reducing valve is open, the head at node j is predefined.
-    h_lb, h_ub = JuMP.lower_bound(h_j), JuMP.upper_bound(h_j)
-    c_3 = JuMP.@constraint(wm.model, h_j >= (1.0 - z) * h_lb + z * h_regulator)
-    c_4 = JuMP.@constraint(wm.model, h_j <= (1.0 - z) * h_ub + z * h_regulator)
-
-    # When the pressure reducing valve is open, the head loss is nonnegative.
-    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
-    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
-    c_5 = JuMP.@constraint(wm.model, h_i - h_j <= dh_ub * z)
-    c_6 = JuMP.@constraint(wm.model, h_i - h_j >= dh_lb * (1.0 - z))
-
-    # Append the constraint array.
-    append!(con(wm, n, :regulator, a), [c_1, c_2, c_3, c_4, c_5, c_6])
-end
 
 
 function constraint_pump_common(wm::AbstractUndirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
@@ -148,7 +142,96 @@ function constraint_pipe_common(wm::AbstractUndirectedModel, n::Int, a::Int, nod
 end
 
 
-function constraint_node_directionality(
+function constraint_on_off_regulator_flow(wm::AbstractUndirectedModel, n::Int, a::Int, q_min_active::Float64)
+    # Get flow and regulator status variables.
+    q, z = var(wm, n, :q_regulator, a), var(wm, n, :z_regulator, a)
+
+    # If the regulator is closed, flow must be zero.
+    q_lb, q_ub = max(JuMP.lower_bound(q), q_min_active), JuMP.upper_bound(q)
+    c_1 = JuMP.@constraint(wm.model, q >= q_lb * z)
+    c_2 = JuMP.@constraint(wm.model, q <= q_ub * z)
+
+    # Append the constraint array.
+    append!(con(wm, n, :on_off_regulator_flow, a), [c_1, c_2])
+end
+
+
+function constraint_on_off_regulator_head(wm::AbstractUndirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_setting::Float64)
+    # Get regulator status variable.
+    z = var(wm, n, :z_regulator, a)
+
+    # Get head variables for from and to nodes (i.e., `i` and `j`).
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+
+    # When the pressure reducing valve is open, the head at node j is predefined.
+    h_lb, h_ub = JuMP.lower_bound(h_j), JuMP.upper_bound(h_j)
+    c_1 = JuMP.@constraint(wm.model, h_j >= (1.0 - z) * h_lb + z * head_setting)
+    c_2 = JuMP.@constraint(wm.model, h_j <= (1.0 - z) * h_ub + z * head_setting)
+
+    # When the pressure reducing valve is open, the head loss is nonnegative.
+    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
+    c_3 = JuMP.@constraint(wm.model, h_i - h_j >= dh_lb * (1.0 - z))
+    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
+    c_4 = JuMP.@constraint(wm.model, h_i - h_j <= dh_ub * z)
+
+    # Append the constraint array.
+    append!(con(wm, n, :on_off_regulator_head, a), [c_1, c_2, c_3, c_4])
+end
+
+
+function constraint_on_off_valve_flow(wm::AbstractUndirectedModel, n::Int, a::Int)
+    # Get flow and valve status variables.
+    q, z = var(wm, n, :q_valve, a), var(wm, n, :z_valve, a)
+
+    # If the valve is closed, flow must be zero.
+    q_lb, q_ub = JuMP.lower_bound(q), JuMP.upper_bound(q)
+    c_1 = JuMP.@constraint(wm.model, q >= q_lb * z)
+    c_2 = JuMP.@constraint(wm.model, q <= q_ub * z)
+
+    # Append the constraint array.
+    append!(con(wm, n, :on_off_valve_flow, a), [c_1, c_2])
+end
+
+
+function constraint_on_off_valve_head(wm::AbstractUndirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int)
+    # Get flow and valve status variables.
+    q, z = var(wm, n, :q_valve, a), var(wm, n, :z_valve, a)
+
+    # Get head variables for from and to nodes.
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+
+    # When the valve is open, negative head loss is not possible.
+    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
+    c_1 = JuMP.@constraint(wm.model, h_i - h_j >= (1.0 - z) * dh_lb)
+
+    # When the valve is closed, positive head loss is not possible.
+    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
+    c_2 = JuMP.@constraint(wm.model, h_i - h_j <= (1.0 - z) * dh_ub)
+
+    # Append the constraint array.
+    append!(con(wm, n, :on_off_valve_head, a), [c_1, c_2])
+end
+
+
+function constraint_short_pipe_flow(wm::AbstractUndirectedModel, n::Int, a::Int)
+    # By default, there are no constraints, here.
+end
+
+
+function constraint_short_pipe_head(wm::AbstractUndirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int)
+    # Get head variables for from and to nodes.
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+
+    # For short pipes, the heads at adjacent nodes are equal.
+    c = JuMP.@constraint(wm.model, h_i - h_j == 0.0)
+
+    # Append the constraint array.
+    append!(con(wm, n, :short_pipe_head, a), [c])
+end
+
+
+
+function constraint_intermediate_directionality(
     wm::AbstractUndirectedModel, n::Int, i::Int, pipe_fr::Array{Int64,1},
     pipe_to::Array{Int64,1}, des_pipe_fr::Array{Int64,1}, des_pipe_to::Array{Int64,1},
     pump_fr::Array{Int64,1}, pump_to::Array{Int64,1}, regulator_fr::Array{Int64,1},
@@ -179,7 +262,5 @@ end
 
 
 function constraint_flow_direction_selection_des(wm::AbstractUndirectedModel, n::Int, a::Int, pipe_resistances) end
-function constraint_head_loss_ub_cv(wm::AbstractUndirectedModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64) end
 function constraint_pipe_head_loss_ub_des(wm::AbstractUndirectedModel, n::Int, a::Int, alpha, len, pipe_resistances) end
-function constraint_pipe_head_loss_ub(wm::AbstractUndirectedModel, n::Int, a::Int, alpha, len, r_max) end
 function constraint_pump_head_gain_lb(wm::AbstractUndirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64}) end
