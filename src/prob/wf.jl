@@ -108,8 +108,6 @@ function build_mn_wf(wm::AbstractWaterModel)
         variable_reservoir(wm; nw=n)
         variable_tank(wm; nw=n)
 
-        ########## Devon's stuff ###########
-        constraint_VE_template(wm, n)
 
         # Flow conservation at all nodes.
         for i in ids(wm, :node; nw=n)
@@ -176,6 +174,11 @@ function build_mn_wf(wm::AbstractWaterModel)
         end
 
         n_1 = n_2 # Update the first network used for integration.
+    end
+
+    ########## Devon's stuff ###########
+    for (n, network) in nws(wm)
+        constraint_VE_template(wm, n)
     end
 
     # Add the objective.
