@@ -93,8 +93,10 @@ function constraint_VE(
     intial_tank_volumes = var(wm,intial_time,:V)
     current_tank_volumes = var(wm,start_time,:V)
     pump_status = var(wm,start_time,:V)
+    #JuMP.upper_bound(var(wm,t,:qp_pump, p)
+    #ref(wm,t,:pump)[p]["q_max"]
     c = JuMP.@constraint(wm.model,
-    sum(intial_tank_volumes[k] for k in tanks) - sum(current_tank_volumes[k] for k in tanks) + RD
-    <= sum( sum((ref(wm,t,:pump)[p]["q_max"] * time_step * var(wm,t,:z_pump)[p]) for p in source_pumps) for t in remaining_times))
+    sum(intial_tank_volumes[k] for k in tanks) - sum(current_tank_volumes[k] for k in tanks) + remaining_demand
+    <= sum( sum((JuMP.upper_bound(var(wm,t,:qp_pump, p)) * time_step * var(wm,t,:z_pump)[p]) for p in source_pumps) for t in remaining_times))
     #con(wm, nw, :VE) = c
 end
