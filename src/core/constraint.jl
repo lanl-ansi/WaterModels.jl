@@ -49,7 +49,14 @@ function constraint_flow_conservation(
 end
 
 
-function constraint_tank_volume_initial(wm::AbstractWaterModel, n::Int, i::Int, V_0::Float64)
+"""
+    constraint_tank_volume_fixed(wm, n, i, V_0)
+
+Adds a constraint that ensures the volume of a tank at some time step is fixed. Here, `wm`
+is the WaterModels object, `n` is the index of a subnetwork within a multinetwork, `i` is
+the index of the tank, and `V_0` is the fixed volume of the tank that is desired.
+"""
+function constraint_tank_volume_fixed(wm::AbstractWaterModel, n::Int, i::Int, V_0::Float64)
     V = var(wm, n, :V, i)
     c = JuMP.@constraint(wm.model, V == V_0)
     con(wm, n, :tank_volume)[i] = c

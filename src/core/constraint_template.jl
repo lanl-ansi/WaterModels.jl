@@ -154,7 +154,7 @@ function constraint_tank_volume(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
         surface_area = 0.25 * pi * tank["diameter"]^2
         V_initial = surface_area * initial_level
         _initialize_con_dict(wm, :tank_volume, nw=nw)
-        constraint_tank_volume_initial(wm, nw, i, V_initial)
+        constraint_tank_volume_fixed(wm, nw, i, V_initial)
     end
 end
 
