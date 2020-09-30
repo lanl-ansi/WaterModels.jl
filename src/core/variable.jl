@@ -84,7 +84,7 @@ function variable_reservoir_flow(wm::AbstractWaterModel; nw::Int=wm.cnw, report:
         [i in ids(wm, nw, :reservoir)], lower_bound=0.0, base_name="$(nw)_q_reservoir",
         start=comp_start_value(ref(wm, nw, :reservoir, i), "q_reservoir_start"))
 
-    report && sol_component_value(wm, nw, :reservoir, :q_reservoir, ids(wm, nw, :reservoir), q_reservoir)
+    report && sol_component_value(wm, nw, :reservoir, :q, ids(wm, nw, :reservoir), q_reservoir)
 end
 
 "Creates demand variables for all dispatchable demands in the network, i.e., `demand[i]`
@@ -103,7 +103,7 @@ function variable_demand_flow(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::B
         end
     end
 
-    report && sol_component_value(wm, nw, :demand, :q_demand, ids(wm, nw, :dispatchable_demand), q_demand)
+    report && sol_component_value(wm, nw, :demand, :q, ids(wm, nw, :dispatchable_demand), q_demand)
 end
 
 "Creates outgoing flow variables for all tanks in the network, i.e., `q_tank[i]`
@@ -113,7 +113,7 @@ function variable_tank_flow(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool
         [i in ids(wm, nw, :tank)], base_name="$(nw)_q_tank",
         start=comp_start_value(ref(wm, nw, :tank, i), "q_tank_start"))
 
-    report && sol_component_value(wm, nw, :tank, :q_tank, ids(wm, nw, :tank), q_tank)
+    report && sol_component_value(wm, nw, :tank, :q, ids(wm, nw, :tank), q_tank)
 end
 
 

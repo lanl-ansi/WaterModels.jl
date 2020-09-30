@@ -198,57 +198,77 @@ function constraint_pipe_head(wm::AbstractDirectedModel, n::Int, a::Int, node_fr
 end
 
 
-"Constraint for lower-bounding relaxations of pump head gain."
-function constraint_pump_head_gain_lb(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
-    # If the number of breakpoints is not positive, no constraints are added.
-    pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
-    if pump_breakpoints <= 0 return end
+#"Constraint for lower-bounding relaxations of pump head gain."
+#function constraint_pump_head_gain_lb(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
+#    # If the number of breakpoints is not positive, no constraints are added.
+#    pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
+#    if pump_breakpoints <= 0 return end
+#
+#    # Gather flow, head gain, and convex combination variables.
+#    qp, g = var(wm, n, :qp_pump, a), var(wm, n, :g, a)
+#    lambda = var(wm, n, :lambda_pump)
+#
+#    # Add a constraint that lower-bounds the head gain variable.
+#    breakpoints = range(0.0, stop=JuMP.upper_bound(qp), length=pump_breakpoints)
+#    f = (pc[1] .* breakpoints.^2) .+ (pc[2] .* breakpoints) .+ pc[3]
+#    gain_lb = sum(f[k] .* lambda[a, k] for k in 1:pump_breakpoints)
+#    c = JuMP.@constraint(wm.model, gain_lb <= g)
+#    append!(con(wm, n, :head_gain, a), [c])
+#end
 
-    # Gather flow, head gain, and convex combination variables.
-    qp, g = var(wm, n, :qp_pump, a), var(wm, n, :g, a)
-    lambda = var(wm, n, :lambda_pump)
 
-    # Add a constraint that lower-bounds the head gain variable.
-    breakpoints = range(0.0, stop=JuMP.upper_bound(qp), length=pump_breakpoints)
-    f = (pc[1] .* breakpoints.^2) .+ (pc[2] .* breakpoints) .+ pc[3]
-    gain_lb = sum(f[k] .* lambda[a, k] for k in 1:pump_breakpoints)
-    c = JuMP.@constraint(wm.model, gain_lb <= g)
-    append!(con(wm, n, :head_gain, a), [c])
+function constraint_on_off_pump_flow(wm::AbstractDirectedModel, n::Int, a::Int, q_min_active::Float64)
+    # Get pump status variable.
+    qp, y, z = var(wm, n, :qp_pump, a), var(wm, n, :z_pump, a), var(wm, n, :z_pump, a)
+
+    # If the pump is inactive, flow must be zero.
+    qp_ub = JuMP.upper_bound(qp)
+    c_1 = JuMP.@constraint(wm.model, qp >= q_min_active * z)
+    c_2 = JuMP.@constraint(wm.model, qp <= qp_ub * z)
+
+    # If the pump is on, flow across the pump must be nonnegative.
+    c_3 = JuMP.@constraint(wm.model, y >= z)
+
+    # Append the constraint array.
+    append!(con(wm, n, :on_off_pump_flow, a), [c_1, c_2, c_3])
 end
 
 
-function constraint_pump_common(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
-    # Gather variables common to all formulations involving pumps.
-    y, z = var(wm, n, :y_pump, a), var(wm, n, :z_pump, a)
-    qp, g = var(wm, n, :qp_pump, a), var(wm, n, :g, a)
+function constraint_on_off_pump_head(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int)
+    # Get head difference variables for the pump.
     dhp, dhn = var(wm, n, :dhp_pump, a), var(wm, n, :dhn_pump, a)
 
-    # If the pump is off, flow across the pump must be zero.
-    qp_ub = JuMP.upper_bound(qp)
-    c_1 = JuMP.@constraint(wm.model, qp <= qp_ub * z)
-    c_2 = JuMP.@constraint(wm.model, qp >= _q_eps * z)
+    # Get pump head gain and status variable.
+    g, z = var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
 
     # If the pump is off, decouple the head difference relationship.
     dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
-    c_3 = JuMP.@constraint(wm.model, dhp <= dhp_ub * (1.0 - z))
-    c_4 = JuMP.@constraint(wm.model, dhn <= g + dhn_ub * (1.0 - z))
-    c_5 = JuMP.@constraint(wm.model, dhn >= g)
-
-    # If the pump is on, flow across the pump must be nonnegative.
-    c_6 = JuMP.@constraint(wm.model, y >= z)
+    c_1 = JuMP.@constraint(wm.model, dhp <= dhp_ub * (1.0 - z))
+    c_2 = JuMP.@constraint(wm.model, dhn <= g + dhn_ub * (1.0 - z))
+    c_3 = JuMP.@constraint(wm.model, dhn >= g)
 
     # Equate head difference variables with heads.
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-    c_7 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
-
-    # Add a linear lower bound on the head gain approximation.
-    g_1, g_2 = pc[3], pc[1]*qp_ub^2 + pc[2]*qp_ub + pc[3]
-    g_lb_line = (g_2 - g_1) * inv(qp_ub) * qp + g_1 * z
-    c_8 = JuMP.@constraint(wm.model, g_lb_line <= g)
+    c_4 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
 
     # Append the constraint array.
-    append!(con(wm, n, :pump, a), [c_1, c_2, c_3, c_4, c_5, c_6, c_7, c_8])
+    append!(con(wm, n, :on_off_pump_head, a), [c_1, c_2, c_3, c_4])
 end
+
+
+#function constraint_pump_common(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
+#    # Gather variables common to all formulations involving pumps.
+#    y, z = var(wm, n, :y_pump, a), var(wm, n, :z_pump, a)
+#    qp, g = var(wm, n, :qp_pump, a), var(wm, n, :g, a)
+#
+#    # Add a linear lower bound on the head gain approximation.
+#    g_1, g_2 = pc[3], pc[1]*qp_ub^2 + pc[2]*qp_ub + pc[3]
+#    g_lb_line = (g_2 - g_1) * inv(qp_ub) * qp + g_1 * z
+#    c_8 = JuMP.@constraint(wm.model, g_lb_line <= g)
+#
+#    # Append the constraint array.
+#    append!(con(wm, n, :pump, a), [c_1, c_2, c_3, c_4, c_5, c_6, c_7, c_8])
+#end
 
 
 function constraint_flow_direction_selection_des(wm::AbstractDirectedModel, n::Int, a::Int, pipe_resistances)

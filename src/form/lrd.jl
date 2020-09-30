@@ -25,14 +25,40 @@ function _get_head_gain_oa(q::JuMP.VariableRef, z::JuMP.VariableRef, q_hat::Floa
 end
 
 
-"Pump head gain constraint when the pump status is ambiguous."
-function constraint_pump_head_gain(wm::LRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
-    # If the number of breakpoints is not positive, no constraints are added.
-    pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
-    if pump_breakpoints <= 0 return end
+function variable_pump_head_gain(wm::LRDWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+    # Initialize variables for total hydraulic head gain from a pump.
+    g = var(wm, nw)[:g_pump] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
+        base_name="$(nw)_g_pump", lower_bound=0.0, # Pump gain is nonnegative.
+        start=comp_start_value(ref(wm, nw, :pump, a), "g_pump_start"))
 
-    # Gather flow, head gain, and convex combination variables.
-    qp, g, z = var(wm, n, :qp_pump, a), var(wm, n, :g, a), var(wm, n, :z_pump, a)
+    # Initialize an entry to the solution component dictionary for head gains.
+    report && sol_component_value(wm, nw, :pump, :g, ids(wm, nw, :pump), g)
+
+    # Get the number of breakpoints for the pump.
+    pump_breakpoints = get(wm.ext, :pump_breakpoints, 2)
+
+    # Create weights involved in convex combination constraints for pumps.
+    lambda_pump = var(wm, nw)[:lambda_pump] = JuMP.@variable(wm.model,
+        [a in ids(wm, nw, :pump), k in 1:pump_breakpoints],
+        base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
+        start=comp_start_value(ref(wm, nw, :pump, a), "lambda_start", k))
+
+    # Create binary variables involved in convex combination constraints for pumps.
+    x_pw_pump = var(wm, nw)[:x_pw_pump] = JuMP.@variable(wm.model,
+        [a in ids(wm, nw, :pump), k in 1:pump_breakpoints-1], base_name="$(nw)_x_pw",
+        binary=true, start=comp_start_value(ref(wm, nw, :pump, a), "x_pw_start"))
+end
+
+
+"Pump head gain constraint when the pump status is ambiguous."
+function constraint_on_off_pump_head_gain(wm::LRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64}, q_min_active::Float64)
+    # Get the number of breakpoints for the pump.
+    pump_breakpoints = get(wm.ext, :pump_breakpoints, 2)
+
+    # Gather pump flow, head gain, and status variables.
+    qp, g, z = var(wm, n, :qp_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
+
+    # Gather convex combination variables.
     lambda, x_pw = var(wm, n, :lambda_pump), var(wm, n, :x_pw_pump)
 
     # Add the required SOS constraints.
@@ -42,25 +68,30 @@ function constraint_pump_head_gain(wm::LRDWaterModel, n::Int, a::Int, node_fr::I
     c_4 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
 
     # Add a constraint for the flow piecewise approximation.
-    breakpoints = range(0.0, stop=JuMP.upper_bound(qp), length=pump_breakpoints)
+    breakpoints = range(q_min_active, stop=JuMP.upper_bound(qp), length=pump_breakpoints)
     qp_lhs = sum(breakpoints[k] * lambda[a, k] for k in 1:pump_breakpoints)
     c_5 = JuMP.@constraint(wm.model, qp_lhs == qp)
 
+    # Add a constraint that lower-bounds the head gain variable.
+    f = (pc[1] .* breakpoints.^2) .+ (pc[2] .* breakpoints) .+ pc[3]
+    gain_lb_expr = sum(f[k] .* lambda[a, k] for k in 1:pump_breakpoints)
+    c_6 = JuMP.@constraint(wm.model, gain_lb_expr <= g)
+
     # Append the constraint array.
-    append!(con(wm, n, :head_gain, a), [c_1, c_2, c_3, c_4, c_5])
+    append!(con(wm, n, :on_off_pump_head_gain, a), [c_1, c_2, c_3, c_4, c_5, c_6])
+
+    for qp_hat in breakpoints
+        # Add head gain outer (i.e., upper) approximations.
+        lhs = _get_head_gain_oa(qp, z, qp_hat, pc)
+        c_7_k = JuMP.@constraint(wm.model, g <= lhs)
+        append!(con(wm, n, :on_off_pump_head_gain, a), [c_7_k])
+    end
 
     for k in 2:pump_breakpoints-1
         # Add the adjacency constraints for piecewise variables.
         adjacency = x_pw[a, k-1] + x_pw[a, k]
-        c_6_k = JuMP.@constraint(wm.model, lambda[a, k] <= adjacency)
-        append!(con(wm, n, :head_gain, a), [c_6_k])
-    end
-
-    # Add head gain outer (i.e., upper) approximations.
-    for qp_hat in breakpoints
-        lhs = _get_head_gain_oa(qp, z, qp_hat, pc)
-        c_7_k = JuMP.@constraint(wm.model, g <= lhs)
-        append!(con(wm, n, :head_gain, a), [c_7_k])
+        c_8_k = JuMP.@constraint(wm.model, lambda[a, k] <= adjacency)
+        append!(con(wm, n, :on_off_pump_head_gain, a), [c_8_k])
     end
 end
 

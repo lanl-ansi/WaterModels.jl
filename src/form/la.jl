@@ -69,12 +69,12 @@ end
 
 
 "Pump head gain constraint when the pump status is ambiguous."
-function constraint_pump_head_gain(wm::LAWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64})
+function constraint_on_off_pump_head_gain(wm::LAWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64}, q_min_active::Float64)
     # Get the number of breakpoints for the pump.
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 2)
 
     # Gather common variables.
-    q, g, z = var(wm, n, :q_pump, a), var(wm, n, :g, a), var(wm, n, :z_pump, a)
+    q, g, z = var(wm, n, :q_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
     lambda, x_pw = var(wm, n, :lambda_pump), var(wm, n, :x_pw_pump)
 
     # Add the required SOS constraints.
@@ -84,7 +84,7 @@ function constraint_pump_head_gain(wm::LAWaterModel, n::Int, a::Int, node_fr::In
     c_4 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
 
     # Generate a set of uniform flow breakpoints.
-    breakpoints = range(0.0, stop=JuMP.upper_bound(q), length=pump_breakpoints)
+    breakpoints = range(q_min_active, stop=JuMP.upper_bound(q), length=pump_breakpoints)
 
     # Add a constraint for the flow piecewise approximation.
     q_lhs = sum(breakpoints[k] * lambda[a, k] for k in 1:pump_breakpoints)
@@ -96,12 +96,13 @@ function constraint_pump_head_gain(wm::LAWaterModel, n::Int, a::Int, node_fr::In
     c_6 = JuMP.@constraint(wm.model, g_lhs == g)
 
     # Append the constraint array with the above-generated constraints.
-    append!(con(wm, n, :head_gain, a), [c_1, c_2, c_3, c_4, c_5, c_6])
+    append!(con(wm, n, :on_off_pump_head_gain, a), [c_1, c_2, c_3, c_4, c_5, c_6])
 
-    for k in 2:pump_breakpoints-1 # Add adjacency constraints for each interval.
+    for k in 2:pump_breakpoints-1
+        # Add adjacency constraints for each interval.
         adjacency = x_pw[a, k-1] + x_pw[a, k]
         c_7_k = JuMP.@constraint(wm.model, lambda[a, k] <= adjacency)
-        append!(con(wm, n, :head_gain, a), [c_7_k])
+        append!(con(wm, n, :on_off_pump_head_gain, a), [c_7_k])
     end
 end
 

@@ -257,7 +257,9 @@ function constraint_on_off_pump_head_gain(wm::AbstractWaterModel, a::Int; nw::In
     node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
     _initialize_con_dict(wm, :on_off_pump_head_gain, nw=nw, is_array=true)
     con(wm, nw, :on_off_pump_head_gain)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_on_off_pump_head_gain(wm, nw, a, node_fr, node_to, q_min_active)
+    coeffs = _get_function_from_head_curve(ref(wm, nw, :pump, a)["head_curve"])
+    q_min_active = get(ref(wm, nw, :pump, a), "q_min_active", _q_eps)
+    constraint_on_off_pump_head_gain(wm, nw, a, node_fr, node_to, coeffs, q_min_active)
 end
 
 

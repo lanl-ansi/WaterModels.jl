@@ -213,6 +213,39 @@ function constraint_on_off_valve_head(wm::AbstractUndirectedModel, n::Int, a::In
 end
 
 
+function constraint_on_off_pump_flow(wm::AbstractUndirectedModel, n::Int, a::Int, q_min_active::Float64)
+    # Get pump status variable.
+    q, z = var(wm, n, :q_pump, a), var(wm, n, :z_pump, a)
+
+    # If the pump is inactive, flow must be zero.
+    q_ub = JuMP.upper_bound(q)
+    c_1 = JuMP.@constraint(wm.model, q >= q_min_active * z)
+    c_2 = JuMP.@constraint(wm.model, q <= q_ub * z)
+
+    # Append the constraint array.
+    append!(con(wm, n, :on_off_pump_flow, a), [c_1, c_2])
+end
+
+
+function constraint_on_off_pump_head(wm::AbstractUndirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int)
+    # Get head variables for from and to nodes.
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+
+    # Get pump status variable.
+    g, z = var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
+
+    # If the pump is off, decouple the head difference relationship. If the pump is on,
+    # ensure the head difference is equal to the pump's head gain (i.e., `g`).
+    dhn_ub = JuMP.upper_bound(h_j) - JuMP.lower_bound(h_i)
+    dhn_lb = JuMP.lower_bound(h_j) - JuMP.upper_bound(h_i)
+    c_1 = JuMP.@constraint(wm.model, h_j - h_i <= g + dhn_ub * (1.0 - z))
+    c_2 = JuMP.@constraint(wm.model, h_j - h_i >= g + dhn_lb * (1.0 - z))
+
+    # Append the constraint array.
+    append!(con(wm, n, :on_off_pump_head, a), [c_1, c_2])
+end
+
+
 function constraint_short_pipe_flow(wm::AbstractUndirectedModel, n::Int, a::Int)
     # By default, there are no constraints, here.
 end
@@ -228,7 +261,6 @@ function constraint_short_pipe_head(wm::AbstractUndirectedModel, n::Int, a::Int,
     # Append the constraint array.
     append!(con(wm, n, :short_pipe_head, a), [c])
 end
-
 
 
 function constraint_intermediate_directionality(

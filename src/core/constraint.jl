@@ -49,39 +49,6 @@ function constraint_flow_conservation(
 end
 
 
-function constraint_pump_flow(wm::AbstractWaterModel, n::Int, a::Int, q_min_active::Float64)
-    # Get pump status variable.
-    q, z = var(wm, n, :q_pump), var(wm, n, :z_pump, a)
-
-    # If the pump is inactive, flow must be zero.
-    q_ub = JuMP.upper_bound(q)
-    c_1 = JuMP.@constraint(wm.model, q >= q_min_active * z)
-    c_2 = JuMP.@constraint(wm.model, q <= q_ub * z)
-
-    # Append the constraint array.
-    append!(con(wm, n, :on_off_pump_flow, a), [c_1, c_2])
-end
-
-
-function constraint_pump_head(wm::AbstractWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int)
-    # Get head variables for from and to nodes.
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-
-    # Get pump status variable.
-    g, z = var(wm, n, :g_pump), var(wm, n, :z_pump, a)
-
-    # If the pump is off, decouple the head difference relationship.
-    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
-    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
-    c_1 = JuMP.@constraint(wm.model, h_i - h_j <= dh_ub * (1.0 - z))
-    c_2 = JuMP.@constraint(wm.model, h_i - h_j >= g + dh_lb * (1.0 - z))
-    c_3 = JuMP.@constraint(wm.model, h_i - h_j <= g)
-
-    # Append the constraint array.
-    append!(con(wm, n, :pump_head, a), [c_1, c_2, c_3])
-end
-
-
 function constraint_tank_volume_initial(wm::AbstractWaterModel, n::Int, i::Int, V_0::Float64)
     V = var(wm, n, :V, i)
     c = JuMP.@constraint(wm.model, V == V_0)
@@ -95,7 +62,7 @@ end
 Adds a constraint that integrates the volume of a tank forward in time. Here, `wm` is the
 WaterModels object, `n_1` is the index of a subnetwork within a multinetwork, `n_2` is the
 index of another subnetwork forward in time, relative to `n_1`, i is the index of the tank,
-and time_step is the time step (in seconds) between networks `n_1` and `n_2`.
+and time_step is the time step (in seconds) of the interval from network `n_1` to `n_2`.
 """
 function constraint_tank_volume(wm::AbstractWaterModel, n_1::Int, n_2::Int, i::Int, time_step::Float64)
     qt = var(wm, n_1, :q_tank, i) # Tank outflow.
@@ -105,8 +72,16 @@ function constraint_tank_volume(wm::AbstractWaterModel, n_1::Int, n_2::Int, i::I
 end
 
 
+"""
+    constraint_tank_volume_recovery(wm, i, n_1, n_f)
+
+Adds a constraint that ensures the volume of a tank at the end of the time horizon is
+greater than or equal to the volume of the tank at the beginning of the time horizon. Here,
+`wm` is the WaterModels object, `n_1` is the index of the first subnetwork within a
+multinetwork, `n_f` is the index of the final subnetwork, and i is the index of the tank.
+"""
 function constraint_tank_volume_recovery(wm::AbstractWaterModel, i::Int, n_1::Int, n_f::Int)
-    if !ref(wm, nw_f, :tank, i)["dispatchable"]
+    if !ref(wm, n_f, :tank, i)["dispatchable"]
         _initialize_con_dict(wm, :tank_volume_recovery, nw=n_f)
         V_1, V_f = var(wm, n_1, :V, i), var(wm, n_f, :V, i)
         c = JuMP.@constraint(wm.model, V_f >= V_1)

@@ -35,15 +35,15 @@ end
 
 
 "Adds head gain constraints for pumps in `NC` formulations."
-function constraint_pump_head_gain(wm::NCWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
-    # Gather common flow and pump variables.
-    q, g, z = var(wm, n, :q_pump, a), var(wm, n, :g, a), var(wm, n, :z_pump, a)
+function constraint_on_off_pump_head_gain(wm::NCWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64}, q_min_active::Float64)
+    # Gather pump flow, head gain, and status variables.
+    q, g, z = var(wm, n, :q_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
 
     # Add constraint equating head gain with respect to the pump curve.
     c = JuMP.@constraint(wm.model, pc[1]*q^2 + pc[2]*q + pc[3]*z == g)
 
-    # Append the :head_gain constraint array.
-    append!(con(wm, n, :head_gain)[a], [c])
+    # Append the :on_off_pump_head_gain constraint array.
+    append!(con(wm, n, :on_off_pump_head_gain)[a], [c])
 end
 
 "Defines the objective for the owf problem is `NC` formulations."

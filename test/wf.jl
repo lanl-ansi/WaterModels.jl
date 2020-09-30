@@ -97,33 +97,33 @@
         @test isapprox(result["solution"]["pipe"]["1"]["q"], 2.0, rtol=1.0e-3)
     end
 
-    #@testset "Head Gain (Pump)" begin
-    #    network = WaterModels.parse_file("../test/data/epanet/snapshot/pump-hw-lps.inp")
+    @testset "Head Gain (Pump)" begin
+        network = WaterModels.parse_file("../test/data/epanet/snapshot/pump-hw-lps.inp")
 
-    #    wm = instantiate_model(network, NCWaterModel, build_wf)
-    #    result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
-    #    @test result["termination_status"] == LOCALLY_SOLVED
-    #    @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
-    #    @test isapprox(result["solution"]["node"]["2"]["h"], 98.98, rtol=1.0e-3)
-    #    @test isapprox(result["solution"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
+        wm = instantiate_model(network, NCWaterModel, build_wf)
+        result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
+        @test result["termination_status"] == LOCALLY_SOLVED
+        @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
+        @test isapprox(result["solution"]["node"]["2"]["h"], 98.98, rtol=1.0e-3)
+        @test isapprox(result["solution"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
 
-    #    wm = instantiate_model(network, CRDWaterModel, build_wf)
-    #    result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
-    #    @test result["termination_status"] == LOCALLY_SOLVED
-    #    @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
-    #    @test isapprox(result["solution"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
+        wm = instantiate_model(network, CRDWaterModel, build_wf)
+        result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
+        @test result["termination_status"] == LOCALLY_SOLVED
+        @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
+        @test isapprox(result["solution"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
 
-    #    result = run_wf(network, LAWaterModel, cbc, ext=Dict(:pump_breakpoints=>4))
-    #    @test result["termination_status"] == OPTIMAL
-    #    @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
-    #    @test isapprox(result["solution"]["node"]["2"]["h"], 98.98, rtol=1.0e-1)
-    #    @test isapprox(result["solution"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
+        result = run_wf(network, LAWaterModel, cbc, ext=Dict(:pump_breakpoints=>4))
+        @test result["termination_status"] == OPTIMAL
+        @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
+        @test isapprox(result["solution"]["node"]["2"]["h"], 98.98, rtol=1.0e-1)
+        @test isapprox(result["solution"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
 
-    #    result = run_wf(network, LRDWaterModel, cbc, ext=Dict(:pump_breakpoints=>3))
-    #    @test result["termination_status"] == OPTIMAL
-    #    @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
-    #    @test isapprox(result["solution"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
-    #end
+        result = run_wf(network, LRDWaterModel, cbc, ext=Dict(:pump_breakpoints=>3))
+        @test result["termination_status"] == OPTIMAL
+        @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
+        @test isapprox(result["solution"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
+    end
 
     @testset "Hazen-Williams Head Loss (Tank)" begin
         network = parse_file("../test/data/epanet/snapshot/tank-hw-lps.inp")
@@ -283,41 +283,41 @@ end
         @test isapprox(result["solution"]["nw"]["3"]["regulator"]["2"]["q"], 0.25, rtol=1.0e-3)
     end
 
-    #@testset "Head Gain (Pump)" begin
-    #    network = WaterModels.parse_file("../test/data/epanet/multinetwork/pump-hw-lps.inp")
-    #    network = WaterModels.make_multinetwork(network)
+    @testset "Head Gain (Pump)" begin
+        network = WaterModels.parse_file("../test/data/epanet/multinetwork/pump-hw-lps.inp")
+        network = WaterModels.make_multinetwork(network)
 
-    #    wm = instantiate_model(network, NCWaterModel, build_mn_wf)
-    #    result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
-    #    @test result["termination_status"] == LOCALLY_SOLVED
-    #    @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["q"], 0.125, rtol=1.0e-3)
-    #    @test isapprox(result["solution"]["nw"]["3"]["pump"]["1"]["q"], 0.03125, rtol=1.0e-3)
-    #    @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
-    #    @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["g"], 88.98, rtol=1.0e-3)
-    #    @test isapprox(result["solution"]["nw"]["3"]["pump"]["1"]["g"], 99.59, rtol=1.0e-2)
+        wm = instantiate_model(network, NCWaterModel, build_mn_wf)
+        result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
+        @test result["termination_status"] == LOCALLY_SOLVED
+        @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["q"], 0.125, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["3"]["pump"]["1"]["q"], 0.03125, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["g"], 88.98, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["3"]["pump"]["1"]["g"], 99.59, rtol=1.0e-2)
 
-    #    wm = instantiate_model(network, CRDWaterModel, build_mn_wf)
-    #    result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
-    #    @test result["termination_status"] == LOCALLY_SOLVED
-    #    @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["q"], 0.125, rtol=1.0e-3)
-    #    @test isapprox(result["solution"]["nw"]["3"]["pump"]["1"]["q"], 0.03125, rtol=1.0e-3)
-    #    @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
-    #    @test result["solution"]["nw"]["1"]["pump"]["1"]["g"] <= 88.99
+        wm = instantiate_model(network, CRDWaterModel, build_mn_wf)
+        result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
+        @test result["termination_status"] == LOCALLY_SOLVED
+        @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["q"], 0.125, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["3"]["pump"]["1"]["q"], 0.03125, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
+        @test result["solution"]["nw"]["1"]["pump"]["1"]["g"] <= 88.99
 
-    #    result = run_mn_wf(network, LAWaterModel, cbc, ext=Dict(:pump_breakpoints=>5))
-    #    @test result["termination_status"] == OPTIMAL
-    #    @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["q"], 0.125, rtol=1.0e-3)
-    #    @test isapprox(result["solution"]["nw"]["3"]["pump"]["1"]["q"], 0.03125, rtol=1.0e-3)
-    #    @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
-    #    @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["g"], 88.98, rtol=1.0e-1)
-    #    @test isapprox(result["solution"]["nw"]["3"]["pump"]["1"]["g"], 99.59, rtol=1.0e-1)
+        result = run_mn_wf(network, LAWaterModel, cbc, ext=Dict(:pump_breakpoints=>5))
+        @test result["termination_status"] == OPTIMAL
+        @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["q"], 0.125, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["3"]["pump"]["1"]["q"], 0.03125, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["g"], 88.98, rtol=1.0e-1)
+        @test isapprox(result["solution"]["nw"]["3"]["pump"]["1"]["g"], 99.59, rtol=1.0e-1)
 
-    #    result = run_mn_wf(network, LRDWaterModel, cbc, ext=Dict(:pump_breakpoints=>3))
-    #    @test result["termination_status"] == OPTIMAL
-    #    @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["q"], 0.125, rtol=1.0e-3)
-    #    @test isapprox(result["solution"]["nw"]["3"]["pump"]["1"]["q"], 0.03125, rtol=1.0e-3)
-    #    @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
-    #end
+        result = run_mn_wf(network, LRDWaterModel, cbc, ext=Dict(:pump_breakpoints=>3))
+        @test result["termination_status"] == OPTIMAL
+        @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["q"], 0.125, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["3"]["pump"]["1"]["q"], 0.03125, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["status"], 1.0, atol=1.0e-3)
+    end
 
     @testset "Hazen-Williams Head Loss (Tank)" begin
         network = WaterModels.parse_file("../test/data/epanet/multinetwork/tank-hw-lps.inp")

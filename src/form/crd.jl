@@ -1,6 +1,31 @@
 # Define common CRD (continuous or convex relaxation- and direction-based) implementations
 # of water distribution network constraints, which use directed flow variables.
 
+function variable_pump_head_gain(wm::CRDWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+    # Initialize variables for total hydraulic head gain from a pump.
+    g = var(wm, nw)[:g_pump] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
+        base_name="$(nw)_g_pump", lower_bound=0.0, # Pump gain is nonnegative.
+        start=comp_start_value(ref(wm, nw, :pump, a), "g_pump_start"))
+
+    # Initialize an entry to the solution component dictionary for head gains.
+    report && sol_component_value(wm, nw, :pump, :g, ids(wm, nw, :pump), g)
+
+    # If the number of breakpoints is not positive, return.
+    pump_breakpoints = get(wm.ext, :pump_breakpoints, 2)
+
+    # Create weights involved in convex combination constraints.
+    lambda = var(wm, nw)[:lambda_pump] = JuMP.@variable(wm.model,
+        [a in ids(wm, nw, :pump), k in 1:pump_breakpoints],
+        base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
+        start=comp_start_value(ref(wm, nw, :pump, a), "lambda_start", k))
+
+    # Create binary variables involved in convex combination constraints.
+    x_pw = var(wm, nw)[:x_pw_pump] = JuMP.@variable(wm.model,
+        [a in ids(wm, nw, :pump), k in 1:pump_breakpoints-1],
+        base_name="$(nw)_x_pw", binary=true,
+        start=comp_start_value(ref(wm, nw, :pump, a), "x_pw_start", k))
+end
+
 function constraint_pipe_head_loss(wm::CRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64, L::Float64, r::Float64)
     # Gather directed flow and head difference variables.
     qp, qn = var(wm, n, :qp_pipe, a), var(wm, n, :qn_pipe, a)
@@ -39,54 +64,45 @@ function constraint_pipe_head_loss_des(wm::CRDWaterModel, n::Int, a::Int, alpha:
 end
 
 "Pump head gain constraint when the pump status is ambiguous."
-function constraint_pump_head_gain(wm::CRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
-    # Gather flow and head gain variables.
-    g = var(wm, n, :g, a)
-    qp, z = var(wm, n, :qp_pump, a), var(wm, n, :z_pump, a)
+function constraint_on_off_pump_head_gain(wm::CRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64}, q_min_active::Float64)
+    # Get the number of breakpoints for the pump.
+    pump_breakpoints = get(wm.ext, :pump_breakpoints, 2)
 
-    # Gather head-related variables and data.
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-    dhp, dhn = var(wm, n, :dhp_pump, a), var(wm, n, :dhn_pump, a)
-    dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
+    # Gather pump flow, head gain, and status variables.
+    qp, g, z = var(wm, n, :qp_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
 
-    # Define the (relaxed) head gain caused by the pump.
-    g_expr = pc[1]*qp^2 + pc[2]*qp + pc[3]*z
-    c = JuMP.@constraint(wm.model, g <= g_expr) # Concavified.
-
-    # Append the constraint array.
-    append!(con(wm, n, :head_gain, a), [c])
-
-    # If the number of breakpoints is not positive, no constraints are added.
-    pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
-    if pump_breakpoints <= 0 return end
+    # Define the (relaxed) head gain relationship for the pump.
+    c_1 = JuMP.@constraint(wm.model, g <= pc[1]*qp^2 + pc[2]*qp + pc[3]*z)
 
     # Gather flow, head gain, and convex combination variables.
-    lambda, x_pw = [var(wm, n, :lambda_pump), var(wm, n, :x_pw_pump)]
+    lambda, x_pw = var(wm, n, :lambda_pump), var(wm, n, :x_pw_pump)
 
     # Add the required SOS constraints.
-    c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == z)
-    c_2 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == z)
-    c_3 = JuMP.@constraint(wm.model, lambda[a, 1] <= x_pw[a, 1])
-    c_4 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
+    c_2 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == z)
+    c_3 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == z)
+    c_4 = JuMP.@constraint(wm.model, lambda[a, 1] <= x_pw[a, 1])
+    c_5 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
 
     # Add a constraint for the flow piecewise approximation.
-    qp_ub = JuMP.upper_bound(qp)
-    breakpoints = range(0.0, stop=qp_ub, length=pump_breakpoints)
+    breakpoints = range(q_min_active, stop=JuMP.upper_bound(qp), length=pump_breakpoints)
     qp_lhs = sum(breakpoints[k] * lambda[a, k] for k in 1:pump_breakpoints)
-    c_5 = JuMP.@constraint(wm.model, qp_lhs == qp)
+    c_6 = JuMP.@constraint(wm.model, qp_lhs == qp)
+
+    # Add a constraint that lower-bounds the head gain variable.
+    f = (pc[1] .* breakpoints.^2) .+ (pc[2] .* breakpoints) .+ pc[3]
+    gain_lb_expr = sum(f[k] .* lambda[a, k] for k in 1:pump_breakpoints)
+    c_7 = JuMP.@constraint(wm.model, gain_lb_expr <= g)
 
     # Append the constraint array.
-    append!(con(wm, n, :head_gain, a), [c_1, c_2, c_3, c_4, c_5])
+    append!(con(wm, n, :on_off_pump_head_gain, a), [c_1, c_2, c_3, c_4, c_5, c_6, c_7])
 
     for k in 2:pump_breakpoints-1
         # Add the adjacency constraints for piecewise variables.
         adjacency = x_pw[a, k-1] + x_pw[a, k]
-        c_6_k = JuMP.@constraint(wm.model, lambda[a, k] <= adjacency)
-        append!(con(wm, n, :head_gain, a), [c_6_k])
+        c_8_k = JuMP.@constraint(wm.model, lambda[a, k] <= adjacency)
+        append!(con(wm, n, :on_off_pump_head_gain, a), [c_8_k])
     end
 end
-
-
 
 
 function objective_wf(wm::CRDWaterModel)
