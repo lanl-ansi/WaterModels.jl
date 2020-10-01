@@ -44,7 +44,7 @@ include("common.jl")
 
     #include("des.jl")
 
-    #include("util.jl")
+    include("util.jl")
 
     include("warm_start.jl")
 

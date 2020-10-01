@@ -61,6 +61,8 @@ include("form/crd.jl")
 include("form/la.jl")
 include("form/lrd.jl")
 include("form/nc.jl")
+include("form/qrd.jl")
+include("form/cqrd.jl")
 
 include("prob/wf.jl")
 include("prob/owf.jl")

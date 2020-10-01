@@ -87,6 +87,7 @@ function variable_reservoir_flow(wm::AbstractWaterModel; nw::Int=wm.cnw, report:
     report && sol_component_value(wm, nw, :reservoir, :q, ids(wm, nw, :reservoir), q_reservoir)
 end
 
+
 "Instantiates demand flow variables for all dispatchable demands in the network, i.e.,
 `demand[i]` for `i` in `dispatchable_demand`."
 function variable_demand_flow(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
@@ -105,6 +106,7 @@ function variable_demand_flow(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::B
 
     report && sol_component_value(wm, nw, :demand, :q, ids(wm, nw, :dispatchable_demand), q_demand)
 end
+
 
 "Creates outgoing flow variables for all tanks in the network, i.e., `q_tank[i]`
 for `i` in `tank`. Note that, unlike reservoirs, tanks can have inflow."
@@ -150,9 +152,9 @@ function variable_regulator_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, re
             start = comp_start_value(ref(wm, nw, :regulator, a), "z_regulator_start"))
     end
 
-    report && sol_component_value(wm, nw, :regulator, :z_regulator,
-        ids(wm, nw, :regulator), z_regulator)
+    report && sol_component_value(wm, nw, :regulator, :status, ids(wm, nw, :regulator), z_regulator)
 end
+
 
 "Creates binary variables for all pumps in the network, i.e., `z_pump[a]` for
 `a` in `pump`, where one denotes that the pump is currently operating (i.e.,

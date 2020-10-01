@@ -45,7 +45,6 @@ function build_des(wm::AbstractWaterModel)
 
     # Set source node hydraulic heads.
     for (i, reservoir) in ref(wm, :reservoir)
-        constraint_reservoir_head(wm, reservoir["node"])
         constraint_source_directionality(wm, reservoir["node"])
     end
 

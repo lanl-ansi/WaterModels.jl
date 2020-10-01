@@ -129,18 +129,6 @@ function constraint_node_directionality(wm::AbstractWaterModel, i::Int; nw::Int=
 end
 
 
-### Reservoir Constraints ###
-function constraint_reservoir_head(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
-    # Only fix the reservoir head if the reservoir is nondispatchable.
-    if !ref(wm, nw, :reservoir, i)["dispatchable"]
-        node_index = ref(wm, nw, :reservoir, i)["node"]
-        head = ref(wm, nw, :node, node_index)["head"]
-        _initialize_con_dict(wm, :reservoir_head, nw=nw)
-        constraint_reservoir_head(wm, nw, node_index, head)
-    end
-end
-
-
 ### Tank Constraints ###
 function constraint_tank_volume(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
     if !(:time_step in keys(ref(wm, nw)))

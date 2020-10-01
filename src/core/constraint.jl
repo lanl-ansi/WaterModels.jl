@@ -4,16 +4,6 @@
 
 
 """
-    constraint_reservoir_head(wm, n, i, head)
-"""
-function constraint_reservoir_head(wm::AbstractWaterModel, n::Int, i::Int, head::Float64)
-    h = var(wm, n, :h, i)
-    c = JuMP.@constraint(wm.model, h == head)
-    con(wm, n, :reservoir_head)[i] = c
-end
-
-
-"""
     constraint_flow_conservation(
         wm, n, i, pipe_fr, pipe_to, des_pipe_fr, des_pipe_to, pump_fr, pump_to,
         regulator_fr, regulator_to, short_pipe_fr, short_pipe_to, valve_fr, valve_to,
