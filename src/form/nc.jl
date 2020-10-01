@@ -46,9 +46,10 @@ function constraint_on_off_pump_head_gain(wm::NCWaterModel, n::Int, a::Int, node
     append!(con(wm, n, :on_off_pump_head_gain)[a], [c])
 end
 
+
 "Defines the objective for the owf problem is `NC` formulations."
 function objective_owf(wm::NCWaterModel)
-    objective = JuMP.AffExpr(0.0)
+    objective = zero(JuMP.QuadExpr)
 
     for (n, nw_ref) in nws(wm)
         efficiency = 0.85 # TODO: How can the efficiency curve be used?
@@ -58,15 +59,11 @@ function objective_owf(wm::NCWaterModel)
 
         for (a, pump) in nw_ref[:pump]
             if haskey(pump, "energy_price")
-                # Get price data and power-related variables.
-                price = pump["energy_price"]
-                q, g = var(wm, n, :q_pump, a), var(wm, n, :g, a)
+                # Get pump flow and head gain variables.
+                q, g = var(wm, n, :q_pump, a), var(wm, n, :g_pump, a)
 
                 # Constrain cost_var and append to the objective expression.
-                cost_var = JuMP.@variable(wm.model, lower_bound=0.0)
-                cost_expr = JuMP.@NLexpression(wm.model, coeff * price * g * q)
-                c = JuMP.@NLconstraint(wm.model, cost_expr <= cost_var)
-                JuMP.add_to_expression!(objective, cost_var)
+                JuMP.add_to_expression!(objective, coeff * pump["energy_price"], q, g)
             else
                 Memento.error(_LOGGER, "No cost given for pump \"$(pump["name"])\"")
             end

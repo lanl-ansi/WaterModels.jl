@@ -69,16 +69,16 @@ function variable_pump_head_gain(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded
     # Initialize variables for total hydraulic head gain from a pump.
     g = var(wm, nw)[:g_pump] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
         base_name="$(nw)_g_pump", lower_bound=0.0, # Pump gain is nonnegative.
-        start=comp_start_value(ref(wm, nw, :pump, a), "g_pump_start"))
+        start=comp_start_value(ref(wm, nw, :pump, a), "g_pump_start", 1.0e-6))
 
     # Initialize an entry to the solution component dictionary for head gains.
     report && sol_component_value(wm, nw, :pump, :g, ids(wm, nw, :pump), g)
 end
 
 
-"Creates outgoing flow variables for all reservoirs in the network, i.e.,
-`q_reservoir[i]` for `i` in `reservoir`. Note that these variables are always
-nonnegative, as there is never incoming flow to a reservoir."
+"Instantiates outgoing flow variables for all reservoirs in the network, i.e.,
+`q_reservoir[i]` for `i` in `reservoir`. Note that these variables are always nonnegative,
+since for each reservoir, there will never be incoming flow."
 function variable_reservoir_flow(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
     q_reservoir = var(wm, nw)[:q_reservoir] = JuMP.@variable(wm.model,
         [i in ids(wm, nw, :reservoir)], lower_bound=0.0, base_name="$(nw)_q_reservoir",
@@ -87,8 +87,8 @@ function variable_reservoir_flow(wm::AbstractWaterModel; nw::Int=wm.cnw, report:
     report && sol_component_value(wm, nw, :reservoir, :q, ids(wm, nw, :reservoir), q_reservoir)
 end
 
-"Creates demand variables for all dispatchable demands in the network, i.e., `demand[i]`
-for `i` in `dispatchable_demand`."
+"Instantiates demand flow variables for all dispatchable demands in the network, i.e.,
+`demand[i]` for `i` in `dispatchable_demand`."
 function variable_demand_flow(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
     q_demand = var(wm, nw)[:q_demand] = JuMP.@variable(wm.model,
         [i in ids(wm, nw, :dispatchable_demand)], base_name="$(nw)_q_demand",
@@ -172,8 +172,6 @@ function variable_pump_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, relax::
     report && sol_component_value(wm, nw, :pump, :status, ids(wm, nw, :pump), z_pump)
 end
 
-function variable_pump_operation(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
-end
 
 "Creates binary variables for all network design or design resistances in
 the network, i.e., `x_res[a]` for `a` in `pipe`, for `r` in `resistance[a]`,

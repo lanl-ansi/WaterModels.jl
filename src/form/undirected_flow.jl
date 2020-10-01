@@ -3,6 +3,7 @@
 # When q is nonnegative, flow is assumed to travel from i to j. When q is
 # negative, flow is assumed to travel from j to i.
 
+
 "Create flow-related variables common to all directed flow models for edge-type components."
 function variable_flow(wm::AbstractUndirectedModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
     for name in ["pipe", "pump", "regulator", "short_pipe", "valve"]
@@ -115,27 +116,6 @@ function constraint_resistance_selection_des(wm::AbstractUndirectedModel, n::Int
     end
 end
 
-
-
-
-function constraint_pump_common(wm::AbstractUndirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
-    # Gather common variables.
-    q, g, z = var(wm, n, :q_pump, a), var(wm, n, :g, a), var(wm, n, :z_pump, a)
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-
-    # If the pump is off, the flow along the pump must be zero.
-    c_1 = JuMP.@constraint(wm.model, q <= JuMP.upper_bound(q) * z)
-    c_2 = JuMP.@constraint(wm.model, q >= _q_eps * z)
-
-    # If the pump is off, decouple the head difference relationship.
-    dhn_lb = min(0.0, JuMP.lower_bound(h_j) - JuMP.upper_bound(h_i))
-    c_3 = JuMP.@constraint(wm.model, h_j - h_i - g >= dhn_lb * (1.0 - z))
-    dhn_ub = max(0.0, JuMP.upper_bound(h_j) - JuMP.lower_bound(h_i))
-    c_4 = JuMP.@constraint(wm.model, h_j - h_i - g <= dhn_ub * (1.0 - z))
-
-    # Append the constraint array.
-    append!(con(wm, n, :pump, a), [c_1, c_2, c_3, c_4])
-end
 
 function constraint_pipe_common(wm::AbstractUndirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
     # For undirected formulations, there are no constraints, here.

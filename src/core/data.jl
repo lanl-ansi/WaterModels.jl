@@ -206,7 +206,7 @@ end
 
 function set_start_reservoir!(data)
     for (i, reservoir) in data["reservoir"]
-        reservoir["qr_start"] = reservoir["qr"]
+        reservoir["q_reservoir_start"] = reservoir["q"]
     end
 end
 
