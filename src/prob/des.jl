@@ -8,14 +8,19 @@ function build_des(wm::AbstractWaterModel)
 
     # Physical variables.
     variable_head(wm)
-    variable_head_gain(wm)
     variable_flow(wm)
+    variable_pump_head_gain(wm)
 
     # Component-specific variables.
-    variable_reservoir(wm)
+    variable_pipe_des_indicator(wm)
+    variable_pump_indicator(wm)
+    variable_regulator_indicator(wm)
+    variable_valve_indicator(wm)
 
-    # Add the network design objective.
-    objective_des(wm)
+    # Create flow-related variables for node attachments.
+    variable_demand_flow(wm)
+    variable_reservoir_flow(wm)
+    variable_tank_flow(wm)
 
     # Flow conservation at all nodes.
     for (i, node) in ref(wm, :node)
@@ -23,41 +28,51 @@ function build_des(wm::AbstractWaterModel)
         constraint_node_directionality(wm, i)
     end
 
-    # Head loss along fixed (non-design) pipes.
+    # Constraints on pipe flows, heads, and physics.
     for (a, pipe) in ref(wm, :pipe)
+        constraint_pipe_head(wm, a)
         constraint_pipe_head_loss(wm, a)
+        constraint_pipe_flow(wm, a)
     end
 
-    # Head loss along design pipes.
+    # Constraints on design pipe flows, heads, and physics.
     for (a, pipe) in ref(wm, :des_pipe)
-        constraint_pipe_head_loss_des(wm, a)
+        constraint_on_off_pipe_head_des(wm, a)
+        constraint_on_off_pipe_head_loss_des(wm, a)
+        constraint_on_off_pipe_flow_des(wm, a)
     end
 
-    # Head loss along pipes with check valves.
-    for (a, check_valve) in ref(wm, :check_valve)
-        constraint_check_valve_head_loss(wm, a)
+    # Constraints on pump flows, heads, and physics.
+    for (a, pump) in ref(wm, :pump)
+        constraint_on_off_pump_head(wm, a)
+        constraint_on_off_pump_head_gain(wm, a)
+        constraint_on_off_pump_flow(wm, a)
     end
 
-    # Head loss along pipes with shutoff valves.
-    for (a, shutoff_valve) in ref(wm, :shutoff_valve)
-        constraint_shutoff_valve_head_loss(wm, a)
+    # Constraints on short pipe flows and heads.
+    for (a, regulator) in ref(wm, :regulator)
+        constraint_on_off_regulator_head(wm, a)
+        constraint_on_off_regulator_flow(wm, a)
     end
 
-    # Set source node hydraulic heads.
-    for (i, reservoir) in ref(wm, :reservoir)
-        constraint_source_directionality(wm, reservoir["node"])
+    # Constraints on short pipe flows and heads.
+    for (a, short_pipe) in ref(wm, :short_pipe)
+        constraint_short_pipe_head(wm, a)
+        constraint_short_pipe_flow(wm, a)
     end
 
-    # Constrain flow directions based on demand.
-    for (i, junction) in ref(wm, :junction)
-        if !junction["dispatchable"] && junction["demand"] > 0.0
-            constraint_sink_directionality(wm, junction["node"])
-        elseif junction["dispatchable"] && junction["demand_min"] > 0.0
-            constraint_sink_directionality(wm, junction["node"])
-        elseif !junction["dispatchable"] && junction["demand"] < 0.0
-            constraint_source_directionality(wm, junction["node"])
-        elseif junction["dispatchable"] && junction["demand_max"] < 0.0
-            constraint_source_directionality(wm, junction["node"])
-        end
+    # Constraints on valve flows and heads.
+    for (a, valve) in ref(wm, :valve)
+        constraint_on_off_valve_head(wm, a)
+        constraint_on_off_valve_flow(wm, a)
     end
+
+    # Constraints on tank volumes.
+    for i in ids(wm, :tank)
+        # Set the initial tank volume.
+        constraint_tank_volume(wm, i)
+    end
+
+    # Add the network design objective.
+    objective_des(wm)
 end

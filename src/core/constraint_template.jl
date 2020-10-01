@@ -188,38 +188,32 @@ function constraint_pipe_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cn
 end
 
 
-function constraint_pipe_head_loss_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
-    alpha = ref(wm, nw, :alpha)
-    pipe = ref(wm, nw, :des_pipe, a)
+### Design Pipe Constraints ###
+function constraint_on_off_pipe_flow_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    _initialize_con_dict(wm, :on_off_pipe_flow_des, nw=nw, is_array=true)
+    con(wm, nw, :on_off_pipe_flow_des)[a] = Array{JuMP.ConstraintRef}([])
     resistances = ref(wm, nw, :resistance, a)
-    i, j = pipe["node_fr"], pipe["node_to"]
-
-    _initialize_con_dict(wm, :head_loss, nw=nw, is_array=true)
-    con(wm, nw, :head_loss)[a] = Array{JuMP.ConstraintRef}([])
-
-    constraint_flow_direction_selection_des(wm, a; nw=nw, kwargs...)
-    constraint_pipe_head_loss_des(wm, nw, a, alpha, i, j, pipe["length"], resistances)
-    constraint_pipe_head_loss_ub_des(wm, a; nw=nw, kwargs...)
-    constraint_resistance_selection_des(wm, a; nw=nw, kwargs...)
+    constraint_on_off_pipe_flow_des(wm, nw, a, resistances)
 end
 
 
-function constraint_resistance_selection_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
-    pipe_resistances = ref(wm, nw, :resistance, a)
-    constraint_resistance_selection_des(wm, nw, a, pipe_resistances; kwargs...)
+function constraint_on_off_pipe_head_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    _initialize_con_dict(wm, :on_off_pipe_head_des, nw=nw, is_array=true)
+    con(wm, nw, :on_off_pipe_head_des)[a] = Array{JuMP.ConstraintRef}([])
+    node_fr = ref(wm, nw, :des_pipe, a)["node_fr"]
+    node_to = ref(wm, nw, :des_pipe, a)["node_to"]
+    constraint_on_off_pipe_head_des(wm, nw, a, node_fr, node_to)
 end
 
 
-function constraint_flow_direction_selection_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
-    pipe_resistances = ref(wm, nw, :resistance, a)
-    constraint_flow_direction_selection_des(wm, nw, a, pipe_resistances)
-end
-
-
-function constraint_pipe_head_loss_ub_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
-    alpha, L = ref(wm, nw, :alpha), ref(wm, nw, :des_pipe, a)["length"]
-    pipe_resistances = ref(wm, nw, :resistance, a)
-    constraint_pipe_head_loss_ub_des(wm, nw, a, alpha, L, pipe_resistances)
+function constraint_on_off_pipe_head_loss_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    _initialize_con_dict(wm, :on_off_pipe_head_loss_des, nw=nw, is_array=true)
+    con(wm, nw, :on_off_pipe_head_loss_des)[a] = Array{JuMP.ConstraintRef}([])
+    node_fr = ref(wm, nw, :des_pipe, a)["node_fr"]
+    node_to = ref(wm, nw, :des_pipe, a)["node_to"]
+    exponent, L = ref(wm, nw, :alpha), ref(wm, nw, :des_pipe, a)["length"]
+    resist = ref(wm, nw, :resistance, a) # Dictionary of possibel resistances at `a`.
+    constraint_on_off_pipe_head_loss_des(wm, nw, a, exponent, node_fr, node_to, L, resist)
 end
 
 

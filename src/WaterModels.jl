@@ -70,6 +70,7 @@ include("prob/des.jl")
 
 include("util/unbinarize.jl")
 include("util/obbt.jl")
+include("util/compute_cuts.jl")
 
 include("core/export.jl")
 end

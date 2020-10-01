@@ -175,18 +175,25 @@ function variable_pump_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, relax::
 end
 
 
-"Creates binary variables for all network design or design resistances in
-the network, i.e., `x_res[a]` for `a` in `pipe`, for `r` in `resistance[a]`,
-where one denotes that the given resistance is active in the design."
-function variable_resistance(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
-    x_res = var(wm, nw)[:x_res] = Dict{Int, Array{JuMP.VariableRef}}()
+"Creates binary variables for all network design or design resistances in the network, i.e.,
+`z_des_pipe[a]` for `a` in `pipe`, for `r` in `resistance[a]`, where one denotes that the
+given resistance is active in the design."
+function variable_pipe_des_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, relax::Bool=false, report::Bool=true)
+    z = var(wm, nw)[:z_des_pipe] = Dict{Int, Array{JuMP.VariableRef}}()
 
     for a in ids(wm, nw, :des_pipe)
         n_r = length(ref(wm, nw, :resistance, a)) # Number of resistances.
-        var(wm, nw, :x_res)[a] = JuMP.@variable(wm.model, [r in 1:n_r],
-            binary=true, base_name="$(nw)_x_res[$(a)]",
-            start=comp_start_value(ref(wm, nw, :des_pipe, a), "x_res_start", r))
+
+        if !relax
+            var(wm, nw, :z_des_pipe)[a] = JuMP.@variable(wm.model, [r in 1:n_r],
+                binary=true, base_name="$(nw)_z_des_pipe[$(a)]",
+                start=comp_start_value(ref(wm, nw, :des_pipe, a), "z_des_pipe_start", r))
+        else
+            var(wm, nw, :z_des_pipe)[a] = JuMP.@variable(wm.model, [r in 1:n_r],
+                lower_bound = 0.0, upper_bound = 0.0, base_name="$(nw)_z_des_pipe[$(a)]",
+                start=comp_start_value(ref(wm, nw, :des_pipe, a), "z_des_pipe_start", r))
+        end
     end
 
-    report && sol_component_value(wm, nw, :des_pipe, :x_res, ids(wm, nw, :des_pipe), x_res)
+    report && sol_component_value(wm, nw, :des_pipe, :built, ids(wm, nw, :des_pipe), z)
 end

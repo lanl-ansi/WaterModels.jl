@@ -42,7 +42,7 @@ include("common.jl")
 
     include("owf.jl")
 
-    #include("des.jl")
+    include("des.jl")
 
     include("util.jl")
 

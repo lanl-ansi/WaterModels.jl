@@ -6,7 +6,7 @@
 # flow is used in this formulation to define the consumption of power by active pumps).
 
 
-"Adds head loss constraints for pipes in `NC` formulations."
+"Adds head loss constraint for a pipe in the `NC` formulation."
 function constraint_pipe_head_loss(wm::NCWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
     # Gather flow and head variables included in head loss constraints.
     q, h_i, h_j = var(wm, n, :q_pipe, a), var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
@@ -19,18 +19,18 @@ function constraint_pipe_head_loss(wm::NCWaterModel, n::Int, a::Int, node_fr::In
 end
 
 
-"Add head loss constraints for design pipes (without check valves) in `NC` formulations."
-function constraint_pipe_head_loss_des(wm::NCWaterModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, res)
+"Adds head loss constraint for a design pipe in the `NC` formulation."
+function constraint_on_off_pipe_head_loss_des(wm::NCWaterModel, n::Int, a::Int, exponent::Float64, node_fr::Int, node_to::Int, L::Float64, resistances)
     # Gather common flow and head variables, as well as design indices.
-    q, R = var(wm, n, :q_des_pipe, a), 1:length(res)
+    q, R = var(wm, n, :q_des_pipe, a), 1:length(resistances)
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
     # Add the nonconvex, design-expanded head loss constraint.
-    lhs = JuMP.@NLexpression(wm.model, sum(res[r] * head_loss(q[r]) for r in R))
+    lhs = JuMP.@NLexpression(wm.model, sum(resistances[r] * head_loss(q[r]) for r in R))
     c = JuMP.@NLconstraint(wm.model, lhs == inv(L) * (h_i - h_j))
 
-    # Append the :head_loss constraint array.
-    append!(con(wm, n, :head_loss)[a], [c])
+    # Append the :on_off_pipe_head_loss_des constraint array.
+    append!(con(wm, n, :on_off_pipe_head_loss_des)[a], [c])
 end
 
 

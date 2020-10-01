@@ -118,7 +118,7 @@ end
 function _get_existing_bounds(data::Dict{String,<:Any}, index::Tuple)
     nw_str, comp_str, index_str = string(index[1]), string(index[2]), string(index[4])
     var_str = occursin("q", string(index[3])) ? "q" : string(index[3])
-    min_suffix = comp_str in ["pump"] ? "_min_active" : "_min"
+    min_suffix = comp_str == "pump" ? "_min_active" : "_min"
 
     if "nw" in keys(data)
         data_index = data["nw"][nw_str][comp_str][index_str]
@@ -138,11 +138,9 @@ function _update_modifications!(data::Dict{String,Any}, original::Dict{String,An
         min_suffix = comp_str == "pump" ? "_min_active" : "_min"
 
         if _IM.ismultinetwork(data)
-            comp = original["nw"][nw_str][comp_str][index_str]
-            data["nw"][nw_str][comp_str][var_str * min_suffix] = bounds[i][1]
-            data["nw"][nw_str][comp_str][var_str * "_max"] = bounds[i][2]
+            data["nw"][nw_str][comp_str][index_str][var_str * min_suffix] = bounds[i][1]
+            data["nw"][nw_str][comp_str][index_str][var_str * "_max"] = bounds[i][2]
         else
-            comp = original[comp_str][index_str]
             data[comp_str][index_str][var_str * min_suffix] = bounds[i][1]
             data[comp_str][index_str][var_str * "_max"] = bounds[i][2]
         end
@@ -204,10 +202,10 @@ function _make_reduced_data!(ts_data::Dict{String,<:Any})
         !isa(ts_data["time_series"][comp_type], Dict) && continue
 
         for (i, comp) in ts_data["time_series"][comp_type]
-            if comp_type == "junction"
-                ts_data["junction"][i]["dispatchable"] = true
-                ts_data["junction"][i]["demand_min"] = minimum(comp["demand"])
-                ts_data["junction"][i]["demand_max"] = maximum(comp["demand"])
+            if comp_type == "demand"
+                ts_data["demand"][i]["dispatchable"] = true
+                ts_data["demand"][i]["demand_min"] = minimum(comp["flow_rate"])
+                ts_data["demand"][i]["demand_max"] = maximum(comp["flow_rate"])
             elseif comp_type == "node"
                 ts_data["node"][i]["h_min"] = minimum(comp["head"])
                 ts_data["node"][i]["h_max"] = maximum(comp["head"])
@@ -235,10 +233,10 @@ function _revert_reduced_data!(ts_data::Dict{String,<:Any})
         !isa(ts_data["time_series"][comp_type], Dict) && continue
 
         for (i, comp) in ts_data["time_series"][comp_type]
-            if comp_type == "junction"
-                ts_data["junction"][i]["dispatchable"] = false
-                delete!(ts_data["junction"][i], "demand_min")
-                delete!(ts_data["junction"][i], "demand_max")
+            if comp_type == "demand"
+                ts_data["demand"][i]["dispatchable"] = false
+                delete!(ts_data["demand"][i], "demand_min")
+                delete!(ts_data["demand"][i], "demand_max")
             end
         end
     end
@@ -257,7 +255,7 @@ end
 
 
 function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_reduced_network::Bool = true,
-    model_type::Type = CRDWaterModel, time_limit::Float64 = 3600.0, upper_bound::Float64 =
+    model_type::Type = CQRDWaterModel, time_limit::Float64 = 3600.0, upper_bound::Float64 =
     Inf, upper_bound_constraint::Bool = false, max_iter::Int = 100, improvement_tol::Float64
     = 1.0e-6, relaxed::Bool = true, precision=1.0e-4, min_width::Float64 = 1.0e-3,
     ext::Dict{Symbol,<:Any} = Dict{Symbol,Any}(:pump_breakpoints=>3), kwargs...)
@@ -462,7 +460,12 @@ function _solve_bound(wm::AbstractWaterModel, index::Tuple, sense::_MOI.Optimiza
     if fix_status # Fix the associated indicator variable to one.
         z_var_sym = Symbol(replace(String(index[3]), "q_" => "z_"))
         z_var = var(wm, index[1], z_var_sym, index[4])
-        JuMP.fix(z_var, 1.0)
+
+        if JuMP.is_binary(z_var)
+            JuMP.fix(z_var, 1.0)
+        else
+            JuMP.fix(z_var, 1.0, force=true)
+        end
     end
 
     # Optimize the variable (or affine expression) being tightened.
@@ -480,6 +483,11 @@ function _solve_bound(wm::AbstractWaterModel, index::Tuple, sense::_MOI.Optimiza
         z_var_sym = Symbol(replace(String(index[3]), "q_" => "z_"))
         z_var = var(wm, index[1], z_var_sym, index[4])
         JuMP.unfix(z_var)
+
+        if !JuMP.is_binary(z_var)
+            JuMP.set_lower_bound(z_var, 0.0)
+            JuMP.set_upper_bound(z_var, 1.0)
+        end
     end
 
     # Return an optimized bound or the initial bound that was started with.

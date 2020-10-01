@@ -107,57 +107,6 @@ function constraint_on_off_pump_head_gain(wm::LAWaterModel, n::Int, a::Int, node
 end
 
 
-function constraint_pipe_head_loss_des(wm::LAWaterModel, n::Int, a::Int, alpha::Float64, node_fr::Int, node_to::Int, L::Float64, resistances)
-    # Get the number of breakpoints for the pipe.
-    n_b = pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 2)
-
-    # Get common variables and data.
-    lambda, x_pw = var(wm, n, :lambda_des_pipe), var(wm, n, :x_pw_des_pipe)
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-
-    # Initialize flow expression in the head loss relationship.
-    q_loss_expr = JuMP.AffExpr(0.0)
-
-    for (r_id, r) in enumerate(resistances)
-        q, x_res = var(wm, n, :q_des_pipe, a)[r_id], var(wm, n, :x_res, a)[r_id]
-        q_lb, q_ub = JuMP.lower_bound(q), JuMP.upper_bound(q)
-
-        # Add the first required SOS constraints.
-        lambda_sum = sum(lambda[a, r_id, k] for k in 1:pipe_breakpoints)
-        c_1 = JuMP.@constraint(wm.model, lambda_sum == x_res)
-        c_2 = JuMP.@constraint(wm.model, lambda[a, r_id, 1] <= x_pw[a, 1])
-        c_3 = JuMP.@constraint(wm.model, lambda[a, r_id, n_b] <= x_pw[a, n_b-1])
-
-        # Generate a set of uniform flow breakpoints.
-        breakpoints = range(q_lb, stop=q_ub, length=n_b)
-
-        # Add a constraint for the head loss piecewise approximation.
-        f = _calc_head_loss_values(collect(breakpoints), alpha)
-        expr_r = r .* sum(f[k] .* lambda[a, r_id, k] for k in 1:pipe_breakpoints)
-        JuMP.add_to_expression!(q_loss_expr, expr_r)
-
-        # Add a constraint for the flow piecewise approximation.
-        q_lhs = sum(breakpoints[k] * lambda[a, r_id, k] for k in 1:pipe_breakpoints)
-        c_4 = JuMP.@constraint(wm.model, q_lhs == q)
-
-        # Append the constraint array with the above-generated constraints.
-        append!(con(wm, n, :head_loss, a), [c_1, c_2, c_3, c_4])
-
-        # Add the adjacency constraints.
-        for k in 2:n_b-1
-            adjacency = x_pw[a, k-1] + x_pw[a, k]
-            c_5_k = JuMP.@constraint(wm.model, lambda[a, r_id, k] <= adjacency)
-            append!(con(wm, n, :head_loss, a), [c_5_k])
-        end
-    end
-
-    # Add the final SOS and approximation constraints.
-    c_6 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == 1.0)
-    c_7 = JuMP.@constraint(wm.model, q_loss_expr == inv(L) * (h_i - h_j))
-    append!(con(wm, n, :head_loss, a), [c_6, c_7])
-end
-
-
 function constraint_pipe_head_loss(wm::LAWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64, L::Float64, r::Float64)
     # If the number of breakpoints is not positive, no constraints are added.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 2)
@@ -194,6 +143,58 @@ function constraint_pipe_head_loss(wm::LAWaterModel, n::Int, a::Int, node_fr::In
         c_7_k = JuMP.@constraint(wm.model, lambda[a, k] <= adjacency)
         append!(con(wm, n, :pipe_head_loss, a), [c_7_k])
     end
+end
+
+
+"Adds head loss constraint for a design pipe in the `LA` formulation."
+function constraint_on_off_pipe_head_loss_des(wm::LAWaterModel, n::Int, a::Int, exponent::Float64, node_fr::Int, node_to::Int, L::Float64, resistances)
+    # Get the number of breakpoints for the pipe.
+    n_b = pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 2)
+
+    # Get common variables and data.
+    lambda, x_pw = var(wm, n, :lambda_des_pipe), var(wm, n, :x_pw_des_pipe)
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+
+    # Initialize flow expression in the head loss relationship.
+    q_loss_expression = JuMP.AffExpr(0.0)
+
+    for (r_id, r) in enumerate(resistances)
+        q, z = var(wm, n, :q_des_pipe, a)[r_id], var(wm, n, :z_des_pipe, a)[r_id]
+        q_lb, q_ub = JuMP.lower_bound(q), JuMP.upper_bound(q)
+
+        # Add the first required SOS constraints.
+        lambda_sum = sum(lambda[a, r_id, k] for k in 1:pipe_breakpoints)
+        c_1 = JuMP.@constraint(wm.model, lambda_sum == z)
+        c_2 = JuMP.@constraint(wm.model, lambda[a, r_id, 1] <= x_pw[a, 1])
+        c_3 = JuMP.@constraint(wm.model, lambda[a, r_id, n_b] <= x_pw[a, n_b-1])
+
+        # Generate a set of uniform flow breakpoints.
+        breakpoints = range(q_lb, stop=q_ub, length=n_b)
+
+        # Add a constraint for the head loss piecewise approximation.
+        f = _calc_head_loss_values(collect(breakpoints), exponent)
+        expr_r = r .* sum(f[k] .* lambda[a, r_id, k] for k in 1:pipe_breakpoints)
+        JuMP.add_to_expression!(q_loss_expression, expr_r)
+
+        # Add a constraint for the flow piecewise approximation.
+        q_lhs = sum(breakpoints[k] * lambda[a, r_id, k] for k in 1:pipe_breakpoints)
+        c_4 = JuMP.@constraint(wm.model, q_lhs == q)
+
+        # Append the constraint array with the above-generated constraints.
+        append!(con(wm, n, :on_off_pipe_head_loss_des, a), [c_1, c_2, c_3, c_4])
+
+        # Add the adjacency constraints.
+        for k in 2:n_b-1
+            adjacency = x_pw[a, k-1] + x_pw[a, k]
+            c_5_k = JuMP.@constraint(wm.model, lambda[a, r_id, k] <= adjacency)
+            append!(con(wm, n, :on_off_pipe_head_loss_des, a), [c_5_k])
+        end
+    end
+
+    # Add the final SOS and approximation constraints.
+    c_6 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == 1.0)
+    c_7 = JuMP.@constraint(wm.model, q_loss_expression == inv(L) * (h_i - h_j))
+    append!(con(wm, n, :on_off_pipe_head_loss_des, a), [c_6, c_7])
 end
 
 

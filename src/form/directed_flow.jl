@@ -160,9 +160,6 @@ function variable_flow_des(wm::AbstractDirectedModel; nw::Int=wm.cnw, bounded::B
 
     # Initialize the solution reporting data structures.
     report && sol_component_value(wm, nw, :des_pipe, :q, ids(wm, nw, :des_pipe), q)
-
-    # Create resistance binary variables.
-    variable_resistance(wm, nw=nw)
 end
 
 
@@ -198,23 +195,50 @@ function constraint_pipe_head(wm::AbstractDirectedModel, n::Int, a::Int, node_fr
 end
 
 
-#"Constraint for lower-bounding relaxations of pump head gain."
-#function constraint_pump_head_gain_lb(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
-#    # If the number of breakpoints is not positive, no constraints are added.
-#    pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
-#    if pump_breakpoints <= 0 return end
-#
-#    # Gather flow, head gain, and convex combination variables.
-#    qp, g = var(wm, n, :qp_pump, a), var(wm, n, :g, a)
-#    lambda = var(wm, n, :lambda_pump)
-#
-#    # Add a constraint that lower-bounds the head gain variable.
-#    breakpoints = range(0.0, stop=JuMP.upper_bound(qp), length=pump_breakpoints)
-#    f = (pc[1] .* breakpoints.^2) .+ (pc[2] .* breakpoints) .+ pc[3]
-#    gain_lb = sum(f[k] .* lambda[a, k] for k in 1:pump_breakpoints)
-#    c = JuMP.@constraint(wm.model, gain_lb <= g)
-#    append!(con(wm, n, :head_gain, a), [c])
-#end
+function constraint_on_off_pipe_flow_des(wm::AbstractDirectedModel, n::Int, a::Int, resistances)
+    # Get design pipe direction and status variable references.
+    y, z = var(wm, n, :y_des_pipe, a), var(wm, n, :z_des_pipe, a)
+
+    # Ensure that only one flow can be nonnegative per solution.
+    c_1 = JuMP.@constraint(wm.model, sum(z) == 1.0)
+    append!(con(wm, n, :on_off_pipe_flow_des)[a], [c_1])
+
+    for r_id in 1:length(resistances)
+        # Get directed flow variables and associated data.
+        qp, qn = var(wm, n, :qp_des_pipe, a)[r_id], var(wm, n, :qn_des_pipe, a)[r_id]
+        qp_ub, qn_ub = JuMP.upper_bound(qp), JuMP.upper_bound(qn)
+
+        # Constraint the pipes based on direction and construction status.
+        c_2 = JuMP.@constraint(wm.model, qp <= qp_ub * y)
+        c_3 = JuMP.@constraint(wm.model, qn <= qn_ub * (1.0 - y))
+        c_4 = JuMP.@constraint(wm.model, qp <= qp_ub * z[r_id])
+        c_5 = JuMP.@constraint(wm.model, qn <= qn_ub * z[r_id])
+
+        # Append the :on_off_pipe_flow_des constraint array.
+        append!(con(wm, n, :on_off_pipe_flow_des)[a], [c_2, c_3, c_4, c_5])
+    end
+end
+
+
+function constraint_on_off_pipe_head_des(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int)
+    # Get design pipe direction variable reference.
+    y = var(wm, n, :y_des_pipe, a)
+
+    # Get directed head variables and associated data.
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+    dhp, dhn = var(wm, n, :dhp_des_pipe, a), var(wm, n, :dhn_des_pipe, a)
+    dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
+
+    # Constrain the pipe heads based on direction variables.
+    c_1 = JuMP.@constraint(wm.model, dhp <= dhp_ub * y)
+    c_2 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - y))
+
+    # Equate head difference variables with heads.
+    c_3 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
+
+    # Append the :on_off_pipe_flow_des constraint array.
+    append!(con(wm, n, :on_off_pipe_head_des)[a], [c_1, c_2, c_3])
+end
 
 
 function constraint_on_off_pump_flow(wm::AbstractDirectedModel, n::Int, a::Int, q_min_active::Float64)
@@ -253,70 +277,6 @@ function constraint_on_off_pump_head(wm::AbstractDirectedModel, n::Int, a::Int, 
 
     # Append the constraint array.
     append!(con(wm, n, :on_off_pump_head, a), [c_1, c_2, c_3, c_4])
-end
-
-
-#function constraint_pump_common(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
-#    # Gather variables common to all formulations involving pumps.
-#    y, z = var(wm, n, :y_pump, a), var(wm, n, :z_pump, a)
-#    qp, g = var(wm, n, :qp_pump, a), var(wm, n, :g, a)
-#
-#    # Add a linear lower bound on the head gain approximation.
-#    g_1, g_2 = pc[3], pc[1]*qp_ub^2 + pc[2]*qp_ub + pc[3]
-#    g_lb_line = (g_2 - g_1) * inv(qp_ub) * qp + g_1 * z
-#    c_8 = JuMP.@constraint(wm.model, g_lb_line <= g)
-#
-#    # Append the constraint array.
-#    append!(con(wm, n, :pump, a), [c_1, c_2, c_3, c_4, c_5, c_6, c_7, c_8])
-#end
-
-
-function constraint_flow_direction_selection_des(wm::AbstractDirectedModel, n::Int, a::Int, pipe_resistances)
-    y = var(wm, n, :y_des_pipe, a)
-
-    for r_id in 1:length(pipe_resistances)
-        qp, qn = var(wm, n, :qp_des_pipe, a)[r_id], var(wm, n, :qn_des_pipe, a)[r_id]
-        c_p = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * y)
-        c_n = JuMP.@constraint(wm.model, qn <= JuMP.upper_bound(qn) * (1.0 - y))
-        append!(con(wm, n, :head_loss)[a], [c_p, c_n])
-    end
-end
-
-
-function constraint_pipe_head_loss_ub_des(wm::AbstractDirectedModel, n::Int, a::Int, alpha::Float64, L::Float64, pipe_resistances)
-    dhp = var(wm, n, :dhp_des_pipe, a)
-    qp_des_pipe = var(wm, n, :qp_des_pipe, a)
-    qp_des_pipe_ub = JuMP.upper_bound.(qp_des_pipe)
-    slopes_p = pipe_resistances .* qp_des_pipe_ub.^(alpha - 1.0)
-    c_p = JuMP.@constraint(wm.model, inv(L)*dhp <= sum(slopes_p .* qp_des_pipe))
-
-    dhn = var(wm, n, :dhn_des_pipe, a)
-    qn_des_pipe = var(wm, n, :qn_des_pipe, a)
-    qn_des_pipe_ub = JuMP.upper_bound.(qn_des_pipe)
-    slopes_n = pipe_resistances .* qn_des_pipe_ub.^(alpha - 1.0)
-    c_n = JuMP.@constraint(wm.model, inv(L)*dhn <= sum(slopes_n .* qn_des_pipe))
-
-    append!(con(wm, n, :head_loss)[a], [c_p, c_n])
-end
-
-
-function constraint_resistance_selection_des(wm::AbstractDirectedModel, n::Int, a::Int, pipe_resistances)
-    c = JuMP.@constraint(wm.model, sum(var(wm, n, :x_res, a)) == 1.0)
-    append!(con(wm, n, :head_loss)[a], [c])
-
-    for (r_id, r) in enumerate(pipe_resistances)
-        x_res = var(wm, n, :x_res, a)[r_id]
-
-        qp_des_pipe = var(wm, n, :qp_des_pipe, a)[r_id]
-        qp_ub = JuMP.upper_bound(qp_des_pipe)
-        c_p = JuMP.@constraint(wm.model, qp_des_pipe <= qp_ub * x_res)
-
-        qn_des_pipe = var(wm, n, :qn_des_pipe, a)[r_id]
-        qn_ub = JuMP.upper_bound(qn_des_pipe)
-        c_n = JuMP.@constraint(wm.model, qn_des_pipe <= qn_ub * x_res)
-
-        append!(con(wm, n, :head_loss)[a], [c_p, c_n])
-    end
 end
 
 

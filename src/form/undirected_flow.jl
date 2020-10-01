@@ -71,9 +71,6 @@ function variable_flow_des_common(wm::AbstractUndirectedModel; nw::Int=wm.cnw, b
 
     # Initialize the solution reporting data structures.
     report && sol_component_value(wm, nw, :des_pipe, :q, ids(wm, nw, :des_pipe), q)
-
-    # Create resistance binary variables.
-    variable_resistance(wm, nw=nw)
 end
 
 
@@ -98,27 +95,32 @@ end
 
 
 "Constrain flow variables, based on design selections, in undirected flow formulations."
-function constraint_resistance_selection_des(wm::AbstractUndirectedModel, n::Int, a::Int, pipe_resistances)
-    c = JuMP.@constraint(wm.model, sum(var(wm, n, :x_res, a)) == 1.0)
-    append!(con(wm, n, :head_loss)[a], [c])
+function constraint_on_off_pipe_flow_des(wm::AbstractUndirectedModel, n::Int, a::Int, resistances)
+    # Get design pipe status variable references.
+    z = var(wm, n, :z_des_pipe, a)
 
-    for r in 1:length(pipe_resistances)
-        q_des_pipe = var(wm, n, :q_des_pipe, a)[r]
-        x_res = var(wm, n, :x_res, a)[r]
+    # Ensure that only one flow can be nonnegative per solution.
+    c_1 = JuMP.@constraint(wm.model, sum(z) == 1.0)
+    append!(con(wm, n, :on_off_pipe_flow_des)[a], [c_1])
 
-        q_des_pipe_lb = JuMP.lower_bound(q_des_pipe)
-        c_lb = JuMP.@constraint(wm.model, q_des_pipe >= q_des_pipe_lb * x_res)
+    for r_id in 1:length(resistances)
+        # Get directed flow variables and associated data.
+        q = var(wm, n, :q_des_pipe, a)[r_id]
+        q_lb, q_ub = JuMP.lower_bound(q), JuMP.upper_bound(q)
 
-        q_des_pipe_ub = JuMP.upper_bound(q_des_pipe)
-        c_ub = JuMP.@constraint(wm.model, q_des_pipe <= q_des_pipe_ub * x_res)
+        # Constraint the pipes based on direction and construction status.
+        c_2 = JuMP.@constraint(wm.model, q >= q_lb * z[r_id])
+        c_3 = JuMP.@constraint(wm.model, q <= q_ub * z[r_id])
 
-        append!(con(wm, n, :head_loss)[a], [c_lb, c_ub])
+        # Append the :on_off_pipe_flow_des constraint array.
+        append!(con(wm, n, :on_off_pipe_flow_des)[a], [c_2, c_3])
     end
 end
 
 
-function constraint_pipe_common(wm::AbstractUndirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
-    # For undirected formulations, there are no constraints, here.
+"Constrain head variables in undirected flow formulations."
+function constraint_on_off_pipe_head_des(wm::AbstractUndirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int)
+    # By default, there are no constraints, here.
 end
 
 
@@ -271,8 +273,3 @@ function constraint_source_directionality(
     short_pipe_to::Array{Int64,1}, valve_fr::Array{Int64,1}, valve_to::Array{Int64,1})
     # For undirected formulations, there are no constraints, here.
 end
-
-
-function constraint_flow_direction_selection_des(wm::AbstractUndirectedModel, n::Int, a::Int, pipe_resistances) end
-function constraint_pipe_head_loss_ub_des(wm::AbstractUndirectedModel, n::Int, a::Int, alpha, len, pipe_resistances) end
-function constraint_pump_head_gain_lb(wm::AbstractUndirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64}) end

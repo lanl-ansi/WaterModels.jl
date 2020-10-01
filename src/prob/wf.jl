@@ -53,15 +53,16 @@ function build_wf(wm::AbstractWaterModel)
         constraint_short_pipe_flow(wm, a)
     end
 
+    # Constraints on tank volumes.
+    for (i, tank) in ref(wm, :tank)
+        # Set the initial tank volume.
+        constraint_tank_volume(wm, i)
+    end
+
     # Constraints on valve flows and heads.
     for (a, valve) in ref(wm, :valve)
         constraint_on_off_valve_head(wm, a)
         constraint_on_off_valve_flow(wm, a)
-    end
-
-    for i in ids(wm, :tank)
-        # Set the initial tank volume.
-        constraint_tank_volume(wm, i)
     end
 
     # Add the objective.
@@ -137,14 +138,16 @@ function build_mn_wf(wm::AbstractWaterModel)
     # Start with the first network, representing the initial time step.
     n_1 = network_ids[1]
 
-    # Set initial conditions of tanks.
-    for i in ids(wm, :tank; nw=n_1)
+    # Constraints on tank volumes.
+    for (i, tank) in ref(wm, :tank; nw=n_1)
+        # Set initial conditions of tanks.
         constraint_tank_volume(wm, i; nw=n_1)
     end
 
+    # Constraints on tank volumes.
     for n_2 in network_ids[2:end]
-        # Set tank states after the initial time step.
-        for i in ids(wm, :tank; nw=n_2)
+        # Constrain tank volumes after the initial time step.
+        for (i, tank) in ref(wm, :tank; nw=n_2)
             constraint_tank_volume(wm, i, n_1, n_2)
         end
 
