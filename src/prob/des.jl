@@ -2,6 +2,7 @@ function run_des(network, model_constructor, optimizer; kwargs...)
     return run_model(network, model_constructor, optimizer, build_des; kwargs...)
 end
 
+
 function build_des(wm::AbstractWaterModel)
     # Create head loss functions, if necessary.
     function_head_loss(wm)

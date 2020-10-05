@@ -163,6 +163,7 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any})
         ref[:resistance_cost] =
             calc_resistance_costs(ref[:pipe], ref[:viscosity], ref[:head_loss])
         ref[:des_pipe] = filter(is_des_pipe, ref[:pipe])
+        ref[:pipe] = filter(!is_des_pipe, ref[:pipe])
 
         # Create mappings of "from" and "to" arcs for link- (i.e., edge-) type components.
         for name in ["pipe", "pump", "regulator", "short_pipe", "valve"]

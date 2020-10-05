@@ -8,6 +8,8 @@
         wm, n, i, pipe_fr, pipe_to, des_pipe_fr, des_pipe_to, pump_fr, pump_to,
         regulator_fr, regulator_to, short_pipe_fr, short_pipe_to, valve_fr, valve_to,
         reservoirs, tanks, dispatachable_demands, fixed_demand)
+
+Adds a constraint that ensures flow conservation at a node in the network.
 """
 function constraint_flow_conservation(
     wm::AbstractWaterModel, n::Int, i::Int, pipe_fr::Array{Int64,1},
