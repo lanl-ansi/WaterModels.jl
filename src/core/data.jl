@@ -5,14 +5,57 @@ end
 
 
 """
-Turns given single network data into multinetwork data with a `count` replicate
-of the given network. Note that this function performs a deepcopy of the
-network data. Significant multinetwork space savings can often be achieved by
-building application specific methods of building multinetwork with minimal
-data replication.
+Turns given single network data into multinetwork data with a `count` replicate of the given
+network. Note that this function performs a deepcopy of the network data. Significant
+multinetwork space savings can often be achieved by building application specific methods of
+building multinetwork with minimal data replication.
 """
 function replicate(data::Dict{String,<:Any}, count::Int; global_keys::Set{String}=Set{String}())
     return _IM.replicate(data, count, union(global_keys, _wm_global_keys))
+end
+
+
+function _calc_pump_flow_min(pump::Dict{String,<:Any}, node_fr::Dict{String,Any}, node_to::Dict{String,Any})
+    return get(pump, "flow_min", 0.0)
+end
+
+
+function _calc_pump_flow_min_forward(pump::Dict{String,<:Any}, node_fr::Dict{String,Any}, node_to::Dict{String,Any})
+    flow_min_forward = get(pump, "flow_min_forward", _q_eps)
+    return max(_calc_pump_flow_min(pump, node_fr, node_to), flow_min_forward)
+end
+
+
+function _calc_pump_flow_max_reverse(pump::Dict{String,<:Any}, node_fr::Dict{String,Any}, node_to::Dict{String,Any})
+    flow_max_reverse = get(pump, "flow_max_reverse", 0.0)
+    return min(_calc_pump_flow_max(pump, node_fr, node_to), flow_max_reverse)
+end
+
+
+function _calc_pump_flow_max(pump::Dict{String,<:Any}, node_fr::Dict{String,Any}, node_to::Dict{String,Any})
+    coeff = _get_function_from_head_curve(pump["head_curve"])
+    q_max_1 = (-coeff[2] + sqrt(coeff[2]^2 - 4.0*coeff[1]*coeff[3])) * inv(2.0*coeff[1])
+    q_max_2 = (-coeff[2] - sqrt(coeff[2]^2 - 4.0*coeff[1]*coeff[3])) * inv(2.0*coeff[1])
+    return min(max(q_max_1, q_max_2), get(pump, "flow_max", Inf))
+end
+
+
+function _calc_pump_flow_bounds_active(pump::Dict{String,<:Any})
+    q_min, q_max = _calc_pump_flow_bounds(pump)
+    q_min = max(max(get(pump, "flow_min_forward", _q_eps), _q_eps), q_min)
+    return q_min, q_max
+end
+
+
+function _correct_flow_bounds!(data::Dict{String,<:Any})
+    for (idx, pump) in get(data, "pump", Dict{String,Any}())
+        node_fr_id, node_to_id = string(pump["node_fr"]), string(pump["node_to"])
+        node_fr, node_to = data["node"][node_fr_id], data["node"][node_to_id]
+        pump["flow_min"] = _calc_pump_flow_min(pump, node_fr, node_to)
+        pump["flow_max"] = _calc_pump_flow_max(pump, node_fr, node_to)
+        pump["flow_min_forward"] = _calc_pump_flow_min_forward(pump, node_fr, node_to)
+        pump["flow_max_reverse"] = _calc_pump_flow_max_reverse(pump, node_fr, node_to)
+    end
 end
 
 
