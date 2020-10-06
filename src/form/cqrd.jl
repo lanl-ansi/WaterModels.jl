@@ -72,7 +72,7 @@ end
 
 function objective_owf(wm::CQRDWaterModel)
     # Initialize the objective function.
-    objective = zero(JuMP.QuadExpr)
+    objective = JuMP.AffExpr(0.0)
 
     for (n, nw_ref) in nws(wm)
         # Get common constant parameters.
@@ -108,13 +108,12 @@ function objective_owf(wm::CQRDWaterModel)
                 costs = (constant*price) .* inv.(eff) .* flows_cubed
 
                 # Fit a quadratic function to the above discrete costs.
-                LsqFit.@. func(x, p) = p[1]*x*x + p[2]*x + p[3]
+                LsqFit.@. func(x, p) = p[1]*x + p[2]
                 fit = LsqFit.curve_fit(func, points, costs, zeros(length(costs)))
                 coeffs = LsqFit.coef(fit)
 
                 # Add the cost corresponding to the current pump's operation.
-                JuMP.add_to_expression!(objective, coeffs[1], qp, qp)
-                JuMP.add_to_expression!(objective, coeffs[2] * qp + coeffs[3] * z)
+                JuMP.add_to_expression!(objective, coeffs[1]*qp + coeffs[2]*z)
             else
                 Memento.error(_LOGGER, "No cost given for pump \"$(pump["name"])\"")
             end

@@ -1085,12 +1085,8 @@ end
 
 
 function _read_regulator!(data::Dict{String,<:Any})
-    # Create a shorthand variable for each of the valve types.
-    tcv_type = "throttle_control_valve"
-
     # Initialize dictionaries associated with valves.
     data["regulator"] = Dict{String,Dict{String,Any}}()
-    data[tcv_type] = Dict{String,Dict{String,Any}}()
 
     # Initialize a temporary index to be updated while parsing.
     index::Int64 = 0
@@ -1109,7 +1105,7 @@ function _read_regulator!(data::Dict{String,<:Any})
         if uppercase(current[5]) == "PRV"
             valve["source_id"] = ["regulator", current[1]]
         elseif uppercase(current[5]) == "TCV"
-            valve["source_id"] = [tcv_type, current[1]]
+            valve["source_id"] = ["throttle_control_valve", current[1]]
             Memento.error(_LOGGER, "Valves of type $(current[5]) are not supported.")
         else
             Memento.error(_LOGGER, "Valves of type $(current[5]) are not supported.")
@@ -1154,10 +1150,11 @@ Converts data parsed from an EPANET file, passed by `epanet_data` into a format 
 internal WaterModels use. Imports all data from the EPANET file if `import_all` is true.
 """
 function epanet_to_watermodels!(data::Dict{String,<:Any}; import_all::Bool = false)
-    _drop_zero_demands!(data)
-    _add_valves_to_tanks!(data)
-    _add_valves_from_pipes!(data)
-    _drop_pipe_flags!(data)
+    _drop_zero_demands!(data) # Drop demands of zero from nodes.
+    _add_valves_to_tanks!(data) # Ensure that shutoff valves are connected to tanks.
+    _add_valves_from_pipes!(data) # Convert pipes with valves to pipes *and* valves.
+    _drop_pipe_flags!(data) # Drop irrelevant pipe attributes.
+    _convert_pipes_to_short_pipes!(data) # Convert pipes that are short to short pipes.
 end
 
 
@@ -1174,6 +1171,22 @@ end
 
 function _get_max_node_id(data::Dict{String,<:Any})
     return maximum([x["index"] for (i, x) in data["node"]])
+end
+
+
+function _convert_pipes_to_short_pipes!(data::Dict{String,<:Any})
+    res = calc_resistances(data["pipe"], data["viscosity"], data["head_loss"])
+    res = Dict{String,Any}(a => res[a] .* x["length"] for (a, x) in data["pipe"])
+    short_pipe_indices = [a for (a, r) in res if all(r .<= 0.01)]
+
+    for a in short_pipe_indices
+        short_pipe = deepcopy(data["pipe"][a])
+        delete!(short_pipe, "diameter")
+        delete!(short_pipe, "length")
+        delete!(short_pipe, "roughness")
+        data["short_pipe"][a] = short_pipe
+        delete!(data["pipe"], a)
+    end
 end
 
 

@@ -177,18 +177,18 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
         haskey(regulator, "q_max") && (ub[name][a][1] = min(ub[name][a][1], regulator["q_max"]))
     end
 
-    lb["short_pipe"] = Dict{Int,Array{Float64}}()
-    ub["short_pipe"] = Dict{Int,Array{Float64}}()
+    lb["short_pipe"] = Dict{Int,Float64}()
+    ub["short_pipe"] = Dict{Int,Float64}()
 
     for (a, short_pipe) in ref(wm, n, :short_pipe)
         lb["short_pipe"][a], ub["short_pipe"][a] = -sum_demand, sum_demand
         haskey(short_pipe, "q_min") && (lb["short_pipe"][a] = max(lb["short_pipe"][a], short_pipe["q_min"]))
         haskey(short_pipe, "q_max") && (ub["short_pipe"][a] = min(ub["short_pipe"][a], short_pipe["q_max"]))
 
-        if comp["flow_direction"] == POSITIVE
-            lb[name][a] = max(lb[name][a], 0.0)
-        elseif comp["flow_direction"] == NEGATIVE
-            ub[name][a] = min(ub[name][a], 0.0)
+        if short_pipe["flow_direction"] == POSITIVE
+            lb["short_pipe"][a] = max(lb["short_pipe"][a], 0.0)
+        elseif short_pipe["flow_direction"] == NEGATIVE
+            ub["short_pipe"][a] = min(ub["short_pipe"][a], 0.0)
         end
     end
 

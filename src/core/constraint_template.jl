@@ -254,7 +254,8 @@ end
 
 
 function constraint_short_pipe_head(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
-    node_fr, node_to = ref(wm, nw, :valve, a)["node_fr"], ref(wm, nw, :valve, a)["node_to"]
+    node_fr = ref(wm, nw, :short_pipe, a)["node_fr"]
+    node_to = ref(wm, nw, :short_pipe, a)["node_to"]
     _initialize_con_dict(wm, :short_pipe_head, nw=nw, is_array=true)
     con(wm, nw, :short_pipe_head)[a] = Array{JuMP.ConstraintRef}([])
     constraint_short_pipe_head(wm, nw, a, node_fr, node_to)
