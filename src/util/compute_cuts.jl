@@ -36,11 +36,11 @@ function _add_binary_cuts!(wm::AbstractWaterModel, binary_mapping)
             if mapping[1][1] == 0.0 && mapping[2][1] == 1.0
                 JuMP.@constraint(wm.model, z_2 >= 1.0 - z_1)
             elseif mapping[1][1] == 1.0 && mapping[2][1] == 0.0
-                JuMP.@constraint(wm.model, z_1 >= 1.0 - z_2)
+                JuMP.@constraint(wm.model, z_2 <= 1.0 - z_1)
             elseif mapping[1][1] == 1.0 && mapping[2][1] == 1.0
                 JuMP.@constraint(wm.model, z_2 >= z_1)
             elseif mapping[1][1] == 0.0 && mapping[2][1] == 0.0
-                JuMP.@constraint(wm.model, z_1 >= z_2)
+                JuMP.@constraint(wm.model, z_2 <= z_1)
             end
         end
     end
