@@ -146,6 +146,9 @@ function parse_epanet(filename::String)
     # Parse [STATUS] section.
     _read_status!(data)
 
+    # Parse [CONTROLS] section.
+    _read_controls!(data)
+
     # Update pump data using data from the [ENERGY] section.
     _update_pump_energy!(data)
 
@@ -577,6 +580,20 @@ function _read_status!(data::Dict{String,<:Any})
 
         if haskey(data["pipe"], component_id)
             # Ensure the pipe is categorized as having a valve.
+            data["pipe"][component_id]["has_valve"] = true
+        end
+    end
+end
+
+
+function _read_controls!(data::Dict{String,<:Any})
+    # Loop over all lines in the [CONTROLS] section and parse each.
+    for (line_number, line) in data["section"]["[CONTROLS]"]
+        current = split(split(line, ";")[1])
+        length(current) == 0 && continue # Skip.
+        component_id = current[2]
+
+        if uppercase(current[1]) == "LINK" && haskey(data["pipe"], component_id)
             data["pipe"][component_id]["has_valve"] = true
         end
     end

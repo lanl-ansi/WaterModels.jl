@@ -35,4 +35,11 @@
         WaterModels.epanet_to_watermodels!(network_data)
         @test haskey(network_data["valve"], "1")
     end
+
+    @testset "_read_controls!" begin
+        network_data = WaterModels.parse_epanet("../test/data/epanet/snapshot/shutoff_valve-controls-hw-lps.inp")
+        @test network_data["pipe"]["1"]["has_valve"]
+        WaterModels.epanet_to_watermodels!(network_data)
+        @test haskey(network_data["valve"], "1")
+    end
 end
