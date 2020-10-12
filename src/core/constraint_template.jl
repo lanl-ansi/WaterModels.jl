@@ -28,154 +28,109 @@ end
 ### Nodal Constraints ###
 function constraint_flow_conservation(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
     # Collect various indices for edge-type components connected to node `i`.
-    check_valve_fr = _collect_comps_fr(wm, i, :check_valve; nw=nw)
-    check_valve_to = _collect_comps_to(wm, i, :check_valve; nw=nw)
     pipe_fr = _collect_comps_fr(wm, i, :pipe; nw=nw)
     pipe_to = _collect_comps_to(wm, i, :pipe; nw=nw)
     des_pipe_fr = _collect_comps_fr(wm, i, :des_pipe; nw=nw)
     des_pipe_to = _collect_comps_to(wm, i, :des_pipe; nw=nw)
     pump_fr = _collect_comps_fr(wm, i, :pump; nw=nw)
     pump_to = _collect_comps_to(wm, i, :pump; nw=nw)
-    pressure_reducing_valve_fr = _collect_comps_fr(wm, i, :pressure_reducing_valve; nw=nw)
-    pressure_reducing_valve_to = _collect_comps_to(wm, i, :pressure_reducing_valve; nw=nw)
-    shutoff_valve_fr = _collect_comps_fr(wm, i, :shutoff_valve; nw=nw)
-    shutoff_valve_to = _collect_comps_to(wm, i, :shutoff_valve; nw=nw)
+    regulator_fr = _collect_comps_fr(wm, i, :regulator; nw=nw)
+    regulator_to = _collect_comps_to(wm, i, :regulator; nw=nw)
+    short_pipe_fr = _collect_comps_fr(wm, i, :short_pipe; nw=nw)
+    short_pipe_to = _collect_comps_to(wm, i, :short_pipe; nw=nw)
+    valve_fr = _collect_comps_fr(wm, i, :valve; nw=nw)
+    valve_to = _collect_comps_to(wm, i, :valve; nw=nw)
 
     # Collect various indices for node-type components connected to node `i`.
     reservoirs = ref(wm, nw, :node_reservoir, i) # Reservoirs attached to node `i`.
     tanks = ref(wm, nw, :node_tank, i) # Tanks attached to node `i`.
-    junctions = ref(wm, nw, :node_junction, i) # Junctions attached to node `i`.
+    demands = ref(wm, nw, :node_demand, i) # Demands attached to node `i`.
 
     # Sum the constant demands required at node `i`.
-    nondispatchable_junctions = filter(j -> j in ids(wm, nw, :nondispatchable_junction), junctions)
-    fixed_demands = [ref(wm, nw, :nondispatchable_junction, j)["demand"] for j in nondispatchable_junctions]
+    nondispatchable_demands = filter(j -> j in ids(wm, nw, :nondispatchable_demand), demands)
+    fixed_demands = [ref(wm, nw, :nondispatchable_demand, j)["flow_rate"] for j in nondispatchable_demands]
     net_fixed_demand = length(fixed_demands) > 0 ? sum(fixed_demands) : 0.0
 
-    # Get the indices of dispatchable junctions connected to node `i`.
-    dispatchable_junctions = filter(j -> j in ids(wm, nw, :dispatchable_junction), junctions)
+    # Get the indices of dispatchable demands connected to node `i`.
+    dispatchable_demands = filter(j -> j in ids(wm, nw, :dispatchable_demand), demands)
 
     # Initialize the flow conservation constraint dictionary entry.
     _initialize_con_dict(wm, :flow_conservation, nw=nw)
 
     # Add the flow conservation constraint.
     constraint_flow_conservation(
-        wm, nw, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to, des_pipe_fr,
-        des_pipe_to, pump_fr, pump_to, pressure_reducing_valve_fr,
-        pressure_reducing_valve_to, shutoff_valve_fr, shutoff_valve_to, reservoirs, tanks,
-        dispatchable_junctions, net_fixed_demand)
+        wm, nw, i, pipe_fr, pipe_to, des_pipe_fr, des_pipe_to, pump_fr, pump_to,
+        regulator_fr, regulator_to, short_pipe_fr, short_pipe_to, valve_fr, valve_to,
+        reservoirs, tanks, dispatchable_demands, net_fixed_demand)
 end
 
 
 function constraint_node_directionality(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
     # Collect various indices for edge-type components connected to node `i`.
-    check_valve_fr = _collect_comps_fr(wm, i, :check_valve; nw=nw)
-    check_valve_to = _collect_comps_to(wm, i, :check_valve; nw=nw)
     pipe_fr = _collect_comps_fr(wm, i, :pipe; nw=nw)
     pipe_to = _collect_comps_to(wm, i, :pipe; nw=nw)
     des_pipe_fr = _collect_comps_fr(wm, i, :des_pipe; nw=nw)
     des_pipe_to = _collect_comps_to(wm, i, :des_pipe; nw=nw)
     pump_fr = _collect_comps_fr(wm, i, :pump; nw=nw)
     pump_to = _collect_comps_to(wm, i, :pump; nw=nw)
-    pressure_reducing_valve_fr = _collect_comps_fr(wm, i, :pressure_reducing_valve; nw=nw)
-    pressure_reducing_valve_to = _collect_comps_to(wm, i, :pressure_reducing_valve; nw=nw)
-    shutoff_valve_fr = _collect_comps_fr(wm, i, :shutoff_valve; nw=nw)
-    shutoff_valve_to = _collect_comps_to(wm, i, :shutoff_valve; nw=nw)
+    regulator_fr = _collect_comps_fr(wm, i, :regulator; nw=nw)
+    regulator_to = _collect_comps_to(wm, i, :regulator; nw=nw)
+    short_pipe_fr = _collect_comps_fr(wm, i, :short_pipe; nw=nw)
+    short_pipe_to = _collect_comps_to(wm, i, :short_pipe; nw=nw)
+    valve_fr = _collect_comps_fr(wm, i, :valve; nw=nw)
+    valve_to = _collect_comps_to(wm, i, :valve; nw=nw)
+
+    # Collect various indices for node-type components connected to node `i`.
+    reservoirs = ref(wm, nw, :node_reservoir, i) # Reservoirs attached to node `i`.
+    tanks = ref(wm, nw, :node_tank, i) # Tanks attached to node `i`.
+    demands = ref(wm, nw, :node_demand, i) # Demands attached to node `i`.
+
+    # Sum the constant demands required at node `i`.
+    nondispatchable_demands = filter(j -> j in ids(wm, nw, :nondispatchable_demand), demands)
+    fixed_demands = [ref(wm, nw, :nondispatchable_demand, j)["flow_rate"] for j in nondispatchable_demands]
+    net_fixed_demand = length(fixed_demands) > 0 ? sum(fixed_demands) : 0.0
 
     # Get the number of nodal components attached to node `i`.
-    junctions = ref(wm, nw, :node_junction)
-    tanks = ref(wm, nw, :node_tank)
-    reservoirs = ref(wm, nw, :node_reservoir)
-    num_components = length(junctions) + length(tanks) + length(reservoirs)
+    num_components = length(demands) + length(tanks) + length(reservoirs)
 
     # Get the in degree of node `i`.
-    in_length = length(check_valve_to) + length(pipe_to) + length(des_pipe_to) +
-        length(pump_to) + length(pressure_reducing_valve_to) + length(shutoff_valve_to)
+    in_length = length(pipe_to) + length(des_pipe_to) + length(pump_to) +
+        length(regulator_to) + length(short_pipe_to) + length(valve_to)
 
     # Get the out degree of node `i`.
-    out_length = length(check_valve_fr) + length(pipe_fr) + length(des_pipe_fr) +
-        length(pump_fr) + length(pressure_reducing_valve_fr) + length(shutoff_valve_fr)
+    out_length = length(pipe_fr) + length(des_pipe_fr) + length(pump_fr) +
+        length(regulator_fr) + length(short_pipe_fr) + length(valve_fr)
+
+    # Initialize the directionality constraint dictionary entry.
+    _initialize_con_dict(wm, :node_directionality, nw=nw)
 
     # Check if node directionality constraints should be added.
     if num_components == 0 && in_length + out_length == 2
-        # Initialize the node directionality constraint dictionary entry.
-        _initialize_con_dict(wm, :node_directionality, nw=nw)
-
-        # Add the node directionality constraint.
-        constraint_node_directionality(
-            wm, nw, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to, des_pipe_fr,
-            des_pipe_to, pump_fr, pump_to, pressure_reducing_valve_fr,
-            pressure_reducing_valve_to, shutoff_valve_fr, shutoff_valve_to)
+        # Add the intermediate node directionality constraint.
+        constraint_intermediate_directionality(
+            wm, nw, i, pipe_fr, pipe_to, des_pipe_fr, des_pipe_to, pump_fr, pump_to,
+            regulator_fr, regulator_to, short_pipe_fr, short_pipe_to, valve_fr, valve_to)
+    elseif length(reservoirs) > 0 && num_components == length(reservoirs)
+        # Add the source node directionality constraint.
+        constraint_source_directionality(
+            wm, nw, i, pipe_fr, pipe_to, des_pipe_fr, des_pipe_to, pump_fr, pump_to,
+            regulator_fr, regulator_to, short_pipe_fr, short_pipe_to, valve_fr, valve_to)
+    elseif num_components == length(fixed_demands) && net_fixed_demand < 0.0
+        # Add the source node directionality constraint.
+        constraint_source_directionality(
+            wm, nw, i, pipe_fr, pipe_to, des_pipe_fr, des_pipe_to, pump_fr, pump_to,
+            regulator_fr, regulator_to, short_pipe_fr, short_pipe_to, valve_fr, valve_to)
+    elseif num_components == length(fixed_demands) && net_fixed_demand > 0.0
+        # Add the sink node directionality constraint.
+        constraint_sink_directionality(
+            wm, nw, i, pipe_fr, pipe_to, des_pipe_fr, des_pipe_to, pump_fr, pump_to,
+            regulator_fr, regulator_to, short_pipe_fr, short_pipe_to, valve_fr, valve_to)
     end
-end
-
-
-### Junction Constraints ###
-function constraint_sink_directionality(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
-    # Collect various indices for edge-type components connected to node `i`.
-    check_valve_fr = _collect_comps_fr(wm, i, :check_valve; nw=nw)
-    check_valve_to = _collect_comps_to(wm, i, :check_valve; nw=nw)
-    pipe_fr = _collect_comps_fr(wm, i, :pipe; nw=nw)
-    pipe_to = _collect_comps_to(wm, i, :pipe; nw=nw)
-    des_pipe_fr = _collect_comps_fr(wm, i, :des_pipe; nw=nw)
-    des_pipe_to = _collect_comps_to(wm, i, :des_pipe; nw=nw)
-    pump_fr = _collect_comps_fr(wm, i, :pump; nw=nw)
-    pump_to = _collect_comps_to(wm, i, :pump; nw=nw)
-    pressure_reducing_valve_fr = _collect_comps_fr(wm, i, :pressure_reducing_valve; nw=nw)
-    pressure_reducing_valve_to = _collect_comps_to(wm, i, :pressure_reducing_valve; nw=nw)
-    shutoff_valve_fr = _collect_comps_fr(wm, i, :shutoff_valve; nw=nw)
-    shutoff_valve_to = _collect_comps_to(wm, i, :shutoff_valve; nw=nw)
-
-    # Initialize the sink flow constraint dictionary entry.
-    _initialize_con_dict(wm, :sink_directionality, nw=nw)
-
-    # Add the sink flow directionality constraint.
-    constraint_sink_directionality(
-        wm, nw, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to, des_pipe_fr,
-        des_pipe_to, pump_fr, pump_to, pressure_reducing_valve_fr,
-        pressure_reducing_valve_to, shutoff_valve_fr, shutoff_valve_to)
-end
-
-
-### Reservoir Constraints ###
-function constraint_reservoir_head(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
-    # Only fix the reservoir head if the reservoir is nondispatchable.
-    if !ref(wm, nw, :reservoir, i)["dispatchable"]
-        node_index = ref(wm, nw, :reservoir, i)["node"]
-        head = ref(wm, nw, :node, node_index)["head"]
-        _initialize_con_dict(wm, :reservoir_head, nw=nw)
-        constraint_reservoir_head(wm, nw, node_index, head)
-    end
-end
-
-
-function constraint_source_directionality(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
-    # Collect various indices for edge-type components connected to node `i`.
-    check_valve_fr = _collect_comps_fr(wm, i, :check_valve; nw=nw)
-    check_valve_to = _collect_comps_to(wm, i, :check_valve; nw=nw)
-    pipe_fr = _collect_comps_fr(wm, i, :pipe; nw=nw)
-    pipe_to = _collect_comps_to(wm, i, :pipe; nw=nw)
-    des_pipe_fr = _collect_comps_fr(wm, i, :des_pipe; nw=nw)
-    des_pipe_to = _collect_comps_to(wm, i, :des_pipe; nw=nw)
-    pump_fr = _collect_comps_fr(wm, i, :pump; nw=nw)
-    pump_to = _collect_comps_to(wm, i, :pump; nw=nw)
-    pressure_reducing_valve_fr = _collect_comps_fr(wm, i, :pressure_reducing_valve; nw=nw)
-    pressure_reducing_valve_to = _collect_comps_to(wm, i, :pressure_reducing_valve; nw=nw)
-    shutoff_valve_fr = _collect_comps_fr(wm, i, :shutoff_valve; nw=nw)
-    shutoff_valve_to = _collect_comps_to(wm, i, :shutoff_valve; nw=nw)
-
-    # Initialize the source flow constraint dictionary entry.
-    _initialize_con_dict(wm, :source_directionality, nw=nw)
-
-    # Add the source flow directionality constraint.
-    constraint_source_directionality(
-        wm, nw, i, check_valve_fr, check_valve_to, pipe_fr, pipe_to, des_pipe_fr,
-        des_pipe_to, pump_fr, pump_to, pressure_reducing_valve_fr,
-        pressure_reducing_valve_to, shutoff_valve_fr, shutoff_valve_to)
 end
 
 
 ### Tank Constraints ###
-function constraint_tank_state(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
+function constraint_tank_volume(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
     if !(:time_step in keys(ref(wm, nw)))
         Memento.error(_LOGGER, "Tank states cannot be controlled without a time step.")
     end
@@ -186,13 +141,13 @@ function constraint_tank_state(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
         initial_level = tank["init_level"]
         surface_area = 0.25 * pi * tank["diameter"]^2
         V_initial = surface_area * initial_level
-        _initialize_con_dict(wm, :tank_state, nw=nw)
-        constraint_tank_state_initial(wm, nw, i, V_initial)
+        _initialize_con_dict(wm, :tank_volume, nw=nw)
+        constraint_tank_volume_fixed(wm, nw, i, V_initial)
     end
 end
 
 
-function constraint_tank_state(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2::Int)
+function constraint_tank_volume(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2::Int)
     if !(:time_step in keys(ref(wm, nw_1)))
         Memento.error(_LOGGER, "Tank states cannot be controlled without a time step.")
     end
@@ -201,113 +156,153 @@ function constraint_tank_state(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2::
     if !ref(wm, nw_2, :tank, i)["dispatchable"]
         # TODO: What happens if a tank exists in nw_1 but not in nw_2? The index
         # "i" is assumed to be present in both when this constraint is applied.
-        _initialize_con_dict(wm, :tank_state, nw=nw_2)
-        constraint_tank_state(wm, nw_1, nw_2, i, ref(wm, nw_1, :time_step))
+        _initialize_con_dict(wm, :tank_volume, nw=nw_2)
+        constraint_tank_volume(wm, nw_1, nw_2, i, ref(wm, nw_1, :time_step))
     end
 end
 
 
 ### Pipe Constraints ###
-function constraint_pipe_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_pipe_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    _initialize_con_dict(wm, :pipe_flow, nw=nw, is_array=true)
+    con(wm, nw, :pipe_flow)[a] = Array{JuMP.ConstraintRef}([])
+    constraint_pipe_flow(wm, nw, a)
+end
+
+
+function constraint_pipe_head(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    _initialize_con_dict(wm, :pipe_head, nw=nw, is_array=true)
+    con(wm, nw, :pipe_head)[a] = Array{JuMP.ConstraintRef}([])
     node_fr, node_to = ref(wm, nw, :pipe, a)["node_fr"], ref(wm, nw, :pipe, a)["node_to"]
-    alpha, L = ref(wm, nw, :alpha), ref(wm, nw, :pipe, a)["length"]
-    r = minimum(ref(wm, nw, :resistance, a))
-
-    # Add common constraints used to model pump behavior.
-    _initialize_con_dict(wm, :pipe, nw=nw, is_array=true)
-    con(wm, nw, :pipe)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_pipe_common(wm, nw, a, node_fr, node_to, alpha, L, r)
-
-    # Add constraints related to modeling head loss along pipe.
-    _initialize_con_dict(wm, :head_loss, nw=nw, is_array=true)
-    con(wm, nw, :head_loss)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_pipe_head_loss(wm, nw, a, node_fr, node_to, alpha, L, r)
-    constraint_pipe_head_loss_ub(wm, nw, a, alpha, L, r)
+    constraint_pipe_head(wm, nw, a, node_fr, node_to)
 end
 
 
-function constraint_pipe_head_loss_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
-    alpha = ref(wm, nw, :alpha)
-    pipe = ref(wm, nw, :des_pipe, a)
+function constraint_pipe_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    _initialize_con_dict(wm, :pipe_head_loss, nw=nw, is_array=true)
+    con(wm, nw, :pipe_head_loss)[a] = Array{JuMP.ConstraintRef}([])
+    node_fr, node_to = ref(wm, nw, :pipe, a)["node_fr"], ref(wm, nw, :pipe, a)["node_to"]
+    exponent, L = ref(wm, nw, :alpha), ref(wm, nw, :pipe, a)["length"]
+    r = minimum(ref(wm, nw, :resistance, a))
+    constraint_pipe_head_loss(wm, nw, a, node_fr, node_to, exponent, L, r)
+end
+
+
+### Design Pipe Constraints ###
+function constraint_on_off_pipe_flow_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    _initialize_con_dict(wm, :on_off_pipe_flow_des, nw=nw, is_array=true)
+    con(wm, nw, :on_off_pipe_flow_des)[a] = Array{JuMP.ConstraintRef}([])
     resistances = ref(wm, nw, :resistance, a)
-    i, j = pipe["node_fr"], pipe["node_to"]
-
-    _initialize_con_dict(wm, :head_loss, nw=nw, is_array=true)
-    con(wm, nw, :head_loss)[a] = Array{JuMP.ConstraintRef}([])
-
-    constraint_flow_direction_selection_des(wm, a; nw=nw, kwargs...)
-    constraint_pipe_head_loss_des(wm, nw, a, alpha, i, j, pipe["length"], resistances)
-    constraint_pipe_head_loss_ub_des(wm, a; nw=nw, kwargs...)
-    constraint_resistance_selection_des(wm, a; nw=nw, kwargs...)
+    constraint_on_off_pipe_flow_des(wm, nw, a, resistances)
 end
 
 
-function constraint_resistance_selection_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
-    pipe_resistances = ref(wm, nw, :resistance, a)
-    constraint_resistance_selection_des(wm, nw, a, pipe_resistances; kwargs...)
+function constraint_on_off_pipe_head_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    _initialize_con_dict(wm, :on_off_pipe_head_des, nw=nw, is_array=true)
+    con(wm, nw, :on_off_pipe_head_des)[a] = Array{JuMP.ConstraintRef}([])
+    node_fr = ref(wm, nw, :des_pipe, a)["node_fr"]
+    node_to = ref(wm, nw, :des_pipe, a)["node_to"]
+    constraint_on_off_pipe_head_des(wm, nw, a, node_fr, node_to)
 end
 
 
-function constraint_flow_direction_selection_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
-    pipe_resistances = ref(wm, nw, :resistance, a)
-    constraint_flow_direction_selection_des(wm, nw, a, pipe_resistances)
+function constraint_on_off_pipe_head_loss_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    _initialize_con_dict(wm, :on_off_pipe_head_loss_des, nw=nw, is_array=true)
+    con(wm, nw, :on_off_pipe_head_loss_des)[a] = Array{JuMP.ConstraintRef}([])
+    node_fr = ref(wm, nw, :des_pipe, a)["node_fr"]
+    node_to = ref(wm, nw, :des_pipe, a)["node_to"]
+    exponent, L = ref(wm, nw, :alpha), ref(wm, nw, :des_pipe, a)["length"]
+    resist = ref(wm, nw, :resistance, a) # Dictionary of possibel resistances at `a`.
+    constraint_on_off_pipe_head_loss_des(wm, nw, a, exponent, node_fr, node_to, L, resist)
 end
 
 
-function constraint_pipe_head_loss_ub_des(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
-    alpha, L = ref(wm, nw, :alpha), ref(wm, nw, :des_pipe, a)["length"]
-    pipe_resistances = ref(wm, nw, :resistance, a)
-    constraint_pipe_head_loss_ub_des(wm, nw, a, alpha, L, pipe_resistances)
+### Pump Constraints ###
+function constraint_on_off_pump_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
+    _initialize_con_dict(wm, :on_off_pump_flow, nw=nw, is_array=true)
+    con(wm, nw, :on_off_pump_flow)[a] = Array{JuMP.ConstraintRef}([])
+    q_min_active = get(ref(wm, nw, :pump, a), "q_min_active", _q_eps)
+    constraint_on_off_pump_flow(wm, nw, a, q_min_active)
 end
 
 
-### Check Valve Constraints ###
-function constraint_check_valve_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
-    node_fr = ref(wm, nw, :check_valve, a)["node_fr"]
-    node_to = ref(wm, nw, :check_valve, a)["node_to"]
-    alpha, L = ref(wm, nw, :alpha), ref(wm, nw, :check_valve, a)["length"]
-    r = maximum(ref(wm, nw, :resistance, a))
-
-    # Add all common check valve constraints.
-    _initialize_con_dict(wm, :check_valve, nw=nw, is_array=true)
-    con(wm, nw, :check_valve)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_check_valve_common(wm, nw, a, node_fr, node_to)
-
-    # Add constraints that describe head loss relationships.
-    _initialize_con_dict(wm, :head_loss, nw=nw, is_array=true)
-    alpha, L = [ref(wm, nw, :alpha), ref(wm, nw, :check_valve, a)["length"]]
-    r = minimum(ref(wm, nw, :resistance, a))
-    con(wm, nw, :head_loss)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_check_valve_head_loss(wm, nw, a, node_fr, node_to, L, r)
-    constraint_head_loss_ub_cv(wm, nw, a, alpha, L, r)
+function constraint_on_off_pump_head(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
+    _initialize_con_dict(wm, :on_off_pump_head, nw=nw, is_array=true)
+    con(wm, nw, :on_off_pump_head)[a] = Array{JuMP.ConstraintRef}([])
+    constraint_on_off_pump_head(wm, nw, a, node_fr, node_to)
 end
 
 
-### Shutoff Valve Constraints ###
-function constraint_shutoff_valve_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
-    # Add all common shutoff valve constraints.
-    node_fr = ref(wm, nw, :shutoff_valve, a)["node_fr"]
-    node_to = ref(wm, nw, :shutoff_valve, a)["node_to"]
-    _initialize_con_dict(wm, :sv, nw=nw, is_array=true)
-    con(wm, nw, :sv)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_sv_common(wm, nw, a, node_fr, node_to)
+function constraint_on_off_pump_head_gain(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
+    _initialize_con_dict(wm, :on_off_pump_head_gain, nw=nw, is_array=true)
+    con(wm, nw, :on_off_pump_head_gain)[a] = Array{JuMP.ConstraintRef}([])
+    coeffs = _get_function_from_head_curve(ref(wm, nw, :pump, a)["head_curve"])
+    q_min_active = get(ref(wm, nw, :pump, a), "q_min_active", _q_eps)
+    constraint_on_off_pump_head_gain(wm, nw, a, node_fr, node_to, coeffs, q_min_active)
+end
 
-    # Add constraints that describe head loss relationships.
-    _initialize_con_dict(wm, :head_loss, nw=nw, is_array=true)
-    alpha, L = ref(wm, nw, :alpha), ref(wm, nw, :shutoff_valve, a)["length"]
-    r = minimum(ref(wm, nw, :resistance, a))
-    con(wm, nw, :head_loss)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_shutoff_valve_head_loss(wm, nw, a, node_fr, node_to, L, r)
-    constraint_shutoff_valve_head_loss_ub(wm, nw, a, alpha, L, r)
+
+### Short Pipe Constraints ###
+function constraint_short_pipe_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    _initialize_con_dict(wm, :short_pipe_flow, nw=nw, is_array=true)
+    con(wm, nw, :short_pipe_flow)[a] = Array{JuMP.ConstraintRef}([])
+    constraint_short_pipe_flow(wm, nw, a)
+end
+
+
+function constraint_short_pipe_head(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    node_fr = ref(wm, nw, :short_pipe, a)["node_fr"]
+    node_to = ref(wm, nw, :short_pipe, a)["node_to"]
+    _initialize_con_dict(wm, :short_pipe_head, nw=nw, is_array=true)
+    con(wm, nw, :short_pipe_head)[a] = Array{JuMP.ConstraintRef}([])
+    constraint_short_pipe_head(wm, nw, a, node_fr, node_to)
+end
+
+
+### Valve Constraints ###
+function constraint_on_off_valve_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    node_fr, node_to = ref(wm, nw, :valve, a)["node_fr"], ref(wm, nw, :valve, a)["node_to"]
+    _initialize_con_dict(wm, :on_off_valve_flow, nw=nw, is_array=true)
+    con(wm, nw, :on_off_valve_flow)[a] = Array{JuMP.ConstraintRef}([])
+    constraint_on_off_valve_flow(wm, nw, a)
+end
+
+
+function constraint_on_off_valve_head(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    node_fr, node_to = ref(wm, nw, :valve, a)["node_fr"], ref(wm, nw, :valve, a)["node_to"]
+    _initialize_con_dict(wm, :on_off_valve_head, nw=nw, is_array=true)
+    con(wm, nw, :on_off_valve_head)[a] = Array{JuMP.ConstraintRef}([])
+    constraint_on_off_valve_head(wm, nw, a, node_fr, node_to)
+end
+
+
+### Regulator Constraints ###
+function constraint_on_off_regulator_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    _initialize_con_dict(wm, :on_off_regulator_flow, nw=nw, is_array=true)
+    con(wm, nw, :on_off_regulator_flow)[a] = Array{JuMP.ConstraintRef}([])
+    q_min_active = get(ref(wm, nw, :regulator, a), "q_min_active", _q_eps)
+    constraint_on_off_regulator_flow(wm, nw, a, q_min_active)
+end
+
+
+function constraint_on_off_regulator_head(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    _initialize_con_dict(wm, :on_off_regulator_head, nw=nw, is_array=true)
+    con(wm, nw, :on_off_regulator_head)[a] = Array{JuMP.ConstraintRef}([])
+    node_fr = ref(wm, nw, :regulator, a)["node_fr"]
+    node_to = ref(wm, nw, :regulator, a)["node_to"]
+    elevation = ref(wm, nw, :node, node_to)["elevation"]
+    head_setting = elevation + ref(wm, nw, :regulator, a)["setting"]
+    constraint_on_off_regulator_head(wm, nw, a, node_fr, node_to, head_setting)
 end
 
 
 ### Pressure Reducing Valve Constraints ###
 function constraint_prv_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
-    node_fr = ref(wm, nw, :pressure_reducing_valve, a)["node_fr"]
-    node_to = ref(wm, nw, :pressure_reducing_valve, a)["node_to"]
-    elev = ref(wm, nw, :node, node_to)["elevation"]
-    h_prv = elev + ref(wm, nw, :pressure_reducing_valve, a)["setting"]
+    node_fr = ref(wm, nw, :regulator, a)["node_fr"]
+    node_to = ref(wm, nw, :regulator, a)["node_to"]
 
     # Add all common pressure reducing valve constraints.
     _initialize_con_dict(wm, :prv, nw=nw, is_array=true)

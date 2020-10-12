@@ -4,9 +4,8 @@
 # qn is nonzero, qp should be zero.
 
 
-"Initialize variables associated with flow direction. If this variable is equal
-to one, the flow direction is from i to j. If it is equal to zero, the flow
-direction is from j to i."
+"Initialize variables associated with flow direction. If this variable is equal to one, the
+flow direction is from i to j. If it is equal to zero, the flow direction is from j to i."
 function _variable_component_direction(
     wm::AbstractDirectedModel, component_name::String; nw::Int=wm.cnw, report::Bool=true)
     # Store the corresponding component symbol.
@@ -100,9 +99,9 @@ function _variable_component_flow(
 end
 
 
-"Create flow-related variables common to all directed flow models for edge-type components."
+"Create flow-related variables common to all directed flow models for node-connecting components."
 function variable_flow(wm::AbstractDirectedModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
-    for name in ["check_valve", "pipe", "pressure_reducing_valve", "pump", "shutoff_valve"]
+    for name in ["pipe", "pump", "regulator", "short_pipe", "valve"]
         # Create directed flow (`qp` and `qn`) variables for each component.
         _variable_component_flow(wm, name; nw=nw, bounded=bounded, report=report)
 
@@ -161,349 +160,291 @@ function variable_flow_des(wm::AbstractDirectedModel; nw::Int=wm.cnw, bounded::B
 
     # Initialize the solution reporting data structures.
     report && sol_component_value(wm, nw, :des_pipe, :q, ids(wm, nw, :des_pipe), q)
-
-    # Create resistance binary variables.
-    variable_resistance(wm, nw=nw)
 end
 
 
-function variable_pump_operation(wm::AbstractDirectedModel; nw::Int=wm.cnw, report::Bool=true)
-    # If the number of breakpoints is not positive, return.
-    pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
-
-    if pump_breakpoints > 0
-        # Create weights involved in convex combination constraints.
-        lambda = var(wm, nw)[:lambda_pump] = JuMP.@variable(wm.model,
-            [a in ids(wm, nw, :pump), k in 1:pump_breakpoints],
-            base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
-            start=comp_start_value(ref(wm, nw, :pump, a), "lambda_start", k))
-
-        # Create binary variables involved in convex combination constraints.
-        x_pw = var(wm, nw)[:x_pw_pump] = JuMP.@variable(wm.model,
-            [a in ids(wm, nw, :pump), k in 1:pump_breakpoints-1],
-            base_name="$(nw)_x_pw", binary=true,
-            start=comp_start_value(ref(wm, nw, :pump, a), "x_pw_start", k))
-    end
-end
-
-
-function constraint_check_valve_common(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int)
-    # Get common flow variables.
-    qp, qn = var(wm, n, :qp_check_valve, a), var(wm, n, :qn_check_valve, a)
-    y, z = var(wm, n, :y_check_valve, a), var(wm, n, :z_check_valve, a)
-
-    # If the check valve is closed, flow must be zero.
-    c_1 = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * z)
-
-    # Get common head variables and associated data.
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-    dhp, dhn = var(wm, n, :dhp_check_valve, a), var(wm, n, :dhn_check_valve, a)
-    dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
-
-    # When the check valve is closed, positive head loss is not possible.
-    c_2 = JuMP.@constraint(wm.model, dhp <= dhp_ub * z)
-
-    # When the check valve is open, negative head loss is not possible.
-    c_3 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - z))
-
-    # Constrain head differences based on direction.
-    c_4 = JuMP.@constraint(wm.model, dhp <= dhp_ub * y)
-    c_5 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - y))
-
-    # Constrain directed flows based on direction.
-    c_6 = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * y)
-
-    # Relate head differences with head variables
-    c_7 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
-
-    # Append the constraint array.
-    append!(con(wm, n, :check_valve, a), [c_1, c_2, c_3, c_4, c_5, c_6, c_7])
-end
-
-
-function constraint_sv_common(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int)
-    # Get flow and shutoff valve status variables.
-    y, z = var(wm, n, :y_shutoff_valve, a), var(wm, n, :z_shutoff_valve, a)
-    qp, qn = var(wm, n, :qp_shutoff_valve, a), var(wm, n, :qn_shutoff_valve, a)
-    qp_ub, qn_ub = JuMP.upper_bound(qp), JuMP.upper_bound(qn)
-
-    # Get common head variables and associated data.
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-    dhp, dhn = var(wm, n, :dhp_shutoff_valve, a), var(wm, n, :dhn_shutoff_valve, a)
-    dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
-
-    # Constrain head differences based on direction.
-    c_1 = JuMP.@constraint(wm.model, dhp <= dhp_ub * y)
-    c_2 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - y))
-
-    # Constrain directed flows based on direction.
-    c_3 = JuMP.@constraint(wm.model, qp <= qp_ub * y)
-    c_4 = JuMP.@constraint(wm.model, qn <= qn_ub * (1.0 - y))
-
-    # Constrain directed flows based on shutoff valve status.
-    c_5 = JuMP.@constraint(wm.model, qp <= qp_ub * z)
-    c_6 = JuMP.@constraint(wm.model, qn <= qn_ub * z)
-
-    # Relate head differences with head variables.
-    c_7 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
-
-    # Append the constraint array.
-    append!(con(wm, n, :sv, a), [c_1, c_2, c_3, c_4, c_5, c_6, c_7])
-end
-
-
-function constraint_pipe_common(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64, L::Float64, r::Float64)
+function constraint_pipe_flow(wm::AbstractDirectedModel, n::Int, a::Int)
     # Get common flow variables and associated data.
-    y = var(wm, n, :y_pipe, a)
-    qp, qn = var(wm, n, :qp_pipe, a), var(wm, n, :qn_pipe, a)
-    qp_ub, qn_ub = JuMP.upper_bound(qp), JuMP.upper_bound(qn)
+    qp, qn, y = var(wm, n, :qp_pipe, a), var(wm, n, :qn_pipe, a), var(wm, n, :y_pipe, a)
 
     # Constrain directed flow variables based on direction.
+    qp_ub, qn_ub = JuMP.upper_bound(qp), JuMP.upper_bound(qn)
     c_1 = JuMP.@constraint(wm.model, qp <= qp_ub * y)
     c_2 = JuMP.@constraint(wm.model, qn <= qn_ub * (1.0 - y))
 
-    # Get common head variables and associated data.
-    dhp, dhn = var(wm, n, :dhp_pipe, a), var(wm, n, :dhn_pipe, a)
+    # Append the :pipe_flow constraint array.
+    append!(con(wm, n, :pipe_flow, a), [c_1, c_2])
+end
+
+
+function constraint_pipe_head(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int)
+    # Get common flow variables and associated data.
+    dhp, dhn, y = var(wm, n, :dhp_pipe, a), var(wm, n, :dhn_pipe, a), var(wm, n, :y_pipe, a)
+
+    # Get head variables for from and to nodes.
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+
+    # For pipes, the differences must satisfy lower and upper bounds.
+    dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
+    c_1 = JuMP.@constraint(wm.model, dhp <= dhp_ub * y)
+    c_2 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - y))
+    c_3 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
+
+    # Append the :pipe_head constraint array.
+    append!(con(wm, n, :pipe_head, a), [c_1, c_2, c_3])
+end
+
+
+function constraint_on_off_pipe_flow_des(wm::AbstractDirectedModel, n::Int, a::Int, resistances)
+    # Get design pipe direction and status variable references.
+    y, z = var(wm, n, :y_des_pipe, a), var(wm, n, :z_des_pipe, a)
+
+    # Ensure that only one flow can be nonnegative per solution.
+    c_1 = JuMP.@constraint(wm.model, sum(z) == 1.0)
+    append!(con(wm, n, :on_off_pipe_flow_des)[a], [c_1])
+
+    for r_id in 1:length(resistances)
+        # Get directed flow variables and associated data.
+        qp, qn = var(wm, n, :qp_des_pipe, a)[r_id], var(wm, n, :qn_des_pipe, a)[r_id]
+        qp_ub, qn_ub = JuMP.upper_bound(qp), JuMP.upper_bound(qn)
+
+        # Constraint the pipes based on direction and construction status.
+        c_2 = JuMP.@constraint(wm.model, qp <= qp_ub * y)
+        c_3 = JuMP.@constraint(wm.model, qn <= qn_ub * (1.0 - y))
+        c_4 = JuMP.@constraint(wm.model, qp <= qp_ub * z[r_id])
+        c_5 = JuMP.@constraint(wm.model, qn <= qn_ub * z[r_id])
+
+        # Append the :on_off_pipe_flow_des constraint array.
+        append!(con(wm, n, :on_off_pipe_flow_des)[a], [c_2, c_3, c_4, c_5])
+    end
+end
+
+
+function constraint_on_off_pipe_head_des(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int)
+    # Get design pipe direction variable reference.
+    y = var(wm, n, :y_des_pipe, a)
+
+    # Get directed head variables and associated data.
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+    dhp, dhn = var(wm, n, :dhp_des_pipe, a), var(wm, n, :dhn_des_pipe, a)
     dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
 
-    # Constrain directed head variables based on direction.
-    c_3 = JuMP.@constraint(wm.model, dhp <= dhp_ub * y)
-    c_4 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - y))
-    c_5 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
+    # Constrain the pipe heads based on direction variables.
+    c_1 = JuMP.@constraint(wm.model, dhp <= dhp_ub * y)
+    c_2 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - y))
+
+    # Equate head difference variables with heads.
+    c_3 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
+
+    # Append the :on_off_pipe_flow_des constraint array.
+    append!(con(wm, n, :on_off_pipe_head_des)[a], [c_1, c_2, c_3])
+end
+
+
+function constraint_on_off_pump_flow(wm::AbstractDirectedModel, n::Int, a::Int, q_min_active::Float64)
+    # Get pump status variable.
+    qp, y, z = var(wm, n, :qp_pump, a), var(wm, n, :z_pump, a), var(wm, n, :z_pump, a)
+
+    # If the pump is inactive, flow must be zero.
+    qp_ub = JuMP.upper_bound(qp)
+    c_1 = JuMP.@constraint(wm.model, qp >= q_min_active * z)
+    c_2 = JuMP.@constraint(wm.model, qp <= qp_ub * z)
+
+    # If the pump is on, flow across the pump must be nonnegative.
+    c_3 = JuMP.@constraint(wm.model, y >= z)
 
     # Append the constraint array.
-    append!(con(wm, n, :pipe)[a], [c_1, c_2, c_3, c_4, c_5])
+    append!(con(wm, n, :on_off_pump_flow, a), [c_1, c_2, c_3])
 end
 
 
-function constraint_prv_common(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, h_prv::Float64)
-    # Get common flow variables.
-    qp = var(wm, n, :qp_pressure_reducing_valve, a)
-    qn = var(wm, n, :qn_pressure_reducing_valve, a)
-    y = var(wm, n, :y_pressure_reducing_valve, a)
-    z = var(wm, n, :z_pressure_reducing_valve, a)
-
-    # If the pressure reducing valve is open, flow must be appreciably positive.
-    c_1 = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * z)
-    c_2 = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * y)
-    c_3 = JuMP.@constraint(wm.model, qp >= _q_eps * z)
-
-    # Get common head variables and associated data.
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-    dhp = var(wm, n, :dhp_pressure_reducing_valve, a)
-    dhn = var(wm, n, :dhn_pressure_reducing_valve, a)
-    dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
-
-    # When the pressure reducing valve is open, the head at node j is predefined.
-    h_lb, h_ub = JuMP.lower_bound(h_j), JuMP.upper_bound(h_j)
-    c_4 = JuMP.@constraint(wm.model, h_j >= (1.0 - z) * h_lb + z * h_prv)
-    c_5 = JuMP.@constraint(wm.model, h_j <= (1.0 - z) * h_ub + z * h_prv)
-
-    # Constrain directed head differences based on status.
-    c_6 = JuMP.@constraint(wm.model, dhp <= dhp_ub * z)
-    c_7 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - z))
-    c_8 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
-
-    # Append the constraint array.
-    append!(con(wm, n, :prv, a), [c_1, c_2, c_3, c_4, c_5, c_6, c_7, c_8])
-end
-
-
-"Constraint for lower-bounding relaxations of pump head gain."
-function constraint_pump_head_gain_lb(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
-    # If the number of breakpoints is not positive, no constraints are added.
-    pump_breakpoints = get(wm.ext, :pump_breakpoints, 0)
-    if pump_breakpoints <= 0 return end
-
-    # Gather flow, head gain, and convex combination variables.
-    qp, g = var(wm, n, :qp_pump, a), var(wm, n, :g, a)
-    lambda = var(wm, n, :lambda_pump)
-
-    # Add a constraint that lower-bounds the head gain variable.
-    breakpoints = range(0.0, stop=JuMP.upper_bound(qp), length=pump_breakpoints)
-    f = (pc[1] .* breakpoints.^2) .+ (pc[2] .* breakpoints) .+ pc[3]
-    gain_lb = sum(f[k] .* lambda[a, k] for k in 1:pump_breakpoints)
-    c = JuMP.@constraint(wm.model, gain_lb <= g)
-    append!(con(wm, n, :head_gain, a), [c])
-end
-
-
-function constraint_pump_common(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64})
-    # Gather variables common to all formulations involving pumps.
-    y, z = var(wm, n, :y_pump, a), var(wm, n, :z_pump, a)
-    qp, g = var(wm, n, :qp_pump, a), var(wm, n, :g, a)
+function constraint_on_off_pump_head(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int)
+    # Get head difference variables for the pump.
     dhp, dhn = var(wm, n, :dhp_pump, a), var(wm, n, :dhn_pump, a)
 
-    # If the pump is off, flow across the pump must be zero.
-    qp_ub = JuMP.upper_bound(qp)
-    c_1 = JuMP.@constraint(wm.model, qp <= qp_ub * z)
-    c_2 = JuMP.@constraint(wm.model, qp >= _q_eps * z)
+    # Get pump head gain and status variable.
+    g, z = var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
 
     # If the pump is off, decouple the head difference relationship.
     dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
-    c_3 = JuMP.@constraint(wm.model, dhp <= dhp_ub * (1.0 - z))
-    c_4 = JuMP.@constraint(wm.model, dhn <= g + dhn_ub * (1.0 - z))
-    c_5 = JuMP.@constraint(wm.model, dhn >= g)
-
-    # If the pump is on, flow across the pump must be nonnegative.
-    c_6 = JuMP.@constraint(wm.model, y >= z)
+    c_1 = JuMP.@constraint(wm.model, dhp <= dhp_ub * (1.0 - z))
+    c_2 = JuMP.@constraint(wm.model, dhn <= g + dhn_ub * (1.0 - z))
+    c_3 = JuMP.@constraint(wm.model, dhn >= g)
 
     # Equate head difference variables with heads.
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-    c_7 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
-
-    # Add a linear lower bound on the head gain approximation.
-    g_1, g_2 = pc[3], pc[1]*qp_ub^2 + pc[2]*qp_ub + pc[3]
-    g_lb_line = (g_2 - g_1) * inv(qp_ub) * qp + g_1 * z
-    c_8 = JuMP.@constraint(wm.model, g_lb_line <= g)
+    c_4 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
 
     # Append the constraint array.
-    append!(con(wm, n, :pump, a), [c_1, c_2, c_3, c_4, c_5, c_6, c_7, c_8])
+    append!(con(wm, n, :on_off_pump_head, a), [c_1, c_2, c_3, c_4])
 end
 
 
-function constraint_flow_direction_selection_des(wm::AbstractDirectedModel, n::Int, a::Int, pipe_resistances)
-    y = var(wm, n, :y_des_pipe, a)
+function constraint_on_off_regulator_flow(wm::AbstractDirectedModel, n::Int, a::Int, q_min_active::Float64)
+    # Get regulator flow, status, and direction variables.
+    qp, z = var(wm, n, :qp_regulator, a), var(wm, n, :z_regulator, a)
+    y = var(wm, n, :y_regulator, a) # Regulator flow direction.
 
-    for r_id in 1:length(pipe_resistances)
-        qp, qn = var(wm, n, :qp_des_pipe, a)[r_id], var(wm, n, :qn_des_pipe, a)[r_id]
-        c_p = JuMP.@constraint(wm.model, qp <= JuMP.upper_bound(qp) * y)
-        c_n = JuMP.@constraint(wm.model, qn <= JuMP.upper_bound(qn) * (1.0 - y))
-        append!(con(wm, n, :head_loss)[a], [c_p, c_n])
-    end
+    # If the regulator is closed, flow must be zero.
+    qp_lb, qp_ub = max(JuMP.lower_bound(qp), q_min_active), JuMP.upper_bound(qp)
+    c_1 = JuMP.@constraint(wm.model, qp >= qp_lb * z)
+    c_2 = JuMP.@constraint(wm.model, qp <= qp_ub * z)
+    c_3 = JuMP.@constraint(wm.model, qp <= qp_ub * y)
+
+    # Append the :on_off_regulator_flow constraint array.
+    append!(con(wm, n, :on_off_regulator_flow, a), [c_1, c_2, c_3])
 end
 
 
-function constraint_head_loss_ub_cv(wm::AbstractDirectedModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64)
-    qp, dhp = var(wm, n, :qp_check_valve, a), var(wm, n, :dhp_check_valve, a)
-    rhs_p = r * JuMP.upper_bound(qp)^(alpha - 1.0) * qp
-    c_p = JuMP.@constraint(wm.model, inv(L) * dhp <= rhs_p)
-    append!(con(wm, n, :head_loss)[a], [c_p])
+function constraint_on_off_regulator_head(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_setting::Float64)
+    # Get regulator direction and status variable.
+    y, z = var(wm, n, :y_regulator, a), var(wm, n, :z_regulator, a)
+
+    # Get common head variables and associated data.
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+    dhp, dhn = var(wm, n, :dhp_regulator, a), var(wm, n, :dhn_regulator, a)
+
+    # When the pressure reducing valve is open, the head at node j is predefined.
+    h_lb, h_ub = JuMP.lower_bound(h_j), JuMP.upper_bound(h_j)
+    c_1 = JuMP.@constraint(wm.model, h_j >= (1.0 - z) * h_lb + z * head_setting)
+    c_2 = JuMP.@constraint(wm.model, h_j <= (1.0 - z) * h_ub + z * head_setting)
+
+    # Constrain directed head differences based on status.
+    dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
+    c_3 = JuMP.@constraint(wm.model, dhp <= dhp_ub * z)
+    c_4 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - z))
+    c_5 = JuMP.@constraint(wm.model, dhp <= dhp_ub * y)
+    c_6 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - y))
+    c_7 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
+
+    # Append the :on_off_regulator_head constraint array.
+    append!(con(wm, n, :on_off_regulator_head, a), [c_1, c_2, c_3, c_4, c_5, c_6, c_7])
 end
 
 
-function constraint_shutoff_valve_head_loss_ub(wm::AbstractDirectedModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64)
-    z = var(wm, n, :z_shutoff_valve, a)
+function constraint_on_off_valve_flow(wm::AbstractDirectedModel, n::Int, a::Int)
+    # Get valve flow, direction, and status variables.
+    qp, qn = var(wm, n, :qp_valve, a), var(wm, n, :qn_valve, a)
+    y, z = var(wm, n, :y_valve, a), var(wm, n, :z_valve, a)
 
-    qp, dhp = var(wm, n, :qp_shutoff_valve, a), var(wm, n, :dhp_shutoff_valve, a)
-    rhs_p = JuMP.upper_bound(dhp) * (1.0 - z) + L*r*JuMP.upper_bound(qp)^(alpha - 1.0) * qp
-    c_p = JuMP.@constraint(wm.model, dhp <= rhs_p)
+    # The valve flow is constrained by direction and status.
+    qp_ub, qn_ub = JuMP.upper_bound(qp), JuMP.upper_bound(qn)
+    c_1 = JuMP.@constraint(wm.model, qp <= qp_ub * y)
+    c_2 = JuMP.@constraint(wm.model, qn <= qn_ub * (1.0 - y))
+    c_3 = JuMP.@constraint(wm.model, qp <= qp_ub * z)
+    c_4 = JuMP.@constraint(wm.model, qn <= qn_ub * z)
 
-    qn, dhn = var(wm, n, :qn_shutoff_valve, a), var(wm, n, :dhn_shutoff_valve, a)
-    rhs_n = JuMP.upper_bound(dhn) * (1.0 - z) + L*r*JuMP.upper_bound(qn)^(alpha - 1.0) * qn
-    c_n = JuMP.@constraint(wm.model, dhn <= rhs_n)
-
-    append!(con(wm, n, :head_loss)[a], [c_p, c_n])
+    # Append the constraint array.
+    append!(con(wm, n, :on_off_valve_flow, a), [c_1, c_2, c_3, c_4])
 end
 
 
-function constraint_pipe_head_loss_ub(wm::AbstractDirectedModel, n::Int, a::Int, alpha::Float64, L::Float64, r::Float64)
-    qp, dhp = var(wm, n, :qp_pipe, a), var(wm, n, :dhp_pipe, a)
-    rhs_p = r * JuMP.upper_bound(qp)^(alpha - 1.0) * qp
-    c_p = JuMP.@constraint(wm.model, inv(L) * dhp <= rhs_p)
+function constraint_on_off_valve_head(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int)
+    # Get valve direction and status variables.
+    y, z = var(wm, n, :y_valve, a), var(wm, n, :z_valve, a)
 
-    qn, dhn = var(wm, n, :qn_pipe, a), var(wm, n, :dhn_pipe, a)
-    rhs_n = r * JuMP.upper_bound(qn)^(alpha - 1.0) * qn
-    c_n = JuMP.@constraint(wm.model, inv(L) * dhn <= rhs_n)
+    # Get head variables for from and to nodes.
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+    dhp, dhn = var(wm, n, :dhp_valve, a), var(wm, n, :dhn_valve, a)
 
-    append!(con(wm, n, :head_loss)[a], [c_p, c_n])
+    # For valves, head differences must satisfy lower and upper bounds.
+    dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
+    c_1 = JuMP.@constraint(wm.model, dhp <= dhp_ub * y)
+    c_2 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - y))
+    c_3 = JuMP.@constraint(wm.model, dhp <= dhp_ub * (1.0 - z))
+    c_4 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - z))
+    c_5 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
+
+    # Append the constraint array.
+    append!(con(wm, n, :on_off_valve_head, a), [c_1, c_2, c_3, c_4, c_5])
 end
 
 
-function constraint_pipe_head_loss_ub_des(wm::AbstractDirectedModel, n::Int, a::Int, alpha::Float64, L::Float64, pipe_resistances)
-    dhp = var(wm, n, :dhp_des_pipe, a)
-    qp_des_pipe = var(wm, n, :qp_des_pipe, a)
-    qp_des_pipe_ub = JuMP.upper_bound.(qp_des_pipe)
-    slopes_p = pipe_resistances .* qp_des_pipe_ub.^(alpha - 1.0)
-    c_p = JuMP.@constraint(wm.model, inv(L)*dhp <= sum(slopes_p .* qp_des_pipe))
+function constraint_short_pipe_flow(wm::AbstractDirectedModel, n::Int, a::Int)
+    # Get short pipe flow and direction variables.
+    qp, qn = var(wm, n, :qp_short_pipe, a), var(wm, n, :qn_short_pipe, a)
+    y = var(wm, n, :y_short_pipe, a) # Binary direction variable.
 
-    dhn = var(wm, n, :dhn_des_pipe, a)
-    qn_des_pipe = var(wm, n, :qn_des_pipe, a)
-    qn_des_pipe_ub = JuMP.upper_bound.(qn_des_pipe)
-    slopes_n = pipe_resistances .* qn_des_pipe_ub.^(alpha - 1.0)
-    c_n = JuMP.@constraint(wm.model, inv(L)*dhn <= sum(slopes_n .* qn_des_pipe))
+    # The valve flow is constrained by direction and status.
+    qp_ub, qn_ub = JuMP.upper_bound(qp), JuMP.upper_bound(qn)
+    c_1 = JuMP.@constraint(wm.model, qp <= qp_ub * y)
+    c_2 = JuMP.@constraint(wm.model, qn <= qn_ub * (1.0 - y))
 
-    append!(con(wm, n, :head_loss)[a], [c_p, c_n])
+    # Append the :short_pipe_flow constraint array.
+    append!(con(wm, n, :short_pipe_flow, a), [c_1, c_2])
 end
 
 
-function constraint_resistance_selection_des(wm::AbstractDirectedModel, n::Int, a::Int, pipe_resistances)
-    c = JuMP.@constraint(wm.model, sum(var(wm, n, :x_res, a)) == 1.0)
-    append!(con(wm, n, :head_loss)[a], [c])
+function constraint_short_pipe_head(wm::AbstractDirectedModel, n::Int, a::Int, node_fr::Int, node_to::Int)
+    # Get short pipe direction variable.
+    y = var(wm, n, :y_short_pipe, a)
 
-    for (r_id, r) in enumerate(pipe_resistances)
-        x_res = var(wm, n, :x_res, a)[r_id]
+    # Get head variables for from and to nodes.
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+    dhp, dhn = var(wm, n, :dhp_short_pipe, a), var(wm, n, :dhn_short_pipe, a)
 
-        qp_des_pipe = var(wm, n, :qp_des_pipe, a)[r_id]
-        qp_ub = JuMP.upper_bound(qp_des_pipe)
-        c_p = JuMP.@constraint(wm.model, qp_des_pipe <= qp_ub * x_res)
+    # For short pipes, head differences must satisfy lower and upper bounds.
+    dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
+    c_1 = JuMP.@constraint(wm.model, h_i - h_j == 0.0)
+    c_2 = JuMP.@constraint(wm.model, dhp <= dhp_ub * y)
+    c_3 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - y))
+    c_4 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
 
-        qn_des_pipe = var(wm, n, :qn_des_pipe, a)[r_id]
-        qn_ub = JuMP.upper_bound(qn_des_pipe)
-        c_n = JuMP.@constraint(wm.model, qn_des_pipe <= qn_ub * x_res)
-
-        append!(con(wm, n, :head_loss)[a], [c_p, c_n])
-    end
+    # Append the :short_pipe_head constraint array.
+    append!(con(wm, n, :short_pipe_head, a), [c_1, c_2, c_3, c_4])
 end
 
 
 function _gather_directionality_data(
-    wm::AbstractDirectedModel, n::Int, check_valve_fr::Array{Int64,1},
-    check_valve_to::Array{Int64,1}, pipe_fr::Array{Int64,1}, pipe_to::Array{Int64,1},
+    wm::AbstractDirectedModel, n::Int, pipe_fr::Array{Int64,1}, pipe_to::Array{Int64,1},
     des_pipe_fr::Array{Int64,1}, des_pipe_to::Array{Int64,1}, pump_fr::Array{Int64,1},
-    pump_to::Array{Int64,1}, pressure_reducing_valve_fr::Array{Int64,1},
-    pressure_reducing_valve_to::Array{Int64,1}, shutoff_valve_fr::Array{Int64,1},
-    shutoff_valve_to::Array{Int64,1})
+    pump_to::Array{Int64,1}, regulator_fr::Array{Int64,1}, regulator_to::Array{Int64,1},
+    short_pipe_fr::Array{Int64,1}, short_pipe_to::Array{Int64,1}, valve_fr::Array{Int64,1},
+    valve_to::Array{Int64,1})
     # Collect direction variable references per component.
-    y_check_valve = var(wm, n, :y_check_valve)
-    y_pipe = var(wm, n, :y_pipe)
-    y_des_pipe = var(wm, n, :y_des_pipe)
-    y_pump = var(wm, n, :y_pump)
-    y_pressure_reducing_valve = var(wm, n, :y_pressure_reducing_valve)
-    y_shutoff_valve = var(wm, n, :y_shutoff_valve)
-
-    sum_out = JuMP.@expression(wm.model,
-            sum(y_check_valve[a] for a in check_valve_fr) +
-            sum(y_pipe[a] for a in pipe_fr) +
-            sum(y_des_pipe[a] for a in des_pipe_fr) +
-            sum(y_pump[a] for a in pump_fr) +
-            sum(y_pressure_reducing_valve[a] for a in pressure_reducing_valve_fr) +
-            sum(y_shutoff_valve[a] for a in shutoff_valve_fr))
+    y_pipe, y_des_pipe = var(wm, n, :y_pipe), var(wm, n, :y_des_pipe)
+    y_pump, y_regulator = var(wm, n, :y_pump), var(wm, n, :y_regulator)
+    y_short_pipe, y_valve = var(wm, n, :y_short_pipe), var(wm, n, :y_valve)
 
     sum_in = JuMP.@expression(wm.model,
-            sum(y_check_valve[a] for a in check_valve_to) +
             sum(y_pipe[a] for a in pipe_to) +
             sum(y_des_pipe[a] for a in des_pipe_to) +
             sum(y_pump[a] for a in pump_to) +
-            sum(y_pressure_reducing_valve[a] for a in pressure_reducing_valve_to) +
-            sum(y_shutoff_valve[a] for a in shutoff_valve_to))
+            sum(y_regulator[a] for a in regulator_to) +
+            sum(y_short_pipe[a] for a in short_pipe_to) +
+            sum(y_valve[a] for a in valve_to))
+
+    sum_out = JuMP.@expression(wm.model,
+            sum(y_pipe[a] for a in pipe_fr) +
+            sum(y_des_pipe[a] for a in des_pipe_fr) +
+            sum(y_pump[a] for a in pump_fr) +
+            sum(y_regulator[a] for a in regulator_fr) +
+            sum(y_short_pipe[a] for a in short_pipe_fr) +
+            sum(y_valve[a] for a in valve_fr))
 
     # Get the in degree of node `i`.
-    in_length = length(check_valve_to) + length(pipe_to) + length(des_pipe_to) +
-        length(pump_to) + length(pressure_reducing_valve_to) + length(shutoff_valve_to)
+    in_length = length(pipe_to) + length(des_pipe_to) + length(pump_to) +
+        length(regulator_to) + length(short_pipe_to) + length(valve_to)
 
     # Get the out degree of node `i`.
-    out_length = length(check_valve_fr) + length(pipe_fr) + length(des_pipe_fr) +
-        length(pump_fr) + length(pressure_reducing_valve_fr) + length(shutoff_valve_fr)
+    out_length = length(pipe_fr) + length(des_pipe_fr) + length(pump_fr) +
+        length(regulator_fr) + length(short_pipe_fr) + length(valve_fr)
 
     return sum_in, sum_out, in_length, out_length
 end
 
 
 "Constraint to ensure at least one direction is set to take flow away from a source."
-function constraint_node_directionality(
-    wm::AbstractDirectedModel, n::Int, i::Int, check_valve_fr::Array{Int64,1},
-    check_valve_to::Array{Int64,1}, pipe_fr::Array{Int64,1}, pipe_to::Array{Int64,1},
-    des_pipe_fr::Array{Int64,1}, des_pipe_to::Array{Int64,1}, pump_fr::Array{Int64,1},
-    pump_to::Array{Int64,1}, pressure_reducing_valve_fr::Array{Int64,1},
-    pressure_reducing_valve_to::Array{Int64,1}, shutoff_valve_fr::Array{Int64,1},
-    shutoff_valve_to::Array{Int64,1})
+function constraint_intermediate_directionality(
+    wm::AbstractDirectedModel, n::Int, i::Int, pipe_fr::Array{Int64,1},
+    pipe_to::Array{Int64,1}, des_pipe_fr::Array{Int64,1}, des_pipe_to::Array{Int64,1},
+    pump_fr::Array{Int64,1}, pump_to::Array{Int64,1}, regulator_fr::Array{Int64,1},
+    regulator_to::Array{Int64,1}, short_pipe_fr::Array{Int64,1},
+    short_pipe_to::Array{Int64,1}, valve_fr::Array{Int64,1}, valve_to::Array{Int64,1})
     # Gather data required to build the constraint.
     sum_in, sum_out, in_length, out_length = _gather_directionality_data(
-        wm, n, check_valve_fr, check_valve_to, pipe_fr, pipe_to, des_pipe_fr, des_pipe_to,
-        pump_fr, pump_to, pressure_reducing_valve_fr, pressure_reducing_valve_to,
-        shutoff_valve_fr, shutoff_valve_to)
+        wm, n, pipe_fr, pipe_to, des_pipe_fr, des_pipe_to, pump_fr, pump_to, regulator_fr,
+        regulator_to, short_pipe_fr, short_pipe_to, valve_fr, valve_to)
 
     # Add the node directionality constraint.
     if out_length == 1 && in_length == 1
@@ -518,39 +459,35 @@ end
 
 "Constraint to ensure at least one direction is set to take flow away from a source."
 function constraint_source_directionality(
-    wm::AbstractDirectedModel, n::Int, i::Int, check_valve_fr::Array{Int64,1},
-    check_valve_to::Array{Int64,1}, pipe_fr::Array{Int64,1}, pipe_to::Array{Int64,1},
-    des_pipe_fr::Array{Int64,1}, des_pipe_to::Array{Int64,1}, pump_fr::Array{Int64,1},
-    pump_to::Array{Int64,1}, pressure_reducing_valve_fr::Array{Int64,1},
-    pressure_reducing_valve_to::Array{Int64,1}, shutoff_valve_fr::Array{Int64,1},
-    shutoff_valve_to::Array{Int64,1})
+    wm::AbstractDirectedModel, n::Int, i::Int, pipe_fr::Array{Int64,1},
+    pipe_to::Array{Int64,1}, des_pipe_fr::Array{Int64,1}, des_pipe_to::Array{Int64,1},
+    pump_fr::Array{Int64,1}, pump_to::Array{Int64,1}, regulator_fr::Array{Int64,1},
+    regulator_to::Array{Int64,1}, short_pipe_fr::Array{Int64,1},
+    short_pipe_to::Array{Int64,1}, valve_fr::Array{Int64,1}, valve_to::Array{Int64,1})
     # Gather data required to build the constraint.
     sum_in, sum_out, in_length, out_length = _gather_directionality_data(
-        wm, n, check_valve_fr, check_valve_to, pipe_fr, pipe_to, des_pipe_fr, des_pipe_to,
-        pump_fr, pump_to, pressure_reducing_valve_fr, pressure_reducing_valve_to,
-        shutoff_valve_fr, shutoff_valve_to)
+        wm, n, pipe_fr, pipe_to, des_pipe_fr, des_pipe_to, pump_fr, pump_to, regulator_fr,
+        regulator_to, short_pipe_fr, short_pipe_to, valve_fr, valve_to)
 
     # Add the source flow direction constraint.
     c = JuMP.@constraint(wm.model, sum_out - sum_in >= 1.0 - in_length)
-    con(wm, n, :source_directionality)[i] = c
+    con(wm, n, :node_directionality)[i] = c
 end
 
 
 "Constraint to ensure at least one direction is set to take flow to a junction with demand."
 function constraint_sink_directionality(
-    wm::AbstractDirectedModel, n::Int, i::Int, check_valve_fr::Array{Int64,1},
-    check_valve_to::Array{Int64,1}, pipe_fr::Array{Int64,1}, pipe_to::Array{Int64,1},
-    des_pipe_fr::Array{Int64,1}, des_pipe_to::Array{Int64,1}, pump_fr::Array{Int64,1},
-    pump_to::Array{Int64,1}, pressure_reducing_valve_fr::Array{Int64,1},
-    pressure_reducing_valve_to::Array{Int64,1}, shutoff_valve_fr::Array{Int64,1},
-    shutoff_valve_to::Array{Int64,1})
+    wm::AbstractDirectedModel, n::Int, i::Int, pipe_fr::Array{Int64,1},
+    pipe_to::Array{Int64,1}, des_pipe_fr::Array{Int64,1}, des_pipe_to::Array{Int64,1},
+    pump_fr::Array{Int64,1}, pump_to::Array{Int64,1}, regulator_fr::Array{Int64,1},
+    regulator_to::Array{Int64,1}, short_pipe_fr::Array{Int64,1},
+    short_pipe_to::Array{Int64,1}, valve_fr::Array{Int64,1}, valve_to::Array{Int64,1})
     # Gather data required to build the constraint.
     sum_in, sum_out, in_length, out_length = _gather_directionality_data(
-        wm, n, check_valve_fr, check_valve_to, pipe_fr, pipe_to, des_pipe_fr, des_pipe_to,
-        pump_fr, pump_to, pressure_reducing_valve_fr, pressure_reducing_valve_to,
-        shutoff_valve_fr, shutoff_valve_to)
+        wm, n, pipe_fr, pipe_to, des_pipe_fr, des_pipe_to, pump_fr, pump_to, regulator_fr,
+        regulator_to, short_pipe_fr, short_pipe_to, valve_fr, valve_to)
 
     # Add the sink flow direction constraint.
     c = JuMP.@constraint(wm.model, sum_in - sum_out >= 1.0 - out_length)
-    con(wm, n, :sink_directionality)[i] = c
+    con(wm, n, :node_directionality)[i] = c
 end

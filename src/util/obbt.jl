@@ -53,24 +53,18 @@ end
 function _get_edge_bound_dict(wm::AbstractWaterModel, nw::Int, comp::Symbol)
     qp_sym, qn_sym = Symbol("qp_" * string(comp)), Symbol("qn_" * string(comp))
     qp, qn = var(wm, nw, qp_sym), var(wm, nw, qn_sym)
+
     return Dict(string(a) => Dict("q_min"=>min(0.0, -JuMP.upper_bound(qn[a])),
-        "q_max"=>max(0.0, JuMP.upper_bound(qp[a]))) for a in ids(wm, nw, comp))
+        "q_max"=>max(0.0, JuMP.upper_bound(qp[a])), "q_min_active"=>0.0)
+        for a in ids(wm, nw, comp))
 end
 
 
 function _create_modifications_reduced(wm::AbstractWaterModel)
     data = Dict{String,Any}("per_unit"=>false)
     data["node"] = _get_node_bound_dict(wm, wm.cnw)
-    data["pipe"] = Dict{String,Any}()
 
-    for type in [:pipe, :shutoff_valve, :check_valve]
-        qp_sym, qn_sym = Symbol("qp_" * string(type)), Symbol("qn_" * string(type))
-        tmp_data = _get_edge_bound_dict(wm, wm.cnw, type)
-        data["pipe"] = merge(data["pipe"], tmp_data)
-    end
-
-    for type in [:pressure_reducing_valve, :pump]
-        qp_sym, qn_sym = Symbol("qp_" * string(type)), Symbol("qn_" * string(type))
+    for type in [:pipe, :pump, :regulator, :short_pipe, :valve]
         data[string(type)] = _get_edge_bound_dict(wm, wm.cnw, type)
     end
 
@@ -84,16 +78,8 @@ function _create_modifications_mn(wm::AbstractWaterModel)
     for nw in sort(collect(nw_ids(wm)))
         dnw = data["nw"][string(nw)] = Dict{String,Any}()
         dnw["node"] = _get_node_bound_dict(wm, nw)
-        dnw["pipe"] = Dict{String,Any}()
 
-        for type in [:pipe, :shutoff_valve, :check_valve]
-            qp_sym, qn_sym = Symbol("qp_" * string(type)), Symbol("qn_" * string(type))
-            tmp_dnw = _get_edge_bound_dict(wm, nw, type)
-            dnw["pipe"] = merge(dnw["pipe"], tmp_dnw)
-        end
-
-        for type in [:pressure_reducing_valve, :pump]
-            qp_sym, qn_sym = Symbol("qp_" * string(type)), Symbol("qn_" * string(type))
+        for type in [:pipe, :pump, :regulator, :short_pipe, :valve]
             dnw[string(type)] = _get_edge_bound_dict(wm, nw, type)
         end
     end
@@ -109,16 +95,30 @@ end
 
 
 function _get_flow_index_set(wm::AbstractWaterModel; width::Float64=1.0e-3, prec::Float64=1.0e-4)
-    types = [:pipe, :shutoff_valve, :check_valve, :pressure_reducing_valve, :pump]
+    types = [:pipe, :pump, :regulator, :short_pipe, :valve]
     return vcat([vcat([[(nw, type, Symbol("q_" * string(type)), a, width, prec) for a in
+        ids(wm, nw, type)] for nw in sort(collect(nw_ids(wm)))]...) for type in types]...)
+end
+
+
+function _get_indicator_index_set(wm::AbstractWaterModel)
+    types = [:pump, :regulator, :valve]
+    return vcat([vcat([[(nw, type, Symbol("z_" * string(type)), a, 0.0, 0.0) for a in
+        ids(wm, nw, type)] for nw in sort(collect(nw_ids(wm)))]...) for type in types]...)
+end
+
+
+function _get_direction_index_set(wm::AbstractWaterModel)
+    types = [:pipe, :pump, :regulator, :short_pipe, :valve]
+    return vcat([vcat([[(nw, type, Symbol("y_" * string(type)), a, 0.0, 0.0) for a in
         ids(wm, nw, type)] for nw in sort(collect(nw_ids(wm)))]...) for type in types]...)
 end
 
 
 function _get_existing_bounds(data::Dict{String,<:Any}, index::Tuple)
     nw_str, comp_str, index_str = string(index[1]), string(index[2]), string(index[4])
-    comp_str = comp_str in ["check_valve", "shutoff_valve"] ? "pipe" : comp_str
     var_str = occursin("q", string(index[3])) ? "q" : string(index[3])
+    min_suffix = comp_str == "pump" ? "_min_active" : "_min"
 
     if "nw" in keys(data)
         data_index = data["nw"][nw_str][comp_str][index_str]
@@ -126,39 +126,45 @@ function _get_existing_bounds(data::Dict{String,<:Any}, index::Tuple)
         data_index = data[comp_str][index_str]
     end
 
-    return data_index[var_str * "_min"], data_index[var_str * "_max"]
+    return data_index[var_str * min_suffix], data_index[var_str * "_max"]
 end
 
 
-function _update_modifications!(data::Dict{String,Any}, var_index_set::Array, bounds::Array)
+function _update_modifications!(data::Dict{String,Any}, original::Dict{String,Any}, var_index_set::Array, bounds::Array)
     # Loop over variables and tighten bounds.
     for (i, id) in enumerate(var_index_set)
         nw_str, comp_str, index_str = string(id[1]), string(id[2]), string(id[4])
         var_str = occursin("q", string(id[3])) ? "q" : string(id[3])
-        comp_c = comp_str in ["shutoff_valve", "check_valve"] ? "pipe" : comp_str
+        min_suffix = comp_str == "pump" ? "_min_active" : "_min"
 
         if _IM.ismultinetwork(data)
-            data["nw"][nw_str][comp_c][index_str][var_str * "_min"] = bounds[i][1]
-            data["nw"][nw_str][comp_c][index_str][var_str * "_max"] = bounds[i][2]
+            data["nw"][nw_str][comp_str][index_str][var_str * min_suffix] = bounds[i][1]
+            data["nw"][nw_str][comp_str][index_str][var_str * "_max"] = bounds[i][2]
         else
-            data[comp_c][index_str][var_str * "_min"] = bounds[i][1]
-            data[comp_c][index_str][var_str * "_max"] = bounds[i][2]
+            data[comp_str][index_str][var_str * min_suffix] = bounds[i][1]
+            data[comp_str][index_str][var_str * "_max"] = bounds[i][2]
         end
     end
 end
 
 
-function _get_average_widths(data::Dict{String,<:Any})
+function _get_average_widths(data::Dict{String,<:Any}, original::Dict{String,<:Any})
     h = sum(x["h_max"] - x["h_min"] for (i, x) in data["node"])
     message = "[OBBT] Average bound widths: h -> $(h * inv(length(data["node"]))), "
     avg_vals = [h * inv(length(data["node"]))]
 
-    for type in ["pipe", "pressure_reducing_valve", "pump"]
+    for type in ["pipe", "pump", "regulator", "short_pipe", "valve"]
+        q_width_sum = 0.0
+        min_suffix = type == "pump" ? "_min_active" : "_min"
+
+        for (a, comp) in data[type]
+            q_width_sum += comp["q_max"] - comp["q" * min_suffix]
+        end
+
         if length(data[type]) > 0
-            q_length = length(data[type])
-            q = sum(x["q_max"] - x["q_min"] for (i, x) in data[type])
-            message *= "q_$(type) -> $(q * inv(q_length)), "
-            avg_vals = vcat(avg_vals, q * inv(q_length))
+            q_ave_width = q_width_sum * inv(length(data[type]))
+            message *= "q_$(type) -> $(q_ave_width), "
+            avg_vals = vcat(avg_vals, q_ave_width)
         end
     end
 
@@ -167,16 +173,18 @@ function _get_average_widths(data::Dict{String,<:Any})
 end
 
 
-function _get_average_widths_mn(data::Dict{String,<:Any})
+function _get_average_widths_mn(data::Dict{String,<:Any}, original::Dict{String,<:Any})
     h = sum(sum(x["h_max"] - x["h_min"] for (i, x) in nw["node"]) for (n, nw) in data["nw"])
     h_length = sum(length(nw["node"]) for (n, nw) in data["nw"])
     message = "[OBBT] Average bound widths: h -> $(h * inv(h_length)), "
     avg_vals = [h * inv(h_length)]
 
-    for type in ["pipe", "pressure_reducing_valve", "pump"]
+    for type in ["pipe", "pump", "regulator", "short_pipe", "valve"]
+        min_suffix = type == "pump" ? "_min_active" : "_min"
+
         if sum(length(nw[type]) for (n, nw) in data["nw"]) > 0
             q_length = sum(length(nw[type]) for (n, nw) in data["nw"])
-            q = sum(sum(x["q_max"] - x["q_min"] for (i, x) in nw[type]) for (n, nw) in data["nw"])
+            q = sum(sum(x["q_max"] - x["q" * min_suffix] for (i, x) in nw[type]) for (n, nw) in data["nw"])
             message *= "q_$(type) -> $(q * inv(q_length)), "
             avg_vals = vcat(avg_vals, q * inv(q_length))
         end
@@ -194,10 +202,10 @@ function _make_reduced_data!(ts_data::Dict{String,<:Any})
         !isa(ts_data["time_series"][comp_type], Dict) && continue
 
         for (i, comp) in ts_data["time_series"][comp_type]
-            if comp_type == "junction"
-                ts_data["junction"][i]["dispatchable"] = true
-                ts_data["junction"][i]["demand_min"] = minimum(comp["demand"])
-                ts_data["junction"][i]["demand_max"] = maximum(comp["demand"])
+            if comp_type == "demand"
+                ts_data["demand"][i]["dispatchable"] = true
+                ts_data["demand"][i]["demand_min"] = minimum(comp["flow_rate"])
+                ts_data["demand"][i]["demand_max"] = maximum(comp["flow_rate"])
             elseif comp_type == "node"
                 ts_data["node"][i]["h_min"] = minimum(comp["head"])
                 ts_data["node"][i]["h_max"] = maximum(comp["head"])
@@ -225,10 +233,10 @@ function _revert_reduced_data!(ts_data::Dict{String,<:Any})
         !isa(ts_data["time_series"][comp_type], Dict) && continue
 
         for (i, comp) in ts_data["time_series"][comp_type]
-            if comp_type == "junction"
-                ts_data["junction"][i]["dispatchable"] = false
-                delete!(ts_data["junction"][i], "demand_min")
-                delete!(ts_data["junction"][i], "demand_max")
+            if comp_type == "demand"
+                ts_data["demand"][i]["dispatchable"] = false
+                delete!(ts_data["demand"][i], "demand_min")
+                delete!(ts_data["demand"][i], "demand_max")
             end
         end
     end
@@ -247,10 +255,10 @@ end
 
 
 function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_reduced_network::Bool = true,
-    model_type::Type = CRDWaterModel, time_limit::Float64 = 3600.0, upper_bound::Float64 =
+    model_type::Type = CQRDWaterModel, time_limit::Float64 = 3600.0, upper_bound::Float64 =
     Inf, upper_bound_constraint::Bool = false, max_iter::Int = 100, improvement_tol::Float64
-    = 1.0e-6, relaxed::Bool = true, precision=1.0e-4, min_width::Float64 = 1.0e-3,
-    ext::Dict{Symbol,<:Any} = Dict{Symbol,Any}(:pump_breakpoints=>5), kwargs...)
+    = 1.0e-6, relaxed::Bool = true, precision=1.0e-3, min_width::Float64 = 1.0e-2,
+    ext::Dict{Symbol,<:Any} = Dict{Symbol,Any}(:pump_breakpoints=>3), kwargs...)
     # Print a message with relevant algorithm limit information.
     Memento.info(_LOGGER, "[OBBT] Maximum time limit for OBBT set to default value of $(time_limit) seconds.")
 
@@ -279,11 +287,14 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_reduced_network:
     var_index_set = vcat(head_index_set, flow_index_set)
     bounds = [_get_existing_bounds(modifications, vid) for vid in var_index_set]
 
+    indicator_index_set = _get_indicator_index_set(bt)
+    direction_index_set = _get_direction_index_set(bt)
+
     # Get the initial average bound widths.
     if use_reduced_network
-        avg_widths_initial = _get_average_widths(modifications)
+        avg_widths_initial = _get_average_widths(modifications, data)
     else
-        avg_widths_initial = _get_average_widths_mn(modifications)
+        avg_widths_initial = _get_average_widths_mn(modifications, data)
     end
 
     # Initialize algorithm termination metadata.
@@ -311,6 +322,42 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_reduced_network:
             bounds[i] = _compute_corrected_bounds(lb, ub, bounds[i][1], bounds[i][2], id[5], id[6])
         end
 
+        # Loop over indicator variables and tighten bounds.
+        for (i, id) in enumerate(indicator_index_set)
+            # Perform optimization-based bound tightening for lower and upper bounds.
+            !JuMP.is_binary(var(bt, id[1], id[3], id[4])) && continue
+            time_elapsed += @elapsed lb = _solve_binary_bound(bt, id, _MOI.MIN_SENSE)
+            time_elapsed > time_limit && ((terminate = true) && break)
+            time_elapsed += @elapsed ub = _solve_binary_bound(bt, id, _MOI.MAX_SENSE)
+            time_elapsed > time_limit && ((terminate = true) && break)
+
+            if !_IM.ismultinetwork(data)
+                if lb == 1.0 && ub == 1.0
+                    modifications[String(id[2])]["$(id[4])"]["force_on"] = true
+                elseif lb == 0.0 && ub == 0.0
+                    modifications[String(id[2])]["$(id[4])"]["force_off"] = true
+                end
+            end
+        end
+
+        # Loop over direction variables and tighten bounds.
+        for (i, id) in enumerate(direction_index_set)
+            # Perform optimization-based bound tightening for lower and upper bounds.
+            !JuMP.is_binary(var(bt, id[1], id[3], id[4])) && continue
+            time_elapsed += @elapsed lb = _solve_binary_bound(bt, id, _MOI.MIN_SENSE)
+            time_elapsed > time_limit && ((terminate = true) && break)
+            time_elapsed += @elapsed ub = _solve_binary_bound(bt, id, _MOI.MAX_SENSE)
+            time_elapsed > time_limit && ((terminate = true) && break)
+
+            if !_IM.ismultinetwork(data)
+                if lb == 1.0 && ub == 1.0
+                    modifications[String(id[2])]["$(id[4])"]["force_forward"] = true
+                elseif lb == 0.0 && ub == 0.0
+                    modifications[String(id[2])]["$(id[4])"]["force_reverse"] = true
+                end
+            end
+        end
+
         # Update the iteration counter.
         current_iteration += 1
 
@@ -318,14 +365,14 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_reduced_network:
         current_iteration >= max_iter && (terminate = true)
 
         # Update the modifications based on the new bounds, then update the original data.
-        _update_modifications!(modifications, var_index_set, bounds)
+        _update_modifications!(modifications, data, var_index_set, bounds)
         _IM.update_data!(data, modifications)
 
         # Get the current average bound widths.
         if use_reduced_network
-            avg_widths_final = _get_average_widths(modifications)
+            avg_widths_final = _get_average_widths(modifications, data)
         else
-            avg_widths_final = _get_average_widths_mn(modifications)
+            avg_widths_final = _get_average_widths_mn(modifications, data)
         end
 
         if maximum(avg_widths_initial - avg_widths_final) < improvement_tol
@@ -379,7 +426,7 @@ function _compute_corrected_bounds(lb::Float64, ub::Float64, lb_old::Float64, ub
 end
 
 
-function _solve_bound(wm::AbstractWaterModel, index::Tuple, sense::_MOI.OptimizationSense, start::Float64)
+function _solve_binary_bound(wm::AbstractWaterModel, index::Tuple, sense::_MOI.OptimizationSense)
     # Get the variable reference from the index tuple.
     variable = var(wm, index[1], index[3], index[4])
 
@@ -390,11 +437,66 @@ function _solve_bound(wm::AbstractWaterModel, index::Tuple, sense::_MOI.Optimiza
     # Return an optimized bound or the initial bound that was started with.
     if JuMP.termination_status(wm.model) in [_MOI.LOCALLY_SOLVED, _MOI.OPTIMAL]
         # Get the objective value and return the better of the old and new bounds.
-        candidate = JuMP.objective_value(wm.model)
-        return sense === _MOI.MIN_SENSE ? max(candidate, start) : min(candidate, start)
+        if sense === _MOI.MIN_SENSE
+            return JuMP.objective_value(wm.model) >= 0.5 ? 1.0 : 0.0
+        elseif sense === _MOI.MAX_SENSE
+            return JuMP.objective_value(wm.model) < 0.5 ? 0.0 : 1.0
+        end
     else
         message = "[OBBT] Optimization of $(index[1])_$(index[3])[$(index[4])] errored. Adjust tolerances."
         JuMP.termination_status(wm.model) !== _MOI.TIME_LIMIT && Memento.warn(_LOGGER, message)
+        return sense == _MOI.MIN_SENSE ? 0.0 : 1.0
+    end
+end
+
+
+function _solve_bound(wm::AbstractWaterModel, index::Tuple, sense::_MOI.OptimizationSense, start::Float64)
+    # Get the variable reference from the index tuple.
+    variable = var(wm, index[1], index[3], index[4])
+
+    # Determine whether or not the associated indicator variable should be fixed.
+    fix_status = index[3] == :q_pump ? true : false
+  
+    if fix_status # Fix the associated indicator variable to one.
+        z_var_sym = Symbol(replace(String(index[3]), "q_" => "z_"))
+        z_var = var(wm, index[1], z_var_sym, index[4])
+
+        if JuMP.is_binary(z_var)
+            JuMP.fix(z_var, 1.0)
+        else
+            JuMP.fix(z_var, 1.0, force=true)
+        end
+    end
+
+    # Optimize the variable (or affine expression) being tightened.
+    JuMP.@objective(wm.model, sense, variable)
+    JuMP.optimize!(wm.model)
+    termination_status = JuMP.termination_status(wm.model)
+
+    if termination_status in [_MOI.LOCALLY_SOLVED, _MOI.OPTIMAL]
+        candidate = JuMP.objective_value(wm.model)
+    else
+        candidate = nothing
+    end
+
+    if fix_status # Reset the indicator variable back to binary.
+        z_var_sym = Symbol(replace(String(index[3]), "q_" => "z_"))
+        z_var = var(wm, index[1], z_var_sym, index[4])
+        JuMP.unfix(z_var)
+
+        if !JuMP.is_binary(z_var)
+            JuMP.set_lower_bound(z_var, 0.0)
+            JuMP.set_upper_bound(z_var, 1.0)
+        end
+    end
+
+    # Return an optimized bound or the initial bound that was started with.
+    if termination_status in [_MOI.LOCALLY_SOLVED, _MOI.OPTIMAL]
+        # Get the objective value and return the better of the old and new bounds.
+        return sense === _MOI.MIN_SENSE ? max(candidate, start) : min(candidate, start)
+    else
+        message = "[OBBT] Optimization of $(index[1])_$(index[3])[$(index[4])] errored. Adjust tolerances."
+        termination_status !== _MOI.TIME_LIMIT && Memento.warn(_LOGGER, message)
         return start # Optimization was not successful. Return the starting bound.
     end
 end

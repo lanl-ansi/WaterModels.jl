@@ -3,7 +3,7 @@
         lps = WaterModels.parse_file("../test/data/epanet/snapshot/pipe-hw-lps.inp")
         gpm = WaterModels.parse_file("../test/data/epanet/snapshot/pipe-hw-gpm.inp")
 
-        @test isapprox(lps["junction"]["2"]["demand"], gpm["junction"]["2"]["demand"], rtol=1.0e-4)
+        @test isapprox(lps["demand"]["2"]["flow_rate"], gpm["demand"]["2"]["flow_rate"], rtol=1.0e-4)
         @test isapprox(lps["node"]["1"]["elevation"], gpm["node"]["1"]["elevation"], rtol=1.0e-4)
 
         balerma_data = WaterModels.parse_file("../test/data/epanet/balerma.inp")
