@@ -1,5 +1,5 @@
-# Define common CQRD (quadratic relaxation- and direction-based) implementations
-# of water distribution network constraints, which use directed flow variables.
+# Define common CQRD (convex quadratic relaxation- and direction-based) implementations of
+# water distribution network constraints, which use directed flow variables.
 
 
 function constraint_pipe_head_loss(wm::CQRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64, L::Float64, r::Float64)

@@ -18,6 +18,8 @@ This decoupling enables the definition of a wide variety of optimization formula
 * CRD - continuous (convex) relaxation- and direction-based formulation
 * LA - linear approximation-based formulation
 * LRD - linear relaxation- and direction-based formulation
+* QRD - nonconvex quadratic relaxation- and direction-based formulation
+* CQRD - convex quadratic relaxation- and direction-based formulation
 
 ## Documentation
 The package [documentation](https://lanl-ansi.github.io/WaterModels.jl/latest) includes a [quick start guide](https://lanl-ansi.github.io/WaterModels.jl/latest/quickguide).
