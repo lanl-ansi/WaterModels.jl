@@ -1,4 +1,4 @@
-function unbinarize_mn(wm::AbstractWaterModel, num_steps::Int)
+function unbinarize_mn!(wm::AbstractWaterModel, num_steps::Int)
     var_symbols = [:z_pump, :z_regulator, :z_valve]
     network_ids = sort(collect(nw_ids(wm)), rev=true) # Descending indices.
 
