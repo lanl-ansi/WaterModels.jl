@@ -143,6 +143,9 @@ function parse_epanet(filename::String)
     # Parse [ENERGY] section.
     _read_energy!(data)
 
+    # Parse [STATUS] section.
+    _read_status!(data)
+
     # Update pump data using data from the [ENERGY] section.
     _update_pump_energy!(data)
 
@@ -560,6 +563,21 @@ function _read_energy!(data::Dict{String,<:Any})
             end
         else
             Memento.warn(_LOGGER, "Unknown entry in ENERGY section: $(line)")
+        end
+    end
+end
+
+
+function _read_status!(data::Dict{String,<:Any})
+    # Loop over all lines in the [STATUS] section and parse each.
+    for (line_number, line) in data["section"]["[STATUS]"]
+        current = split(split(line, ";")[1])
+        length(current) == 0 && continue # Skip.
+        component_id = current[1]
+
+        if haskey(data["pipe"], component_id)
+            # Ensure the pipe is categorized as having a valve.
+            data["pipe"][component_id]["has_valve"] = true
         end
     end
 end
