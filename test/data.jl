@@ -18,4 +18,28 @@
         @test isapprox(mn_data["nw"]["2"]["demand"]["2"]["flow_rate"], 0.5*0.02777, rtol=1.0e-4)
         @test isapprox(mn_data["nw"]["3"]["demand"]["2"]["flow_rate"], 0.25*0.02777, rtol=1.0e-4)
     end
+
+    @testset "epanet_to_watermodels!" begin
+        network_data = WaterModels.parse_epanet("../test/data/epanet/snapshot/short-pipe-lps.inp")
+        WaterModels.epanet_to_watermodels!(network_data)
+        @test haskey(network_data["short_pipe"], "1")
+
+        network_data = WaterModels.parse_epanet("../test/data/epanet/snapshot/short-pipe-valve-lps.inp")
+        WaterModels.epanet_to_watermodels!(network_data)
+        @test haskey(network_data["valve"], "1")
+    end
+
+    @testset "_read_status!" begin
+        network_data = WaterModels.parse_epanet("../test/data/epanet/snapshot/shutoff_valve-status-hw-lps.inp")
+        @test network_data["pipe"]["1"]["has_valve"]
+        WaterModels.epanet_to_watermodels!(network_data)
+        @test haskey(network_data["valve"], "1")
+    end
+
+    @testset "_read_controls!" begin
+        network_data = WaterModels.parse_epanet("../test/data/epanet/snapshot/shutoff_valve-controls-hw-lps.inp")
+        @test network_data["pipe"]["1"]["has_valve"]
+        WaterModels.epanet_to_watermodels!(network_data)
+        @test haskey(network_data["valve"], "1")
+    end
 end

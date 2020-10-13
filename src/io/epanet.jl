@@ -143,6 +143,12 @@ function parse_epanet(filename::String)
     # Parse [ENERGY] section.
     _read_energy!(data)
 
+    # Parse [STATUS] section.
+    _read_status!(data)
+
+    # Parse [CONTROLS] section.
+    _read_controls!(data)
+
     # Update pump data using data from the [ENERGY] section.
     _update_pump_energy!(data)
 
@@ -560,6 +566,35 @@ function _read_energy!(data::Dict{String,<:Any})
             end
         else
             Memento.warn(_LOGGER, "Unknown entry in ENERGY section: $(line)")
+        end
+    end
+end
+
+
+function _read_status!(data::Dict{String,<:Any})
+    # Loop over all lines in the [STATUS] section and parse each.
+    for (line_number, line) in data["section"]["[STATUS]"]
+        current = split(split(line, ";")[1])
+        length(current) == 0 && continue # Skip.
+        component_id = current[1]
+
+        if haskey(data["pipe"], component_id)
+            # Ensure the pipe is categorized as having a valve.
+            data["pipe"][component_id]["has_valve"] = true
+        end
+    end
+end
+
+
+function _read_controls!(data::Dict{String,<:Any})
+    # Loop over all lines in the [CONTROLS] section and parse each.
+    for (line_number, line) in data["section"]["[CONTROLS]"]
+        current = split(split(line, ";")[1])
+        length(current) == 0 && continue # Skip.
+        component_id = current[2]
+
+        if uppercase(current[1]) == "LINK" && haskey(data["pipe"], component_id)
+            data["pipe"][component_id]["has_valve"] = true
         end
     end
 end
@@ -1151,10 +1186,10 @@ internal WaterModels use. Imports all data from the EPANET file if `import_all` 
 """
 function epanet_to_watermodels!(data::Dict{String,<:Any}; import_all::Bool = false)
     _drop_zero_demands!(data) # Drop demands of zero from nodes.
+    _convert_short_pipes!(data) # Convert pipes that are short to short pipes and valves.
     _add_valves_to_tanks!(data) # Ensure that shutoff valves are connected to tanks.
     _add_valves_from_pipes!(data) # Convert pipes with valves to pipes *and* valves.
     _drop_pipe_flags!(data) # Drop irrelevant pipe attributes.
-    _convert_pipes_to_short_pipes!(data) # Convert pipes that are short to short pipes.
 end
 
 
@@ -1174,17 +1209,30 @@ function _get_max_node_id(data::Dict{String,<:Any})
 end
 
 
-function _convert_pipes_to_short_pipes!(data::Dict{String,<:Any})
+function _convert_short_pipes!(data::Dict{String,<:Any})
     res = calc_resistances(data["pipe"], data["viscosity"], data["head_loss"])
     res = Dict{String,Any}(a => res[a] .* x["length"] for (a, x) in data["pipe"])
-    short_pipe_indices = [a for (a, r) in res if all(r .<= 0.01)]
+    pipe_indices = [a for (a, r) in res if all(r .<= 0.01)] # Pipes with small resistances.
 
-    for a in short_pipe_indices
-        short_pipe = deepcopy(data["pipe"][a])
-        delete!(short_pipe, "diameter")
-        delete!(short_pipe, "length")
-        delete!(short_pipe, "roughness")
-        data["short_pipe"][a] = short_pipe
+    for a in pipe_indices
+        pipe = deepcopy(data["pipe"][a])
+
+        # Delete unnecessary fields.
+        delete!(pipe, "diameter")
+        delete!(pipe, "length")
+        delete!(pipe, "roughness")
+
+        if pipe["has_valve"]
+            # Transform the pipe into a valve.
+            delete!(pipe, "has_valve")
+            data["valve"][a] = pipe
+        else
+            # Transform the pipe into a short pipe.
+            delete!(pipe, "has_valve")
+            data["short_pipe"][a] = pipe
+        end
+
+        # Delete the original pipe component.
         delete!(data["pipe"], a)
     end
 end
