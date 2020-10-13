@@ -109,13 +109,39 @@ end
 
 
 function _add_flow_cuts!(wm::AbstractWaterModel)
-    for (nw, nw_data) in wm.data["nw"]
-        n = parse(Int64, nw)
-        graph, node_map = WaterModels.create_graph(nw_data)
+    if _IM.ismultinetwork(wm.data)
+        for (nw, nw_data) in wm.data["nw"]
+            n = parse(Int64, nw)
+            graph, node_map = WaterModels.create_graph(nw_data)
+            reverse_node_map = Dict{Int,String}(i => x for (x, i) in node_map)
+
+            for component_type in ["pipe", "pump", "regulator", "short_pipe", "valve"]
+                for (a, comp) in nw_data[component_type]
+                    i, j = node_map[string(comp["node_fr"])], node_map[string(comp["node_to"])]
+                    LightGraphs.rem_edge!(graph, i, j)
+
+                    if !LightGraphs.is_connected(graph)
+                        graphs = LightGraphs.connected_components(graph)
+
+                        for graph in filter(x -> length(x) > 1, graphs)
+                            forward = i in graph ? false : true
+                            q = var(wm, n, Symbol("q_" * component_type), comp["index"])
+                            nodes = [parse(Int, reverse_node_map[i]) for i in graph]
+                            _add_flow_cut!(wm, n, q, nodes, forward)
+                        end
+                    end
+
+                    LightGraphs.add_edge!(graph, i, j)
+                end
+            end
+        end
+    else
+        n = collect(nw_ids(wm))[1]
+        graph, node_map = WaterModels.create_graph(wm.data)
         reverse_node_map = Dict{Int,String}(i => x for (x, i) in node_map)
 
         for component_type in ["pipe", "pump", "regulator", "short_pipe", "valve"]
-            for (a, comp) in nw_data[component_type]
+            for (a, comp) in wm.data[component_type]
                 i, j = node_map[string(comp["node_fr"])], node_map[string(comp["node_to"])]
                 LightGraphs.rem_edge!(graph, i, j)
 

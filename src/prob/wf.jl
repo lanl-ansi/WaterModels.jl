@@ -66,6 +66,8 @@ function build_wf(wm::AbstractWaterModel)
         constraint_on_off_valve_flow(wm, a)
     end
 
+    _add_flow_cuts!(wm)
+
     # Add the objective.
     objective_wf(wm)
 end
