@@ -7,6 +7,7 @@ const _IM = InfrastructureModels
 import Interpolations
 import JSON
 import JuMP
+import LightGraphs
 import LsqFit
 import Memento
 
@@ -68,6 +69,7 @@ include("prob/wf.jl")
 include("prob/owf.jl")
 include("prob/des.jl")
 
+include("util/graph.jl")
 include("util/unbinarize.jl")
 include("util/obbt.jl")
 include("util/compute_cuts.jl")

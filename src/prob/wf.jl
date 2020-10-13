@@ -157,6 +157,8 @@ function build_mn_wf(wm::AbstractWaterModel)
         n_1 = n_2 # Update the first network used for integration.
     end
 
+    _add_flow_cuts!(wm)
+
     # Add the objective.
     objective_wf(wm)
 end
