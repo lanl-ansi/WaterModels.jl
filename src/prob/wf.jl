@@ -67,6 +67,7 @@ function build_wf(wm::AbstractWaterModel)
     end
 
     _add_flow_cuts!(wm)
+    _add_capacity_cuts!(wm)
 
     # Add the objective.
     objective_wf(wm)
@@ -97,6 +98,7 @@ function build_mn_wf(wm::AbstractWaterModel)
         variable_demand_flow(wm; nw=n)
         variable_reservoir_flow(wm; nw=n)
         variable_tank_flow(wm; nw=n)
+
 
         # Flow conservation at all nodes.
         for (i, node) in ref(wm, :node; nw=n)
@@ -160,6 +162,7 @@ function build_mn_wf(wm::AbstractWaterModel)
     end
 
     _add_flow_cuts!(wm)
+    _add_capacity_cuts!(wm)
 
     # Add the objective.
     objective_wf(wm)
