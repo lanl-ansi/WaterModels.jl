@@ -46,6 +46,7 @@ include("io/common.jl")
 include("io/epanet.jl")
 
 include("core/base.jl")
+include("core/constants.jl")
 include("core/data.jl")
 include("core/ref.jl")
 include("core/types.jl")

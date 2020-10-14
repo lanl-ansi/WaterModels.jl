@@ -123,17 +123,17 @@ function variable_flow_des(wm::AbstractDirectedModel; nw::Int=wm.cnw, bounded::B
     qp_des_pipe = var(wm, nw)[:qp_des_pipe] = Dict{Int,Array{JuMP.VariableRef}}()
     qn_des_pipe = var(wm, nw)[:qn_des_pipe] = Dict{Int,Array{JuMP.VariableRef}}()
 
-    # Initialize the variables. (The default start value of _q_eps is crucial.)
+    # Initialize the variables. (The default start value of _FLOW_MIN is crucial.)
     for a in ids(wm, nw, :des_pipe)
         var(wm, nw, :qp_des_pipe)[a] = JuMP.@variable(wm.model,
             [r in 1:length(ref(wm, nw, :resistance, a))], lower_bound=0.0,
             base_name="$(nw)_qp_des_pipe[$(a)]",
-            start=comp_start_value(ref(wm, nw, :des_pipe, a), "qp_des_pipe_start", r, _q_eps))
+            start=comp_start_value(ref(wm, nw, :des_pipe, a), "qp_des_pipe_start", r, _FLOW_MIN))
 
         var(wm, nw, :qn_des_pipe)[a] = JuMP.@variable(wm.model,
             [r in 1:length(ref(wm, nw, :resistance, a))], lower_bound=0.0,
             base_name="$(nw)_qn_des_pipe[$(a)]",
-            start=comp_start_value(ref(wm, nw, :des_pipe, a), "qn_des_pipe_start", r, _q_eps))
+            start=comp_start_value(ref(wm, nw, :des_pipe, a), "qn_des_pipe_start", r, _FLOW_MIN))
     end
 
     if bounded # If the variables are bounded, apply the bounds.
@@ -241,13 +241,13 @@ function constraint_on_off_pipe_head_des(wm::AbstractDirectedModel, n::Int, a::I
 end
 
 
-function constraint_on_off_pump_flow(wm::AbstractDirectedModel, n::Int, a::Int, q_min_active::Float64)
+function constraint_on_off_pump_flow(wm::AbstractDirectedModel, n::Int, a::Int, q_min_forward::Float64)
     # Get pump status variable.
     qp, y, z = var(wm, n, :qp_pump, a), var(wm, n, :z_pump, a), var(wm, n, :z_pump, a)
 
     # If the pump is inactive, flow must be zero.
     qp_ub = JuMP.upper_bound(qp)
-    c_1 = JuMP.@constraint(wm.model, qp >= q_min_active * z)
+    c_1 = JuMP.@constraint(wm.model, qp >= q_min_forward * z)
     c_2 = JuMP.@constraint(wm.model, qp <= qp_ub * z)
 
     # If the pump is on, flow across the pump must be nonnegative.
@@ -280,13 +280,13 @@ function constraint_on_off_pump_head(wm::AbstractDirectedModel, n::Int, a::Int, 
 end
 
 
-function constraint_on_off_regulator_flow(wm::AbstractDirectedModel, n::Int, a::Int, q_min_active::Float64)
+function constraint_on_off_regulator_flow(wm::AbstractDirectedModel, n::Int, a::Int, q_min_forward::Float64)
     # Get regulator flow, status, and direction variables.
     qp, z = var(wm, n, :qp_regulator, a), var(wm, n, :z_regulator, a)
     y = var(wm, n, :y_regulator, a) # Regulator flow direction.
 
     # If the regulator is closed, flow must be zero.
-    qp_lb, qp_ub = max(JuMP.lower_bound(qp), q_min_active), JuMP.upper_bound(qp)
+    qp_lb, qp_ub = max(JuMP.lower_bound(qp), q_min_forward), JuMP.upper_bound(qp)
     c_1 = JuMP.@constraint(wm.model, qp >= qp_lb * z)
     c_2 = JuMP.@constraint(wm.model, qp <= qp_ub * z)
     c_3 = JuMP.@constraint(wm.model, qp <= qp_ub * y)

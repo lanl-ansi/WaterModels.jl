@@ -21,7 +21,7 @@ end
 
 
 function _calc_pump_flow_min_forward(pump::Dict{String,<:Any}, node_fr::Dict{String,Any}, node_to::Dict{String,Any})
-    flow_min_forward = get(pump, "flow_min_forward", _q_eps)
+    flow_min_forward = get(pump, "flow_min_forward", _FLOW_MIN)
     return max(_calc_pump_flow_min(pump, node_fr, node_to), flow_min_forward)
 end
 
@@ -42,7 +42,7 @@ end
 
 function _calc_pump_flow_bounds_active(pump::Dict{String,<:Any})
     q_min, q_max = _calc_pump_flow_bounds(pump)
-    q_min = max(max(get(pump, "flow_min_forward", _q_eps), _q_eps), q_min)
+    q_min = max(max(get(pump, "flow_min_forward", _FLOW_MIN), _FLOW_MIN), q_min)
     return q_min, q_max
 end
 

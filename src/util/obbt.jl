@@ -55,7 +55,7 @@ function _get_edge_bound_dict(wm::AbstractWaterModel, nw::Int, comp::Symbol)
     qp, qn = var(wm, nw, qp_sym), var(wm, nw, qn_sym)
 
     return Dict(string(a) => Dict("q_min"=>min(0.0, -JuMP.upper_bound(qn[a])),
-        "q_max"=>max(0.0, JuMP.upper_bound(qp[a])), "q_min_active"=>0.0)
+        "q_max"=>max(0.0, JuMP.upper_bound(qp[a])), "q_min_forward"=>0.0)
         for a in ids(wm, nw, comp))
 end
 
@@ -118,7 +118,7 @@ end
 function _get_existing_bounds(data::Dict{String,<:Any}, index::Tuple)
     nw_str, comp_str, index_str = string(index[1]), string(index[2]), string(index[4])
     var_str = occursin("q", string(index[3])) ? "q" : string(index[3])
-    min_suffix = comp_str == "pump" ? "_min_active" : "_min"
+    min_suffix = comp_str == "pump" ? "_min_forward" : "_min"
 
     if "nw" in keys(data)
         data_index = data["nw"][nw_str][comp_str][index_str]
@@ -135,7 +135,7 @@ function _update_modifications!(data::Dict{String,Any}, original::Dict{String,An
     for (i, id) in enumerate(var_index_set)
         nw_str, comp_str, index_str = string(id[1]), string(id[2]), string(id[4])
         var_str = occursin("q", string(id[3])) ? "q" : string(id[3])
-        min_suffix = comp_str == "pump" ? "_min_active" : "_min"
+        min_suffix = comp_str == "pump" ? "_min_forward" : "_min"
 
         if _IM.ismultinetwork(data)
             data["nw"][nw_str][comp_str][index_str][var_str * min_suffix] = bounds[i][1]
@@ -155,7 +155,7 @@ function _get_average_widths(data::Dict{String,<:Any}, original::Dict{String,<:A
 
     for type in ["pipe", "pump", "regulator", "short_pipe", "valve"]
         q_width_sum = 0.0
-        min_suffix = type == "pump" ? "_min_active" : "_min"
+        min_suffix = type == "pump" ? "_min_forward" : "_min"
 
         for (a, comp) in data[type]
             q_width_sum += comp["q_max"] - comp["q" * min_suffix]
@@ -180,7 +180,7 @@ function _get_average_widths_mn(data::Dict{String,<:Any}, original::Dict{String,
     avg_vals = [h * inv(h_length)]
 
     for type in ["pipe", "pump", "regulator", "short_pipe", "valve"]
-        min_suffix = type == "pump" ? "_min_active" : "_min"
+        min_suffix = type == "pump" ? "_min_forward" : "_min"
 
         if sum(length(nw[type]) for (n, nw) in data["nw"]) > 0
             q_length = sum(length(nw[type]) for (n, nw) in data["nw"])

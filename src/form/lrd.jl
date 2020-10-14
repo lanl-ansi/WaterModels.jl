@@ -148,7 +148,7 @@ end
 
 
 "Add constraints associated with modeling a pump's head gain."
-function constraint_on_off_pump_head_gain(wm::LRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64}, q_min_active::Float64)
+function constraint_on_off_pump_head_gain(wm::LRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64}, q_min_forward::Float64)
     # Get the number of breakpoints for the pump.
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 2)
 
@@ -165,7 +165,7 @@ function constraint_on_off_pump_head_gain(wm::LRDWaterModel, n::Int, a::Int, nod
     c_4 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
 
     # Add a constraint for the flow piecewise approximation.
-    breakpoints = range(q_min_active, stop=JuMP.upper_bound(qp), length=pump_breakpoints)
+    breakpoints = range(q_min_forward, stop=JuMP.upper_bound(qp), length=pump_breakpoints)
     qp_lhs = sum(breakpoints[k] * lambda[a, k] for k in 1:pump_breakpoints)
     c_5 = JuMP.@constraint(wm.model, qp_lhs == qp)
 
@@ -209,9 +209,7 @@ function objective_owf(wm::LRDWaterModel)
         lambda = var(wm, n, :lambda_pump)
 
         # Get common constant parameters.
-        rho = 1000.0 # Water density (kilogram per cubic meter).
-        gravity = 9.80665 # Gravitational acceleration (meter per second squared).
-        constant = rho * gravity * ref(wm, n, :time_step)
+        constant = _DENSITY * _GRAVITY * ref(wm, n, :time_step)
 
         for (a, pump) in nw_ref[:pump]
             if haskey(pump, "energy_price")

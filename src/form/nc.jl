@@ -35,7 +35,7 @@ end
 
 
 "Adds head gain constraints for pumps in `NC` formulations."
-function constraint_on_off_pump_head_gain(wm::NCWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64}, q_min_active::Float64)
+function constraint_on_off_pump_head_gain(wm::NCWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64}, q_min_forward::Float64)
     # Gather pump flow, head gain, and status variables.
     q, g, z = var(wm, n, :q_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
 
@@ -53,9 +53,7 @@ function objective_owf(wm::NCWaterModel)
 
     for (n, nw_ref) in nws(wm)
         efficiency = 0.85 # TODO: How can the efficiency curve be used?
-        rho = 1000.0 # Water density (kilogram per cubic meter).
-        gravity = 9.80665 # Gravitational acceleration (meter per second squared).
-        coeff = rho * gravity * ref(wm, n, :time_step) * inv(efficiency)
+        coeff = _DENSITY * _GRAVITY * ref(wm, n, :time_step) * inv(efficiency)
 
         for (a, pump) in nw_ref[:pump]
             if haskey(pump, "energy_price")

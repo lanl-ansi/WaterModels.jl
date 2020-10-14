@@ -48,7 +48,7 @@ end
 
 
 "Pump head gain constraint when the pump status is ambiguous."
-function constraint_on_off_pump_head_gain(wm::CQRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64}, q_min_active::Float64)
+function constraint_on_off_pump_head_gain(wm::CQRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64}, q_min_forward::Float64)
     # Gather pump flow, head gain, and status variables.
     qp, g, z = var(wm, n, :qp_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
 
@@ -56,9 +56,10 @@ function constraint_on_off_pump_head_gain(wm::CQRDWaterModel, n::Int, a::Int, no
     c_1 = JuMP.@constraint(wm.model, g <= pc[1]*qp^2 + pc[2]*qp + pc[3]*z)
 
     # Add a linear lower bound on the head gain approximation.
-    qp_ub = JuMP.upper_bound(qp)
-    g_1, g_2 = pc[3], pc[1]*qp_ub^2 + pc[2]*qp_ub + pc[3]
-    g_lb_line = (g_2 - g_1) * inv(qp_ub) * qp + g_1 * z
+    qp_lb, qp_ub = max(_FLOW_MIN, q_min_forward), JuMP.upper_bound(qp)
+    g_1 = pc[1]*qp_lb^2 + pc[2]*qp_lb + pc[3]
+    g_2 = pc[1]*qp_ub^2 + pc[2]*qp_ub + pc[3]
+    g_lb_line = (g_2 - g_1) * inv(qp_ub - qp_lb) * qp + g_1 * z
     c_2 = JuMP.@constraint(wm.model, g_lb_line <= g)
 
     append!(con(wm, n, :on_off_pump_head_gain, a), [c_1, c_2])
@@ -76,12 +77,10 @@ function objective_owf(wm::CQRDWaterModel)
 
     for (n, nw_ref) in nws(wm)
         # Get common constant parameters.
-        rho = 1000.0 # Water density (kilogram per cubic meter).
-        gravity = 9.80665 # Gravitational acceleration (meter per second squared).
-        constant = rho * gravity * ref(wm, n, :time_step)
+        constant = _DENSITY * _GRAVITY * ref(wm, n, :time_step)
 
         for (a, pump) in nw_ref[:pump]
-            q_min_active = get(pump, "q_min_active", _q_eps)
+            q_min_forward = get(pump, "q_min_forward", _FLOW_MIN)
 
             if haskey(pump, "energy_price")
                 # Get price and pump curve data.
@@ -92,7 +91,7 @@ function objective_owf(wm::CQRDWaterModel)
                 # Get flow-related variables and data.
                 z = var(wm, n, :z_pump, a)
                 qp, g = var(wm, n, :qp_pump, a), var(wm, n, :g_pump, a)
-                points = collect(range(q_min_active, stop=JuMP.upper_bound(qp), length=50))
+                points = collect(range(q_min_forward, stop=JuMP.upper_bound(qp), length=50))
 
                 # Get pump efficiency data.
                 if haskey(pump, "efficiency_curve")
