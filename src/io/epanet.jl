@@ -1257,18 +1257,24 @@ end
 function _add_valves_to_tanks!(data::Dict{String,<:Any})
     # Modify the network for standard modeling of tanks.
     for (i, tank) in data["tank"]
-        # Create a dummy node to which the valve and pipe will be attached.
+        # Get the original index of the tank node.
+        original_tank_node = tank["node"]
+
+        # Create a new dummy node at which the tank will now be placed.
         dummy_node_id = _get_max_comp_id(data, "node") + 1
         dummy_node = deepcopy(data["node"][string(tank["node"])])
         dummy_node["index"], dummy_node["name"] = dummy_node_id, string(dummy_node_id)
         data["node"][string(dummy_node_id)] = dummy_node
+        tank["node"] = dummy_node_id # The tank now resides at the dummy node.
 
-        # Add a valve that connects the tank to the dummy node.
+        # Add a valve that connects the dummy (tank) node to the original node.
         v_id = _get_max_comp_id(data, "valve") + 1
         valve = Dict{String,Any}("name" => string(v_id), "status" => 1, "index" => v_id)
         valve["source_id"] = AbstractString["valve", string(v_id)]
-        valve["node_fr"], valve["node_to"] = dummy_node_id, tank["node"]
+        valve["node_fr"], valve["node_to"] = original_tank_node, dummy_node_id
         valve["flow_direction"] = UNKNOWN
+
+        # Add the valve to the data object.
         data["valve"][string(v_id)] = valve
     end
 end
