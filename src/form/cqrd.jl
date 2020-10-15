@@ -106,7 +106,7 @@ function objective_owf(wm::CQRDWaterModel)
                 flows_cubed = _calc_cubic_flow_values(points, curve_fun)
                 costs = (constant*price) .* inv.(eff) .* flows_cubed
 
-                # Fit a quadratic function to the above discrete costs.
+                # Fit a linear function to the above discrete costs.
                 LsqFit.@. func(x, p) = p[1]*x + p[2]
                 fit = LsqFit.curve_fit(func, points, costs, zeros(length(costs)))
                 coeffs = LsqFit.coef(fit)

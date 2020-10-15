@@ -220,9 +220,10 @@ function objective_owf(wm::LRDWaterModel)
 
                 # Get pump flow and status variables.
                 qp, z = var(wm, n, :qp_pump, a), var(wm, n, :z_pump, a)
+                q_min_forward = max(get(pump, "q_min_forward", _FLOW_MIN), _FLOW_MIN)
 
                 # Generate a set of uniform flow and cubic function breakpoints.
-                breakpoints = range(0.0, stop=JuMP.upper_bound(qp), length=pump_breakpoints)
+                breakpoints = range(q_min_forward, stop=JuMP.upper_bound(qp), length=pump_breakpoints)
                 f = _calc_cubic_flow_values(collect(breakpoints), curve_fun)
 
                 # Get pump efficiency data.

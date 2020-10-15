@@ -243,7 +243,7 @@ end
 
 function constraint_on_off_pump_flow(wm::AbstractDirectedModel, n::Int, a::Int, q_min_forward::Float64)
     # Get pump status variable.
-    qp, y, z = var(wm, n, :qp_pump, a), var(wm, n, :z_pump, a), var(wm, n, :z_pump, a)
+    qp, y, z = var(wm, n, :qp_pump, a), var(wm, n, :y_pump, a), var(wm, n, :z_pump, a)
 
     # If the pump is inactive, flow must be zero.
     qp_ub = JuMP.upper_bound(qp)
