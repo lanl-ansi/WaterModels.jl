@@ -475,10 +475,10 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_reduced_network:
         relaxed && _relax_model!(wm)
         JuMP.set_optimizer(wm.model, optimizer)
 
-        # Add coupled binary cuts to the reduced model.
-        binary_cut_data = deepcopy(data)
-        cuts = compute_binary_cuts(binary_cut_data, optimizer, model_type = model_type, ext=ext, relaxed=relaxed)
-        add_coupled_binary_cuts!(wm, cuts)
+        ## Add coupled binary cuts to the reduced model.
+        #binary_cut_data = deepcopy(data)
+        #cuts = compute_binary_cuts(binary_cut_data, optimizer, model_type = model_type, ext=ext, relaxed=relaxed)
+        #add_coupled_binary_cuts!(wm, cuts)
 
         # Update algorithm metadata.
         current_iteration += 1
