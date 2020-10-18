@@ -216,7 +216,7 @@ function constraint_on_off_pipe_head_loss_des(wm::AbstractWaterModel, a::Int; nw
     node_fr = ref(wm, nw, :des_pipe, a)["node_fr"]
     node_to = ref(wm, nw, :des_pipe, a)["node_to"]
     exponent, L = ref(wm, nw, :alpha), ref(wm, nw, :des_pipe, a)["length"]
-    resist = ref(wm, nw, :resistance, a) # Dictionary of possibel resistances at `a`.
+    resist = ref(wm, nw, :resistance, a) # Dictionary of possible resistances at `a`.
     constraint_on_off_pipe_head_loss_des(wm, nw, a, exponent, node_fr, node_to, L, resist)
 end
 

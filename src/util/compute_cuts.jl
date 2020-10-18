@@ -1,75 +1,176 @@
-function _get_binary_cut_mapping(data::Dict{String,<:Any}, optimizer; model_type::Type = CQRDWaterModel, ext::Dict{Symbol,<:Any} = Dict{Symbol,Any}())
-    _make_reduced_data!(data)
-    wm = instantiate_model(data, model_type, build_wf; ext=ext)
-    indicator_index_set = _get_indicator_index_set(wm)
-    JuMP.set_optimizer(wm.model, optimizer)
-    binary_index_set = vcat(_get_indicator_index_set(wm), _get_direction_index_set(wm))
+function _get_indicator_variables(wm::AbstractWaterModel)
+    vars = Array{VariableIndex,1}()
+
+    for pipe_id in collect(ids(wm, :pipe))
+        append!(vars, [VariableIndex(wm.cnw, :pipe, :y_pipe, pipe_id)])
+    end
+
+    for pump_id in collect(ids(wm, :pump))
+        append!(vars, [VariableIndex(wm.cnw, :pump, :y_pump, pump_id)])
+        append!(vars, [VariableIndex(wm.cnw, :pump, :z_pump, pump_id)])
+    end
+
+    for regulator_id in collect(ids(wm, :regulator))
+        append!(vars, [VariableIndex(wm.cnw, :regulator, :y_regulator, regulator_id)])
+        append!(vars, [VariableIndex(wm.cnw, :regulator, :z_regulator, regulator_id)])
+    end
+
+    for short_pipe_id in collect(ids(wm, :short_pipe))
+        append!(vars, [VariableIndex(wm.cnw, :short_pipe, :y_short_pipe, short_pipe_id)])
+    end
+
+    for valve_id in collect(ids(wm, :valve))
+        append!(vars, [VariableIndex(wm.cnw, :valve, :y_valve, valve_id)])
+        append!(vars, [VariableIndex(wm.cnw, :valve, :z_valve, valve_id)])
+    end
+
+    return vars
+end
+
+
+mutable struct CoupledBoundProblem
+    sense::_MOI.OptimizationSense
+    variable_to_tighten::VariableIndex
+    variables_one::Array{VariableIndex} # Fix to one.
+    variables_zero::Array{VariableIndex} # Fix to zero.
+    changed::Bool
+end
+
+
+function _solve_coupled_bound_problem!(wm::AbstractWaterModel, bound_problem::CoupledBoundProblem)
+    v = _get_variable_from_index(wm, bound_problem.variable_to_tighten)
+    v_one = _get_variable_from_index.(Ref(wm), bound_problem.variables_one)
+    v_zero = _get_variable_from_index.(Ref(wm), bound_problem.variables_zero)
+
+    # Fix binary variables to desired values.
+    JuMP.fix.(v_one, 1.0), JuMP.fix.(v_zero, 0.0)
+
+    # Optimize the variable (or affine expression) being tightened.
+    JuMP.@objective(wm.model, bound_problem.sense, v)
+    JuMP.optimize!(wm.model)
+    termination_status = JuMP.termination_status(wm.model)
+
+    # Store the candidate bound calculated from the optimization.
+    if termination_status in [_MOI.LOCALLY_SOLVED, _MOI.OPTIMAL]
+        candidate = JuMP.objective_value(wm.model)
+    end
+
+    # Unfix binary variables that were fixed above.
+    JuMP.unfix.(v_one), JuMP.unfix.(v_zero)
+
+    # Return an optimized bound or the initial bound that was started with.
+    if termination_status in [_MOI.LOCALLY_SOLVED, _MOI.OPTIMAL]
+        # Get the objective value and return the better of the old and new bounds.
+        if bound_problem.sense === _MOI.MIN_SENSE
+            return candidate >= 0.5 ? 1.0 : 0.0
+        elseif bound_problem.sense === _MOI.MAX_SENSE
+            return candidate < 0.5 ? 0.0 : 1.0
+        end
+    else
+        message = "[OBBT] Optimization of $(bound_problem.variable_to_tighten) errored. Adjust tolerances."
+        termination_status !== _MOI.TIME_LIMIT && Memento.warn(_LOGGER, message)
+        return bound_problem.sense === _MOI.MIN_SENSE ? 0.0 : 1.0
+    end
+end
+
+
+function _create_coupled_bound_problems(wm::AbstractWaterModel)
+    vars = _get_indicator_variables(wm)
     binary_variable_mapping = []
 
-    for id_1 in binary_index_set
-        for id_2 in setdiff(binary_index_set, [id_1])
-            match_0_min = _solve_coupled_binary(wm, id_1, id_2, 0.0, _MOI.MIN_SENSE)
-            match_0_max = _solve_coupled_binary(wm, id_1, id_2, 0.0, _MOI.MAX_SENSE)
-            match_1_min = _solve_coupled_binary(wm, id_1, id_2, 1.0, _MOI.MIN_SENSE)
-            match_1_max = _solve_coupled_binary(wm, id_1, id_2, 1.0, _MOI.MAX_SENSE)
+    for id_1 in vars
+        for id_2 in setdiff(vars, [id_1])
+            match_0_min = CoupledBoundProblem(_MOI.MIN_SENSE, id_2, [], [id_1], true)
+            match_0_min_val = _solve_coupled_bound_problem!(wm, match_0_min)
 
-            if match_0_min == match_0_max
-                append!(binary_variable_mapping, [((0.0, id_1), (match_0_min, id_2))])
-            elseif match_1_min == match_1_max
-                append!(binary_variable_mapping, [((1.0, id_1), (match_1_min, id_2))])
+            match_0_max = CoupledBoundProblem(_MOI.MAX_SENSE, id_2, [], [id_1], true)
+            match_0_max_val = _solve_coupled_bound_problem!(wm, match_0_max)
+
+            if match_0_min_val == match_0_max_val
+                append!(binary_variable_mapping, [((0.0, id_1), (match_0_min_val, id_2))])
+            end
+
+            match_1_min = CoupledBoundProblem(_MOI.MIN_SENSE, id_2, [id_1], [], true)
+            match_1_min_val = _solve_coupled_bound_problem!(wm, match_1_min)
+
+            match_1_max = CoupledBoundProblem(_MOI.MAX_SENSE, id_2, [id_1], [], true)
+            match_1_max_val = _solve_coupled_bound_problem!(wm, match_1_max)
+
+            if match_1_min_val == match_1_max_val
+                append!(binary_variable_mapping, [((1.0, id_1), (match_1_min_val, id_2))])
             end
         end
     end
 
-    _revert_reduced_data!(data)
     return binary_variable_mapping
 end
 
 
-function _add_binary_cuts!(wm::AbstractWaterModel, binary_mapping)
-    for nw in sort(collect(nw_ids(wm)))
-        for mapping in binary_mapping
-            index_1, index_2 = mapping[1][2], mapping[2][2]
-            z_1 = var(wm, nw, index_1[3], index_1[4])
-            z_2 = var(wm, nw, index_2[3], index_2[4])
+function compute_binary_cuts(data::Dict{String,<:Any}, optimizer; use_reduced_network::Bool = true,
+    model_type::Type = CQRDWaterModel, time_limit::Float64 = 3600.0, upper_bound::Float64 =
+    Inf, upper_bound_constraint::Bool = false, max_iter::Int = 100, improvement_tol::Float64
+    = 1.0e-6, relaxed::Bool = true, precision = 1.0e-3, min_width::Float64 = 1.0e-2,
+    ext::Dict{Symbol,<:Any} = Dict{Symbol,Any}(:pump_breakpoints=>3), kwargs...)
+    Memento.info(_LOGGER, "[OBBT] Maximum time limit for OBBT set to default value of $(time_limit) seconds.")
 
-            if mapping[1][1] == 0.0 && mapping[2][1] == 1.0
-                JuMP.@constraint(wm.model, z_2 >= 1.0 - z_1)
-            elseif mapping[1][1] == 1.0 && mapping[2][1] == 0.0
-                JuMP.@constraint(wm.model, z_2 <= 1.0 - z_1)
-            elseif mapping[1][1] == 1.0 && mapping[2][1] == 1.0
-                JuMP.@constraint(wm.model, z_2 >= z_1)
-            elseif mapping[1][1] == 0.0 && mapping[2][1] == 0.0
-                JuMP.@constraint(wm.model, z_2 <= z_1)
-            end
-        end
+    if !_IM.ismultinetwork(data) && use_reduced_network
+        _make_reduced_data!(data)
+        build_type = WaterModels.build_wf
+    elseif _IM.ismultinetwork(data) && !use_reduced_network
+        build_type = WaterModels.build_mn_owf
+    else
+        build_type = WaterModels.build_mn_owf
+        Memento.error(_LOGGER, "[OBBT] Ensure input network is the correct type.")
     end
+
+    # Check for keyword argument inconsistencies.
+    _check_obbt_options(upper_bound, upper_bound_constraint)
+
+    # Instantiate the bound tightening model and relax integrality, if specified.
+    wm = instantiate_model(data, model_type, build_type; ext=ext)
+    upper_bound_constraint && _constraint_obj_bound(wm, upper_bound)
+    relaxed && _relax_model!(wm) # Relax integrality, if required.
+
+    # Set the optimizer for the bound tightening model.
+    JuMP.set_optimizer(wm.model, optimizer)
+
+    if use_reduced_network
+        _revert_reduced_data!(data)
+    end
+
+    # Get the mapping of binary variables.
+    return _create_coupled_bound_problems(wm)
 end
 
 
-function _solve_coupled_binary(wm::AbstractWaterModel, index_1::Tuple, index_2::Tuple, fix_value::Float64, sense::_MOI.OptimizationSense)
-    # Get the variable reference from the index tuple.
-    z_1 = var(wm, index_1[1], index_1[3], index_1[4])
-    z_2 = var(wm, index_2[1], index_2[3], index_2[4])
+function add_coupled_binary_cuts!(wm::AbstractWaterModel, mappings::Array)
+    num_cuts_added = 0
 
-    # Fix the first variable.
-    JuMP.fix(z_1, fix_value)
+    for mapping in mappings
+        id_1, id_2 = mapping[1][2], mapping[2][2]
 
-    # Optimize the variable (or affine expression) being tightened.
-    JuMP.@objective(wm.model, sense, z_2)
-    JuMP.optimize!(wm.model)
-    termination_status = JuMP.termination_status(wm.model)
+        for nw_1 in sort(collect(nw_ids(wm)))
+            z_1 = var(wm, nw_1, id_1.variable_symbol, id_1.component_index)
 
-    if termination_status in [_MOI.LOCALLY_SOLVED, _MOI.OPTIMAL]
-        candidate = JuMP.objective_value(wm.model) >= 0.5 ? 1.0 : 0.0
-    else
-        candidate = sense === _MOI.MIN_SENSE ? 0.0 : 1.0
+            for nw_2 in sort(collect(nw_ids(wm)))
+                z_2 = var(wm, nw_2, id_2.variable_symbol, id_2.component_index)
+
+                if mapping[1][1] == 0.0 && mapping[2][1] == 1.0
+                    JuMP.@constraint(wm.model, z_2 >= 1.0 - z_1)
+                elseif mapping[1][1] == 1.0 && mapping[2][1] == 0.0
+                    JuMP.@constraint(wm.model, z_2 <= 1.0 - z_1)
+                elseif mapping[1][1] == 1.0 && mapping[2][1] == 1.0
+                    JuMP.@constraint(wm.model, z_2 >= z_1)
+                elseif mapping[1][1] == 0.0 && mapping[2][1] == 0.0
+                    JuMP.@constraint(wm.model, z_2 <= z_1)
+                end
+
+                num_cuts_added += 1
+            end
+        end
     end
 
-    # Unfix the first variable.
-    JuMP.unfix(z_1)
-
-    return candidate
+    Memento.info(_LOGGER, "[OBBT] Added $(num_cuts_added) coupled binary cuts.")
 end
 
 

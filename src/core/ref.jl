@@ -212,9 +212,11 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     for (a, pump) in ref(wm, n, :pump)
         head_curve = ref(wm, n, :pump, a)["head_curve"]
         c = _get_function_from_head_curve(head_curve)
+
         q_max = (-c[2] + sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1])
         q_max = max(q_max, (-c[2] - sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1]))
         lb["pump"][a], ub["pump"][a] = [[0.0], [min(sum_demand, q_max)]]
+
         haskey(pump, "q_min") && (lb["pump"][a][1] = max(lb["pump"][a][1], pump["q_min"]))
         haskey(pump, "q_max") && (ub["pump"][a][1] = min(ub["pump"][a][1], pump["q_max"]))
     end
