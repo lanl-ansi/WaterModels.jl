@@ -16,6 +16,10 @@ function _variable_component_direction(
         wm.model, [a in ids(wm, nw, comp_sym)], binary=true, base_name="$(nw)_y",
         start=comp_start_value(ref(wm, nw, comp_sym, a), "y_start"))
 
+    for (a, comp) in ref(wm, nw, comp_sym)
+        #_fix_indicator_variable(y[a], comp, "y")
+    end
+
     # Report back flow values as part of the solution.
     report && sol_component_value(wm, nw, comp_sym, :y, ids(wm, nw, comp_sym), y)
 end
@@ -163,7 +167,7 @@ function variable_flow_des(wm::AbstractDirectedModel; nw::Int=wm.cnw, bounded::B
 end
 
 
-function constraint_pipe_flow(wm::AbstractDirectedModel, n::Int, a::Int)
+function constraint_pipe_flow(wm::AbstractDirectedModel, n::Int, a::Int, q_max_reverse::Float64, q_min_forward::Float64)
     # Get common flow variables and associated data.
     qp, qn, y = var(wm, n, :qp_pipe, a), var(wm, n, :qn_pipe, a), var(wm, n, :y_pipe, a)
 
@@ -172,8 +176,13 @@ function constraint_pipe_flow(wm::AbstractDirectedModel, n::Int, a::Int)
     c_1 = JuMP.@constraint(wm.model, qp <= qp_ub * y)
     c_2 = JuMP.@constraint(wm.model, qn <= qn_ub * (1.0 - y))
 
+    # Add additional constraints based on active flows.
+    qp_min_forward, qn_min_forward = max(0.0, q_min_forward), max(0.0, -q_max_reverse)
+    c_3 = JuMP.@constraint(wm.model, qp >= qp_min_forward * y)
+    c_4 = JuMP.@constraint(wm.model, qn >= qn_min_forward * (1.0 - y))
+
     # Append the :pipe_flow constraint array.
-    append!(con(wm, n, :pipe_flow, a), [c_1, c_2])
+    append!(con(wm, n, :pipe_flow, a), [c_1, c_2, c_3, c_4])
 end
 
 
@@ -322,7 +331,7 @@ function constraint_on_off_regulator_head(wm::AbstractDirectedModel, n::Int, a::
 end
 
 
-function constraint_on_off_valve_flow(wm::AbstractDirectedModel, n::Int, a::Int)
+function constraint_on_off_valve_flow(wm::AbstractDirectedModel, n::Int, a::Int, q_max_reverse::Float64, q_min_forward::Float64)
     # Get valve flow, direction, and status variables.
     qp, qn = var(wm, n, :qp_valve, a), var(wm, n, :qn_valve, a)
     y, z = var(wm, n, :y_valve, a), var(wm, n, :z_valve, a)
@@ -334,8 +343,13 @@ function constraint_on_off_valve_flow(wm::AbstractDirectedModel, n::Int, a::Int)
     c_3 = JuMP.@constraint(wm.model, qp <= qp_ub * z)
     c_4 = JuMP.@constraint(wm.model, qn <= qn_ub * z)
 
+    # Add additional constraints based on active flows.
+    qp_min_forward, qn_min_forward = max(0.0, q_min_forward), max(0.0, -q_max_reverse)
+    c_5 = JuMP.@constraint(wm.model, qp >= qp_min_forward * (y + z - 1.0))
+    c_6 = JuMP.@constraint(wm.model, qn >= qn_min_forward * (z - y))
+
     # Append the constraint array.
-    append!(con(wm, n, :on_off_valve_flow, a), [c_1, c_2, c_3, c_4])
+    append!(con(wm, n, :on_off_valve_flow, a), [c_1, c_2, c_3, c_4, c_5, c_6])
 end
 
 
@@ -360,7 +374,7 @@ function constraint_on_off_valve_head(wm::AbstractDirectedModel, n::Int, a::Int,
 end
 
 
-function constraint_short_pipe_flow(wm::AbstractDirectedModel, n::Int, a::Int)
+function constraint_short_pipe_flow(wm::AbstractDirectedModel, n::Int, a::Int, q_max_reverse::Float64, q_min_forward::Float64)
     # Get short pipe flow and direction variables.
     qp, qn = var(wm, n, :qp_short_pipe, a), var(wm, n, :qn_short_pipe, a)
     y = var(wm, n, :y_short_pipe, a) # Binary direction variable.
@@ -370,8 +384,13 @@ function constraint_short_pipe_flow(wm::AbstractDirectedModel, n::Int, a::Int)
     c_1 = JuMP.@constraint(wm.model, qp <= qp_ub * y)
     c_2 = JuMP.@constraint(wm.model, qn <= qn_ub * (1.0 - y))
 
+    # Add additional constraints based on active flows.
+    qp_min_forward, qn_min_forward = max(0.0, q_min_forward), max(0.0, -q_max_reverse)
+    c_3 = JuMP.@constraint(wm.model, qp >= qp_min_forward * y)
+    c_4 = JuMP.@constraint(wm.model, qn >= qn_min_forward * (1.0 - y))
+
     # Append the :short_pipe_flow constraint array.
-    append!(con(wm, n, :short_pipe_flow, a), [c_1, c_2])
+    append!(con(wm, n, :short_pipe_flow, a), [c_1, c_2, c_3, c_4])
 end
 
 

@@ -166,7 +166,9 @@ end
 function constraint_pipe_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     _initialize_con_dict(wm, :pipe_flow, nw=nw, is_array=true)
     con(wm, nw, :pipe_flow)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_pipe_flow(wm, nw, a)
+    q_max_reverse = min(get(ref(wm, nw, :pipe, a), "q_max_reverse", 0.0), 0.0)
+    q_min_forward = max(get(ref(wm, nw, :pipe, a), "q_min_forward", 0.0), 0.0)
+    constraint_pipe_flow(wm, nw, a, q_max_reverse, q_min_forward)
 end
 
 
@@ -184,7 +186,9 @@ function constraint_pipe_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cn
     node_fr, node_to = ref(wm, nw, :pipe, a)["node_fr"], ref(wm, nw, :pipe, a)["node_to"]
     exponent, L = ref(wm, nw, :alpha), ref(wm, nw, :pipe, a)["length"]
     r = minimum(ref(wm, nw, :resistance, a))
-    constraint_pipe_head_loss(wm, nw, a, node_fr, node_to, exponent, L, r)
+    q_max_reverse = min(get(ref(wm, nw, :pipe, a), "q_max_reverse", 0.0), 0.0)
+    q_min_forward = max(get(ref(wm, nw, :pipe, a), "q_min_forward", 0.0), 0.0)
+    constraint_pipe_head_loss(wm, nw, a, node_fr, node_to, exponent, L, r, q_max_reverse, q_min_forward)
 end
 
 
@@ -249,7 +253,9 @@ end
 function constraint_short_pipe_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     _initialize_con_dict(wm, :short_pipe_flow, nw=nw, is_array=true)
     con(wm, nw, :short_pipe_flow)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_short_pipe_flow(wm, nw, a)
+    q_max_reverse = min(get(ref(wm, nw, :short_pipe, a), "q_max_reverse", 0.0), 0.0)
+    q_min_forward = max(get(ref(wm, nw, :short_pipe, a), "q_min_forward", 0.0), 0.0)
+    constraint_short_pipe_flow(wm, nw, a, q_max_reverse, q_min_forward)
 end
 
 
@@ -267,7 +273,9 @@ function constraint_on_off_valve_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm
     node_fr, node_to = ref(wm, nw, :valve, a)["node_fr"], ref(wm, nw, :valve, a)["node_to"]
     _initialize_con_dict(wm, :on_off_valve_flow, nw=nw, is_array=true)
     con(wm, nw, :on_off_valve_flow)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_on_off_valve_flow(wm, nw, a)
+    q_max_reverse = min(get(ref(wm, nw, :valve, a), "q_max_reverse", 0.0), 0.0)
+    q_min_forward = max(get(ref(wm, nw, :valve, a), "q_min_forward", 0.0), 0.0)
+    constraint_on_off_valve_flow(wm, nw, a, q_max_reverse, q_min_forward)
 end
 
 

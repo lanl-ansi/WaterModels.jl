@@ -184,8 +184,8 @@ function _create_pipe_bound_problems(wm::AbstractWaterModel)
         append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [], [], "q_max", q_max, 1.0e-3, true)])
         append!(bps, [BoundProblem(_MOI.MIN_SENSE, q, [y], [], "q_min_forward", q_min_forward, 1.0e-3, true)])
         append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [], [y], "q_max_reverse", q_max_reverse, 1.0e-3, true)])
-        append!(bps, [BoundProblem(_MOI.MIN_SENSE, y, [], [], "y_min", 0.0, 1.0e-2, true)])
-        append!(bps, [BoundProblem(_MOI.MAX_SENSE, y, [], [], "y_max", 1.0, 1.0e-2, true)])
+        append!(bps, [BoundProblem(_MOI.MIN_SENSE, y, [], [], "y_min", 0.0, 1.0e-3, true)])
+        append!(bps, [BoundProblem(_MOI.MAX_SENSE, y, [], [], "y_max", 1.0, 1.0e-3, true)])
     end
 
     return bps
@@ -205,8 +205,8 @@ function _create_pump_bound_problems(wm::AbstractWaterModel)
 
         append!(bps, [BoundProblem(_MOI.MIN_SENSE, q, [z, y], [], "q_min_forward", q_min_forward, 1.0e-3, true)])
         append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [z, y], [], "q_max", q_max, 1.0e-3, true)])
-        append!(bps, [BoundProblem(_MOI.MIN_SENSE, z, [], [], "z_min", 0.0, 1.0e-2, true)])
-        append!(bps, [BoundProblem(_MOI.MAX_SENSE, z, [], [], "z_max", 1.0, 1.0e-2, true)])
+        append!(bps, [BoundProblem(_MOI.MIN_SENSE, z, [], [], "z_min", 0.0, 1.0e-3, true)])
+        append!(bps, [BoundProblem(_MOI.MAX_SENSE, z, [], [], "z_max", 1.0, 1.0e-3, true)])
     end
 
     return bps
@@ -225,10 +225,10 @@ function _create_regulator_bound_problems(wm::AbstractWaterModel)
 
         append!(bps, [BoundProblem(_MOI.MIN_SENSE, q, [z], [], "q_min_forward", q_min_forward, 1.0e-3, true)])
         append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [z], [], "q_max", q_max, 1.0e-3, true)])
-        append!(bps, [BoundProblem(_MOI.MIN_SENSE, z, [], [], "z_min", 0.0, 1.0e-2, true)])
-        append!(bps, [BoundProblem(_MOI.MIN_SENSE, z, [], [], "z_min", 0.0, 1.0e-2, true)])
-        append!(bps, [BoundProblem(_MOI.MIN_SENSE, y, [z], [], "y_min", 0.0, 1.0e-2, true)])
-        append!(bps, [BoundProblem(_MOI.MAX_SENSE, y, [z], [], "y_max", 1.0, 1.0e-2, true)])
+        append!(bps, [BoundProblem(_MOI.MIN_SENSE, z, [], [], "z_min", 0.0, 1.0e-3, true)])
+        append!(bps, [BoundProblem(_MOI.MIN_SENSE, z, [], [], "z_min", 0.0, 1.0e-3, true)])
+        append!(bps, [BoundProblem(_MOI.MIN_SENSE, y, [z], [], "y_min", 0.0, 1.0e-3, true)])
+        append!(bps, [BoundProblem(_MOI.MAX_SENSE, y, [z], [], "y_max", 1.0, 1.0e-3, true)])
     end
 
     return bps
@@ -250,8 +250,8 @@ function _create_short_pipe_bound_problems(wm::AbstractWaterModel)
         append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [], [], "q_max", q_max, 1.0e-3, true)])
         append!(bps, [BoundProblem(_MOI.MIN_SENSE, q, [y], [], "q_min_forward", q_min_forward, 1.0e-3, true)])
         append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [], [y], "q_max_reverse", q_max_reverse, 1.0e-3, true)])
-        append!(bps, [BoundProblem(_MOI.MIN_SENSE, y, [], [], "y_min", 0.0, 1.0e-2, true)])
-        append!(bps, [BoundProblem(_MOI.MAX_SENSE, y, [], [], "y_max", 1.0, 1.0e-2, true)])
+        append!(bps, [BoundProblem(_MOI.MIN_SENSE, y, [], [], "y_min", 0.0, 1.0e-3, true)])
+        append!(bps, [BoundProblem(_MOI.MAX_SENSE, y, [], [], "y_max", 1.0, 1.0e-3, true)])
     end
 
     return bps
@@ -274,10 +274,10 @@ function _create_valve_bound_problems(wm::AbstractWaterModel)
         append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [z], [], "q_max", q_max, 1.0e-3, true)])
         append!(bps, [BoundProblem(_MOI.MIN_SENSE, q, [z, y], [], "q_min_forward", q_min_forward, 1.0e-3, true)])
         append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [z], [y], "q_max_reverse", q_max_reverse, 1.0e-3, true)])
-        append!(bps, [BoundProblem(_MOI.MIN_SENSE, y, [z], [], "y_min", 0.0, 1.0e-2, true)])
-        append!(bps, [BoundProblem(_MOI.MAX_SENSE, y, [z], [], "y_max", 1.0, 1.0e-2, true)])
-        append!(bps, [BoundProblem(_MOI.MIN_SENSE, z, [], [], "z_min", 0.0, 1.0e-2, true)])
-        append!(bps, [BoundProblem(_MOI.MAX_SENSE, z, [], [], "z_max", 1.0, 1.0e-2, true)])
+        append!(bps, [BoundProblem(_MOI.MIN_SENSE, y, [z], [], "y_min", 0.0, 1.0e-3, true)])
+        append!(bps, [BoundProblem(_MOI.MAX_SENSE, y, [z], [], "y_max", 1.0, 1.0e-3, true)])
+        append!(bps, [BoundProblem(_MOI.MIN_SENSE, z, [], [], "z_min", 0.0, 1.0e-3, true)])
+        append!(bps, [BoundProblem(_MOI.MAX_SENSE, z, [], [], "z_max", 1.0, 1.0e-3, true)])
     end
 
     return bps

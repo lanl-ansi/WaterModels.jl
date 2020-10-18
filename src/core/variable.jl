@@ -134,6 +134,10 @@ function variable_valve_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, relax:
             start = comp_start_value(ref(wm, nw, :valve, a), "z_valve_start"))
     end
 
+    for (a, valve) in ref(wm, nw, :valve)
+        _fix_indicator_variable(z_valve[a], valve, "z")
+    end
+
     report && _IM.sol_component_value(wm, nw, :valve, :status, ids(wm, nw, :valve), z_valve)
 end
 
@@ -150,6 +154,10 @@ function variable_regulator_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, re
             [a in ids(wm, nw, :regulator)], base_name = "$(nw)_z_regulator",
             lower_bound = 0.0, upper_bound = 1.0,
             start = comp_start_value(ref(wm, nw, :regulator, a), "z_regulator_start"))
+    end
+
+    for (a, regulator) in ref(wm, nw, :regulator)
+        _fix_indicator_variable(z_regulator[a], regulator, "z")
     end
 
     report && sol_component_value(wm, nw, :regulator, :status, ids(wm, nw, :regulator), z_regulator)
@@ -169,6 +177,10 @@ function variable_pump_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, relax::
             [a in ids(wm, nw, :pump)], base_name = "$(nw)_z_pump",
             lower_bound = 0.0, upper_bound = 1.0,
             start = comp_start_value(ref(wm, nw, :pump, a), "z_pump_start"))
+    end
+
+    for (a, pump) in ref(wm, nw, :pump)
+        _fix_indicator_variable(z_pump[a], pump, "z")
     end
 
     report && sol_component_value(wm, nw, :pump, :status, ids(wm, nw, :pump), z_pump)
@@ -196,4 +208,15 @@ function variable_pipe_des_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, rel
     end
 
     report && sol_component_value(wm, nw, :des_pipe, :built, ids(wm, nw, :des_pipe), z)
+end
+
+
+function _fix_indicator_variable(v::JuMP.VariableRef, component::Dict{String,<:Any}, name::String)
+    min_name, max_name = name * "_min", name * "_max"
+
+    if haskey(component, min_name) && haskey(component, max_name)
+        if component[min_name] == component[max_name]
+            JuMP.fix(v, component[min_name])
+        end
+    end
 end

@@ -28,7 +28,7 @@ end
 ########################################## PIPES ##########################################
 
 
-function constraint_pipe_head_loss(wm::LRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64, L::Float64, r::Float64)
+function constraint_pipe_head_loss(wm::LRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64, L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
     # Get the number of breakpoints for the pipe.
     num_breakpoints = get(wm.ext, :pipe_breakpoints, 1)
 
@@ -37,6 +37,7 @@ function constraint_pipe_head_loss(wm::LRDWaterModel, n::Int, a::Int, node_fr::I
 
     # Get variables for positive flow and head difference.
     qp, dhp = var(wm, n, :qp_pipe, a), var(wm, n, :dhp_pipe, a)
+    qp_min_forward, qp_ub = max(0.0, q_min_forward), JuMP.upper_bound(qp)
 
     # Loop over breakpoints strictly between the lower and upper variable bounds.
     for pt in range(0.0, stop = JuMP.upper_bound(qp), length = num_breakpoints+2)[2:end-1]
@@ -46,15 +47,19 @@ function constraint_pipe_head_loss(wm::LRDWaterModel, n::Int, a::Int, node_fr::I
         append!(con(wm, n, :pipe_head_loss)[a], [c])
     end
 
-    # Add linear upper bounds on the above outer approximations.
-    rhs = r * JuMP.upper_bound(qp)^(exponent - 1.0) * qp
-    c = JuMP.@constraint(wm.model, inv(L) * dhp <= rhs)
+    # Get the lower-bounding line for the qp curve.
+    if qp_min_forward < qp_ub
+        dhp_1, dhp_2 = r * qp_min_forward^exponent, r * qp_ub^exponent
+        dhp_lb_line = (dhp_2 - dhp_1) * inv(qp_ub - qp_min_forward) * qp + dhp_1 * y
+        c = JuMP.@constraint(wm.model, inv(L) * dhp <= dhp_lb_line)
 
-    # Append the :pipe_head_loss constraint array.
-    append!(con(wm, n, :pipe_head_loss)[a], [c])
+        # Append the :pipe_head_loss constraint array.
+        append!(con(wm, n, :pipe_head_loss)[a], [c])
+    end
 
     # Get variables for negative flow and head difference.
     qn, dhn = var(wm, n, :qn_pipe, a), var(wm, n, :dhn_pipe, a)
+    qn_min_forward, qn_ub = max(0.0, -q_max_reverse), JuMP.upper_bound(qn)
 
     # Loop over breakpoints strictly between the lower and upper variable bounds.
     for pt in range(0.0, stop = JuMP.upper_bound(qn), length = num_breakpoints+2)[2:end-1]
@@ -64,12 +69,15 @@ function constraint_pipe_head_loss(wm::LRDWaterModel, n::Int, a::Int, node_fr::I
         append!(con(wm, n, :pipe_head_loss)[a], [c])
     end
 
-    # Add linear upper bounds on the above outer approximations.
-    rhs = r * JuMP.upper_bound(qn)^(exponent - 1.0) * qn
-    c = JuMP.@constraint(wm.model, inv(L) * dhn <= rhs)
+    # Get the lower-bounding line for the qn curve.
+    if qn_min_forward < qn_ub
+        dhn_1, dhn_2 = r * qn_min_forward^exponent, r * qn_ub^exponent
+        dhn_lb_line = (dhn_2 - dhn_1) * inv(qn_ub - qn_min_forward) * qn + dhn_1 * (1.0 - y)
+        c = JuMP.@constraint(wm.model, inv(L) * dhn <= dhn_lb_line)
 
-    # Append the :pipe_head_loss constraint array.
-    append!(con(wm, n, :pipe_head_loss)[a], [c])
+        # Append the :pipe_head_loss constraint array.
+        append!(con(wm, n, :pipe_head_loss)[a], [c])
+    end
 end
 
 
