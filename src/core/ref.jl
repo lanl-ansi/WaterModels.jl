@@ -192,13 +192,19 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
         end
     end
 
-    lb["valve"] = Dict{Int,Array{Float64}}()
-    ub["valve"] = Dict{Int,Array{Float64}}()
+    lb["valve"] = Dict{Int,Float64}()
+    ub["valve"] = Dict{Int,Float64}()
 
     for (a, valve) in ref(wm, n, :valve)
-        lb["valve"][a], ub["valve"][a] = [-sum_demand], [sum_demand]
-        haskey(valve, "q_min") && (lb["valve"][a][1] = max(lb["valve"][a][1], valve["q_min"]))
-        haskey(valve, "q_max") && (ub["valve"][a][1] = min(ub["valve"][a][1], valve["q_max"]))
+        lb["valve"][a], ub["valve"][a] = -sum_demand, sum_demand
+        haskey(valve, "q_min") && (lb["valve"][a] = max(lb["valve"][a], valve["q_min"]))
+        haskey(valve, "q_max") && (ub["valve"][a] = min(ub["valve"][a], valve["q_max"]))
+
+        if valve["flow_direction"] == POSITIVE
+            lb["valve"][a] = max(lb["valve"][a], 0.0)
+        elseif valve["flow_direction"] == NEGATIVE
+            ub["valve"][a] = min(ub["valve"][a], 0.0)
+        end
     end
 
     lb["pump"], ub["pump"] = Dict{Int,Array{Float64}}(), Dict{Int,Array{Float64}}()
