@@ -66,7 +66,7 @@ function build_wf(wm::AbstractWaterModel)
         constraint_on_off_valve_flow(wm, a)
     end
 
-    _add_flow_cuts!(wm)
+    #_add_flow_cuts!(wm)
     _add_capacity_cuts!(wm)
 
     # Add the objective.
@@ -160,7 +160,7 @@ function build_mn_wf(wm::AbstractWaterModel)
         n_1 = n_2 # Update the first network used for integration.
     end
 
-    _add_flow_cuts!(wm)
+    #_add_flow_cuts!(wm)
     _add_capacity_cuts!(wm)
 
     # Add the objective.

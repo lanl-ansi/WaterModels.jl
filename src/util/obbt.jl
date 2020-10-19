@@ -36,6 +36,37 @@ function run_obbt_owf!(file::String, optimizer; kwargs...)
 end
 
 
+function _relax_directions!(wm::AbstractWaterModel)
+    # Further relax all binary variables in the model.
+    pipe_vars = filter(v -> JuMP.is_binary(v), vcat(var(wm, :y_pipe)...))
+    pump_vars = filter(v -> JuMP.is_binary(v), vcat(var(wm, :y_pump)...))
+    regulator_vars = filter(v -> JuMP.is_binary(v), vcat(var(wm, :y_regulator)...))
+    short_pipe_vars = filter(v -> JuMP.is_binary(v), vcat(var(wm, :y_short_pipe)...))
+    valve_vars = filter(v -> JuMP.is_binary(v), vcat(var(wm, :y_valve)...))
+    bin_vars = vcat(pipe_vars, pump_vars, regulator_vars, short_pipe_vars, valve_vars)
+
+    JuMP.unset_binary.(bin_vars) # Make all binary variables free and continuous.
+    unfixed_vars = filter(v -> !JuMP.is_fixed(v), bin_vars)
+    JuMP.set_lower_bound.(unfixed_vars, 0.0) # Lower-bound the relaxed binary variables.
+    JuMP.set_upper_bound.(unfixed_vars, 1.0) # Upper-bound the relaxed binary variables.
+end
+
+
+function _relax_indicators!(wm::AbstractWaterModel)
+    # Further relax all binary variables in the model.
+    pump_vars = filter(v -> JuMP.is_binary(v), vcat(var(wm, :z_pump)...))
+    pump_pw_vars = filter(v -> JuMP.is_binary(v), vcat(var(wm, :x_pw_pump)...))
+    regulator_vars = filter(v -> JuMP.is_binary(v), vcat(var(wm, :z_regulator)...))
+    valve_vars = filter(v -> JuMP.is_binary(v), vcat(var(wm, :z_valve)...))
+    bin_vars = vcat(pump_vars, pump_pw_vars, regulator_vars, valve_vars)
+
+    JuMP.unset_binary.(bin_vars) # Make all binary variables free and continuous.
+    unfixed_vars = filter(v -> !JuMP.is_fixed(v), bin_vars)
+    JuMP.set_lower_bound.(unfixed_vars, 0.0) # Lower-bound the relaxed binary variables.
+    JuMP.set_upper_bound.(unfixed_vars, 1.0) # Upper-bound the relaxed binary variables.
+end
+
+
 function _relax_model!(wm::AbstractWaterModel)
     # Further relax all binary variables in the model.
     bin_vars = filter(v -> JuMP.is_binary(v), JuMP.all_variables(wm.model))
@@ -184,8 +215,8 @@ function _create_pipe_bound_problems(wm::AbstractWaterModel)
         append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [], [], "q_max", q_max, 1.0e-3, true)])
         append!(bps, [BoundProblem(_MOI.MIN_SENSE, q, [y], [], "q_min_forward", q_min_forward, 1.0e-3, true)])
         append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [], [y], "q_max_reverse", q_max_reverse, 1.0e-3, true)])
-        append!(bps, [BoundProblem(_MOI.MIN_SENSE, y, [], [], "y_min", 0.0, 1.0e-3, true)])
-        append!(bps, [BoundProblem(_MOI.MAX_SENSE, y, [], [], "y_max", 1.0, 1.0e-3, true)])
+        append!(bps, [BoundProblem(_MOI.MIN_SENSE, y, [], [], "y_min", 0.0, 1.0e-2, true)])
+        append!(bps, [BoundProblem(_MOI.MAX_SENSE, y, [], [], "y_max", 1.0, 1.0e-2, true)])
     end
 
     return bps
@@ -205,8 +236,8 @@ function _create_pump_bound_problems(wm::AbstractWaterModel)
 
         append!(bps, [BoundProblem(_MOI.MIN_SENSE, q, [z, y], [], "q_min_forward", q_min_forward, 1.0e-3, true)])
         append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [z, y], [], "q_max", q_max, 1.0e-3, true)])
-        append!(bps, [BoundProblem(_MOI.MIN_SENSE, z, [], [], "z_min", 0.0, 1.0e-3, true)])
-        append!(bps, [BoundProblem(_MOI.MAX_SENSE, z, [], [], "z_max", 1.0, 1.0e-3, true)])
+        append!(bps, [BoundProblem(_MOI.MIN_SENSE, z, [], [], "z_min", 0.0, 1.0e-2, true)])
+        append!(bps, [BoundProblem(_MOI.MAX_SENSE, z, [], [], "z_max", 1.0, 1.0e-2, true)])
     end
 
     return bps
@@ -218,6 +249,7 @@ function _create_regulator_bound_problems(wm::AbstractWaterModel)
 
     for regulator_id in collect(ids(wm, :regulator))
         q = VariableIndex(wm.cnw, :regulator, :q_regulator, regulator_id)
+        y = VariableIndex(wm.cnw, :regulator, :y_regulator, regulator_id)
         z = VariableIndex(wm.cnw, :regulator, :z_regulator, regulator_id)
 
         q_min_forward = get(ref(wm, q.network_index, :regulator)[regulator_id], "q_min_forward", _FLOW_MIN)
@@ -225,10 +257,10 @@ function _create_regulator_bound_problems(wm::AbstractWaterModel)
 
         append!(bps, [BoundProblem(_MOI.MIN_SENSE, q, [z], [], "q_min_forward", q_min_forward, 1.0e-3, true)])
         append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [z], [], "q_max", q_max, 1.0e-3, true)])
-        append!(bps, [BoundProblem(_MOI.MIN_SENSE, z, [], [], "z_min", 0.0, 1.0e-3, true)])
-        append!(bps, [BoundProblem(_MOI.MIN_SENSE, z, [], [], "z_min", 0.0, 1.0e-3, true)])
-        append!(bps, [BoundProblem(_MOI.MIN_SENSE, y, [z], [], "y_min", 0.0, 1.0e-3, true)])
-        append!(bps, [BoundProblem(_MOI.MAX_SENSE, y, [z], [], "y_max", 1.0, 1.0e-3, true)])
+        append!(bps, [BoundProblem(_MOI.MIN_SENSE, z, [], [], "z_min", 0.0, 1.0e-2, true)])
+        append!(bps, [BoundProblem(_MOI.MAX_SENSE, z, [], [], "z_max", 1.0, 1.0e-2, true)])
+        append!(bps, [BoundProblem(_MOI.MIN_SENSE, y, [z], [], "y_min", 0.0, 1.0e-2, true)])
+        append!(bps, [BoundProblem(_MOI.MAX_SENSE, y, [z], [], "y_max", 1.0, 1.0e-2, true)])
     end
 
     return bps
@@ -250,8 +282,8 @@ function _create_short_pipe_bound_problems(wm::AbstractWaterModel)
         append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [], [], "q_max", q_max, 1.0e-3, true)])
         append!(bps, [BoundProblem(_MOI.MIN_SENSE, q, [y], [], "q_min_forward", q_min_forward, 1.0e-3, true)])
         append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [], [y], "q_max_reverse", q_max_reverse, 1.0e-3, true)])
-        append!(bps, [BoundProblem(_MOI.MIN_SENSE, y, [], [], "y_min", 0.0, 1.0e-3, true)])
-        append!(bps, [BoundProblem(_MOI.MAX_SENSE, y, [], [], "y_max", 1.0, 1.0e-3, true)])
+        append!(bps, [BoundProblem(_MOI.MIN_SENSE, y, [], [], "y_min", 0.0, 1.0e-2, true)])
+        append!(bps, [BoundProblem(_MOI.MAX_SENSE, y, [], [], "y_max", 1.0, 1.0e-2, true)])
     end
 
     return bps
@@ -274,13 +306,33 @@ function _create_valve_bound_problems(wm::AbstractWaterModel)
         append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [z], [], "q_max", q_max, 1.0e-3, true)])
         append!(bps, [BoundProblem(_MOI.MIN_SENSE, q, [z, y], [], "q_min_forward", q_min_forward, 1.0e-3, true)])
         append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [z], [y], "q_max_reverse", q_max_reverse, 1.0e-3, true)])
-        append!(bps, [BoundProblem(_MOI.MIN_SENSE, y, [z], [], "y_min", 0.0, 1.0e-3, true)])
-        append!(bps, [BoundProblem(_MOI.MAX_SENSE, y, [z], [], "y_max", 1.0, 1.0e-3, true)])
-        append!(bps, [BoundProblem(_MOI.MIN_SENSE, z, [], [], "z_min", 0.0, 1.0e-3, true)])
-        append!(bps, [BoundProblem(_MOI.MAX_SENSE, z, [], [], "z_max", 1.0, 1.0e-3, true)])
+        append!(bps, [BoundProblem(_MOI.MIN_SENSE, y, [z], [], "y_min", 0.0, 1.0e-2, true)])
+        append!(bps, [BoundProblem(_MOI.MAX_SENSE, y, [z], [], "y_max", 1.0, 1.0e-2, true)])
+        append!(bps, [BoundProblem(_MOI.MIN_SENSE, z, [], [], "z_min", 0.0, 1.0e-2, true)])
+        append!(bps, [BoundProblem(_MOI.MAX_SENSE, z, [], [], "z_max", 1.0, 1.0e-2, true)])
     end
 
     return bps
+end
+
+
+function _fix_indicator(v::JuMP.VariableRef, value::Float64)
+    if JuMP.is_binary(v)
+        JuMP.fix(v, value)
+    else
+        JuMP.fix(v, value; force=true)
+    end
+end
+
+
+function _unfix_indicator(v::JuMP.VariableRef)
+    if JuMP.is_binary(v)
+        JuMP.unfix(v)
+    else
+        JuMP.unfix(v)
+        JuMP.set_lower_bound(v, 0.0)
+        JuMP.set_upper_bound(v, 1.0)
+    end
 end
 
 
@@ -290,7 +342,7 @@ function _solve_bound_problem!(wm::AbstractWaterModel, bound_problem::BoundProbl
     v_zero = _get_variable_from_index.(Ref(wm), bound_problem.variables_zero)
 
     # Fix binary variables to desired values.
-    JuMP.fix.(v_one, 1.0), JuMP.fix.(v_zero, 0.0)
+    _fix_indicator.(v_one, 1.0), _fix_indicator.(v_zero, 0.0)
 
     # Optimize the variable (or affine expression) being tightened.
     JuMP.@objective(wm.model, bound_problem.sense, v)
@@ -303,7 +355,7 @@ function _solve_bound_problem!(wm::AbstractWaterModel, bound_problem::BoundProbl
     end
 
     # Unfix binary variables that were fixed above.
-    JuMP.unfix.(v_one), JuMP.unfix.(v_zero)
+    _unfix_indicator.(v_one), _unfix_indicator.(v_zero)
 
     # Return an optimized bound or the initial bound that was started with.
     if termination_status in [_MOI.LOCALLY_SOLVED, _MOI.OPTIMAL]
@@ -314,7 +366,8 @@ function _solve_bound_problem!(wm::AbstractWaterModel, bound_problem::BoundProbl
             return min(bound_problem.bound, candidate)
         end
     else
-        message = "[OBBT] Optimization of $(bound_problem.variable_to_tighten) errored. Adjust tolerances."
+        #message = "[OBBT] Optimization of $(bound_problem.variable_to_tighten) errored. Adjust tolerances."
+        message = "[OBBT] Optimization of $(bound_problem) errored. Adjust tolerances."
         termination_status !== _MOI.TIME_LIMIT && Memento.warn(_LOGGER, message)
         return bound_problem.bound # Optimization was not successful. Return the starting bound.
     end
@@ -393,7 +446,7 @@ end
 
 
 function _log_regulator_bound_width(regulators::Dict{String,<:Any})
-    total_width = sum([x["q_max"] - x["q_min"] for (i, x) in regulators])
+    total_width = sum([x["q_max"] - x["q_min_forward"] for (i, x) in regulators])
     return "Regulator flow range: $(round(total_width * inv(length(regulators)); digits=3))"
 end
 
@@ -418,10 +471,40 @@ function _log_bound_widths(data::Dict{String,<:Any})
 end
 
 
+function _clean_bound_problems!(problems::Array{BoundProblem, 1}, vals::Array{Float64,1})
+    fixed_one_vars = Array{VariableIndex, 1}([])
+    fixed_zero_vars = Array{VariableIndex, 1}([])
+
+    for (i, problem) in enumerate(problems)
+        vid = problem.variable_to_tighten
+
+        if length(problem.variables_one) > 0 || length(problem.variables_zero) > 0
+            continue
+        end
+
+        if any(occursin.(["y_", "z_"], string(vid.variable_symbol)))
+            is_fixed_to_one = vals[i] == 1.0 && problem.sense === _MOI.MIN_SENSE
+            is_fixed_to_one && (append!(fixed_one_vars, [vid]))
+            is_fixed_to_zero = vals[i] == 0.0 && problem.sense === _MOI.MAX_SENSE
+            is_fixed_to_zero && (append!(fixed_zero_vars, [vid]))
+        end
+    end
+
+    for (i, problem) in enumerate(problems)
+        contains_fixed_one = any([x in problem.variables_one for x in fixed_zero_vars])
+        contains_fixed_zero = any([x in problem.variables_zero for x in fixed_one_vars])
+
+        if contains_fixed_one || contains_fixed_zero
+            problems = setdiff!(problems, [problem])
+        end
+    end
+end
+
+
 function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_reduced_network::Bool = true,
     model_type::Type = CQRDWaterModel, time_limit::Float64 = 3600.0, upper_bound::Float64 =
     Inf, upper_bound_constraint::Bool = false, max_iter::Int = 100, improvement_tol::Float64
-    = 1.0e-6, relaxed::Bool = true, precision = 1.0e-3, min_width::Float64 = 1.0e-2,
+    = 1.0e-6, relaxed::Bool = true, precision = 1.0e-2, min_width::Float64 = 1.0e-2,
     ext::Dict{Symbol,<:Any} = Dict{Symbol,Any}(:pump_breakpoints=>3), kwargs...)
     # Print a message with relevant algorithm limit information.
     Memento.info(_LOGGER, "[OBBT] Maximum time limit for OBBT set to default value of $(time_limit) seconds.")
@@ -442,7 +525,8 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_reduced_network:
     # Instantiate the bound tightening model and relax integrality, if specified.
     wm = instantiate_model(data, model_type, build_type; ext=ext)
     upper_bound_constraint && _constraint_obj_bound(wm, upper_bound)
-    relaxed && _relax_model!(wm) # Relax integrality, if required.
+    relaxed && _relax_directions!(wm) # Relax integrality, if required.
+    relaxed && _relax_indicators!(wm) # Relax integrality, if required.
 
     ## Add coupled binary cuts to the reduced model.
     #binary_cut_data = deepcopy(data)
@@ -468,11 +552,13 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_reduced_network:
         vals = _solve_bound_problem!.(Ref(wm), bound_problems)
         _set_new_bound!.(bound_problems, vals)
         _update_data_bounds!(data, bound_problems)
+        _clean_bound_problems!(bound_problems, vals)
 
         # Set up the next optimization problem using the new bounds.
         wm = instantiate_model(data, model_type, build_type; ext=ext)
         upper_bound_constraint && _constraint_obj_bound(wm, upper_bound)
-        relaxed && _relax_model!(wm)
+        relaxed && _relax_directions!(wm)
+        relaxed && _relax_indicators!(wm)
         JuMP.set_optimizer(wm.model, optimizer)
 
         ## Add coupled binary cuts to the reduced model.

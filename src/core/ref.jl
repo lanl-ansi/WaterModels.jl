@@ -31,6 +31,13 @@ function _get_function_from_head_curve(head_curve::Array{Tuple{Float64,Float64}}
 end
 
 
+function _get_maximum_head_gain(pump::Dict{String,<:Any})
+    c = _get_function_from_head_curve(pump["head_curve"])
+    q_at_max = -c[2] * inv(2.0 * c[1]) > 0.0 ? -c[2] * inv(2.0 * c[1]) : 0.0
+    return c[1] * q_at_max^2 + c[2] * q_at_max + c[3]
+end
+
+
 function calc_demand_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     # Initialize the dictionaries for minimum and maximum heads.
     demand_min = Dict((i, -Inf) for (i, demand) in ref(wm, n, :dispatchable_demand))
@@ -51,14 +58,11 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
 
     # Add contributions from tanks in the network to max_head.
     if length(ref(wm, n, :tank)) > 0
-        max_head += sum(tank["max_level"] for (i, tank) in ref(wm, n, :tank))
+        max_head += maximum(tank["max_level"] for (i, tank) in ref(wm, n, :tank))
     end
 
-    # Add potential gains from pumps in the network to max_head.
-    for (a, pump) in ref(wm, n, :pump)
-        head_curve = ref(wm, n, :pump, a)["head_curve"]
-        c = _get_function_from_head_curve(head_curve)
-        max_head += c[3] - 0.25 * c[2]*c[2] * inv(c[1])
+    if length(ref(wm, n, :pump)) > 0
+        max_head += maximum(_get_maximum_head_gain(pump) for (i, pump) in ref(wm, n, :pump))
     end
 
     # Initialize the dictionaries for minimum and maximum heads.
