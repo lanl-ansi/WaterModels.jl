@@ -82,14 +82,14 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
 
     for (i, reservoir) in ref(wm, n, :reservoir)
         # Fix head values at nodes with reservoirs to predefined values.
-        node_id = reservoir["node"]
+        node = ref(wm, n, :node, reservoir["node"])
 
         if !reservoir["dispatchable"]
-            head_min[node_id] = ref(wm, n, :node, node_id)["head"]
-            head_max[node_id] = ref(wm, n, :node, node_id)["head"]
-        else
-            head_min[node_id] = ref(wm, n, :node, node_id)["h_min"]
-            head_max[node_id] = ref(wm, n, :node, node_id)["h_max"]
+            head_min[reservoir["node"]] = node["head"]
+            head_max[reservoir["node"]] = node["head"]
+        elseif haskey(node, "h_min") && haskey(node, "h_max")
+            head_min[reservoir["node"]] = node["h_min"]
+            head_max[reservoir["node"]] = node["h_max"]
         end
     end
 

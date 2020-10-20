@@ -295,8 +295,8 @@ function _solve_bound_problem!(wm::AbstractWaterModel, bound_problem::BoundProbl
         end
     else
         #message = "[OBBT] Optimization of $(bound_problem.variable_to_tighten) errored. Adjust tolerances."
-        message = "[OBBT] Optimization of $(bound_problem) errored. Adjust tolerances."
-        termination_status !== _MOI.TIME_LIMIT && Memento.warn(_LOGGER, message)
+        #message = "[OBBT] Optimization of $(bound_problem) errored. Adjust tolerances."
+        #termination_status !== _MOI.TIME_LIMIT && Memento.warn(_LOGGER, message)
         return bound_problem.bound # Optimization was not successful. Return the starting bound.
     end
 end
