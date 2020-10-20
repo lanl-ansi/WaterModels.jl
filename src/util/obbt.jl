@@ -23,11 +23,11 @@ run_obbt_owf!("examples/data/epanet/van_zyl.inp", ipopt)
 * `min_width`: domain width beyond which bound tightening is not performed.
 * `precision`: decimal precision to round the tightened bounds to.
 * `time_limit`: maximum amount of time (seconds) for the bound tightening algorithm.
-* `upper_bound`: can be used to specify a local feasible solution objective for the owf problem.
+* `upper_bound`: can be used to specify a local feasible solution objective for the problem.
 * `upper_bound_constraint`: boolean option that can be used to add an additional
    constraint to reduce the search space of each of the bound tightening
    solves. This cannot be set to `true` without specifying an upper bound.
-* `use_reduced_network`: boolean option that specifies whether or not to use a reduced,
+* `use_relaxed_network`: boolean option that specifies whether or not to use a relaxed,
    snapshot, dispatchable version of the origin multinetwork problem for bound tightening.
 """
 function run_obbt_owf!(file::String, optimizer; kwargs...)
@@ -36,79 +36,7 @@ function run_obbt_owf!(file::String, optimizer; kwargs...)
 end
 
 
-function _relax_directions!(wm::AbstractWaterModel)
-    # Further relax all binary variables in the model.
-    pipe_vars = filter(v -> JuMP.is_binary(v), vcat(var(wm, :y_pipe)...))
-    pump_vars = filter(v -> JuMP.is_binary(v), vcat(var(wm, :y_pump)...))
-    regulator_vars = filter(v -> JuMP.is_binary(v), vcat(var(wm, :y_regulator)...))
-    short_pipe_vars = filter(v -> JuMP.is_binary(v), vcat(var(wm, :y_short_pipe)...))
-    valve_vars = filter(v -> JuMP.is_binary(v), vcat(var(wm, :y_valve)...))
-    bin_vars = vcat(pipe_vars, pump_vars, regulator_vars, short_pipe_vars, valve_vars)
-
-    JuMP.unset_binary.(bin_vars) # Make all binary variables free and continuous.
-    unfixed_vars = filter(v -> !JuMP.is_fixed(v), bin_vars)
-    JuMP.set_lower_bound.(unfixed_vars, 0.0) # Lower-bound the relaxed binary variables.
-    JuMP.set_upper_bound.(unfixed_vars, 1.0) # Upper-bound the relaxed binary variables.
-end
-
-
-function _relax_indicators!(wm::AbstractWaterModel)
-    # Further relax all binary variables in the model.
-    pump_vars = filter(v -> JuMP.is_binary(v), vcat(var(wm, :z_pump)...))
-    pump_pw_vars = filter(v -> JuMP.is_binary(v), vcat(var(wm, :x_pw_pump)...))
-    regulator_vars = filter(v -> JuMP.is_binary(v), vcat(var(wm, :z_regulator)...))
-    valve_vars = filter(v -> JuMP.is_binary(v), vcat(var(wm, :z_valve)...))
-    bin_vars = vcat(pump_vars, pump_pw_vars, regulator_vars, valve_vars)
-
-    JuMP.unset_binary.(bin_vars) # Make all binary variables free and continuous.
-    unfixed_vars = filter(v -> !JuMP.is_fixed(v), bin_vars)
-    JuMP.set_lower_bound.(unfixed_vars, 0.0) # Lower-bound the relaxed binary variables.
-    JuMP.set_upper_bound.(unfixed_vars, 1.0) # Upper-bound the relaxed binary variables.
-end
-
-
-function _relax_model!(wm::AbstractWaterModel)
-    # Further relax all binary variables in the model.
-    bin_vars = filter(v -> JuMP.is_binary(v), JuMP.all_variables(wm.model))
-    JuMP.unset_binary.(bin_vars) # Make all binary variables free and continuous.
-    JuMP.set_lower_bound.(bin_vars, 0.0) # Lower-bound the relaxed binary variables.
-    JuMP.set_upper_bound.(bin_vars, 1.0) # Upper-bound the relaxed binary variables.
-end
-
-
-"Translate a multinetwork dataset to a snapshot dataset with dispatchable components."
-function _make_reduced_data!(ts_data::Dict{String,<:Any})
-    for comp_type in keys(ts_data["time_series"])
-        # If not a component type (Dict), skip parsing.
-        !isa(ts_data["time_series"][comp_type], Dict) && continue
-
-        for (i, comp) in ts_data["time_series"][comp_type]
-            if comp_type == "demand"
-                ts_data["demand"][i]["dispatchable"] = true
-                ts_data["demand"][i]["demand_min"] = minimum(comp["flow_rate"])
-                ts_data["demand"][i]["demand_max"] = maximum(comp["flow_rate"])
-            elseif comp_type == "node"
-                ts_data["node"][i]["h_min"] = minimum(comp["head"])
-                ts_data["node"][i]["h_max"] = maximum(comp["head"])
-            end
-        end
-    end
-
-    for (i, tank) in ts_data["tank"]
-        tank["dispatchable"] = true
-    end
-
-    for (i, reservoir) in ts_data["reservoir"]
-        if "node" in keys(ts_data["time_series"])
-            if string(reservoir["node"]) in keys(ts_data["time_series"]["node"])
-                reservoir["dispatchable"] = true
-            end
-        end
-    end
-end
-
-
-function _revert_reduced_data!(ts_data::Dict{String,<:Any})
+function _revert_relaxed_data!(ts_data::Dict{String,<:Any})
     for comp_type in keys(ts_data["time_series"])
         # If not a component type (Dict), skip parsing.
         !isa(ts_data["time_series"][comp_type], Dict) && continue
@@ -501,37 +429,27 @@ function _clean_bound_problems!(problems::Array{BoundProblem, 1}, vals::Array{Fl
 end
 
 
-function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_reduced_network::Bool = true,
+function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_relaxed_network::Bool = true,
     model_type::Type = CQRDWaterModel, time_limit::Float64 = 3600.0, upper_bound::Float64 =
     Inf, upper_bound_constraint::Bool = false, max_iter::Int = 100, improvement_tol::Float64
-    = 1.0e-6, relaxed::Bool = true, precision = 1.0e-2, min_width::Float64 = 1.0e-2,
+    = 1.0e-6, solve_relaxed::Bool = true, precision = 1.0e-2, min_width::Float64 = 1.0e-2,
     ext::Dict{Symbol,<:Any} = Dict{Symbol,Any}(:pump_breakpoints=>3), kwargs...)
     # Print a message with relevant algorithm limit information.
     Memento.info(_LOGGER, "[OBBT] Maximum time limit for OBBT set to default value of $(time_limit) seconds.")
 
-    if !_IM.ismultinetwork(data) && use_reduced_network
-        _make_reduced_data!(data)
-        build_type = WaterModels.build_wf
-    elseif _IM.ismultinetwork(data) && !use_reduced_network
-        build_type = WaterModels.build_mn_owf
-    else
-        build_type = WaterModels.build_mn_owf
-        Memento.error(_LOGGER, "[OBBT] Ensure input network is the correct type.")
-    end
+    # Relax the network (i.e., make nodal components dispatchable) if requested.
+    use_relaxed_network && _relax_network!(data)
+
+    # Set the problem specification that will be used for bound tightening.
+    build_type = _IM.ismultinetwork(data) ? build_wf : build_mn_wf
 
     # Check for keyword argument inconsistencies.
     _check_obbt_options(upper_bound, upper_bound_constraint)
 
-    # Instantiate the bound tightening model and relax integrality, if specified.
+    # Instantiate the bound tightening model and relax integrality, if requested.
     wm = instantiate_model(data, model_type, build_type; ext=ext)
     upper_bound_constraint && _constraint_obj_bound(wm, upper_bound)
-    relaxed && _relax_directions!(wm) # Relax integrality, if required.
-    relaxed && _relax_indicators!(wm) # Relax integrality, if required.
-
-    ## Add coupled binary cuts to the reduced model.
-    #binary_cut_data = deepcopy(data)
-    #cuts = compute_binary_cuts(binary_cut_data, optimizer, model_type = model_type, ext=ext, relaxed=relaxed)
-    #add_coupled_binary_cuts!(wm, cuts)
+    solve_relaxed && _relax_all_binary_variables!(wm)
 
     # Set the optimizer for the bound tightening model.
     JuMP.set_optimizer(wm.model, optimizer)
@@ -546,39 +464,40 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_reduced_network:
     # Log widths.
     bound_width_msg = _log_bound_widths(data)
     Memento.info(_LOGGER, "[OBBT] Iteration $(current_iteration) bound widths: $(bound_width_msg).")
+    terminate, time_elapsed = false, 0.0
 
-    while any([x.changed for x in bound_problems])
+    while any([x.changed for x in bound_problems]) && !terminate
         # Obtain new candidate bounds, update bounds, and update the data.
-        vals = _solve_bound_problem!.(Ref(wm), bound_problems)
-        _set_new_bound!.(bound_problems, vals)
+        vals = zeros(length(bound_problems))
+
+        for (i, bound_problem) in enumerate(bound_problems)
+            time_elapsed += @elapsed vals[i] = _solve_bound_problem!(wm, bound_problem)
+            _set_new_bound!(bound_problem, vals[i])
+            time_elapsed > time_limit && ((terminate = true) && break)
+        end
+
         _update_data_bounds!(data, bound_problems)
-        _clean_bound_problems!(bound_problems, vals)
-
-        # Set up the next optimization problem using the new bounds.
-        wm = instantiate_model(data, model_type, build_type; ext=ext)
-        upper_bound_constraint && _constraint_obj_bound(wm, upper_bound)
-        relaxed && _relax_directions!(wm)
-        relaxed && _relax_indicators!(wm)
-        JuMP.set_optimizer(wm.model, optimizer)
-
-        ## Add coupled binary cuts to the reduced model.
-        #binary_cut_data = deepcopy(data)
-        #cuts = compute_binary_cuts(binary_cut_data, optimizer, model_type = model_type, ext=ext, relaxed=relaxed)
-        #add_coupled_binary_cuts!(wm, cuts)
-
-        # Update algorithm metadata.
-        current_iteration += 1
+        !terminate && _clean_bound_problems!(bound_problems, vals)
 
         # Log widths.
         bound_width_msg = _log_bound_widths(data)
         Memento.info(_LOGGER, "[OBBT] Iteration $(current_iteration) bound widths: $(bound_width_msg).")
 
+        # Update algorithm metadata.
+        current_iteration += 1
+
+        # Set up the next optimization problem using the new bounds.
+        wm = instantiate_model(data, model_type, build_type; ext=ext)
+        upper_bound_constraint && _constraint_obj_bound(wm, upper_bound)
+        solve_relaxed && _relax_all_binary_variables!(wm)
+        JuMP.set_optimizer(wm.model, optimizer)
+
         # Set the termination variable if max iterations is exceeded.
         current_iteration >= max_iter && (terminate = true)
     end
 
-    if use_reduced_network
-        _revert_reduced_data!(data)
+    if use_relaxed_network
+        _revert_relaxed_data!(data)
     end
 end
 

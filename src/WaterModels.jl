@@ -70,6 +70,7 @@ include("prob/wf.jl")
 include("prob/owf.jl")
 include("prob/des.jl")
 
+include("util/relax.jl")
 include("util/graph.jl")
 include("util/unbinarize.jl")
 include("util/obbt.jl")

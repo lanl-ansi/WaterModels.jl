@@ -340,3 +340,62 @@ function set_start_all!(data::Dict{String, <:Any})
     set_start_undirected_flow_rate_des!(data)
     set_start_flow_direction!(data)
 end
+
+
+function _relax_demand!(demand::Dict{String,<:Any})
+    if haskey(demand, "demand_min") && haskey(demand, "demand_max")
+        demand["dispatchable"] = demand["demand_min"] != demand["demand_max"]
+    else
+        demand["dispatchable"] = false
+    end
+end
+
+
+function _relax_demands!(data::Dict{String,<:Any})
+    if _IM.ismultinetwork(data)
+        demands = vcat([nw["demand"] for (n, nw) in data["nw"]]...)
+        map(x -> _relax_demand!(x), demands)
+    else
+        if "demand" in keys(data["time_series"]) && isa(data["time_series"]["demand"], Dict)
+            ts = data["time_series"]["demand"]
+            dems = values(filter(x -> x.first in keys(ts), data["demand"]))
+            map(x -> x["demand_min"] = minimum(ts[string(x["index"])]["flow_rate"]), dems)
+            map(x -> x["demand_max"] = maximum(ts[string(x["index"])]["flow_rate"]), dems)
+        end
+
+        map(x -> _relax_demand!(x), values(data["demand"]))
+    end
+end
+
+
+function _relax_nodes!(data::Dict{String,<:Any})
+    if !_IM.ismultinetwork(data)
+        ts_keys = keys(data["time_series"])
+
+        if "node" in keys(data["time_series"]) && isa(data["time_series"]["node"], Dict)
+            ts = data["time_series"]["node"]
+            nodes = values(filter(x -> x.first in keys(ts), data["node"]))
+            map(x -> x["h_min"] = minimum(ts[string(x["index"])]["head"]), nodes)
+            map(x -> x["h_max"] = maximum(ts[string(x["index"])]["head"]), nodes)
+        end
+    end
+end
+
+
+function _relax_tanks!(data::Dict{String,<:Any})
+    if _IM.ismultinetwork(data)
+        tanks = vcat([vcat(values(nw["tank"])...) for (n, nw) in data["nw"]]...)
+        map(x -> x["dispatchable"] = true, tanks)
+    else
+        tanks = values(data["tank"])
+        map(x -> x["dispatchable"] = true, tanks)
+    end
+end
+
+
+"Translate a multinetwork dataset to a snapshot dataset with dispatchable components."
+function _relax_network!(data::Dict{String,<:Any})
+    _relax_nodes!(data)
+    _relax_tanks!(data)
+    _relax_demands!(data)
+end
