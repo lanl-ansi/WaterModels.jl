@@ -393,9 +393,21 @@ function _relax_tanks!(data::Dict{String,<:Any})
 end
 
 
+function _relax_reservoirs!(data::Dict{String,<:Any})
+    if _IM.ismultinetwork(data)
+        reservoirs = vcat([vcat(values(nw["reservoir"])...) for (n, nw) in data["nw"]]...)
+        map(x -> x["dispatchable"] = true, reservoirs)
+    else
+        reservoirs = values(data["reservoir"])
+        map(x -> x["dispatchable"] = true, reservoirs)
+    end
+end
+
+
 "Translate a multinetwork dataset to a snapshot dataset with dispatchable components."
 function _relax_network!(data::Dict{String,<:Any})
     _relax_nodes!(data)
     _relax_tanks!(data)
+    _relax_reservoirs!(data)
     _relax_demands!(data)
 end
