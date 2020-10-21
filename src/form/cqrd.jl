@@ -2,7 +2,9 @@
 # water distribution network constraints, which use directed flow variables.
 
 
-function constraint_pipe_head_loss(wm::CQRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64, L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
+function constraint_pipe_head_loss(
+    wm::CQRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, alpha::Float64,
+    L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
     # Get the number of breakpoints for the pipe.
     num_breakpoints = get(wm.ext, :pipe_breakpoints, 1)
 
@@ -67,9 +69,10 @@ function constraint_on_off_pump_head_gain(wm::CQRDWaterModel, n::Int, a::Int, no
     qp_lb, qp_ub = max(_FLOW_MIN, q_min_forward), JuMP.upper_bound(qp)
     g_1 = pc[1]*qp_lb^2 + pc[2]*qp_lb + pc[3]
     g_2 = pc[1]*qp_ub^2 + pc[2]*qp_ub + pc[3]
-    g_lb_line = (g_2 - g_1) * inv(qp_ub - qp_lb) * qp + g_1 * z
+    g_lb_line = (g_2 - g_1) * inv(qp_ub - qp_lb) * (qp - qp_lb) + g_1 * z
     c_2 = JuMP.@constraint(wm.model, g_lb_line <= g)
 
+    # Append the :on_off_pump_head_gain constraint array.
     append!(con(wm, n, :on_off_pump_head_gain, a), [c_1, c_2])
 end
 

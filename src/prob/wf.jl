@@ -67,7 +67,7 @@ function build_wf(wm::AbstractWaterModel)
     end
 
     #_add_flow_cuts!(wm)
-    _add_capacity_cuts!(wm)
+    #_add_capacity_cuts!(wm)
 
     # Add the objective.
     objective_wf(wm)
@@ -161,7 +161,7 @@ function build_mn_wf(wm::AbstractWaterModel)
     end
 
     #_add_flow_cuts!(wm)
-    _add_capacity_cuts!(wm)
+    #_add_capacity_cuts!(wm)
 
     # Add the objective.
     objective_wf(wm)
