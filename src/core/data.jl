@@ -240,106 +240,159 @@ function make_multinetwork(data::Dict{String, <:Any}; global_keys::Set{String}=S
 end
 
 
-function set_start_head!(data)
-    for (i, node) in data["node"]
-        node["h_start"] = node["h"]
+function set_start!(data::Dict{String,<:Any}, component_type::String, var_name::String, start_name::String)
+    if _IM.ismultinetwork(data)
+        for (n, nw) in data["nw"]
+            comps = values(nw[component_type])
+            map(x -> x[start_name] = x[var_name], comps)
+        end
+    else
+        comps = values(data[component_type])
+        map(x -> x[vstart_name] = x[var_name], comps)
     end
 end
 
 
-function set_start_reservoir!(data)
-    for (i, reservoir) in data["reservoir"]
-        reservoir["q_reservoir_start"] = reservoir["q"]
-    end
+function set_flow_start!(data::Dict{String,<:Any})
+    set_start!(data, "pipe", "q", "q_pipe_start")
+    set_start!(data, "pump", "q", "q_pump_start")
+    set_start!(data, "regulator", "q", "q_regulator_start")
+    set_start!(data, "short_pipe", "q", "q_short_pipe_start")
+    set_start!(data, "valve", "q", "q_valve_start")
+    set_start!(data, "reservoir", "q", "q_reservoir_start")
+    set_start!(data, "tank", "q", "q_tank_start")
 end
 
 
-function set_start_undirected_flow_rate!(data::Dict{String, <:Any})
-    for (a, pipe) in data["pipe"]
-        pipe["q_start"] = pipe["q"]
-    end
+function set_head_start!(data::Dict{String,<:Any})
+    set_start!(data, "node", "h", "h_start")
+    set_start!(data, "pump", "g", "g_pump_start")
 end
 
 
-function set_start_directed_flow_rate!(data::Dict{String, <:Any})
-    for (a, pipe) in data["pipe"]
-        pipe["qn_start"] = pipe["q"] < 0.0 ? abs(pipe["q"]) : 0.0
-        pipe["qp_start"] = pipe["q"] >= 0.0 ? abs(pipe["q"]) : 0.0
-    end
+function set_indicator_start!(data::Dict{String,<:Any})
+    set_start!(data, "pump", "status", "z_pump_start")
+    set_start!(data, "regulator", "status", "z_regulator_start")
+    set_start!(data, "valve", "status", "z_valve_start")
 end
 
 
-function set_start_directed_head_difference!(data::Dict{String, <:Any})
-    for (a, pipe) in data["pipe"]
-        i, j = data["pipe"][a]["node_fr"], data["pipe"][a]["node_to"]
-        dh = data["node"][string(i)]["h"] - data["node"][string(j)]["h"]
-        pipe["dhp_start"] = max(0.0, dh)
-        pipe["dhn_start"] = max(0.0, -dh)
-    end
+function set_start_all!(data::Dict{String,<:Any})
+    set_flow_start!(data)
+    set_head_start!(data)
+    set_indicator_start!(data)
 end
 
 
-function set_start_resistance_des!(data::Dict{String, <:Any})
-    viscosity = data["viscosity"]
-    head_loss_type = data["head_loss"]
-    resistances = calc_resistances(data["pipe"], viscosity, head_loss_type)
-
-    for (a, pipe) in filter(is_des_pipe, data["pipe"])
-        num_resistances = length(resistances[a])
-        pipe["x_res_start"] = zeros(Float64, num_resistances)
-        r_id, val = findmax(pipe["x_res_start"])
-        pipe["x_res_start"][r_id] = 1.0
-    end
+function fix_all_indicators!(data::Dict{String,<:Any})
+    set_start!(data, "pump", "status", "z_min")
+    set_start!(data, "pump", "status", "z_max")
+    set_start!(data, "regulator", "status", "z_min")
+    set_start!(data, "regulator", "status", "z_max")
+    set_start!(data, "valve", "status", "z_min")
+    set_start!(data, "valve", "status", "z_max")
 end
 
 
-function set_start_undirected_flow_rate_des!(data::Dict{String, <:Any})
-    viscosity = data["viscosity"]
-    head_loss_type = data["head_loss"]
-    resistances = calc_resistances(data["pipe"], viscosity, head_loss_type)
-
-    for (a, pipe) in filter(is_des_pipe, data["pipe"])
-        num_resistances = length(resistances[a])
-        pipe["q_des_pipe_start"] = zeros(Float64, num_resistances)
-        r_id, val = findmax(pipe["x_res_start"])
-        pipe["q_des_pipe_start"][r_id] = pipe["q"]
-    end
-end
-
-
-function set_start_directed_flow_rate_des!(data::Dict{String, <:Any})
-    viscosity = data["viscosity"]
-    head_loss_type = data["head_loss"]
-    resistances = calc_resistances(data["pipe"], viscosity, head_loss_type)
-
-    for (a, pipe) in filter(is_des_pipe, data["pipe"])
-        num_resistances = length(resistances[a])
-        pipe["qp_des_start"] = zeros(Float64, num_resistances)
-        pipe["qn_des_start"] = zeros(Float64, num_resistances)
-
-        r_id = findfirst(r -> isapprox(r, pipe["r"], rtol=1.0e-4), resistances[a])
-        pipe["qp_des_start"][r_id] = pipe["q"] >= 0.0 ? abs(pipe["q"]) : 0.0
-        pipe["qn_des_start"][r_id] = pipe["q"] < 0.0 ? abs(pipe["q"]) : 0.0
-    end
-end
-
-
-function set_start_flow_direction!(data::Dict{String, <:Any})
-    for (a, pipe) in data["pipe"]
-        pipe["y_start"] = pipe["q"] >= 0.0 ? 1.0 : 0.0
-    end
-end
-
-
-function set_start_all!(data::Dict{String, <:Any})
-    set_start_head!(data)
-    set_start_directed_head_difference!(data)
-    set_start_reservoir!(data)
-    set_start_resistance_des!(data)
-    set_start_directed_flow_rate_des!(data)
-    set_start_undirected_flow_rate_des!(data)
-    set_start_flow_direction!(data)
-end
+#function set_start_head!(data)
+#    for (n, nw) in data["nw"]
+#    end
+#end
+#
+#
+#function set_start_reservoir!(data)
+#    for (i, reservoir) in data["reservoir"]
+#        reservoir["q_reservoir_start"] = reservoir["q"]
+#    end
+#end
+#
+#
+#function set_start_undirected_flow_rate!(data::Dict{String, <:Any})
+#    for (a, pipe) in data["pipe"]
+#        pipe["q_start"] = pipe["q"]
+#    end
+#end
+#
+#
+#function set_start_directed_flow_rate!(data::Dict{String, <:Any})
+#    for (a, pipe) in data["pipe"]
+#        pipe["qn_start"] = pipe["q"] < 0.0 ? abs(pipe["q"]) : 0.0
+#        pipe["qp_start"] = pipe["q"] >= 0.0 ? abs(pipe["q"]) : 0.0
+#    end
+#end
+#
+#
+#function set_start_directed_head_difference!(data::Dict{String, <:Any})
+#    for (a, pipe) in data["pipe"]
+#        i, j = data["pipe"][a]["node_fr"], data["pipe"][a]["node_to"]
+#        dh = data["node"][string(i)]["h"] - data["node"][string(j)]["h"]
+#        pipe["dhp_start"] = max(0.0, dh)
+#        pipe["dhn_start"] = max(0.0, -dh)
+#    end
+#end
+#
+#
+#function set_start_resistance_des!(data::Dict{String, <:Any})
+#    viscosity = data["viscosity"]
+#    head_loss_type = data["head_loss"]
+#    resistances = calc_resistances(data["pipe"], viscosity, head_loss_type)
+#
+#    for (a, pipe) in filter(is_des_pipe, data["pipe"])
+#        num_resistances = length(resistances[a])
+#        pipe["x_res_start"] = zeros(Float64, num_resistances)
+#        r_id, val = findmax(pipe["x_res_start"])
+#        pipe["x_res_start"][r_id] = 1.0
+#    end
+#end
+#
+#
+#function set_start_undirected_flow_rate_des!(data::Dict{String, <:Any})
+#    viscosity = data["viscosity"]
+#    head_loss_type = data["head_loss"]
+#    resistances = calc_resistances(data["pipe"], viscosity, head_loss_type)
+#
+#    for (a, pipe) in filter(is_des_pipe, data["pipe"])
+#        num_resistances = length(resistances[a])
+#        pipe["q_des_pipe_start"] = zeros(Float64, num_resistances)
+#        r_id, val = findmax(pipe["x_res_start"])
+#        pipe["q_des_pipe_start"][r_id] = pipe["q"]
+#    end
+#end
+#
+#
+#function set_start_directed_flow_rate_des!(data::Dict{String, <:Any})
+#    viscosity = data["viscosity"]
+#    head_loss_type = data["head_loss"]
+#    resistances = calc_resistances(data["pipe"], viscosity, head_loss_type)
+#
+#    for (a, pipe) in filter(is_des_pipe, data["pipe"])
+#        num_resistances = length(resistances[a])
+#        pipe["qp_des_start"] = zeros(Float64, num_resistances)
+#        pipe["qn_des_start"] = zeros(Float64, num_resistances)
+#
+#        r_id = findfirst(r -> isapprox(r, pipe["r"], rtol=1.0e-4), resistances[a])
+#        pipe["qp_des_start"][r_id] = pipe["q"] >= 0.0 ? abs(pipe["q"]) : 0.0
+#        pipe["qn_des_start"][r_id] = pipe["q"] < 0.0 ? abs(pipe["q"]) : 0.0
+#    end
+#end
+#
+#
+#function set_start_flow_direction!(data::Dict{String, <:Any})
+#    for (a, pipe) in data["pipe"]
+#        pipe["y_start"] = pipe["q"] >= 0.0 ? 1.0 : 0.0
+#    end
+#end
+#
+#
+#function set_start_all!(data::Dict{String, <:Any})
+#    set_start_head!(data)
+#    set_start_directed_head_difference!(data)
+#    set_start_reservoir!(data)
+#    set_start_resistance_des!(data)
+#    set_start_directed_flow_rate_des!(data)
+#    set_start_undirected_flow_rate_des!(data)
+#    set_start_flow_direction!(data)
+#end
 
 
 function _relax_demand!(demand::Dict{String,<:Any})

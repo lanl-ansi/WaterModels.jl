@@ -8,7 +8,7 @@ function _relax_binary_variable!(v::JuMP.VariableRef)
 end
 
 
-function _relax_all_binary_variables!(wm::AbstractWaterModel)
+function relax_all_binary_variables!(wm::AbstractWaterModel)
     vars = filter(v -> JuMP.is_binary(v), JuMP.all_variables(wm.model))
     _relax_binary_variable!.(vars) # Relax all binary variables.
 end
