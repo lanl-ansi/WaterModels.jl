@@ -161,7 +161,7 @@ function constraint_on_off_regulator_head(wm::AbstractUndirectedModel, n::Int, a
 end
 
 
-function constraint_on_off_valve_flow(wm::AbstractUndirectedModel, n::Int, a::Int)
+function constraint_on_off_valve_flow(wm::AbstractUndirectedModel, n::Int, a::Int, q_max_reverse::Float64, q_min_forward::Float64)
     # Get flow and valve status variables.
     q, z = var(wm, n, :q_valve, a), var(wm, n, :z_valve, a)
 
@@ -228,7 +228,7 @@ function constraint_on_off_pump_head(wm::AbstractUndirectedModel, n::Int, a::Int
 end
 
 
-function constraint_short_pipe_flow(wm::AbstractUndirectedModel, n::Int, a::Int)
+function constraint_short_pipe_flow(wm::AbstractUndirectedModel, n::Int, a::Int, q_max_reverse::Float64, q_min_forward::Float64)
     # By default, there are no constraints, here.
 end
 
