@@ -74,7 +74,7 @@ function variable_flow_des_common(wm::AbstractUndirectedModel; nw::Int=wm.cnw, b
 end
 
 
-function constraint_pipe_flow(wm::AbstractUndirectedModel, n::Int, a::Int)
+function constraint_pipe_flow(wm::AbstractUndirectedModel, n::Int, a::Int, q_max_reverse::Float64, q_min_forward::Float64)
     # By default, there are no constraints, here.
 end
 
