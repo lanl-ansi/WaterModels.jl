@@ -107,7 +107,7 @@ function constraint_on_off_pump_head_gain(wm::LAWaterModel, n::Int, a::Int, node
 end
 
 
-function constraint_pipe_head_loss(wm::LAWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64, L::Float64, r::Float64)
+function constraint_pipe_head_loss(wm::LAWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64, L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
     # If the number of breakpoints is not positive, no constraints are added.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 2)
 

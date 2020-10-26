@@ -7,7 +7,6 @@ const _IM = InfrastructureModels
 import Interpolations
 import JSON
 import JuMP
-import LightGraphs
 import LsqFit
 import Memento
 
@@ -25,12 +24,9 @@ __init__() = Memento.register(_LOGGER)
 "Suppresses information and warning messages output by WaterModels. For
 more fine-grained control, use the Memento package."
 function silence()
-    Memento.info(
-        _LOGGER,
-        "Suppressing information and warning messages for " *
-        "the rest of this session. Use the Memento package for more " *
-        "fine-grained control of logging.",
-    )
+    msg = "Suppressing information and warning messages for the rest of this session. " *
+        "Use the Memento package for more fine-grained control of logging."
+    Memento.info(_LOGGER, msg)
     Memento.setlevel!(Memento.getlogger(InfrastructureModels), "error")
     Memento.setlevel!(Memento.getlogger(WaterModels), "error")
 end
@@ -71,7 +67,6 @@ include("prob/owf.jl")
 include("prob/des.jl")
 
 include("util/relax.jl")
-include("util/graph.jl")
 include("util/unbinarize.jl")
 include("util/obbt.jl")
 include("util/compute_cuts.jl")

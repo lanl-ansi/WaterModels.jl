@@ -2,7 +2,9 @@
 # of water distribution network constraints, which use directed flow variables.
 
 
-function constraint_pipe_head_loss(wm::QRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64, L::Float64, r::Float64)
+function constraint_pipe_head_loss(
+    wm::QRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
+    L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
     # Get the number of breakpoints for the pipe.
     num_breakpoints = get(wm.ext, :pipe_breakpoints, 1)
 

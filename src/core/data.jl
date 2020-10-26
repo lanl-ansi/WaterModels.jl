@@ -1,14 +1,18 @@
-# Functions for working with the WaterModels data format.
-function calc_resistance_hw(diameter::Float64, roughness::Float64)
+# Functions for working with WaterModels data elements.
+
+"""
+Computes the resistance for a pipe governed by the Hazen-Williams relationship.
+"""
+function _calc_pipe_resistance_hazen_williams(diameter::Float64, roughness::Float64)
     return 7.8828 * inv(0.849^1.852 * roughness^1.852 * diameter^4.8704)
 end
 
 
 """
-Turns given single network data into multinetwork data with a `count` replicate of the given
+Turns given single network data into multinetwork data with `count` replicates of the given
 network. Note that this function performs a deepcopy of the network data. Significant
 multinetwork space savings can often be achieved by building application specific methods of
-building multinetwork with minimal data replication.
+building a multinetwork with minimal data replication (e.g., through storing references).
 """
 function replicate(data::Dict{String,<:Any}, count::Int; global_keys::Set{String}=Set{String}())
     return _IM.replicate(data, count, union(global_keys, _wm_global_keys))
@@ -16,7 +20,7 @@ end
 
 
 function _calc_pump_flow_min(pump::Dict{String,<:Any}, node_fr::Dict{String,Any}, node_to::Dict{String,Any})
-    return get(pump, "flow_min", 0.0)
+    return max(0.0, get(pump, "flow_min", 0.0))
 end
 
 
@@ -69,13 +73,13 @@ function calc_resistances_hw(pipes::Dict{<:Any, <:Any})
             resistances[a] = vcat(resistances[a], pipe["resistance"])
         elseif haskey(pipe, "diameters")
             for entry in pipe["diameters"]
-                r = calc_resistance_hw(entry["diameter"], pipe["roughness"])
+                r = _calc_pipe_resistance_hazen_williams(entry["diameter"], pipe["roughness"])
                 resistances[a] = vcat(resistances[a], r)
             end
 
             resistances[a] = sort(resistances[a], rev=true)
         else
-            r = calc_resistance_hw(pipe["diameter"], pipe["roughness"])
+            r = _calc_pipe_resistance_hazen_williams(pipe["diameter"], pipe["roughness"])
             resistances[a] = vcat(resistances[a], r)
         end
     end
@@ -142,7 +146,7 @@ function calc_resistance_costs_hw(pipes::Dict{Int, <:Any})
             resistances = Array{Float64, 1}()
 
             for entry in pipe["diameters"]
-                resistance = calc_resistance_hw(entry["diameter"], pipe["roughness"])
+                resistance = _calc_pipe_resistance_hazen_williams(entry["diameter"], pipe["roughness"])
                 resistances = vcat(resistances, resistance)
                 costs[a] = vcat(costs[a], entry["costPerUnitLength"])
             end
@@ -292,107 +296,6 @@ function fix_all_indicators!(data::Dict{String,<:Any})
     set_start!(data, "valve", "status", "z_min")
     set_start!(data, "valve", "status", "z_max")
 end
-
-
-#function set_start_head!(data)
-#    for (n, nw) in data["nw"]
-#    end
-#end
-#
-#
-#function set_start_reservoir!(data)
-#    for (i, reservoir) in data["reservoir"]
-#        reservoir["q_reservoir_start"] = reservoir["q"]
-#    end
-#end
-#
-#
-#function set_start_undirected_flow_rate!(data::Dict{String, <:Any})
-#    for (a, pipe) in data["pipe"]
-#        pipe["q_start"] = pipe["q"]
-#    end
-#end
-#
-#
-#function set_start_directed_flow_rate!(data::Dict{String, <:Any})
-#    for (a, pipe) in data["pipe"]
-#        pipe["qn_start"] = pipe["q"] < 0.0 ? abs(pipe["q"]) : 0.0
-#        pipe["qp_start"] = pipe["q"] >= 0.0 ? abs(pipe["q"]) : 0.0
-#    end
-#end
-#
-#
-#function set_start_directed_head_difference!(data::Dict{String, <:Any})
-#    for (a, pipe) in data["pipe"]
-#        i, j = data["pipe"][a]["node_fr"], data["pipe"][a]["node_to"]
-#        dh = data["node"][string(i)]["h"] - data["node"][string(j)]["h"]
-#        pipe["dhp_start"] = max(0.0, dh)
-#        pipe["dhn_start"] = max(0.0, -dh)
-#    end
-#end
-#
-#
-#function set_start_resistance_des!(data::Dict{String, <:Any})
-#    viscosity = data["viscosity"]
-#    head_loss_type = data["head_loss"]
-#    resistances = calc_resistances(data["pipe"], viscosity, head_loss_type)
-#
-#    for (a, pipe) in filter(is_des_pipe, data["pipe"])
-#        num_resistances = length(resistances[a])
-#        pipe["x_res_start"] = zeros(Float64, num_resistances)
-#        r_id, val = findmax(pipe["x_res_start"])
-#        pipe["x_res_start"][r_id] = 1.0
-#    end
-#end
-#
-#
-#function set_start_undirected_flow_rate_des!(data::Dict{String, <:Any})
-#    viscosity = data["viscosity"]
-#    head_loss_type = data["head_loss"]
-#    resistances = calc_resistances(data["pipe"], viscosity, head_loss_type)
-#
-#    for (a, pipe) in filter(is_des_pipe, data["pipe"])
-#        num_resistances = length(resistances[a])
-#        pipe["q_des_pipe_start"] = zeros(Float64, num_resistances)
-#        r_id, val = findmax(pipe["x_res_start"])
-#        pipe["q_des_pipe_start"][r_id] = pipe["q"]
-#    end
-#end
-#
-#
-#function set_start_directed_flow_rate_des!(data::Dict{String, <:Any})
-#    viscosity = data["viscosity"]
-#    head_loss_type = data["head_loss"]
-#    resistances = calc_resistances(data["pipe"], viscosity, head_loss_type)
-#
-#    for (a, pipe) in filter(is_des_pipe, data["pipe"])
-#        num_resistances = length(resistances[a])
-#        pipe["qp_des_start"] = zeros(Float64, num_resistances)
-#        pipe["qn_des_start"] = zeros(Float64, num_resistances)
-#
-#        r_id = findfirst(r -> isapprox(r, pipe["r"], rtol=1.0e-4), resistances[a])
-#        pipe["qp_des_start"][r_id] = pipe["q"] >= 0.0 ? abs(pipe["q"]) : 0.0
-#        pipe["qn_des_start"][r_id] = pipe["q"] < 0.0 ? abs(pipe["q"]) : 0.0
-#    end
-#end
-#
-#
-#function set_start_flow_direction!(data::Dict{String, <:Any})
-#    for (a, pipe) in data["pipe"]
-#        pipe["y_start"] = pipe["q"] >= 0.0 ? 1.0 : 0.0
-#    end
-#end
-#
-#
-#function set_start_all!(data::Dict{String, <:Any})
-#    set_start_head!(data)
-#    set_start_directed_head_difference!(data)
-#    set_start_reservoir!(data)
-#    set_start_resistance_des!(data)
-#    set_start_directed_flow_rate_des!(data)
-#    set_start_undirected_flow_rate_des!(data)
-#    set_start_flow_direction!(data)
-#end
 
 
 function _relax_demand!(demand::Dict{String,<:Any})

@@ -9,6 +9,7 @@ WaterModels.jl Change Log
 - Renamed `pressure_reducing_valve` to `regulator`.
 - Decomposed component constraints a bit more.
 - Implemented `QRD` and `CQRD` formulations.
+- Refactored bound-tightening utility.
 
 ### v0.4.0
 - Removed unnecessary dependencies.

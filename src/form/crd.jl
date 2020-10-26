@@ -5,7 +5,9 @@
 ########################################## PIPES ##########################################
 
 
-function constraint_pipe_head_loss(wm::CRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64, L::Float64, r::Float64)
+function constraint_pipe_head_loss(
+    wm::CRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
+    L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
     # Gather directed flow and head difference variables.
     qp, qn = var(wm, n, :qp_pipe, a), var(wm, n, :qn_pipe, a)
     dhp, dhn = var(wm, n, :dhp_pipe, a), var(wm, n, :dhn_pipe, a)

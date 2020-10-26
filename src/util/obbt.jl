@@ -449,7 +449,7 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_relaxed_network:
     # Instantiate the bound tightening model and relax integrality, if requested.
     wm = instantiate_model(data, model_type, build_type; ext=ext)
     upper_bound_constraint && _constraint_obj_bound(wm, upper_bound)
-    solve_relaxed && _relax_all_binary_variables!(wm)
+    solve_relaxed && relax_all_binary_variables!(wm)
 
     # Set the optimizer for the bound tightening model.
     JuMP.set_optimizer(wm.model, optimizer)
@@ -489,7 +489,7 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_relaxed_network:
         # Set up the next optimization problem using the new bounds.
         wm = instantiate_model(data, model_type, build_type; ext=ext)
         upper_bound_constraint && _constraint_obj_bound(wm, upper_bound)
-        solve_relaxed && _relax_all_binary_variables!(wm)
+        solve_relaxed && relax_all_binary_variables!(wm)
         JuMP.set_optimizer(wm.model, optimizer)
 
         # Set the termination variable if max iterations is exceeded.
