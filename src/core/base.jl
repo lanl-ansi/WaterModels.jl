@@ -48,11 +48,8 @@ function run_model(
     if multinetwork != _IM.ismultinetwork(data)
         model_requirement = multinetwork ? "multi-network" : "single-network"
         data_type = _IM.ismultinetwork(data) ? "multi-network" : "single-network"
-
-        Memento.error(
-            _LOGGER,
-            "Attempted to build a $(model_requirement) model with $(data_type) data.",
-        )
+        message = "Attempted to build a $(model_requirement) model with $(data_type) data."
+        Memento.error(_LOGGER, message)
     end
 
     wm = instantiate_model(
@@ -108,24 +105,6 @@ function instantiate_model(
         ref_add_core!,
         _wm_global_keys;
         kwargs...,
-    )
-end
-
-
-"""
-Builds the ref dictionary from the data dictionary. Additionally the ref dictionary would
-contain fields populated by the optional vector of ref_extensions provided as a keyword
-argument.
-"""
-function build_ref(
-    data::Dict{String,<:Any};
-    ref_extensions::Vector{<:Function} = Vector{Function}([]),
-)
-    return _IM.build_ref(
-        data,
-        ref_add_core!,
-        _wm_global_keys,
-        ref_extensions = ref_extensions,
     )
 end
 

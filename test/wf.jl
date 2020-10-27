@@ -135,6 +135,26 @@
         @test isapprox(result["solution"]["pipe"]["1"]["q"], 2.0, rtol=1.0e-3)
     end
 
+    @testset "Short Pipe Dynamics" begin
+        network = WaterModels.parse_file("../test/data/epanet/snapshot/short-pipe-lps.inp")
+
+        wm = instantiate_model(network, NCWaterModel, build_wf)
+        result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
+
+        @test result["termination_status"] == LOCALLY_SOLVED
+        @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
+        @test isapprox(result["solution"]["node"]["2"]["h"], 10.0, rtol=1.0e-3)
+        @test isapprox(result["solution"]["short_pipe"]["1"]["q"], 1.0, rtol=1.0e-3)
+
+        wm = instantiate_model(network, CRDWaterModel, build_wf)
+        result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
+
+        @test result["termination_status"] == LOCALLY_SOLVED
+        @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
+        @test isapprox(result["solution"]["node"]["2"]["h"], 10.0, rtol=1.0e-3)
+        @test isapprox(result["solution"]["short_pipe"]["1"]["q"], 1.0, rtol=1.0e-3)
+    end
+
     @testset "Head Gain (Pump)" begin
         network = WaterModels.parse_file("../test/data/epanet/snapshot/pump-hw-lps.inp")
 
@@ -392,6 +412,27 @@ end
         @test isapprox(result["solution"]["nw"]["3"]["pipe"]["1"]["q"], 0.50, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["1"]["regulator"]["2"]["q"], 1.00, rtol=1.0e-3)
         @test isapprox(result["solution"]["nw"]["3"]["regulator"]["2"]["q"], 0.25, rtol=1.0e-3)
+    end
+
+    @testset "Short Pipe Dynamics" begin
+        network = WaterModels.parse_file("../test/data/epanet/multinetwork/short-pipe-lps.inp")
+        network = WaterModels.make_multinetwork(network)
+
+        wm = instantiate_model(network, NCWaterModel, build_mn_wf)
+        result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
+        @test result["termination_status"] == LOCALLY_SOLVED
+        @test isapprox(result["solution"]["nw"]["1"]["node"]["2"]["h"], 10.0, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["short_pipe"]["1"]["q"], 1.0, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["3"]["node"]["2"]["h"], 10.0, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["3"]["short_pipe"]["1"]["q"], 0.25, rtol=1.0e-3)
+
+        wm = instantiate_model(network, CRDWaterModel, build_mn_wf)
+        result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
+        @test result["termination_status"] == LOCALLY_SOLVED
+        @test isapprox(result["solution"]["nw"]["1"]["node"]["2"]["h"], 10.0, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["short_pipe"]["1"]["q"], 1.0, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["3"]["node"]["2"]["h"], 10.0, rtol=1.0e-3)
+        @test isapprox(result["solution"]["nw"]["3"]["short_pipe"]["1"]["q"], 0.25, rtol=1.0e-3)
     end
 
     @testset "Head Gain (Pump)" begin

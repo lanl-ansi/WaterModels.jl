@@ -1,9 +1,9 @@
 [TITLE]
-Test for Short Pipe Dynamics
+Test for Hazen-Williams Head Loss
 
 [JUNCTIONS]
 ;ID              Elev            Demand          Pattern
- 2               0.0             1000.0                 ;
+ 2               0.0             1000.0          demand ;
 
 [RESERVOIRS]
 ;ID              Head            Pattern
@@ -14,7 +14,7 @@ Test for Short Pipe Dynamics
 
 [PIPES]
 ;ID               Node1          Node2           Length           Diameter         Roughness        MinorLoss        Status
- 1                1              2               1.0              1000.0           100.0            0.0              CV  ;
+ 1                1              2               1.0              1000.0           100.0            0.0              Open  ;
 
 [PUMPS]
 ;ID               Node1          Node2           Parameters
@@ -32,6 +32,7 @@ Test for Short Pipe Dynamics
 
 [PATTERNS]
 ;ID               Multipliers
+ demand           1.0 0.5 0.25
 
 [CURVES]
 ;ID               X-Value        Y-Value
@@ -60,10 +61,10 @@ Test for Short Pipe Dynamics
 ;Tank             Model
 
 [TIMES]
- Duration               0:00
+ Duration               3:00
  Hydraulic Timestep     1:00
  Quality Timestep       0:05
- Pattern Timestep       2:00 
+ Pattern Timestep       1:00 
  Pattern Start          0:00 
  Report Timestep        1:00 
  Report Start           0:00 

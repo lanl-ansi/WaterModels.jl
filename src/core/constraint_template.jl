@@ -131,10 +131,6 @@ end
 
 ### Tank Constraints ###
 function constraint_tank_volume(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
-    if !(:time_step in keys(ref(wm, nw)))
-        Memento.error(_LOGGER, "Tank states cannot be controlled without a time step.")
-    end
-
     # Only set the tank state if the tank is nondispatchable.
     if !ref(wm, nw, :tank, i)["dispatchable"]
         tank = ref(wm, nw, :tank, i)
@@ -148,16 +144,13 @@ end
 
 
 function constraint_tank_volume(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2::Int)
-    if !(:time_step in keys(ref(wm, nw_1)))
-        Memento.error(_LOGGER, "Tank states cannot be controlled without a time step.")
-    end
-
     # Only set the tank state if the tank is nondispatchable.
     if !ref(wm, nw_2, :tank, i)["dispatchable"]
         # TODO: What happens if a tank exists in nw_1 but not in nw_2? The index
         # "i" is assumed to be present in both when this constraint is applied.
         _initialize_con_dict(wm, :tank_volume, nw=nw_2)
-        constraint_tank_volume(wm, nw_1, nw_2, i, ref(wm, nw_1, :time_step))
+        time_step = ref(wm, nw_1, :time_step)
+        constraint_tank_volume(wm, nw_1, nw_2, i, time_step)
     end
 end
 

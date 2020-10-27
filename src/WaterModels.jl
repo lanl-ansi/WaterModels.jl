@@ -43,6 +43,15 @@ include("io/epanet.jl")
 
 include("core/base.jl")
 include("core/constants.jl")
+
+include("core/node.jl")
+include("core/demand.jl")
+include("core/reservoir.jl")
+include("core/tank.jl")
+
+include("core/pipe.jl")
+include("core/pump.jl")
+
 include("core/data.jl")
 include("core/ref.jl")
 include("core/types.jl")
