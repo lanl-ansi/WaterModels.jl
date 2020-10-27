@@ -12,7 +12,7 @@ function _relax_demands!(data::Dict{String,<:Any})
         demands = vcat([nw["demand"] for (n, nw) in data["nw"]]...)
         map(x -> _relax_demand!(x), demands)
     else
-        if "demand" in keys(data["time_series"]) && isa(data["time_series"]["demand"], Dict)
+        if haskey(data, "time_series") && haskey(data["time_series"], "demand")
             ts = data["time_series"]["demand"]
             dems = values(filter(x -> x.first in keys(ts), data["demand"]))
             map(x -> x["demand_min"] = minimum(ts[string(x["index"])]["flow_rate"]), dems)

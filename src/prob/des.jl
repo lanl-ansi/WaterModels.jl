@@ -5,7 +5,7 @@ end
 
 function build_des(wm::AbstractWaterModel)
     # Create head loss functions, if necessary.
-    function_head_loss(wm)
+    _function_head_loss(wm)
 
     # Physical variables.
     variable_head(wm)

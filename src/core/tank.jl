@@ -17,5 +17,9 @@ function make_tank_start_dispatchable!(data::Dict{String,<:Any})
         for (i, tank) in data["nw"][start_nw]["tank"]
             tank["dispatchable"] = true
         end
+    else
+        for (i, tank) in data["tank"]
+            tank["dispatchable"] = true
+        end
     end
 end

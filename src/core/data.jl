@@ -24,12 +24,7 @@ function _correct_flow_bounds!(data::Dict{String,<:Any})
 end
 
 
-function has_known_flow_direction(comp::Pair{Int, <:Any})
-    return comp.second["flow_direction"] != UNKNOWN
-end
-
-
-"turns a single network and a time_series data block into a multi-network"
+"Turns a single network with a `time_series` data block into a multinetwork."
 function make_multinetwork(data::Dict{String, <:Any}; global_keys::Set{String}=Set{String}())
     return InfrastructureModels.make_multinetwork(data, union(global_keys, _wm_global_keys))
 end

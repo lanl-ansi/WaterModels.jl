@@ -30,6 +30,18 @@ include("common.jl")
 
     include("base.jl")
 
+    include("node.jl")
+
+    include("demand.jl")
+
+    include("reservoir.jl")
+
+    include("tank.jl")
+
+    include("pipe.jl")
+
+    include("pump.jl")
+
     include("data.jl")
 
     include("io.jl")

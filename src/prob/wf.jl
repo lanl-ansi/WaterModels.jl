@@ -5,7 +5,7 @@ end
 
 function build_wf(wm::AbstractWaterModel)
     # Create head loss functions, if necessary.
-    function_head_loss(wm)
+    _function_head_loss(wm)
 
     # Physical variables.
     variable_head(wm)
@@ -78,7 +78,7 @@ end
 
 function build_mn_wf(wm::AbstractWaterModel)
     # Create head loss functions, if necessary.
-    function_head_loss(wm)
+    _function_head_loss(wm)
 
     for (n, network) in nws(wm)
         # Physical variables.
