@@ -41,6 +41,7 @@ The primary developer is [Byron Tasseff](https://github.com/tasseff) with suppor
 - [Russell Bent](https://github.com/rb004f), Los Alamos National Laboratory
 - [Carleton Coffrin](https://github.com/ccoffrin), Los Alamos National Laboratory
 - Donatella Pasqualini, Los Alamos National Laboratory
+- [Devon Sigler](https://github.com/dsigler1234), National Renewable Energy Laboratory
 - [Jonathan Stickel](https://github.com/jjstickel), National Renewable Energy Laboratory
 
 ## License
