@@ -66,8 +66,8 @@ end
 mutable struct BoundProblem
     sense::_MOI.OptimizationSense
     variable_to_tighten::_VariableIndex
-    variables_one::Array{_VariableIndex} # Fix to one.
-    variables_zero::Array{_VariableIndex} # Fix to zero.
+    variables_fix_one::Array{_VariableIndex} # Fix to one.
+    variables_fix_zero::Array{_VariableIndex} # Fix to zero.
     bound_name::String # e.g., q_min, q_max, q_min_forward
     bound::Float64
     precision::Float64
@@ -219,16 +219,16 @@ function _unfix_indicator(v::JuMP.VariableRef)
         JuMP.unfix(v)
     else
         JuMP.unfix(v)
-        JuMP.set_get_lower_bound_from_index(v, 0.0)
-        JuMP.set_get_upper_bound_from_index(v, 1.0)
+        JuMP.set_lower_bound(v, 0.0)
+        JuMP.set_upper_bound(v, 1.0)
     end
 end
 
 
 function _solve_bound_problem!(wm::AbstractWaterModel, bound_problem::BoundProblem)
     v = _get_variable_from_index(wm, bound_problem.variable_to_tighten)
-    v_one = _get_variable_from_index.(Ref(wm), bound_problem.variables_one)
-    v_zero = _get_variable_from_index.(Ref(wm), bound_problem.variables_zero)
+    v_one = _get_variable_from_index.(Ref(wm), bound_problem.variables_fix_one)
+    v_zero = _get_variable_from_index.(Ref(wm), bound_problem.variables_fix_zero)
 
     # Fix binary variables to desired values.
     _fix_indicator.(v_one, 1.0), _fix_indicator.(v_zero, 0.0)
@@ -255,9 +255,6 @@ function _solve_bound_problem!(wm::AbstractWaterModel, bound_problem::BoundProbl
             return min(bound_problem.bound, candidate)
         end
     else
-        #message = "[OBBT] Optimization of $(bound_problem.variable_to_tighten) errored. Adjust tolerances."
-        #message = "[OBBT] Optimization of $(bound_problem) errored. Adjust tolerances."
-        #termination_status !== _MOI.TIME_LIMIT && Memento.warn(_LOGGER, message)
         return bound_problem.bound # Optimization was not successful. Return the starting bound.
     end
 end
@@ -367,7 +364,7 @@ function _clean_bound_problems!(problems::Array{BoundProblem, 1}, vals::Array{Fl
     for (i, problem) in enumerate(problems)
         vid = problem.variable_to_tighten
 
-        if length(problem.variables_one) > 0 || length(problem.variables_zero) > 0
+        if length(problem.variables_fix_one) > 0 || length(problem.variables_fix_zero) > 0
             continue
         end
 
@@ -380,8 +377,8 @@ function _clean_bound_problems!(problems::Array{BoundProblem, 1}, vals::Array{Fl
     end
 
     for (i, problem) in enumerate(problems)
-        contains_fixed_one = any([x in problem.variables_one for x in fixed_zero_vars])
-        contains_fixed_zero = any([x in problem.variables_zero for x in fixed_one_vars])
+        contains_fixed_one = any([x in problem.variables_fix_one for x in fixed_zero_vars])
+        contains_fixed_zero = any([x in problem.variables_fix_zero for x in fixed_one_vars])
 
         if contains_fixed_one || contains_fixed_zero
             problems = setdiff!(problems, [problem])

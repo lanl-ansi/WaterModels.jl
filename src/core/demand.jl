@@ -9,8 +9,9 @@ end
 
 function _relax_demands!(data::Dict{String,<:Any})
     if _IM.ismultinetwork(data)
-        demands = vcat([nw["demand"] for (n, nw) in data["nw"]]...)
-        map(x -> _relax_demand!(x), demands)
+        for (n, nw) in data["nw"]
+            map(x -> _relax_demand!(x), values(nw["demand"]))
+        end
     else
         if haskey(data, "time_series") && haskey(data["time_series"], "demand")
             ts = data["time_series"]["demand"]
