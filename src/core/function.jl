@@ -39,12 +39,12 @@ function _d2f_alpha(alpha::Float64; convex::Bool=false)
 end
 
 function _get_alpha_min_1(wm::AbstractWaterModel)
-    alpha = [ref(wm, nw, :alpha) for nw in nw_ids(wm)]
+    alphas = [ref(wm, nw, :alpha) for nw in nw_ids(wm)]
 
-    if !all(y -> y == alpha[1], alpha)
+    if any(x -> x != alphas[1], alphas)
         Memento.error(_LOGGER, "Head loss exponents are different across the multinetwork.")
     else
-        return alpha[1] - 1.0
+        return alphas[1] - 1.0
     end
 end
 

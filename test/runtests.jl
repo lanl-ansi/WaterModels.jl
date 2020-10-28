@@ -44,6 +44,8 @@ include("common.jl")
 
     include("data.jl")
 
+    include("function.jl")
+
     include("io.jl")
 
     include("wf.jl")
@@ -52,7 +54,13 @@ include("common.jl")
 
     include("des.jl")
 
-    include("util.jl")
+    include("relax.jl")
+
+    include("variable_index.jl")
+
+    include("pairwise_cuts.jl")
+
+    #include("util.jl")
 
     include("warm_start.jl")
 

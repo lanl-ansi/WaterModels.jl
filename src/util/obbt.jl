@@ -63,19 +63,11 @@ function _revert_relaxed_data!(ts_data::Dict{String,<:Any})
 end
 
 
-struct VariableIndex
-    network_index::Int
-    component_type::Symbol
-    variable_symbol::Symbol
-    component_index::Int
-end
-
-
 mutable struct BoundProblem
     sense::_MOI.OptimizationSense
-    variable_to_tighten::VariableIndex
-    variables_one::Array{VariableIndex} # Fix to one.
-    variables_zero::Array{VariableIndex} # Fix to zero.
+    variable_to_tighten::_VariableIndex
+    variables_one::Array{_VariableIndex} # Fix to one.
+    variables_zero::Array{_VariableIndex} # Fix to zero.
     bound_name::String # e.g., q_min, q_max, q_min_forward
     bound::Float64
     precision::Float64
@@ -83,43 +75,12 @@ mutable struct BoundProblem
 end
 
 
-function _get_variable_from_index(wm::AbstractWaterModel, index::VariableIndex)
-    v = var(wm, index.network_index, index.variable_symbol, index.component_index)
-end
-
-
-function _lower_bound(wm::AbstractWaterModel, index::VariableIndex)
-    v = _get_variable_from_index(wm, index)
-
-    if typeof(v) === JuMP.VariableRef
-        return JuMP.lower_bound(v)
-    elseif typeof(v) == JuMP.AffExpr
-        neg = collect(keys(filter(x -> x[2] < 0.0, v.terms)))
-        pos = collect(keys(filter(x -> x[2] >= 0.0, v.terms)))
-        return sum(JuMP.lower_bound.(pos)) - sum(JuMP.upper_bound.(neg))
-    end
-end
-
-
-function _upper_bound(wm::AbstractWaterModel, index::VariableIndex)
-    v = _get_variable_from_index(wm, index)
-
-    if typeof(v) === JuMP.VariableRef
-        return JuMP.upper_bound(v)
-    elseif typeof(v) == JuMP.AffExpr
-        neg = collect(keys(filter(x -> x[2] < 0.0, v.terms)))
-        pos = collect(keys(filter(x -> x[2] >= 0.0, v.terms)))
-        return sum(JuMP.upper_bound.(pos)) - sum(JuMP.lower_bound.(neg))
-    end
-end
-
-
 function _create_node_bound_problems(wm::AbstractWaterModel)
     bps = Array{BoundProblem, 1}()
 
     for node_id in collect(ids(wm, :node))
-        h = VariableIndex(wm.cnw, :node, :h, node_id)
-        h_min, h_max = _lower_bound(wm, h), _upper_bound(wm, h)
+        h = _VariableIndex(wm.cnw, :node, :h, node_id)
+        h_min, h_max = _get_lower_bound_from_index(wm, h), _get_upper_bound_from_index(wm, h)
         append!(bps, [BoundProblem(_MOI.MIN_SENSE, h, [], [], "h_min", h_min, 1.0e-2, true)])
         append!(bps, [BoundProblem(_MOI.MAX_SENSE, h, [], [], "h_max", h_max, 1.0e-2, true)])
     end
@@ -132,10 +93,10 @@ function _create_pipe_bound_problems(wm::AbstractWaterModel)
     bps = Array{BoundProblem, 1}()
 
     for pipe_id in collect(ids(wm, :pipe))
-        q = VariableIndex(wm.cnw, :pipe, :q_pipe, pipe_id)
-        y = VariableIndex(wm.cnw, :pipe, :y_pipe, pipe_id)
+        q = _VariableIndex(wm.cnw, :pipe, :q_pipe, pipe_id)
+        y = _VariableIndex(wm.cnw, :pipe, :y_pipe, pipe_id)
 
-        q_min, q_max = _lower_bound(wm, q), _upper_bound(wm, q)
+        q_min, q_max = _get_lower_bound_from_index(wm, q), _get_upper_bound_from_index(wm, q)
         q_min_forward = get(ref(wm, q.network_index, :pipe)[pipe_id], "q_min_forward", 0.0)
         q_max_reverse = get(ref(wm, q.network_index, :pipe)[pipe_id], "q_max_reverse", 0.0)
 
@@ -155,12 +116,12 @@ function _create_pump_bound_problems(wm::AbstractWaterModel)
     bps = Array{BoundProblem, 1}()
 
     for pump_id in collect(ids(wm, :pump))
-        q = VariableIndex(wm.cnw, :pump, :q_pump, pump_id)
-        y = VariableIndex(wm.cnw, :pump, :y_pump, pump_id)
-        z = VariableIndex(wm.cnw, :pump, :z_pump, pump_id)
+        q = _VariableIndex(wm.cnw, :pump, :q_pump, pump_id)
+        y = _VariableIndex(wm.cnw, :pump, :y_pump, pump_id)
+        z = _VariableIndex(wm.cnw, :pump, :z_pump, pump_id)
 
         q_min_forward = get(ref(wm, q.network_index, :pump)[pump_id], "q_min_forward", _FLOW_MIN)
-        q_max = _upper_bound(wm, q)
+        q_max = _get_upper_bound_from_index(wm, q)
 
         append!(bps, [BoundProblem(_MOI.MIN_SENSE, q, [z, y], [], "q_min_forward", q_min_forward, 1.0e-3, true)])
         append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [z, y], [], "q_max", q_max, 1.0e-3, true)])
@@ -176,12 +137,12 @@ function _create_regulator_bound_problems(wm::AbstractWaterModel)
     bps = Array{BoundProblem, 1}()
 
     for regulator_id in collect(ids(wm, :regulator))
-        q = VariableIndex(wm.cnw, :regulator, :q_regulator, regulator_id)
-        y = VariableIndex(wm.cnw, :regulator, :y_regulator, regulator_id)
-        z = VariableIndex(wm.cnw, :regulator, :z_regulator, regulator_id)
+        q = _VariableIndex(wm.cnw, :regulator, :q_regulator, regulator_id)
+        y = _VariableIndex(wm.cnw, :regulator, :y_regulator, regulator_id)
+        z = _VariableIndex(wm.cnw, :regulator, :z_regulator, regulator_id)
 
         q_min_forward = get(ref(wm, q.network_index, :regulator)[regulator_id], "q_min_forward", _FLOW_MIN)
-        q_max = _upper_bound(wm, q)
+        q_max = _get_upper_bound_from_index(wm, q)
 
         append!(bps, [BoundProblem(_MOI.MIN_SENSE, q, [z], [], "q_min_forward", q_min_forward, 1.0e-3, true)])
         append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [z], [], "q_max", q_max, 1.0e-3, true)])
@@ -199,10 +160,10 @@ function _create_short_pipe_bound_problems(wm::AbstractWaterModel)
     bps = Array{BoundProblem, 1}()
 
     for short_pipe_id in collect(ids(wm, :short_pipe))
-        q = VariableIndex(wm.cnw, :short_pipe, :q_short_pipe, short_pipe_id)
-        y = VariableIndex(wm.cnw, :short_pipe, :y_short_pipe, short_pipe_id)
+        q = _VariableIndex(wm.cnw, :short_pipe, :q_short_pipe, short_pipe_id)
+        y = _VariableIndex(wm.cnw, :short_pipe, :y_short_pipe, short_pipe_id)
 
-        q_min, q_max = _lower_bound(wm, q), _upper_bound(wm, q)
+        q_min, q_max = _get_lower_bound_from_index(wm, q), _get_upper_bound_from_index(wm, q)
         q_min_forward = get(ref(wm, q.network_index, :short_pipe)[short_pipe_id], "q_min_forward", 0.0)
         q_max_reverse = get(ref(wm, q.network_index, :short_pipe)[short_pipe_id], "q_max_reverse", 0.0)
 
@@ -222,11 +183,11 @@ function _create_valve_bound_problems(wm::AbstractWaterModel)
     bps = Array{BoundProblem, 1}()
 
     for valve_id in collect(ids(wm, :valve))
-        q = VariableIndex(wm.cnw, :valve, :q_valve, valve_id)
-        y = VariableIndex(wm.cnw, :valve, :y_valve, valve_id)
-        z = VariableIndex(wm.cnw, :valve, :z_valve, valve_id)
+        q = _VariableIndex(wm.cnw, :valve, :q_valve, valve_id)
+        y = _VariableIndex(wm.cnw, :valve, :y_valve, valve_id)
+        z = _VariableIndex(wm.cnw, :valve, :z_valve, valve_id)
 
-        q_min, q_max = _lower_bound(wm, q), _upper_bound(wm, q)
+        q_min, q_max = _get_lower_bound_from_index(wm, q), _get_upper_bound_from_index(wm, q)
         q_min_forward = get(ref(wm, q.network_index, :valve)[valve_id], "q_min_forward", 0.0)
         q_max_reverse = get(ref(wm, q.network_index, :valve)[valve_id], "q_max_reverse", 0.0)
 
@@ -258,8 +219,8 @@ function _unfix_indicator(v::JuMP.VariableRef)
         JuMP.unfix(v)
     else
         JuMP.unfix(v)
-        JuMP.set_lower_bound(v, 0.0)
-        JuMP.set_upper_bound(v, 1.0)
+        JuMP.set_get_lower_bound_from_index(v, 0.0)
+        JuMP.set_get_upper_bound_from_index(v, 1.0)
     end
 end
 
@@ -400,8 +361,8 @@ end
 
 
 function _clean_bound_problems!(problems::Array{BoundProblem, 1}, vals::Array{Float64,1})
-    fixed_one_vars = Array{VariableIndex, 1}([])
-    fixed_zero_vars = Array{VariableIndex, 1}([])
+    fixed_one_vars = Array{_VariableIndex, 1}([])
+    fixed_zero_vars = Array{_VariableIndex, 1}([])
 
     for (i, problem) in enumerate(problems)
         vid = problem.variable_to_tighten

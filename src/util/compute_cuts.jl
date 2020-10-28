@@ -1,27 +1,27 @@
 function _get_indicator_variables(wm::AbstractWaterModel)
-    vars = Array{VariableIndex,1}()
+    vars = Array{_VariableIndex,1}()
 
     for pipe_id in collect(ids(wm, :pipe))
-        append!(vars, [VariableIndex(wm.cnw, :pipe, :y_pipe, pipe_id)])
+        append!(vars, [_VariableIndex(wm.cnw, :pipe, :y_pipe, pipe_id)])
     end
 
     for pump_id in collect(ids(wm, :pump))
-        append!(vars, [VariableIndex(wm.cnw, :pump, :y_pump, pump_id)])
-        append!(vars, [VariableIndex(wm.cnw, :pump, :z_pump, pump_id)])
+        append!(vars, [_VariableIndex(wm.cnw, :pump, :y_pump, pump_id)])
+        append!(vars, [_VariableIndex(wm.cnw, :pump, :z_pump, pump_id)])
     end
 
     for regulator_id in collect(ids(wm, :regulator))
-        append!(vars, [VariableIndex(wm.cnw, :regulator, :y_regulator, regulator_id)])
-        append!(vars, [VariableIndex(wm.cnw, :regulator, :z_regulator, regulator_id)])
+        append!(vars, [_VariableIndex(wm.cnw, :regulator, :y_regulator, regulator_id)])
+        append!(vars, [_VariableIndex(wm.cnw, :regulator, :z_regulator, regulator_id)])
     end
 
     for short_pipe_id in collect(ids(wm, :short_pipe))
-        append!(vars, [VariableIndex(wm.cnw, :short_pipe, :y_short_pipe, short_pipe_id)])
+        append!(vars, [_VariableIndex(wm.cnw, :short_pipe, :y_short_pipe, short_pipe_id)])
     end
 
     for valve_id in collect(ids(wm, :valve))
-        append!(vars, [VariableIndex(wm.cnw, :valve, :y_valve, valve_id)])
-        append!(vars, [VariableIndex(wm.cnw, :valve, :z_valve, valve_id)])
+        append!(vars, [_VariableIndex(wm.cnw, :valve, :y_valve, valve_id)])
+        append!(vars, [_VariableIndex(wm.cnw, :valve, :z_valve, valve_id)])
     end
 
     return vars
@@ -30,9 +30,9 @@ end
 
 mutable struct CoupledBoundProblem
     sense::_MOI.OptimizationSense
-    variable_to_tighten::VariableIndex
-    variables_one::Array{VariableIndex} # Fix to one.
-    variables_zero::Array{VariableIndex} # Fix to zero.
+    variable_to_tighten::_VariableIndex
+    variables_one::Array{_VariableIndex} # Fix to one.
+    variables_zero::Array{_VariableIndex} # Fix to zero.
     changed::Bool
 end
 

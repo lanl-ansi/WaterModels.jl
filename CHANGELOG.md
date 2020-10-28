@@ -10,6 +10,7 @@ WaterModels.jl Change Log
 - Decomposed component constraints a bit more.
 - Implemented `QRD` and `CQRD` formulations.
 - Refactored bound-tightening utility.
+- Rename `junction` to `demand`.
 
 ### v0.4.0
 - Removed unnecessary dependencies.

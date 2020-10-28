@@ -76,9 +76,10 @@ include("prob/owf.jl")
 include("prob/des.jl")
 
 include("util/relax.jl")
-include("util/unbinarize.jl")
-include("util/obbt.jl")
-include("util/compute_cuts.jl")
+include("util/variable_index.jl")
+include("util/pairwise_cuts.jl")
+#include("util/obbt.jl")
+#include("util/compute_cuts.jl")
 
 include("core/export.jl")
 end
