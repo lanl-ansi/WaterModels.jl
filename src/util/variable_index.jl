@@ -1,4 +1,4 @@
-struct _VariableIndex
+mutable struct _VariableIndex
     network_index::Int
     component_type::Symbol
     variable_symbol::Symbol
