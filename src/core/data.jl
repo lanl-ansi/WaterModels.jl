@@ -13,6 +13,7 @@ end
 
 
 function _correct_flow_bounds!(data::Dict{String,<:Any})
+    # TODO: Correct flow bounds for the remaining edge components, as well.
     for (idx, pump) in get(data, "pump", Dict{String,Any}())
         node_fr_id, node_to_id = string(pump["node_fr"]), string(pump["node_to"])
         node_fr, node_to = data["node"][node_fr_id], data["node"][node_to_id]

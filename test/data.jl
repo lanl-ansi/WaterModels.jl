@@ -1,4 +1,13 @@
 @testset "src/core/data.jl" begin
+    @testset "_correct_flow_bounds!" begin
+        data = WaterModels.parse_file("../test/data/epanet/snapshot/pump-hw-lps.inp")
+        WaterModels._correct_flow_bounds!(data)
+        @test haskey(data["pump"]["1"], "flow_min")
+        @test haskey(data["pump"]["1"], "flow_max")
+        @test haskey(data["pump"]["1"], "flow_min_forward")
+        @test haskey(data["pump"]["1"], "flow_max_reverse")
+    end
+
     @testset "set_start! (single network)" begin
         data = WaterModels.parse_file("../test/data/epanet/snapshot/pipe-hw-lps.inp")
         data["pipe"]["1"]["q"] = 1.0 # Set the flow along the pipe.
