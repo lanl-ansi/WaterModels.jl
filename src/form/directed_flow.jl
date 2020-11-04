@@ -494,7 +494,7 @@ function constraint_source_directionality(
 end
 
 
-"Constraint to ensure at least one direction is set to take flow to a junction with demand."
+"Constraint to ensure at least one direction is set to take flow to a node with demand."
 function constraint_sink_directionality(
     wm::AbstractDirectedModel, n::Int, i::Int, pipe_fr::Array{Int64,1},
     pipe_to::Array{Int64,1}, des_pipe_fr::Array{Int64,1}, des_pipe_to::Array{Int64,1},

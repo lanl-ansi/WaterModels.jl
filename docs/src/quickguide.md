@@ -22,7 +22,7 @@ Finally, test that the package works as expected by executing
 
 ## Solving a Network Design Problem
 Once the above dependencies have been installed, obtain the files [`shamir.inp`](https://raw.githubusercontent.com/lanl-ansi/WaterModels.jl/master/examples/data/epanet/shamir.inp) and [`shamir.json`](https://raw.githubusercontent.com/lanl-ansi/WaterModels.jl/master/examples/data/json/shamir.json).
-Here, `shamir.inp` is an EPANET file describing a simple seven-node, eight-link water distribution network with one reservoir, six junctions, and eight pipes.
+Here, `shamir.inp` is an EPANET file describing a simple seven-node, eight-link water distribution network with one reservoir, six demands, and eight pipes.
 In accord, `shamir.json` is a JSON file specifying possible pipe diameters and associated costs per unit length, per diameter setting.
 The combination of data from these two files provides the required information to set up a corresponding network design problem, where the goal is to select the most cost-efficient pipe diameters while satisfying all demand in the network.
 
@@ -101,9 +101,9 @@ The following example demonstrates one way to perform multiple WaterModels solve
 ```julia
 run_des(data, LRDWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>5))
 
-data["junction"]["3"]["demand"] *= 2.0
-data["junction"]["4"]["demand"] *= 2.0
-data["junction"]["5"]["demand"] *= 2.0
+data["demand"]["3"]["flow_rate"] *= 2.0
+data["demand"]["4"]["flow_rate"] *= 2.0
+data["demand"]["5"]["flow_rate"] *= 2.0
 
 run_des(data, LRDWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>5))
 ```

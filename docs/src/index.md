@@ -52,9 +52,9 @@ result["termination_status"]
 # The flow along pipe 4, in cubic meters per second.
 result["solution"]["pipe"]["4"]["q"]
 
-# The total hydraulic head at junction (node) 2, in meters.
+# The total hydraulic head at node 2, in meters.
 result["solution"]["node"]["2"]["h"]
 
-# The pressure head at junction (node) 2, in meters.
+# The pressure head at node 2, in meters.
 result["solution"]["node"]["2"]["p"]
 ```
