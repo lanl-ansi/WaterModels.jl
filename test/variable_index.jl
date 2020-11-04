@@ -38,32 +38,28 @@
     end
 
     @testset "_get_indicator_variable_indices" begin
-        vids = WaterModels._get_indicator_variable_indices(wm; nw=1)
-        @test WaterModels._VariableIndex(1, :pump, :z_pump, 1) in vids
-        @test !(WaterModels._VariableIndex(2, :pump, :z_pump, 1) in vids)
-        @test !(WaterModels._VariableIndex(2, :pump, :y_pump, 1) in vids)
+        vids = WaterModels._get_indicator_variable_indices(wm; nw = 1)
+        vid = WaterModels._VariableIndex(1, :pump, :z_pump, 1)
+        @test !any(x -> x.variable_symbol == :y_pump, vids)
+        @test any(x -> x.variable_symbol == :z_pump, vids)
     end
 
     @testset "_get_direction_variable_indices (AbstractDirectedModel)" begin
         vids = WaterModels._get_direction_variable_indices(wm; nw=1)
-        @test WaterModels._VariableIndex(1, :pump, :y_pump, 1) in vids
-        @test !(WaterModels._VariableIndex(2, :pump, :y_pump, 1) in vids)
-        @test !(WaterModels._VariableIndex(2, :pump, :z_pump, 1) in vids)
+        @test any(x -> x.variable_symbol == :y_pump, vids)
+        @test !any(x -> x.variable_symbol == :z_pump, vids)
     end
 
     @testset "_get_binary_variable_indices (AbstractDirectedModel)" begin
         vids = WaterModels._get_binary_variable_indices(wm; nw=1)
-        @test WaterModels._VariableIndex(1, :pump, :y_pump, 1) in vids
-        @test WaterModels._VariableIndex(1, :pump, :z_pump, 1) in vids
-        @test !(WaterModels._VariableIndex(2, :pump, :y_pump, 1) in vids)
-        @test !(WaterModels._VariableIndex(2, :pump, :z_pump, 1) in vids)
+        @test any(x -> x.variable_symbol == :y_pump, vids)
+        @test any(x -> x.variable_symbol == :z_pump, vids)
     end
 
     @testset "_get_binary_variable_indices (AbstractUndirectedModel)" begin
         wm_ud = instantiate_model(mn_data, NCWaterModel, build_mn_wf)
         vids = WaterModels._get_binary_variable_indices(wm_ud; nw=1)
-        @test WaterModels._VariableIndex(1, :pump, :z_pump, 1) in vids
-        @test !(WaterModels._VariableIndex(2, :pump, :y_pump, 1) in vids)
-        @test !(WaterModels._VariableIndex(2, :pump, :z_pump, 1) in vids)
+        @test !any(x -> x.variable_symbol == :y_pump, vids)
+        @test any(x -> x.variable_symbol == :z_pump, vids)
     end
 end
