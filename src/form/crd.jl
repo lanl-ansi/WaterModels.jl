@@ -5,7 +5,9 @@
 ########################################## PIPES ##########################################
 
 
-function constraint_pipe_head_loss(wm::CRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64, L::Float64, r::Float64)
+function constraint_pipe_head_loss(
+    wm::CRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
+    L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
     # Gather directed flow and head difference variables.
     qp, qn = var(wm, n, :qp_pipe, a), var(wm, n, :qn_pipe, a)
     dhp, dhn = var(wm, n, :dhp_pipe, a), var(wm, n, :dhn_pipe, a)
@@ -85,7 +87,7 @@ end
 
 
 "Add constraints associated with modeling a pump's head gain."
-function constraint_on_off_pump_head_gain(wm::CRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64}, q_min_active::Float64)
+function constraint_on_off_pump_head_gain(wm::CRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64}, q_min_forward::Float64)
     # Get the number of breakpoints for the pump.
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 2)
 
@@ -105,7 +107,7 @@ function constraint_on_off_pump_head_gain(wm::CRDWaterModel, n::Int, a::Int, nod
     c_5 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
 
     # Add a constraint for the flow piecewise approximation.
-    breakpoints = range(q_min_active, stop=JuMP.upper_bound(qp), length=pump_breakpoints)
+    breakpoints = range(q_min_forward, stop=JuMP.upper_bound(qp), length=pump_breakpoints)
     qp_lhs = sum(breakpoints[k] * lambda[a, k] for k in 1:pump_breakpoints)
     c_6 = JuMP.@constraint(wm.model, qp_lhs == qp)
 
@@ -142,9 +144,7 @@ function objective_owf(wm::CRDWaterModel)
         lambda = var(wm, n, :lambda_pump)
 
         # Get common constant parameters.
-        rho = 1000.0 # Water density (kilogram per cubic meter).
-        gravity = 9.80665 # Gravitational acceleration (meter per second squared).
-        constant = rho * gravity * ref(wm, n, :time_step)
+        constant = _DENSITY * _GRAVITY * ref(wm, n, :time_step)
 
         for (a, pump) in nw_ref[:pump]
             if haskey(pump, "energy_price")

@@ -1,3 +1,21 @@
+"""
+Builds the ref dictionary from the data dictionary. Additionally the ref dictionary would
+contain fields populated by the optional vector of ref_extensions provided as a keyword
+argument.
+"""
+function build_ref(
+    data::Dict{String,<:Any};
+    ref_extensions::Vector{<:Function} = Vector{Function}([]),
+)
+    return _IM.build_ref(
+        data,
+        ref_add_core!,
+        _wm_global_keys,
+        ref_extensions = ref_extensions,
+    )
+end
+
+
 function _calc_head_loss_values(points::Array{Float64}, alpha::Float64)
     return [sign(x) * abs(x)^alpha for x in points]
 end
@@ -31,6 +49,13 @@ function _get_function_from_head_curve(head_curve::Array{Tuple{Float64,Float64}}
 end
 
 
+function _get_maximum_head_gain(pump::Dict{String,<:Any})
+    c = _get_function_from_head_curve(pump["head_curve"])
+    q_at_max = -c[2] * inv(2.0 * c[1]) > 0.0 ? -c[2] * inv(2.0 * c[1]) : 0.0
+    return c[1] * q_at_max^2 + c[2] * q_at_max + c[3]
+end
+
+
 function calc_demand_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     # Initialize the dictionaries for minimum and maximum heads.
     demand_min = Dict((i, -Inf) for (i, demand) in ref(wm, n, :dispatchable_demand))
@@ -51,14 +76,11 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
 
     # Add contributions from tanks in the network to max_head.
     if length(ref(wm, n, :tank)) > 0
-        max_head += sum(tank["max_level"] for (i, tank) in ref(wm, n, :tank))
+        max_head += maximum(tank["max_level"] for (i, tank) in ref(wm, n, :tank))
     end
 
-    # Add potential gains from pumps in the network to max_head.
-    for (a, pump) in ref(wm, n, :pump)
-        head_curve = ref(wm, n, :pump, a)["head_curve"]
-        c = _get_function_from_head_curve(head_curve)
-        max_head += c[3] - 0.25 * c[2]*c[2] * inv(c[1])
+    if length(ref(wm, n, :pump)) > 0
+        max_head += maximum(_get_maximum_head_gain(pump) for (i, pump) in ref(wm, n, :pump))
     end
 
     # Initialize the dictionaries for minimum and maximum heads.
@@ -78,14 +100,14 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
 
     for (i, reservoir) in ref(wm, n, :reservoir)
         # Fix head values at nodes with reservoirs to predefined values.
-        node_id = reservoir["node"]
+        node = ref(wm, n, :node, reservoir["node"])
 
-        if !reservoir["dispatchable"]
-            head_min[node_id] = ref(wm, n, :node, node_id)["head"]
-            head_max[node_id] = ref(wm, n, :node, node_id)["head"]
+        if haskey(node, "h_min") && haskey(node, "h_max")
+            head_min[reservoir["node"]] = node["h_min"]
+            head_max[reservoir["node"]] = node["h_max"]
         else
-            head_min[node_id] = ref(wm, n, :node, node_id)["h_min"]
-            head_max[node_id] = ref(wm, n, :node, node_id)["h_max"]
+            head_min[reservoir["node"]] = node["head"]
+            head_max[reservoir["node"]] = node["head"]
         end
     end
 
@@ -192,13 +214,19 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
         end
     end
 
-    lb["valve"] = Dict{Int,Array{Float64}}()
-    ub["valve"] = Dict{Int,Array{Float64}}()
+    lb["valve"] = Dict{Int,Float64}()
+    ub["valve"] = Dict{Int,Float64}()
 
     for (a, valve) in ref(wm, n, :valve)
-        lb["valve"][a], ub["valve"][a] = [-sum_demand], [sum_demand]
-        haskey(valve, "q_min") && (lb["valve"][a][1] = max(lb["valve"][a][1], valve["q_min"]))
-        haskey(valve, "q_max") && (ub["valve"][a][1] = min(ub["valve"][a][1], valve["q_max"]))
+        lb["valve"][a], ub["valve"][a] = -sum_demand, sum_demand
+        haskey(valve, "q_min") && (lb["valve"][a] = max(lb["valve"][a], valve["q_min"]))
+        haskey(valve, "q_max") && (ub["valve"][a] = min(ub["valve"][a], valve["q_max"]))
+
+        if valve["flow_direction"] == POSITIVE
+            lb["valve"][a] = max(lb["valve"][a], 0.0)
+        elseif valve["flow_direction"] == NEGATIVE
+            ub["valve"][a] = min(ub["valve"][a], 0.0)
+        end
     end
 
     lb["pump"], ub["pump"] = Dict{Int,Array{Float64}}(), Dict{Int,Array{Float64}}()
@@ -206,9 +234,11 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     for (a, pump) in ref(wm, n, :pump)
         head_curve = ref(wm, n, :pump, a)["head_curve"]
         c = _get_function_from_head_curve(head_curve)
+
         q_max = (-c[2] + sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1])
         q_max = max(q_max, (-c[2] - sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1]))
         lb["pump"][a], ub["pump"][a] = [[0.0], [min(sum_demand, q_max)]]
+
         haskey(pump, "q_min") && (lb["pump"][a][1] = max(lb["pump"][a][1], pump["q_min"]))
         haskey(pump, "q_max") && (ub["pump"][a][1] = min(ub["pump"][a][1], pump["q_max"]))
     end

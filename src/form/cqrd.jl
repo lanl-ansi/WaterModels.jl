@@ -2,7 +2,9 @@
 # water distribution network constraints, which use directed flow variables.
 
 
-function constraint_pipe_head_loss(wm::CQRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64, L::Float64, r::Float64)
+function constraint_pipe_head_loss(
+    wm::CQRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
+    L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
     # Get the number of breakpoints for the pipe.
     num_breakpoints = get(wm.ext, :pipe_breakpoints, 1)
 
@@ -11,44 +13,52 @@ function constraint_pipe_head_loss(wm::CQRDWaterModel, n::Int, a::Int, node_fr::
 
     # Get variables for positive flow and head difference.
     qp, dhp = var(wm, n, :qp_pipe, a), var(wm, n, :dhp_pipe, a)
+    qp_min_forward, qp_ub = max(0.0, q_min_forward), JuMP.upper_bound(qp)
 
     # Loop over breakpoints strictly between the lower and upper variable bounds.
-    for pt in range(0.0, stop = JuMP.upper_bound(qp), length = num_breakpoints+2)[2:end-1]
+    for pt in range(qp_min_forward, stop = qp_ub, length = num_breakpoints+2)[2:end-1]
         # Add a linear outer approximation of the convex relaxation at `pt`.
         lhs = _get_head_loss_oa_binary(qp, y, pt, exponent)
         c = JuMP.@constraint(wm.model, r * lhs <= inv(L) * dhp)
         append!(con(wm, n, :pipe_head_loss)[a], [c])
     end
 
-    # Add linear upper bounds on the above outer approximations.
-    rhs = r * JuMP.upper_bound(qp)^(exponent - 1.0) * qp
-    c = JuMP.@constraint(wm.model, inv(L) * dhp <= rhs)
+    # Get the lower-bounding line for the qp curve.
+    if qp_min_forward < qp_ub
+        dhp_1, dhp_2 = r * qp_min_forward^exponent, r * qp_ub^exponent
+        dhp_lb_line = (dhp_2 - dhp_1) * inv(qp_ub - qp_min_forward) * qp + dhp_1 * y
+        c = JuMP.@constraint(wm.model, inv(L) * dhp <= dhp_lb_line)
 
-    # Append the :pipe_head_loss constraint array.
-    append!(con(wm, n, :pipe_head_loss)[a], [c])
+        # Append the :pipe_head_loss constraint array.
+        append!(con(wm, n, :pipe_head_loss)[a], [c])
+    end
 
     # Get variables for negative flow and head difference.
     qn, dhn = var(wm, n, :qn_pipe, a), var(wm, n, :dhn_pipe, a)
+    qn_min_forward, qn_ub = max(0.0, -q_max_reverse), JuMP.upper_bound(qn)
 
     # Loop over breakpoints strictly between the lower and upper variable bounds.
-    for pt in range(0.0, stop = JuMP.upper_bound(qn), length = num_breakpoints+2)[2:end-1]
+    for pt in range(qn_min_forward, stop = qn_ub, length = num_breakpoints+2)[2:end-1]
         # Add a linear outer approximation of the convex relaxation at `pt`.
         lhs = _get_head_loss_oa_binary(qn, 1.0 - y, pt, exponent)
         c = JuMP.@constraint(wm.model, r * lhs <= inv(L) * dhn)
         append!(con(wm, n, :pipe_head_loss)[a], [c])
     end
 
-    # Add linear upper bounds on the above outer approximations.
-    rhs = r * JuMP.upper_bound(qn)^(exponent - 1.0) * qn
-    c = JuMP.@constraint(wm.model, inv(L) * dhn <= rhs)
+    # Get the lower-bounding line for the qn curve.
+    if qn_min_forward < qn_ub
+        dhn_1, dhn_2 = r * qn_min_forward^exponent, r * qn_ub^exponent
+        dhn_lb_line = (dhn_2 - dhn_1) * inv(qn_ub - qn_min_forward) * qn + dhn_1 * (1.0 - y)
+        c = JuMP.@constraint(wm.model, inv(L) * dhn <= dhn_lb_line)
 
-    # Append the :pipe_head_loss constraint array.
-    append!(con(wm, n, :pipe_head_loss)[a], [c])
+        # Append the :pipe_head_loss constraint array.
+        append!(con(wm, n, :pipe_head_loss)[a], [c])
+    end
 end
 
 
 "Pump head gain constraint when the pump status is ambiguous."
-function constraint_on_off_pump_head_gain(wm::CQRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64}, q_min_active::Float64)
+function constraint_on_off_pump_head_gain(wm::CQRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64}, q_min_forward::Float64)
     # Gather pump flow, head gain, and status variables.
     qp, g, z = var(wm, n, :qp_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
 
@@ -56,11 +66,13 @@ function constraint_on_off_pump_head_gain(wm::CQRDWaterModel, n::Int, a::Int, no
     c_1 = JuMP.@constraint(wm.model, g <= pc[1]*qp^2 + pc[2]*qp + pc[3]*z)
 
     # Add a linear lower bound on the head gain approximation.
-    qp_ub = JuMP.upper_bound(qp)
-    g_1, g_2 = pc[3], pc[1]*qp_ub^2 + pc[2]*qp_ub + pc[3]
-    g_lb_line = (g_2 - g_1) * inv(qp_ub) * qp + g_1 * z
+    qp_lb, qp_ub = max(_FLOW_MIN, q_min_forward), JuMP.upper_bound(qp)
+    g_1 = pc[1]*qp_lb^2 + pc[2]*qp_lb + pc[3]
+    g_2 = pc[1]*qp_ub^2 + pc[2]*qp_ub + pc[3]
+    g_lb_line = (g_2 - g_1) * inv(qp_ub - qp_lb) * (qp - qp_lb) + g_1 * z
     c_2 = JuMP.@constraint(wm.model, g_lb_line <= g)
 
+    # Append the :on_off_pump_head_gain constraint array.
     append!(con(wm, n, :on_off_pump_head_gain, a), [c_1, c_2])
 end
 
@@ -76,12 +88,10 @@ function objective_owf(wm::CQRDWaterModel)
 
     for (n, nw_ref) in nws(wm)
         # Get common constant parameters.
-        rho = 1000.0 # Water density (kilogram per cubic meter).
-        gravity = 9.80665 # Gravitational acceleration (meter per second squared).
-        constant = rho * gravity * ref(wm, n, :time_step)
+        constant = _DENSITY * _GRAVITY * ref(wm, n, :time_step)
 
         for (a, pump) in nw_ref[:pump]
-            q_min_active = get(pump, "q_min_active", _q_eps)
+            q_min_forward = get(pump, "q_min_forward", _FLOW_MIN)
 
             if haskey(pump, "energy_price")
                 # Get price and pump curve data.
@@ -92,7 +102,7 @@ function objective_owf(wm::CQRDWaterModel)
                 # Get flow-related variables and data.
                 z = var(wm, n, :z_pump, a)
                 qp, g = var(wm, n, :qp_pump, a), var(wm, n, :g_pump, a)
-                points = collect(range(q_min_active, stop=JuMP.upper_bound(qp), length=50))
+                points = collect(range(q_min_forward, stop=JuMP.upper_bound(qp), length=50))
 
                 # Get pump efficiency data.
                 if haskey(pump, "efficiency_curve")
@@ -107,7 +117,7 @@ function objective_owf(wm::CQRDWaterModel)
                 flows_cubed = _calc_cubic_flow_values(points, curve_fun)
                 costs = (constant*price) .* inv.(eff) .* flows_cubed
 
-                # Fit a quadratic function to the above discrete costs.
+                # Fit a linear function to the above discrete costs.
                 LsqFit.@. func(x, p) = p[1]*x + p[2]
                 fit = LsqFit.curve_fit(func, points, costs, zeros(length(costs)))
                 coeffs = LsqFit.coef(fit)

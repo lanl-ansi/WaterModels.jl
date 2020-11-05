@@ -15,9 +15,6 @@ function parse_file(path::String)
         error("\"$(path)\" is not a valid file type.")
     end
 
-    # Perform data corrections.
-    _correct_flow_bounds!(network_data)
-
     return network_data
 end
 

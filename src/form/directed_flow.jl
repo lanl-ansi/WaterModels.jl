@@ -16,6 +16,10 @@ function _variable_component_direction(
         wm.model, [a in ids(wm, nw, comp_sym)], binary=true, base_name="$(nw)_y",
         start=comp_start_value(ref(wm, nw, comp_sym, a), "y_start"))
 
+    for (a, comp) in ref(wm, nw, comp_sym)
+        #_fix_indicator_variable(y[a], comp, "y")
+    end
+
     # Report back flow values as part of the solution.
     report && sol_component_value(wm, nw, comp_sym, :y, ids(wm, nw, comp_sym), y)
 end
@@ -123,17 +127,17 @@ function variable_flow_des(wm::AbstractDirectedModel; nw::Int=wm.cnw, bounded::B
     qp_des_pipe = var(wm, nw)[:qp_des_pipe] = Dict{Int,Array{JuMP.VariableRef}}()
     qn_des_pipe = var(wm, nw)[:qn_des_pipe] = Dict{Int,Array{JuMP.VariableRef}}()
 
-    # Initialize the variables. (The default start value of _q_eps is crucial.)
+    # Initialize the variables. (The default start value of _FLOW_MIN is crucial.)
     for a in ids(wm, nw, :des_pipe)
         var(wm, nw, :qp_des_pipe)[a] = JuMP.@variable(wm.model,
             [r in 1:length(ref(wm, nw, :resistance, a))], lower_bound=0.0,
             base_name="$(nw)_qp_des_pipe[$(a)]",
-            start=comp_start_value(ref(wm, nw, :des_pipe, a), "qp_des_pipe_start", r, _q_eps))
+            start=comp_start_value(ref(wm, nw, :des_pipe, a), "qp_des_pipe_start", r, _FLOW_MIN))
 
         var(wm, nw, :qn_des_pipe)[a] = JuMP.@variable(wm.model,
             [r in 1:length(ref(wm, nw, :resistance, a))], lower_bound=0.0,
             base_name="$(nw)_qn_des_pipe[$(a)]",
-            start=comp_start_value(ref(wm, nw, :des_pipe, a), "qn_des_pipe_start", r, _q_eps))
+            start=comp_start_value(ref(wm, nw, :des_pipe, a), "qn_des_pipe_start", r, _FLOW_MIN))
     end
 
     if bounded # If the variables are bounded, apply the bounds.
@@ -163,7 +167,7 @@ function variable_flow_des(wm::AbstractDirectedModel; nw::Int=wm.cnw, bounded::B
 end
 
 
-function constraint_pipe_flow(wm::AbstractDirectedModel, n::Int, a::Int)
+function constraint_pipe_flow(wm::AbstractDirectedModel, n::Int, a::Int, q_max_reverse::Float64, q_min_forward::Float64)
     # Get common flow variables and associated data.
     qp, qn, y = var(wm, n, :qp_pipe, a), var(wm, n, :qn_pipe, a), var(wm, n, :y_pipe, a)
 
@@ -172,8 +176,13 @@ function constraint_pipe_flow(wm::AbstractDirectedModel, n::Int, a::Int)
     c_1 = JuMP.@constraint(wm.model, qp <= qp_ub * y)
     c_2 = JuMP.@constraint(wm.model, qn <= qn_ub * (1.0 - y))
 
+    # Add additional constraints based on active flows.
+    qp_min_forward, qn_min_forward = max(0.0, q_min_forward), max(0.0, -q_max_reverse)
+    c_3 = JuMP.@constraint(wm.model, qp >= qp_min_forward * y)
+    c_4 = JuMP.@constraint(wm.model, qn >= qn_min_forward * (1.0 - y))
+
     # Append the :pipe_flow constraint array.
-    append!(con(wm, n, :pipe_flow, a), [c_1, c_2])
+    append!(con(wm, n, :pipe_flow, a), [c_1, c_2, c_3, c_4])
 end
 
 
@@ -241,13 +250,13 @@ function constraint_on_off_pipe_head_des(wm::AbstractDirectedModel, n::Int, a::I
 end
 
 
-function constraint_on_off_pump_flow(wm::AbstractDirectedModel, n::Int, a::Int, q_min_active::Float64)
+function constraint_on_off_pump_flow(wm::AbstractDirectedModel, n::Int, a::Int, q_min_forward::Float64)
     # Get pump status variable.
-    qp, y, z = var(wm, n, :qp_pump, a), var(wm, n, :z_pump, a), var(wm, n, :z_pump, a)
+    qp, y, z = var(wm, n, :qp_pump, a), var(wm, n, :y_pump, a), var(wm, n, :z_pump, a)
 
     # If the pump is inactive, flow must be zero.
     qp_ub = JuMP.upper_bound(qp)
-    c_1 = JuMP.@constraint(wm.model, qp >= q_min_active * z)
+    c_1 = JuMP.@constraint(wm.model, qp >= q_min_forward * z)
     c_2 = JuMP.@constraint(wm.model, qp <= qp_ub * z)
 
     # If the pump is on, flow across the pump must be nonnegative.
@@ -280,13 +289,13 @@ function constraint_on_off_pump_head(wm::AbstractDirectedModel, n::Int, a::Int, 
 end
 
 
-function constraint_on_off_regulator_flow(wm::AbstractDirectedModel, n::Int, a::Int, q_min_active::Float64)
+function constraint_on_off_regulator_flow(wm::AbstractDirectedModel, n::Int, a::Int, q_min_forward::Float64)
     # Get regulator flow, status, and direction variables.
     qp, z = var(wm, n, :qp_regulator, a), var(wm, n, :z_regulator, a)
     y = var(wm, n, :y_regulator, a) # Regulator flow direction.
 
     # If the regulator is closed, flow must be zero.
-    qp_lb, qp_ub = max(JuMP.lower_bound(qp), q_min_active), JuMP.upper_bound(qp)
+    qp_lb, qp_ub = max(JuMP.lower_bound(qp), q_min_forward), JuMP.upper_bound(qp)
     c_1 = JuMP.@constraint(wm.model, qp >= qp_lb * z)
     c_2 = JuMP.@constraint(wm.model, qp <= qp_ub * z)
     c_3 = JuMP.@constraint(wm.model, qp <= qp_ub * y)
@@ -322,7 +331,7 @@ function constraint_on_off_regulator_head(wm::AbstractDirectedModel, n::Int, a::
 end
 
 
-function constraint_on_off_valve_flow(wm::AbstractDirectedModel, n::Int, a::Int)
+function constraint_on_off_valve_flow(wm::AbstractDirectedModel, n::Int, a::Int, q_max_reverse::Float64, q_min_forward::Float64)
     # Get valve flow, direction, and status variables.
     qp, qn = var(wm, n, :qp_valve, a), var(wm, n, :qn_valve, a)
     y, z = var(wm, n, :y_valve, a), var(wm, n, :z_valve, a)
@@ -334,8 +343,13 @@ function constraint_on_off_valve_flow(wm::AbstractDirectedModel, n::Int, a::Int)
     c_3 = JuMP.@constraint(wm.model, qp <= qp_ub * z)
     c_4 = JuMP.@constraint(wm.model, qn <= qn_ub * z)
 
+    # Add additional constraints based on active flows.
+    qp_min_forward, qn_min_forward = max(0.0, q_min_forward), max(0.0, -q_max_reverse)
+    c_5 = JuMP.@constraint(wm.model, qp >= qp_min_forward * (y + z - 1.0))
+    c_6 = JuMP.@constraint(wm.model, qn >= qn_min_forward * (z - y))
+
     # Append the constraint array.
-    append!(con(wm, n, :on_off_valve_flow, a), [c_1, c_2, c_3, c_4])
+    append!(con(wm, n, :on_off_valve_flow, a), [c_1, c_2, c_3, c_4, c_5, c_6])
 end
 
 
@@ -360,7 +374,7 @@ function constraint_on_off_valve_head(wm::AbstractDirectedModel, n::Int, a::Int,
 end
 
 
-function constraint_short_pipe_flow(wm::AbstractDirectedModel, n::Int, a::Int)
+function constraint_short_pipe_flow(wm::AbstractDirectedModel, n::Int, a::Int, q_max_reverse::Float64, q_min_forward::Float64)
     # Get short pipe flow and direction variables.
     qp, qn = var(wm, n, :qp_short_pipe, a), var(wm, n, :qn_short_pipe, a)
     y = var(wm, n, :y_short_pipe, a) # Binary direction variable.
@@ -370,8 +384,13 @@ function constraint_short_pipe_flow(wm::AbstractDirectedModel, n::Int, a::Int)
     c_1 = JuMP.@constraint(wm.model, qp <= qp_ub * y)
     c_2 = JuMP.@constraint(wm.model, qn <= qn_ub * (1.0 - y))
 
+    # Add additional constraints based on active flows.
+    qp_min_forward, qn_min_forward = max(0.0, q_min_forward), max(0.0, -q_max_reverse)
+    c_3 = JuMP.@constraint(wm.model, qp >= qp_min_forward * y)
+    c_4 = JuMP.@constraint(wm.model, qn >= qn_min_forward * (1.0 - y))
+
     # Append the :short_pipe_flow constraint array.
-    append!(con(wm, n, :short_pipe_flow, a), [c_1, c_2])
+    append!(con(wm, n, :short_pipe_flow, a), [c_1, c_2, c_3, c_4])
 end
 
 
@@ -475,7 +494,7 @@ function constraint_source_directionality(
 end
 
 
-"Constraint to ensure at least one direction is set to take flow to a junction with demand."
+"Constraint to ensure at least one direction is set to take flow to a node with demand."
 function constraint_sink_directionality(
     wm::AbstractDirectedModel, n::Int, i::Int, pipe_fr::Array{Int64,1},
     pipe_to::Array{Int64,1}, des_pipe_fr::Array{Int64,1}, des_pipe_to::Array{Int64,1},

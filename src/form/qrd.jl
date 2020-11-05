@@ -2,7 +2,9 @@
 # of water distribution network constraints, which use directed flow variables.
 
 
-function constraint_pipe_head_loss(wm::QRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64, L::Float64, r::Float64)
+function constraint_pipe_head_loss(
+    wm::QRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
+    L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
     # Get the number of breakpoints for the pipe.
     num_breakpoints = get(wm.ext, :pipe_breakpoints, 1)
 
@@ -48,7 +50,7 @@ end
 
 
 "Pump head gain constraint when the pump status is ambiguous."
-function constraint_on_off_pump_head_gain(wm::QRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64}, q_min_active::Float64)
+function constraint_on_off_pump_head_gain(wm::QRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64}, q_min_forward::Float64)
     # Gather pump flow, head gain, and status variables.
     qp, g, z = var(wm, n, :qp_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
 
@@ -69,12 +71,10 @@ function objective_owf(wm::QRDWaterModel)
 
     for (n, nw_ref) in nws(wm)
         # Get common constant parameters.
-        rho = 1000.0 # Water density (kilogram per cubic meter).
-        gravity = 9.80665 # Gravitational acceleration (meter per second squared).
-        constant = rho * gravity * ref(wm, n, :time_step)
+        constant = _DENSITY * _GRAVITY * ref(wm, n, :time_step)
 
         for (a, pump) in nw_ref[:pump]
-            q_min_active = get(pump, "q_min_active", _q_eps)
+            q_min_forward = get(pump, "q_min_forward", _FLOW_MIN)
 
             if haskey(pump, "energy_price")
                 # Get price and pump curve data.
@@ -85,7 +85,7 @@ function objective_owf(wm::QRDWaterModel)
                 # Get flow-related variables and data.
                 z = var(wm, n, :z_pump, a)
                 qp, g = var(wm, n, :qp_pump, a), var(wm, n, :g_pump, a)
-                points = collect(range(q_min_active, stop=JuMP.upper_bound(qp), length=50))
+                points = collect(range(q_min_forward, stop=JuMP.upper_bound(qp), length=50))
 
                 # Get pump efficiency data.
                 if haskey(pump, "efficiency_curve")

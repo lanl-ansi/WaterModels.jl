@@ -24,12 +24,9 @@ __init__() = Memento.register(_LOGGER)
 "Suppresses information and warning messages output by WaterModels. For
 more fine-grained control, use the Memento package."
 function silence()
-    Memento.info(
-        _LOGGER,
-        "Suppressing information and warning messages for " *
-        "the rest of this session. Use the Memento package for more " *
-        "fine-grained control of logging.",
-    )
+    msg = "Suppressing information and warning messages for the rest of this session. " *
+        "Use the Memento package for more fine-grained control of logging."
+    Memento.info(_LOGGER, msg)
     Memento.setlevel!(Memento.getlogger(InfrastructureModels), "error")
     Memento.setlevel!(Memento.getlogger(WaterModels), "error")
 end
@@ -45,6 +42,16 @@ include("io/common.jl")
 include("io/epanet.jl")
 
 include("core/base.jl")
+include("core/constants.jl")
+
+include("core/node.jl")
+include("core/demand.jl")
+include("core/reservoir.jl")
+include("core/tank.jl")
+
+include("core/pipe.jl")
+include("core/pump.jl")
+
 include("core/data.jl")
 include("core/ref.jl")
 include("core/types.jl")
@@ -68,9 +75,11 @@ include("prob/wf.jl")
 include("prob/owf.jl")
 include("prob/des.jl")
 
-include("util/unbinarize.jl")
+include("util/relax.jl")
+include("util/variable_index.jl")
+include("util/pairwise_cuts.jl")
+include("util/pump_volume_cuts.jl")
 include("util/obbt.jl")
-include("util/compute_cuts.jl")
 
 include("core/export.jl")
 end

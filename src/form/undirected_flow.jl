@@ -23,10 +23,10 @@ function variable_component_flow(
     # Store the corresponding component symbol.
     comp_sym = Symbol(component_name)
 
-    # Initialize the variables. (The default start value of _q_eps is crucial.)
+    # Initialize the variables. (The default start value of _FLOW_MIN is crucial.)
     q = var(wm, nw)[Symbol("q_" * component_name)] = JuMP.@variable(wm.model,
         [a in ids(wm, nw, comp_sym)], base_name="$(nw)_q_$(component_name)",
-        start=comp_start_value(ref(wm, nw, comp_sym, a), "q_start", _q_eps))
+        start=comp_start_value(ref(wm, nw, comp_sym, a), "q_start", _FLOW_MIN))
 
     if bounded # If the variables are bounded, apply the bounds.
         q_lb, q_ub = calc_flow_bounds(wm, nw)
@@ -47,11 +47,11 @@ function variable_flow_des_common(wm::AbstractUndirectedModel; nw::Int=wm.cnw, b
     # Create dictionary for undirected design flow variables (i.e., q_des_pipe).
     q_des_pipe = var(wm, nw)[:q_des_pipe] = Dict{Int,Array{JuMP.VariableRef}}()
 
-    # Initialize the variables. (The default start value of _q_eps is crucial.)
+    # Initialize the variables. (The default start value of _FLOW_MIN is crucial.)
     for a in ids(wm, nw, :des_pipe)
         var(wm, nw, :q_des_pipe)[a] = JuMP.@variable(wm.model,
             [r in 1:length(ref(wm, nw, :resistance, a))], base_name="$(nw)_q_des_pipe",
-            start=comp_start_value(ref(wm, nw, :des_pipe, a), "q_des_pipe_start", r, _q_eps))
+            start=comp_start_value(ref(wm, nw, :des_pipe, a), "q_des_pipe_start", r, _FLOW_MIN))
     end
 
     if bounded # If the variables are bounded, apply the bounds.
@@ -74,7 +74,7 @@ function variable_flow_des_common(wm::AbstractUndirectedModel; nw::Int=wm.cnw, b
 end
 
 
-function constraint_pipe_flow(wm::AbstractUndirectedModel, n::Int, a::Int)
+function constraint_pipe_flow(wm::AbstractUndirectedModel, n::Int, a::Int, q_max_reverse::Float64, q_min_forward::Float64)
     # By default, there are no constraints, here.
 end
 
@@ -124,12 +124,12 @@ function constraint_on_off_pipe_head_des(wm::AbstractUndirectedModel, n::Int, a:
 end
 
 
-function constraint_on_off_regulator_flow(wm::AbstractUndirectedModel, n::Int, a::Int, q_min_active::Float64)
+function constraint_on_off_regulator_flow(wm::AbstractUndirectedModel, n::Int, a::Int, q_min_forward::Float64)
     # Get flow and regulator status variables.
     q, z = var(wm, n, :q_regulator, a), var(wm, n, :z_regulator, a)
 
     # If the regulator is closed, flow must be zero.
-    q_lb, q_ub = max(JuMP.lower_bound(q), q_min_active), JuMP.upper_bound(q)
+    q_lb, q_ub = max(JuMP.lower_bound(q), q_min_forward), JuMP.upper_bound(q)
     c_1 = JuMP.@constraint(wm.model, q >= q_lb * z)
     c_2 = JuMP.@constraint(wm.model, q <= q_ub * z)
 
@@ -161,7 +161,7 @@ function constraint_on_off_regulator_head(wm::AbstractUndirectedModel, n::Int, a
 end
 
 
-function constraint_on_off_valve_flow(wm::AbstractUndirectedModel, n::Int, a::Int)
+function constraint_on_off_valve_flow(wm::AbstractUndirectedModel, n::Int, a::Int, q_max_reverse::Float64, q_min_forward::Float64)
     # Get flow and valve status variables.
     q, z = var(wm, n, :q_valve, a), var(wm, n, :z_valve, a)
 
@@ -195,13 +195,13 @@ function constraint_on_off_valve_head(wm::AbstractUndirectedModel, n::Int, a::In
 end
 
 
-function constraint_on_off_pump_flow(wm::AbstractUndirectedModel, n::Int, a::Int, q_min_active::Float64)
+function constraint_on_off_pump_flow(wm::AbstractUndirectedModel, n::Int, a::Int, q_min_forward::Float64)
     # Get pump status variable.
     q, z = var(wm, n, :q_pump, a), var(wm, n, :z_pump, a)
 
     # If the pump is inactive, flow must be zero.
     q_ub = JuMP.upper_bound(q)
-    c_1 = JuMP.@constraint(wm.model, q >= q_min_active * z)
+    c_1 = JuMP.@constraint(wm.model, q >= q_min_forward * z)
     c_2 = JuMP.@constraint(wm.model, q <= q_ub * z)
 
     # Append the constraint array.
@@ -228,7 +228,7 @@ function constraint_on_off_pump_head(wm::AbstractUndirectedModel, n::Int, a::Int
 end
 
 
-function constraint_short_pipe_flow(wm::AbstractUndirectedModel, n::Int, a::Int)
+function constraint_short_pipe_flow(wm::AbstractUndirectedModel, n::Int, a::Int, q_max_reverse::Float64, q_min_forward::Float64)
     # By default, there are no constraints, here.
 end
 

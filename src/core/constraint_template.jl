@@ -131,10 +131,6 @@ end
 
 ### Tank Constraints ###
 function constraint_tank_volume(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
-    if !(:time_step in keys(ref(wm, nw)))
-        Memento.error(_LOGGER, "Tank states cannot be controlled without a time step.")
-    end
-
     # Only set the tank state if the tank is nondispatchable.
     if !ref(wm, nw, :tank, i)["dispatchable"]
         tank = ref(wm, nw, :tank, i)
@@ -148,16 +144,13 @@ end
 
 
 function constraint_tank_volume(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2::Int)
-    if !(:time_step in keys(ref(wm, nw_1)))
-        Memento.error(_LOGGER, "Tank states cannot be controlled without a time step.")
-    end
-
     # Only set the tank state if the tank is nondispatchable.
     if !ref(wm, nw_2, :tank, i)["dispatchable"]
         # TODO: What happens if a tank exists in nw_1 but not in nw_2? The index
         # "i" is assumed to be present in both when this constraint is applied.
         _initialize_con_dict(wm, :tank_volume, nw=nw_2)
-        constraint_tank_volume(wm, nw_1, nw_2, i, ref(wm, nw_1, :time_step))
+        time_step = ref(wm, nw_1, :time_step)
+        constraint_tank_volume(wm, nw_1, nw_2, i, time_step)
     end
 end
 
@@ -166,7 +159,9 @@ end
 function constraint_pipe_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     _initialize_con_dict(wm, :pipe_flow, nw=nw, is_array=true)
     con(wm, nw, :pipe_flow)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_pipe_flow(wm, nw, a)
+    q_max_reverse = min(get(ref(wm, nw, :pipe, a), "q_max_reverse", 0.0), 0.0)
+    q_min_forward = max(get(ref(wm, nw, :pipe, a), "q_min_forward", 0.0), 0.0)
+    constraint_pipe_flow(wm, nw, a, q_max_reverse, q_min_forward)
 end
 
 
@@ -184,7 +179,9 @@ function constraint_pipe_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cn
     node_fr, node_to = ref(wm, nw, :pipe, a)["node_fr"], ref(wm, nw, :pipe, a)["node_to"]
     exponent, L = ref(wm, nw, :alpha), ref(wm, nw, :pipe, a)["length"]
     r = minimum(ref(wm, nw, :resistance, a))
-    constraint_pipe_head_loss(wm, nw, a, node_fr, node_to, exponent, L, r)
+    q_max_reverse = min(get(ref(wm, nw, :pipe, a), "q_max_reverse", 0.0), 0.0)
+    q_min_forward = max(get(ref(wm, nw, :pipe, a), "q_min_forward", 0.0), 0.0)
+    constraint_pipe_head_loss(wm, nw, a, node_fr, node_to, exponent, L, r, q_max_reverse, q_min_forward)
 end
 
 
@@ -212,7 +209,7 @@ function constraint_on_off_pipe_head_loss_des(wm::AbstractWaterModel, a::Int; nw
     node_fr = ref(wm, nw, :des_pipe, a)["node_fr"]
     node_to = ref(wm, nw, :des_pipe, a)["node_to"]
     exponent, L = ref(wm, nw, :alpha), ref(wm, nw, :des_pipe, a)["length"]
-    resist = ref(wm, nw, :resistance, a) # Dictionary of possibel resistances at `a`.
+    resist = ref(wm, nw, :resistance, a) # Dictionary of possible resistances at `a`.
     constraint_on_off_pipe_head_loss_des(wm, nw, a, exponent, node_fr, node_to, L, resist)
 end
 
@@ -222,8 +219,8 @@ function constraint_on_off_pump_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.
     node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
     _initialize_con_dict(wm, :on_off_pump_flow, nw=nw, is_array=true)
     con(wm, nw, :on_off_pump_flow)[a] = Array{JuMP.ConstraintRef}([])
-    q_min_active = get(ref(wm, nw, :pump, a), "q_min_active", _q_eps)
-    constraint_on_off_pump_flow(wm, nw, a, q_min_active)
+    q_min_forward = max(get(ref(wm, nw, :pump, a), "q_min_forward", _FLOW_MIN), _FLOW_MIN)
+    constraint_on_off_pump_flow(wm, nw, a, q_min_forward)
 end
 
 
@@ -240,8 +237,8 @@ function constraint_on_off_pump_head_gain(wm::AbstractWaterModel, a::Int; nw::In
     _initialize_con_dict(wm, :on_off_pump_head_gain, nw=nw, is_array=true)
     con(wm, nw, :on_off_pump_head_gain)[a] = Array{JuMP.ConstraintRef}([])
     coeffs = _get_function_from_head_curve(ref(wm, nw, :pump, a)["head_curve"])
-    q_min_active = get(ref(wm, nw, :pump, a), "q_min_active", _q_eps)
-    constraint_on_off_pump_head_gain(wm, nw, a, node_fr, node_to, coeffs, q_min_active)
+    q_min_forward = max(get(ref(wm, nw, :pump, a), "q_min_forward", _FLOW_MIN), _FLOW_MIN)
+    constraint_on_off_pump_head_gain(wm, nw, a, node_fr, node_to, coeffs, q_min_forward)
 end
 
 
@@ -249,7 +246,9 @@ end
 function constraint_short_pipe_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     _initialize_con_dict(wm, :short_pipe_flow, nw=nw, is_array=true)
     con(wm, nw, :short_pipe_flow)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_short_pipe_flow(wm, nw, a)
+    q_max_reverse = min(get(ref(wm, nw, :short_pipe, a), "q_max_reverse", 0.0), 0.0)
+    q_min_forward = max(get(ref(wm, nw, :short_pipe, a), "q_min_forward", 0.0), 0.0)
+    constraint_short_pipe_flow(wm, nw, a, q_max_reverse, q_min_forward)
 end
 
 
@@ -267,7 +266,9 @@ function constraint_on_off_valve_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm
     node_fr, node_to = ref(wm, nw, :valve, a)["node_fr"], ref(wm, nw, :valve, a)["node_to"]
     _initialize_con_dict(wm, :on_off_valve_flow, nw=nw, is_array=true)
     con(wm, nw, :on_off_valve_flow)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_on_off_valve_flow(wm, nw, a)
+    q_max_reverse = min(get(ref(wm, nw, :valve, a), "q_max_reverse", 0.0), 0.0)
+    q_min_forward = max(get(ref(wm, nw, :valve, a), "q_min_forward", 0.0), 0.0)
+    constraint_on_off_valve_flow(wm, nw, a, q_max_reverse, q_min_forward)
 end
 
 
@@ -283,8 +284,8 @@ end
 function constraint_on_off_regulator_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     _initialize_con_dict(wm, :on_off_regulator_flow, nw=nw, is_array=true)
     con(wm, nw, :on_off_regulator_flow)[a] = Array{JuMP.ConstraintRef}([])
-    q_min_active = get(ref(wm, nw, :regulator, a), "q_min_active", _q_eps)
-    constraint_on_off_regulator_flow(wm, nw, a, q_min_active)
+    q_min_forward = get(ref(wm, nw, :regulator, a), "q_min_forward", _FLOW_MIN)
+    constraint_on_off_regulator_flow(wm, nw, a, q_min_forward)
 end
 
 
@@ -296,44 +297,4 @@ function constraint_on_off_regulator_head(wm::AbstractWaterModel, a::Int; nw::In
     elevation = ref(wm, nw, :node, node_to)["elevation"]
     head_setting = elevation + ref(wm, nw, :regulator, a)["setting"]
     constraint_on_off_regulator_head(wm, nw, a, node_fr, node_to, head_setting)
-end
-
-
-### Pressure Reducing Valve Constraints ###
-function constraint_prv_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
-    node_fr = ref(wm, nw, :regulator, a)["node_fr"]
-    node_to = ref(wm, nw, :regulator, a)["node_to"]
-
-    # Add all common pressure reducing valve constraints.
-    _initialize_con_dict(wm, :prv, nw=nw, is_array=true)
-    con(wm, nw, :prv)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_prv_common(wm, nw, a, node_fr, node_to, h_prv)
-end
-
-
-### Pump Constraints ###
-function constraint_pump_head_gain(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, force_on::Bool=false, kwargs...)
-    # Get data common to all pump-related constraints.
-    node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
-    head_curve = ref(wm, nw, :pump, a)["head_curve"]
-    coeffs = _get_function_from_head_curve(head_curve)
-
-    # Add common constraints used to model pump behavior.
-    _initialize_con_dict(wm, :pump, nw=nw, is_array=true)
-    con(wm, nw, :pump)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_pump_common(wm, nw, a, node_fr, node_to, coeffs)
-
-    # Add constraints that define head gain across the pump.
-    _initialize_con_dict(wm, :head_gain, nw=nw, is_array=true)
-    con(wm, nw, :head_gain)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_pump_head_gain(wm, nw, a, node_fr, node_to, coeffs)
-    constraint_pump_head_gain_lb(wm, nw, a, node_fr, node_to, coeffs)
-end
-
-
-function constraint_head_difference_pump(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw)
-    _initialize_con_dict(wm, :head_difference, nw=nw, is_array=true)
-    con(wm, nw, :head_difference)[a] = Array{JuMP.ConstraintRef}([])
-    node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
-    constraint_head_difference_pump(wm, nw, a, node_fr, node_to)
 end
