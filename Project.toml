@@ -2,7 +2,7 @@ name = "WaterModels"
 uuid = "7c60b362-08f4-5b14-8680-cd67a3e18348"
 authors = ["Byron Tasseff"]
 repo = "https://github.com/lanl-ansi/WaterModels.jl"
-version = "0.5.0"
+version = "0.6.0"
 
 [deps]
 InfrastructureModels = "2030c09a-7f63-5d83-885d-db604e0e9cc0"
@@ -14,7 +14,7 @@ MathOptInterface = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
 Memento = "f28f55f0-a522-5efc-85c2-fe41dfb9b2d9"
 
 [compat]
-InfrastructureModels = "~0.5"
+InfrastructureModels = "~0.6"
 Interpolations = "~0.12"
 JSON = "~0.18, ~0.19, ~0.20, ~0.21"
 JuMP = "~0.21"

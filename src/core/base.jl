@@ -104,6 +104,7 @@ function instantiate_model(
         build_method,
         ref_add_core!,
         _wm_global_keys;
+        default_it = :wd,
         kwargs...,
     )
 end
@@ -127,7 +128,7 @@ Some of the common keys include:
 * `:tank` -- the set of tanks in the network
 """
 function ref_add_core!(refs::Dict{Symbol,<:Any})
-    _ref_add_core!(refs[:nw])
+    _ref_add_core!(refs[:it][:wd][:nw])
 end
 
 

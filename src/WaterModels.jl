@@ -1,7 +1,6 @@
 module WaterModels
 import InfrastructureModels
-import InfrastructureModels:
-    ids, ref, var, con, sol, nw_ids, nws, optimize_model!, @im_fields
+import InfrastructureModels: optimize_model!, @im_fields
 const _IM = InfrastructureModels
 
 import Interpolations
@@ -53,6 +52,7 @@ include("core/pipe.jl")
 include("core/pump.jl")
 
 include("core/data.jl")
+include("core/helpers.jl")
 include("core/ref.jl")
 include("core/types.jl")
 include("core/function.jl")

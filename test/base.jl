@@ -26,14 +26,14 @@
 
     @testset "_ref_add_core!" begin
         wm = instantiate_model(parse_file(network_path), LAWaterModel, build_wf)
-        WaterModels._ref_add_core!(wm.ref[:nw])
-        @test length(_IM.ref(wm, :pipe)) == 1
+        WaterModels._ref_add_core!(wm.ref[:it][:wd][:nw])
+        @test length(ref(wm, :pipe)) == 1
     end
 
     @testset "ref_add_core!" begin
         wm = instantiate_model(parse_file(network_path), LAWaterModel, build_wf)
         ref_add_core!(wm.ref)
-        @test length(_IM.ref(wm, :pipe)) == 1
+        @test length(ref(wm, :pipe)) == 1
     end
 
     @testset "run_model (with non-matching multinetwork)" begin
