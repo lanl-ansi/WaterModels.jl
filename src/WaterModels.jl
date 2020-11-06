@@ -75,6 +75,7 @@ include("util/graph.jl")
 include("util/unbinarize.jl")
 include("util/obbt.jl")
 include("util/compute_cuts.jl")
+include("util/compute_source_pumps.jl")
 
 include("core/export.jl")
 end
