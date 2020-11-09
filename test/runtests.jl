@@ -28,6 +28,8 @@ include("common.jl")
 
 @testset "WaterModels" begin
 
+    include("epanet.jl")
+
     include("base.jl")
 
     include("node.jl")

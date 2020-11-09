@@ -30,3 +30,16 @@ function parse_json(path::String)
     dict["per_unit"] = false
     return dict
 end
+
+
+"""
+    _read_file_as_string(path)
+"""
+function _read_file_as_string(file_path::String)
+    if isfile(file_path)
+        return read(open(file_path), String)
+    else
+        error_message = "File \"$(file_path)\" does not exist."
+        Memento.error(_LOGGER, error_message)
+    end
+end
