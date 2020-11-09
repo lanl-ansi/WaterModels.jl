@@ -73,7 +73,7 @@ function parse_epanet(filename::String)
     epanet_data = _read_epanet_sections(filename)
 
     # Parse [OPTIONS] section.
-    _read_option!(epanet_data)
+    _parse_epanet_options(epanet_data)
 
     # Parse [TIMES] section.
     _read_time!(epanet_data)
@@ -707,7 +707,7 @@ function _add_node_map!(data::Dict{String,<:Any})
     end
 end
 
-function _read_option!(data::Dict{String,<:Any})
+function _parse_epanet_options(data::Dict{String,<:Any})
     # Loop over all lines in the [OPTIONS] section and parse each.
     for (line_number, line) in data["section"]["[OPTIONS]"]
         words, comments = _split_line(line)
