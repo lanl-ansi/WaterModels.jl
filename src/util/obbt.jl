@@ -416,13 +416,13 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_relaxed_network:
     bound_problems = _create_bound_problems(wm)
     _update_data_bounds!(data, bound_problems) # Populate data with bounds.
 
-    # Set up algorithm metadata.
-    current_iteration = 1
-
     # Log widths.
     bound_width_msg = _log_bound_widths(data)
-    Memento.info(_LOGGER, "[OBBT] Iteration $(current_iteration) bound widths: $(bound_width_msg).")
+    Memento.info(_LOGGER, "[OBBT] Initial bound widths: $(bound_width_msg).")
     terminate, time_elapsed = false, 0.0
+
+    # Set up algorithm metadata.
+    current_iteration = 1
 
     while any([x.changed for x in bound_problems]) && !terminate
         # Obtain new candidate bounds, update bounds, and update the data.
