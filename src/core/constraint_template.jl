@@ -155,6 +155,24 @@ function constraint_tank_volume(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2:
 end
 
 
+function constraint_on_off_tank_flow(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw, kwargs...)
+    _initialize_con_dict(wm, :on_off_tank_flow, nw = nw, is_array = true)
+    con(wm, nw, :on_off_tank_flow)[i] = Array{JuMP.ConstraintRef}([])
+    tank_node = ref(wm, nw, :tank, i)["node"]
+    valve_fr = _collect_comps_fr(wm, tank_node, :valve; nw = nw)
+    valve_to = _collect_comps_to(wm, tank_node, :valve; nw = nw)
+    constraint_on_off_tank_flow(wm, nw, i, vcat(valve_fr, valve_to))
+end
+
+
+function constraint_on_off_tank_head(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw, kwargs...)
+    _initialize_con_dict(wm, :on_off_tank_head, nw = nw, is_array = true)
+    con(wm, nw, :on_off_tank_head)[i] = Array{JuMP.ConstraintRef}([])
+    tank_node = ref(wm, nw, :tank, i)["node"]
+    constraint_on_off_tank_head(wm, nw, i, tank_node)
+end
+
+
 ### Pipe Constraints ###
 function constraint_pipe_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     _initialize_con_dict(wm, :pipe_flow, nw=nw, is_array=true)

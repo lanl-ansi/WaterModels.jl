@@ -1198,12 +1198,14 @@ function _drop_zero_demands!(data::Dict{String,<:Any})
     end
 end
 
+
 function _drop_pipe_flags!(data::Dict{String,<:Any})
     # Drop valve statuses to parsed pipes.
     for (a, pipe) in data["pipe"]
         delete!(pipe, "has_valve")
     end
 end
+
 
 function _add_valves_to_tanks!(data::Dict{String,<:Any})
     # Modify the network for standard modeling of tanks.
