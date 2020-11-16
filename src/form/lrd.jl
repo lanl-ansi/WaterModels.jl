@@ -252,19 +252,10 @@ function objective_owf(wm::LRDWaterModel)
 
                 # Generate a set of uniform flow and cubic function breakpoints.
                 breakpoints = range(q_min_forward, stop=JuMP.upper_bound(qp), length=pump_breakpoints)
-                f = _calc_cubic_flow_values(collect(breakpoints), curve_fun)
-
-                # Get pump efficiency data.
-                if haskey(pump, "efficiency_curve")
-                    eff_curve = pump["efficiency_curve"]
-                    eff = _calc_efficiencies(collect(breakpoints), eff_curve)
-                else
-                    eff = pump["efficiency"]
-                end
+                energy = _calc_pump_energy_ua(wm, n, a, collect(breakpoints))
 
                 # Add the cost corresponding to the current pump's operation.
-                inner_expr = (constant*price) .* inv.(eff) .* f
-                cost = sum(inner_expr[k]*lambda[a, k] for k in 1:pump_breakpoints)
+                cost = sum(price * energy[k] * lambda[a, k] for k in 1:pump_breakpoints)
                 JuMP.add_to_expression!(objective, cost)
             else
                 Memento.error(_LOGGER, "No cost given for pump \"$(pump["name"])\"")
