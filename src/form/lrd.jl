@@ -56,7 +56,8 @@ function constraint_pipe_head_loss(wm::LRDWaterModel, n::Int, a::Int, node_fr::I
     # Get the lower-bounding line for the qp curve.
     if qp_min_forward < qp_ub
         dhp_1, dhp_2 = r * qp_min_forward^exponent, r * qp_ub^exponent
-        dhp_lb_line = (dhp_2 - dhp_1) * inv(qp_ub - qp_min_forward) * qp + dhp_1 * y
+        dhp_slope = (dhp_2 - dhp_1) * inv(qp_ub - qp_min_forward)
+        dhp_lb_line = dhp_slope * (qp - qp_min_forward * y) + dhp_1 * y
 
         # Add the normalized constraint to the model.
         expr = inv(L) * dhp - dhp_lb_line
@@ -88,7 +89,8 @@ function constraint_pipe_head_loss(wm::LRDWaterModel, n::Int, a::Int, node_fr::I
     # Get the lower-bounding line for the qn curve.
     if qn_min_forward < qn_ub
         dhn_1, dhn_2 = r * qn_min_forward^exponent, r * qn_ub^exponent
-        dhn_lb_line = (dhn_2 - dhn_1) * inv(qn_ub - qn_min_forward) * qn + dhn_1 * (1.0 - y)
+        dhn_slope = (dhn_2 - dhn_1) * inv(qn_ub - qn_min_forward)
+        dhn_lb_line = dhn_slope * (qn - qn_min_forward * (1.0 - y)) + dhn_1 * (1.0 - y)
 
         # Add the normalized constraint to the model.
         expr = inv(L) * dhn - dhn_lb_line
