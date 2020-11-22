@@ -1147,7 +1147,7 @@ function epanet_to_watermodels!(data::Dict{String,<:Any}; import_all::Bool = fal
     _convert_short_pipes!(data) # Convert pipes that are short to short pipes and valves.
     _add_valves_to_tanks!(data) # Ensure that shutoff valves are connected to tanks.
     _add_valves_from_pipes!(data) # Convert pipes with valves to pipes *and* valves.
-    return _drop_pipe_flags!(data) # Drop irrelevant pipe attributes.
+    _drop_pipe_flags!(data) # Drop irrelevant pipe attributes.
 end
 
 function _get_max_comp_id(data::Dict{String,<:Any}, comp::String)
@@ -1159,14 +1159,36 @@ function _get_max_link_id(data::Dict{String,<:Any})
     return maximum(maximum([x["index"] for (i, x) in data[t]]) for t in arc_types)
 end
 
+
 function _get_max_node_id(data::Dict{String,<:Any})
     return maximum([x["index"] for (i, x) in data["node"]])
 end
 
+
+function _get_flow_sum(data::Dict{String, <:Any})
+    flow_sum = 0.0
+
+    for (i, demand) in data["demand"]
+        if haskey(data["time_series"], "demand")
+            if haskey(data["time_series"]["demand"], i)
+                flow_sum += maximum(data["time_series"]["demand"][i]["flow_rate"])
+            end
+        else
+            flow_sum += demand["flow_rate"]
+        end
+    end
+
+    return flow_sum
+end
+
+
 function _convert_short_pipes!(data::Dict{String,<:Any})
+    exponent = uppercase(data["head_loss"]) == "H-W" ? 1.852 : 2.0
+    max_flow_exp = abs(_get_flow_sum(data))^exponent
+
     res = calc_resistances(data["pipe"], data["viscosity"], data["head_loss"])
-    res = Dict{String,Any}(a => res[a] .* x["length"] for (a, x) in data["pipe"])
-    pipe_indices = [a for (a, r) in res if all(r .<= 0.01)] # Pipes with small resistances.
+    dh = Dict{String,Any}(a => res[a] .* x["length"] * max_flow_exp for (a, x) in data["pipe"])
+    pipe_indices = [a for (a, x) in dh if all(x .<= 0.50)] # Pipes with small head loss.
 
     for a in pipe_indices
         pipe = deepcopy(data["pipe"][a])
