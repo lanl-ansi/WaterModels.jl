@@ -233,7 +233,7 @@ function variable_pipe_des_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, rel
 end
 
 
-function _fix_indicator_variable(v::JuMP.VariableRef, component::Dict{String,<:Any}, name::String)
+function _fix_indicator_variable(v::JuMP.VariableRef, component::Dict{String, <:Any}, name::String)
     min_name, max_name = name * "_min", name * "_max"
 
     if haskey(component, min_name) && haskey(component, max_name)

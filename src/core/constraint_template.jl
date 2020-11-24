@@ -137,7 +137,7 @@ function constraint_tank_volume(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
         initial_level = tank["init_level"]
         surface_area = 0.25 * pi * tank["diameter"]^2
         V_initial = surface_area * initial_level
-        _initialize_con_dict(wm, :tank_volume, nw=nw)
+        _initialize_con_dict(wm, :tank_volume, nw = nw)
         constraint_tank_volume_fixed(wm, nw, i, V_initial)
     end
 end
@@ -148,7 +148,7 @@ function constraint_tank_volume(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2:
     if !ref(wm, nw_2, :tank, i)["dispatchable"]
         # TODO: What happens if a tank exists in nw_1 but not in nw_2? The index
         # "i" is assumed to be present in both when this constraint is applied.
-        _initialize_con_dict(wm, :tank_volume, nw=nw_2)
+        _initialize_con_dict(wm, :tank_volume, nw = nw_2)
         time_step = ref(wm, nw_1, :time_step)
         constraint_tank_volume(wm, nw_1, nw_2, i, time_step)
     end

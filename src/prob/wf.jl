@@ -153,15 +153,15 @@ function build_mn_wf(wm::AbstractWaterModel)
     n_1 = network_ids[1]
 
     # Constraints on tank volumes.
-    for (i, tank) in ref(wm, :tank; nw=n_1)
+    for (i, tank) in ref(wm, :tank; nw = n_1)
         # Set initial conditions of tanks.
-        constraint_tank_volume(wm, i; nw=n_1)
+        constraint_tank_volume(wm, i; nw = n_1)
     end
 
     # Constraints on tank volumes.
     for n_2 in network_ids[2:end]
         # Constrain tank volumes after the initial time step.
-        for (i, tank) in ref(wm, :tank; nw=n_2)
+        for (i, tank) in ref(wm, :tank; nw = n_2)
             constraint_tank_volume(wm, i, n_1, n_2)
         end
 

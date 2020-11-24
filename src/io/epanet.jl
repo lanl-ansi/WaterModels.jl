@@ -1247,7 +1247,7 @@ function _add_valves_to_tanks!(data::Dict{String,<:Any})
         valve = Dict{String,Any}("name" => string(v_id), "status" => 1, "index" => v_id)
         valve["source_id"] = AbstractString["valve", string(v_id)]
         valve["node_fr"], valve["node_to"] = original_tank_node, dummy_node_id
-        valve["flow_direction"] = UNKNOWN
+        valve["flow_direction"], valve["minor_loss"] = UNKNOWN, 0.0
 
         # Add the valve to the data object.
         data["valve"][string(v_id)] = valve
@@ -1266,6 +1266,7 @@ function _add_valves_from_pipes!(data::Dict{String,<:Any})
         valve = Dict{String,Any}("index" => pipe["index"], "name" => pipe["name"])
         valve["source_id"], valve["status"] = pipe["source_id"], 1
         valve["flow_direction"] = pipe["flow_direction"]
+        valve["minor_loss"] = pipe["minor_loss"]
 
         # Modify the start and ends nodes of the valve and pipe.
         valve["node_fr"], valve["node_to"] = pipe["node_fr"], dummy_node_id

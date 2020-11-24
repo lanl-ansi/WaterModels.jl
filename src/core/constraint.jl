@@ -83,9 +83,9 @@ index of another subnetwork forward in time, relative to `n_1`, i is the index o
 and time_step is the time step (in seconds) of the interval from network `n_1` to `n_2`.
 """
 function constraint_tank_volume(wm::AbstractWaterModel, n_1::Int, n_2::Int, i::Int, time_step::Float64)
-    qt = var(wm, n_1, :q_tank, i) # Tank outflow.
+    q_tank = var(wm, n_1, :q_tank, i) # Tank outflow.
     V_1, V_2 = var(wm, n_1, :V, i), var(wm, n_2, :V, i)
-    c = JuMP.@constraint(wm.model, V_1 - time_step * qt == V_2)
+    c = JuMP.@constraint(wm.model, V_1 - time_step * q_tank == V_2)
     con(wm, n_2, :tank_volume)[i] = c
 end
 
@@ -100,9 +100,9 @@ multinetwork, `n_f` is the index of the final subnetwork, and i is the index of 
 """
 function constraint_tank_volume_recovery(wm::AbstractWaterModel, i::Int, n_1::Int, n_f::Int)
     if !ref(wm, n_f, :tank, i)["dispatchable"]
-        _initialize_con_dict(wm, :tank_volume_recovery, nw=n_f)
+        _initialize_con_dict(wm, :tank_volume_recovery, nw = n_f)
         V_1, V_f = var(wm, n_1, :V, i), var(wm, n_f, :V, i)
-        c = JuMP.@constraint(wm.model, V_f >= V_1)
+        c = JuMP.@constraint(wm.model, V_1 <= V_f)
         con(wm, n_f, :tank_volume_recovery)[i] = c
     end
 end
