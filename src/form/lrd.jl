@@ -56,7 +56,8 @@ function constraint_pipe_head_loss(wm::LRDWaterModel, n::Int, a::Int, node_fr::I
     # Get the lower-bounding line for the qp curve.
     if qp_min_forward < qp_ub
         dhp_1, dhp_2 = r * qp_min_forward^exponent, r * qp_ub^exponent
-        dhp_lb_line = (dhp_2 - dhp_1) * inv(qp_ub - qp_min_forward) * qp + dhp_1 * y
+        dhp_slope = (dhp_2 - dhp_1) * inv(qp_ub - qp_min_forward)
+        dhp_lb_line = dhp_slope * (qp - qp_min_forward * y) + dhp_1 * y
 
         # Add the normalized constraint to the model.
         expr = inv(L) * dhp - dhp_lb_line
@@ -88,7 +89,8 @@ function constraint_pipe_head_loss(wm::LRDWaterModel, n::Int, a::Int, node_fr::I
     # Get the lower-bounding line for the qn curve.
     if qn_min_forward < qn_ub
         dhn_1, dhn_2 = r * qn_min_forward^exponent, r * qn_ub^exponent
-        dhn_lb_line = (dhn_2 - dhn_1) * inv(qn_ub - qn_min_forward) * qn + dhn_1 * (1.0 - y)
+        dhn_slope = (dhn_2 - dhn_1) * inv(qn_ub - qn_min_forward)
+        dhn_lb_line = dhn_slope * (qn - qn_min_forward * (1.0 - y)) + dhn_1 * (1.0 - y)
 
         # Add the normalized constraint to the model.
         expr = inv(L) * dhn - dhn_lb_line
@@ -251,20 +253,11 @@ function objective_owf(wm::LRDWaterModel)
                 q_min_forward = max(get(pump, "q_min_forward", _FLOW_MIN), _FLOW_MIN)
 
                 # Generate a set of uniform flow and cubic function breakpoints.
-                breakpoints = range(q_min_forward, stop=JuMP.upper_bound(qp), length=pump_breakpoints)
-                f = _calc_cubic_flow_values(collect(breakpoints), curve_fun)
-
-                # Get pump efficiency data.
-                if haskey(pump, "efficiency_curve")
-                    eff_curve = pump["efficiency_curve"]
-                    eff = _calc_efficiencies(collect(breakpoints), eff_curve)
-                else
-                    eff = pump["efficiency"]
-                end
+                breakpoints = range(q_min_forward, stop = JuMP.upper_bound(qp), length = pump_breakpoints)
+                energy = _calc_pump_energy_ua(wm, n, a, collect(breakpoints))
 
                 # Add the cost corresponding to the current pump's operation.
-                inner_expr = (constant*price) .* inv.(eff) .* f
-                cost = sum(inner_expr[k]*lambda[a, k] for k in 1:pump_breakpoints)
+                cost = sum(price * energy[k] * lambda[a, k] for k in 1:pump_breakpoints)
                 JuMP.add_to_expression!(objective, cost)
             else
                 Memento.error(_LOGGER, "No cost given for pump \"$(pump["name"])\"")

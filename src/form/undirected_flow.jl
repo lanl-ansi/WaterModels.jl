@@ -8,7 +8,7 @@
 function variable_flow(wm::AbstractUndirectedModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
     for name in ["pipe", "pump", "regulator", "short_pipe", "valve"]
         # Create undirected flow variables for each component.
-        variable_component_flow(wm, name; nw=nw, bounded=bounded, report=report)
+        _variable_component_flow(wm, name; nw=nw, bounded=bounded, report=report)
     end
 
     # Create flow-related variables for design components.
@@ -17,7 +17,7 @@ end
 
 
 "Create flow variables that are common to all directed flow models for a component."
-function variable_component_flow(
+function _variable_component_flow(
     wm::AbstractUndirectedModel, component_name::String; nw::Int=wm.cnw,
     bounded::Bool=true, report::Bool=true)
     # Store the corresponding component symbol.

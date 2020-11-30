@@ -278,14 +278,15 @@ function constraint_on_off_pump_head(wm::AbstractDirectedModel, n::Int, a::Int, 
     dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
     c_1 = JuMP.@constraint(wm.model, dhp <= dhp_ub * (1.0 - z))
     c_2 = JuMP.@constraint(wm.model, dhn <= g + dhn_ub * (1.0 - z))
-    c_3 = JuMP.@constraint(wm.model, dhn >= g)
+    c_3 = JuMP.@constraint(wm.model, g <= dhn_ub * z)
+    c_4 = JuMP.@constraint(wm.model, g <= dhn)
 
     # Equate head difference variables with heads.
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-    c_4 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
+    c_5 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
 
     # Append the constraint array.
-    append!(con(wm, n, :on_off_pump_head, a), [c_1, c_2, c_3, c_4])
+    append!(con(wm, n, :on_off_pump_head, a), [c_1, c_2, c_3, c_4, c_5])
 end
 
 

@@ -27,7 +27,7 @@ function build_mn_owf(wm::AbstractWaterModel)
     # Ensure tanks recover their initial volume.
     n_1, n_f = network_ids[1], network_ids[end]
 
-    for i in ids(wm, :tank; nw=n_f)
+    for i in ids(wm, n_f, :tank)
         constraint_tank_volume_recovery(wm, i, n_1, n_f)
     end
 

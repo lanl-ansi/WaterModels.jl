@@ -119,6 +119,28 @@ function variable_tank_flow(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool
 end
 
 
+"Creates binary variables for tanks in the network, i.e., `z_tank[a]` for `a` in `tank`,
+where one denotes that the tank is open and zero denotes that the tank is closed."
+function variable_tank_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, relax::Bool=false, report::Bool=true)
+    if !relax
+        z_tank = var(wm, nw)[:z_tank] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :tank)], base_name = "$(nw)_z_tank", binary = true,
+            start = comp_start_value(ref(wm, nw, :tank, a), "z_tank_start"))
+    else
+        z_tank = var(wm, nw)[:z_tank] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :tank)], base_name = "z_tank[$(nw)]",
+            lower_bound = 0.0, upper_bound = 1.0,
+            start = comp_start_value(ref(wm, nw, :tank, a), "z_tank_start"))
+    end
+
+    for (a, tank) in ref(wm, nw, :tank)
+        _fix_indicator_variable(z_tank[a], tank, "z")
+    end
+
+    report && _IM.sol_component_value(wm, nw, :tank, :status, ids(wm, nw, :tank), z_tank)
+end
+
+
 ### Link variables. ###
 "Creates binary variables for valves in the network, i.e., `z_valve[a]` for `a` in `valve`,
 where one denotes that the valve is open and zero denotes that the valve is closed."
@@ -211,7 +233,7 @@ function variable_pipe_des_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, rel
 end
 
 
-function _fix_indicator_variable(v::JuMP.VariableRef, component::Dict{String,<:Any}, name::String)
+function _fix_indicator_variable(v::JuMP.VariableRef, component::Dict{String, <:Any}, name::String)
     min_name, max_name = name * "_min", name * "_max"
 
     if haskey(component, min_name) && haskey(component, max_name)

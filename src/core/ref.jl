@@ -16,6 +16,57 @@ function build_ref(
 end
 
 
+function _calc_pump_energy_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, num_points::Int)
+    pump = ref(wm, nw, :pump, pump_id)
+    constant = _DENSITY * _GRAVITY * ref(wm, nw, :time_step)
+    curve_fun = _get_function_from_head_curve(pump["head_curve"])
+    q_min, q_max = pump["q_min_forward"], pump["q_max"]
+    q_build = range(q_min, stop = q_max, length = 100)
+    f_build = _calc_cubic_flow_values(collect(q_build), curve_fun)
+
+    if haskey(pump, "efficiency_curve")
+        eff_curve = pump["efficiency_curve"]
+        eff = _calc_efficiencies(collect(q_build), eff_curve)
+    else
+        eff = pump["efficiency"]
+    end
+
+    return q_build, constant .* inv.(eff) .* f_build
+end
+
+
+function _calc_pump_energy_ua(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Array{Float64, 1})
+    q_true, f_true = _calc_pump_energy_points(wm, nw, pump_id, 100)
+    f_interp = Interpolations.LinearInterpolation(q_true, f_true).(q)
+
+    for i in 2:length(q)
+        slope = (f_interp[i] - f_interp[i-1]) * inv(q[i] - q[i-1])
+        true_ids = filter(x -> q_true[x] >= q[i-1] && q_true[x] <= q[i], 1:length(q_true))
+        f_est_s = f_interp[i-1] .+ (slope .* (q_true[true_ids] .- q[i-1]))
+        est_err = max(0.0, maximum(f_est_s .- f_true[true_ids]))
+        f_interp[i-1:i] .-= est_err
+    end
+
+    return f_interp
+end
+
+
+function _calc_pump_energy(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Float64)
+    pump = ref(wm, nw, :pump, pump_id)
+    constant = _DENSITY * _GRAVITY * ref(wm, nw, :time_step)
+    pc = _get_function_from_head_curve(pump["head_curve"])
+
+    if haskey(pump, "efficiency_curve")
+        eff_curve = pump["efficiency_curve"]
+        eff = _calc_efficiencies([q], eff_curve)[1]
+    else
+        eff = pump["efficiency"]
+    end
+
+    return constant * inv(eff) * (pc[1]*q^3 + pc[2]*q^2 + pc[3]*q)
+end
+
+
 function _calc_head_loss_values(points::Array{Float64}, alpha::Float64)
     return [sign(x) * abs(x)^alpha for x in points]
 end

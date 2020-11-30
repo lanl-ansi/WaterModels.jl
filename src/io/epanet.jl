@@ -1145,9 +1145,9 @@ internal WaterModels use. Imports all data from the EPANET file if `import_all` 
 function epanet_to_watermodels!(data::Dict{String,<:Any}; import_all::Bool = false)
     _drop_zero_demands!(data) # Drop demands of zero from nodes.
     _convert_short_pipes!(data) # Convert pipes that are short to short pipes and valves.
-    _add_valves_to_tanks!(data) # Ensure that shutoff valves are connected to tanks.
+    #_add_valves_to_tanks!(data) # Ensure that shutoff valves are connected to tanks.
     _add_valves_from_pipes!(data) # Convert pipes with valves to pipes *and* valves.
-    return _drop_pipe_flags!(data) # Drop irrelevant pipe attributes.
+    _drop_pipe_flags!(data) # Drop irrelevant pipe attributes.
 end
 
 function _get_max_comp_id(data::Dict{String,<:Any}, comp::String)
@@ -1159,14 +1159,36 @@ function _get_max_link_id(data::Dict{String,<:Any})
     return maximum(maximum([x["index"] for (i, x) in data[t]]) for t in arc_types)
 end
 
+
 function _get_max_node_id(data::Dict{String,<:Any})
     return maximum([x["index"] for (i, x) in data["node"]])
 end
 
+
+function _get_flow_sum(data::Dict{String, <:Any})
+    flow_sum = 0.0
+
+    for (i, demand) in data["demand"]
+        if haskey(data["time_series"], "demand")
+            if haskey(data["time_series"]["demand"], i)
+                flow_sum += maximum(data["time_series"]["demand"][i]["flow_rate"])
+            end
+        else
+            flow_sum += demand["flow_rate"]
+        end
+    end
+
+    return flow_sum
+end
+
+
 function _convert_short_pipes!(data::Dict{String,<:Any})
+    exponent = uppercase(data["head_loss"]) == "H-W" ? 1.852 : 2.0
+    max_flow_exp = abs(_get_flow_sum(data))^exponent
+
     res = calc_resistances(data["pipe"], data["viscosity"], data["head_loss"])
-    res = Dict{String,Any}(a => res[a] .* x["length"] for (a, x) in data["pipe"])
-    pipe_indices = [a for (a, r) in res if all(r .<= 0.01)] # Pipes with small resistances.
+    dh = Dict{String,Any}(a => res[a] .* x["length"] * max_flow_exp for (a, x) in data["pipe"])
+    pipe_indices = [a for (a, x) in dh if all(x .<= 0.50)] # Pipes with small head loss.
 
     for a in pipe_indices
         pipe = deepcopy(data["pipe"][a])
@@ -1198,12 +1220,14 @@ function _drop_zero_demands!(data::Dict{String,<:Any})
     end
 end
 
+
 function _drop_pipe_flags!(data::Dict{String,<:Any})
     # Drop valve statuses to parsed pipes.
     for (a, pipe) in data["pipe"]
         delete!(pipe, "has_valve")
     end
 end
+
 
 function _add_valves_to_tanks!(data::Dict{String,<:Any})
     # Modify the network for standard modeling of tanks.
@@ -1223,7 +1247,7 @@ function _add_valves_to_tanks!(data::Dict{String,<:Any})
         valve = Dict{String,Any}("name" => string(v_id), "status" => 1, "index" => v_id)
         valve["source_id"] = AbstractString["valve", string(v_id)]
         valve["node_fr"], valve["node_to"] = original_tank_node, dummy_node_id
-        valve["flow_direction"] = UNKNOWN
+        valve["flow_direction"], valve["minor_loss"] = UNKNOWN, 0.0
 
         # Add the valve to the data object.
         data["valve"][string(v_id)] = valve
@@ -1242,6 +1266,7 @@ function _add_valves_from_pipes!(data::Dict{String,<:Any})
         valve = Dict{String,Any}("index" => pipe["index"], "name" => pipe["name"])
         valve["source_id"], valve["status"] = pipe["source_id"], 1
         valve["flow_direction"] = pipe["flow_direction"]
+        valve["minor_loss"] = pipe["minor_loss"]
 
         # Modify the start and ends nodes of the valve and pipe.
         valve["node_fr"], valve["node_to"] = pipe["node_fr"], dummy_node_id
