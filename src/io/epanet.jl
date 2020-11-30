@@ -1,81 +1,61 @@
-using JSON
-
-_INP_SECTIONS = [
-    "[OPTIONS]",
-    "[TITLE]",
-    "[JUNCTIONS]",
-    "[RESERVOIRS]",
-    "[TANKS]",
-    "[PIPES]",
-    "[PUMPS]",
-    "[VALVES]",
-    "[EMITTERS]",
-    "[CURVES]",
-    "[PATTERNS]",
-    "[ENERGY]",
-    "[STATUS]",
-    "[CONTROLS]",
-    "[RULES]",
-    "[DEMANDS]",
-    "[QUALITY]",
-    "[REACTIONS]",
-    "[SOURCES]",
-    "[MIXING]",
-    "[TIMES]",
-    "[REPORT]",
-    "[COORDINATES]",
-    "[VERTICES]",
-    "[LABELS]",
-    "[BACKDROP]",
-    "[TAGS]",
-]
+function _initialize_epanet_dictionary()
+    data = Dict{String,Any}("time_series" => Dict{String,Any}(), "top_comments" => [])
+    data["section"] = Dict{String,Array}()
+    map(section -> data["section"][section] = [], _INP_SECTIONS)
+    return data
+end
 
 
-function _read_sections(filename::String)
-    data = _initialize_data()
+function _read_epanet_sections(file_path::String)
+    # Read the entire EPANET file as a string.
+    file_contents = _read_file_as_string(file_path)
 
-    section = nothing
-    line_number = 0
-    file_contents = read(open(filename), String)
+    # Initialize the dictionary that stores raw EPANET data.
+    data = _initialize_epanet_dictionary()
 
+    # Instantiate metadata used in parsing EPANET sections.
+    section, line_number = nothing, 0
+
+    # Populate sections in the EPANET dictionary.
     for line in split(file_contents, "\n")
-        line_number += 1
-        line = strip(line)
-        num_words = length(split(line))
+        # Update important data associated with the line.
+        line, line_number = strip(line), line_number + 1,
 
-        if length(line) == 0 || num_words == 0
+        if length(line) == 0
+            # If the line is empty, continue to the next line.
             continue
         elseif startswith(line, "[")
-            values = split(line, limit = 1)
+            # If the line starts with "[", it's a section.
+            values = split(line; limit = 1)
             section_tmp = uppercase(values[1])
 
             if section_tmp in _INP_SECTIONS
+                # If the section title is valid, store it as the current.
                 section = section_tmp
                 continue
             elseif section_tmp == "[END]"
-                section = nothing
+                # If the section title is "[END]", parsing is complete.
                 break
             else
-                Memento.error(
-                    _LOGGER,
-                    "$(filename): $(line_number): Invalid section \"$(section)\"",
-                )
+                # If the section title is not valid, throw an error.
+                msg = "$(file_path): $(line_number): Invalid section \"$(section_tmp)\"."
+                Memento.error(_LOGGER, msg)
             end
         elseif section == nothing && startswith(line, ";")
+            # If there is no current section and the section is a comment, store it.
             data["top_comments"] = vcat(data["top_comments"], line[2:end])
             continue
-        elseif section == nothing
-            Memento.warn(_LOGGER, "$(filename): Found confusing line: $(line_number)")
-            Memento.error(
-                _LOGGER,
-                "$(filename): $(line_number): Non-comment outside of valid section",
-            )
+        elseif section == nothing && !startswith(line, ";")
+            # If there is no current section and the line is not a comment, throw an error.
+            message = "$(file_path): $(line_number): Invalid EPANET input syntax."
+            Memento.error(_LOGGER, message)
         end
 
-        data["section"][section] = vcat(data["section"][section], (line_number, line))
+        # Append a tuple of the line number and the line string to the dictionary.
+        push!(data["section"][section], (line_number, line))
     end
 
-    return data
+    return data # Return the "raw" EPANET data dictionary.
 end
 
 
@@ -90,96 +70,109 @@ a thorough description of the EPANET format and its components.
 """
 function parse_epanet(filename::String)
     # Read in raw sectional EPANET data.
-    data = _read_sections(filename)
+    epanet_data = _read_epanet_sections(filename)
 
     # Parse [OPTIONS] section.
-    _read_option!(data)
+    _parse_epanet_options(epanet_data)
 
     # Parse [TIMES] section.
-    _read_time!(data)
+    _read_time!(epanet_data)
 
     # Parse [CURVES] section.
-    _read_curve!(data)
+    _read_curve!(epanet_data)
 
     # Parse [PATTERNS] section.
-    _read_pattern!(data)
+    _read_pattern!(epanet_data)
 
     # Parse [JUNCTIONS] section.
-    _read_demand!(data)
+    _read_demand!(epanet_data)
 
     # Parse [RESERVOIRS] section.
-    _read_reservoir!(data)
+    _read_reservoir!(epanet_data)
 
     # Parse [TANKS] section.
-    _read_tank!(data)
+    _read_tank!(epanet_data)
 
     # Add nodes for components with nodal properties.
-    _add_nodes!(data)
+    _add_nodes!(epanet_data)
 
     # Add a data structure mapping names to node indices.
-    _add_node_map!(data)
+    _add_node_map!(epanet_data)
 
     # Update time series information for demands.
-    _update_demand_ts!(data)
+    _update_demand_ts!(epanet_data)
 
     # Update time series information for reservoirs.
-    _update_reservoir_ts!(data)
+    _update_reservoir_ts!(epanet_data)
 
     # Parse [PIPES] section.
-    _read_pipe!(data)
+    _read_pipe!(epanet_data)
 
     # Set up a dictionary containing valve objects.
-    data["valve"] = Dict{String,Any}()
+    epanet_data["valve"] = Dict{String,Any}()
 
     # Set up a dictionary containing short pipe objects.
-    data["short_pipe"] = Dict{String,Any}()
+    epanet_data["short_pipe"] = Dict{String,Any}()
 
     # Parse [PUMPS] section.
-    _read_pump!(data)
+    _read_pump!(epanet_data)
 
     # Parse [VALVES] section.
-    _read_regulator!(data)
+    _read_regulator!(epanet_data)
 
     # Parse [ENERGY] section.
-    _read_energy!(data)
+    _read_energy!(epanet_data)
 
     # Parse [STATUS] section.
-    _read_status!(data)
+    _read_status!(epanet_data)
 
     # Parse [CONTROLS] section.
-    _read_controls!(data)
+    _read_controls!(epanet_data)
 
     # Update pump data using data from the [ENERGY] section.
-    _update_pump_energy!(data)
+    _update_pump_energy!(epanet_data)
 
     # Parse [COORDINATES] section.
-    _read_coordinate!(data)
+    _read_coordinate!(epanet_data)
 
     # Parse [TITLE] section.
-    _read_title!(data)
+    _read_title!(epanet_data)
 
     # Add or remove time series information.
-    _update_time_series!(data)
+    _update_time_series!(epanet_data)
 
     # Delete redundant data that may have been parsed or added to the dictionary.
-    for key in ["section", "node_map", "curve", "pattern", "hydraulic_time_step",
-                "pattern_time_step", "demand_multiplier", "flow_units", "duration",
-                "top_comments", "default_pattern", "energy_price", "energy_pattern",
-                "energy_efficiency", "duration", "start_time", "demand_charge"]
-        key in keys(data) && delete!(data, key)
+    for key in [
+        "section",
+        "node_map",
+        "curve",
+        "pattern",
+        "hydraulic_time_step",
+        "pattern_time_step",
+        "demand_multiplier",
+        "flow_units",
+        "duration",
+        "top_comments",
+        "default_pattern",
+        "energy_price",
+        "energy_pattern",
+        "energy_efficiency",
+        "duration",
+        "start_time",
+        "demand_charge",
+    ]
+        key in keys(epanet_data) && delete!(epanet_data, key)
     end
 
     # Add other data required by InfrastructureModels.
-    data["per_unit"] = false
+    epanet_data["per_unit"] = false
 
     # Remove all keys that have values of nothing.
-    _clean_nothing!(data)
+    _clean_nothing!(epanet_data)
 
     # Return the dictionary.
-    return data
+    return epanet_data
 end
-
-
 
 
 function _update_time_series!(data::Dict{String,<:Any})
@@ -206,7 +199,6 @@ function _update_time_series!(data::Dict{String,<:Any})
     end
 end
 
-
 "Standardize component indices to be integers instead of strings."
 function _transform_component_indices(components::Dict{String,<:Any})
     if all([tryparse(Int64, x["name"]) != nothing for (i, x) in components])
@@ -222,7 +214,6 @@ function _transform_component_indices(components::Dict{String,<:Any})
     return Dict{String,Any}(string(x["index"]) => x for (i, x) in components)
 end
 
-
 function _update_demand_ts!(data::Dict{String,<:Any})
     # Create a temporary dictionary representing the demand time series.
     demand_ts = Dict{String,Any}()
@@ -234,9 +225,8 @@ function _update_demand_ts!(data::Dict{String,<:Any})
     end
 
     # Update the demand entry in the time series dictionary.
-    data["time_series"]["demand"] = demand_ts
+    return data["time_series"]["demand"] = demand_ts
 end
-
 
 function _update_reservoir_ts!(data::Dict{String,<:Any})
     # Create a temporary dictionary representing the reservoir time series.
@@ -251,9 +241,8 @@ function _update_reservoir_ts!(data::Dict{String,<:Any})
 
     # Update the reservoir entry in the time series dictionary.
     data["time_series"]["node"] = node_ts
-    delete!(data["time_series"], "reservoir")
+    return delete!(data["time_series"], "reservoir")
 end
-
 
 function _add_nodes!(data::Dict{String,<:Any})
     # Define EPANET nodal types that should be attached to nodes.
@@ -290,9 +279,8 @@ function _add_nodes!(data::Dict{String,<:Any})
     end
 end
 
-
 function _split_line(line::AbstractString)
-    _vc = split(line, ",", limit = 1)
+    _vc = split(line, ","; limit = 1)
     _values = nothing
     _comment = nothing
 
@@ -311,19 +299,6 @@ function _split_line(line::AbstractString)
 end
 
 
-function _initialize_data()
-    data = Dict{String,Any}()
-
-    data["top_comments"] = []
-    data["section"] = Dict{String,Array}()
-    data["time_series"] = Dict{String,Any}()
-
-    for section in _INP_SECTIONS
-        data["section"][section] = []
-    end
-
-    return data
-end
 
 
 """
@@ -420,7 +395,6 @@ function _clock_time_to_seconds(s::AbstractString, am_pm::AbstractString)
     end
 end
 
-
 """
 Converts EPANET time format to seconds.
 Parameters
@@ -458,7 +432,6 @@ function _string_time_to_seconds(s::AbstractString)
     end
 end
 
-
 function _clean_nothing!(data)
     for (key, value) in data
         if isa(value, Dict)
@@ -468,7 +441,6 @@ function _clean_nothing!(data)
         end
     end
 end
-
 
 function _read_coordinate!(data::Dict{String,<:Any})
     for (line_number, line) in data["section"]["[COORDINATES]"]
@@ -481,7 +453,6 @@ function _read_coordinate!(data::Dict{String,<:Any})
         data["node"][string(node_id)]["coordinates"] = (x, y)
     end
 end
-
 
 function _read_curve!(data::Dict{String,<:Any})
     # Initialize dictionary associated with curves.
@@ -503,7 +474,6 @@ function _read_curve!(data::Dict{String,<:Any})
         data["curve"][curve_name] = vcat(data["curve"][curve_name], (x, y))
     end
 end
-
 
 function _read_energy!(data::Dict{String,<:Any})
     # Loop over all lines in the [ENERGY] section and parse each.
@@ -555,7 +525,7 @@ function _read_energy!(data::Dict{String,<:Any})
                     Memento.error(_LOGGER, "Could not find a valid \"units\" option type.")
                 end
 
-                for k in 1:length(y)
+                for k = 1:length(y)
                     y[k] = x[k] > 0.0 && y[k] > 1.0e-2 ? y[k] : 1.0e-2
                 end
 
@@ -569,7 +539,6 @@ function _read_energy!(data::Dict{String,<:Any})
         end
     end
 end
-
 
 function _read_status!(data::Dict{String,<:Any})
     # Loop over all lines in the [STATUS] section and parse each.
@@ -585,7 +554,6 @@ function _read_status!(data::Dict{String,<:Any})
     end
 end
 
-
 function _read_controls!(data::Dict{String,<:Any})
     # Loop over all lines in the [CONTROLS] section and parse each.
     for (line_number, line) in data["section"]["[CONTROLS]"]
@@ -599,7 +567,6 @@ function _read_controls!(data::Dict{String,<:Any})
     end
 end
 
-
 function _update_pump_energy!(data::Dict{String,<:Any})
     # Use data previously parsed to infer missing pump data.
     for (pump_id, pump) in data["pump"]
@@ -609,7 +576,10 @@ function _update_pump_energy!(data::Dict{String,<:Any})
             pump["efficiency"] = data["energy_efficiency"]
         elseif !("efficiency_curve" in keys(pump))
             # Otherwise, assume the pump is perfectly efficient.
-            Memento.warn(_LOGGER, "Efficiency for pump \"$(pump["name"])\" could not be found.")
+            Memento.warn(
+                _LOGGER,
+                "Efficiency for pump \"$(pump["name"])\" could not be found.",
+            )
             pump["efficiency"] = 1.0
         end
 
@@ -643,7 +613,6 @@ function _update_pump_energy!(data::Dict{String,<:Any})
         end
     end
 end
-
 
 "Parse and store demand data from an EPANET-formatted data dictionary."
 function _read_demand!(data::Dict{String,<:Any})
@@ -714,11 +683,10 @@ function _read_demand!(data::Dict{String,<:Any})
         # Append the demand entry to the data dictionary.
         data["demand"][current[1]] = demand
     end
-   
-    # Replace with a new dictionary that uses integer component indices.
-    data["demand"] = _transform_component_indices(data["demand"])
-end
 
+    # Replace with a new dictionary that uses integer component indices.
+    return data["demand"] = _transform_component_indices(data["demand"])
+end
 
 function _add_node_map!(data::Dict{String,<:Any})
     # Initialize the dictionary mapping component names to node indices.
@@ -739,8 +707,7 @@ function _add_node_map!(data::Dict{String,<:Any})
     end
 end
 
-
-function _read_option!(data::Dict{String,<:Any})
+function _parse_epanet_options(data::Dict{String,<:Any})
     # Loop over all lines in the [OPTIONS] section and parse each.
     for (line_number, line) in data["section"]["[OPTIONS]"]
         words, comments = _split_line(line)
@@ -770,7 +737,6 @@ function _read_option!(data::Dict{String,<:Any})
         end
     end
 end
-
 
 function _read_pattern!(data::Dict{String,<:Any})
     # Initialize dictionary associated with patterns.
@@ -802,7 +768,7 @@ function _read_pattern!(data::Dict{String,<:Any})
 
             # For all patterns, ensure they match the hydraulic periods.
             for (pattern_name, pattern) in data["pattern"]
-                pattern = [pattern[div(i, factor)+1] for i = 0:factor*length(pattern)-1]
+                pattern = [pattern[div(i, factor)+1] for i = 0:(factor*length(pattern)-1)]
                 data["pattern"][pattern_name] = pattern
             end
         end
@@ -833,7 +799,6 @@ function _read_pattern!(data::Dict{String,<:Any})
         data["default_pattern"] = nothing
     end
 end
-
 
 function _read_pipe!(data::Dict{String,<:Any})
     # Initialize dictionary associated with pipes.
@@ -901,9 +866,8 @@ function _read_pipe!(data::Dict{String,<:Any})
     end
 
     # Replace with a new dictionary that uses integer component indices.
-    data["pipe"] = _transform_component_indices(data["pipe"])
+    return data["pipe"] = _transform_component_indices(data["pipe"])
 end
-
 
 function _read_pump!(data::Dict{String,<:Any})
     # Initialize dictionaries associated with pumps.
@@ -925,7 +889,7 @@ function _read_pump!(data::Dict{String,<:Any})
         pump["node_to"] = data["node_map"][current[3]]
 
         # Loop over remaining entries and store remaining properties.
-        for i in range(4, stop = length(current), step = 2)
+        for i in range(4; stop = length(current), step = 2)
             if uppercase(current[i]) != "HEAD"
                 Memento.error(_LOGGER, "Pump keyword in INP file not recognized.")
             end
@@ -965,9 +929,8 @@ function _read_pump!(data::Dict{String,<:Any})
     end
 
     # Replace with a new dictionary that uses integer component indices.
-    data["pump"] = _transform_component_indices(data["pump"])
+    return data["pump"] = _transform_component_indices(data["pump"])
 end
-
 
 function _read_reservoir!(data::Dict{String,<:Any})
     # Initialize dictionaries associated with reservoirs.
@@ -1023,9 +986,8 @@ function _read_reservoir!(data::Dict{String,<:Any})
     end
 
     # Replace with a new dictionary that uses integer component indices.
-    data["reservoir"] = _transform_component_indices(data["reservoir"])
+    return data["reservoir"] = _transform_component_indices(data["reservoir"])
 end
-
 
 function _read_tank!(data::Dict{String,<:Any})
     # Initialize dictionaries associated with tanks.
@@ -1077,9 +1039,8 @@ function _read_tank!(data::Dict{String,<:Any})
     end
 
     # Replace with a new dictionary that uses integer component indices.
-    data["tank"] = _transform_component_indices(data["tank"])
+    return data["tank"] = _transform_component_indices(data["tank"])
 end
-
 
 function _read_time!(data::Dict{String,<:Any})
     # Loop over all lines in the [TIMES] section and parse each.
@@ -1100,7 +1061,6 @@ function _read_time!(data::Dict{String,<:Any})
     end
 end
 
-
 function _read_title!(data::Dict{String,<:Any})
     lines = Array{String}[]
 
@@ -1115,9 +1075,8 @@ function _read_title!(data::Dict{String,<:Any})
         end
     end
 
-    data["name"] = join(lines, " ")
+    return data["name"] = join(lines, " ")
 end
-
 
 function _read_regulator!(data::Dict{String,<:Any})
     # Initialize dictionaries associated with valves.
@@ -1174,9 +1133,8 @@ function _read_regulator!(data::Dict{String,<:Any})
     end
 
     # Replace with a new dictionary that uses integer component indices.
-    data["regulator"] = _transform_component_indices(data["regulator"])
+    return data["regulator"] = _transform_component_indices(data["regulator"])
 end
-
 
 """
     epanet_to_watermodels!(epanet_data; import_all=false)
@@ -1189,25 +1147,21 @@ function epanet_to_watermodels!(data::Dict{String,<:Any}; import_all::Bool = fal
     _convert_short_pipes!(data) # Convert pipes that are short to short pipes and valves.
     _add_valves_to_tanks!(data) # Ensure that shutoff valves are connected to tanks.
     _add_valves_from_pipes!(data) # Convert pipes with valves to pipes *and* valves.
-    _drop_pipe_flags!(data) # Drop irrelevant pipe attributes.
+    return _drop_pipe_flags!(data) # Drop irrelevant pipe attributes.
 end
-
 
 function _get_max_comp_id(data::Dict{String,<:Any}, comp::String)
     return length(data[comp]) > 0 ? maximum([x["index"] for (i, x) in data[comp]]) : 0
 end
-
 
 function _get_max_link_id(data::Dict{String,<:Any})
     arc_types = ["pipe", "pump", "regulator", "short_pipe", "valve"]
     return maximum(maximum([x["index"] for (i, x) in data[t]]) for t in arc_types)
 end
 
-
 function _get_max_node_id(data::Dict{String,<:Any})
     return maximum([x["index"] for (i, x) in data["node"]])
 end
-
 
 function _convert_short_pipes!(data::Dict{String,<:Any})
     res = calc_resistances(data["pipe"], data["viscosity"], data["head_loss"])
@@ -1237,7 +1191,6 @@ function _convert_short_pipes!(data::Dict{String,<:Any})
     end
 end
 
-
 function _drop_zero_demands!(data::Dict{String,<:Any})
     for (i, demand) in filter(x -> x.second["flow_rate"] == 0.0, data["demand"])
         delete!(data["demand"], i)
@@ -1245,14 +1198,12 @@ function _drop_zero_demands!(data::Dict{String,<:Any})
     end
 end
 
-
 function _drop_pipe_flags!(data::Dict{String,<:Any})
     # Drop valve statuses to parsed pipes.
     for (a, pipe) in data["pipe"]
         delete!(pipe, "has_valve")
     end
 end
-
 
 function _add_valves_to_tanks!(data::Dict{String,<:Any})
     # Modify the network for standard modeling of tanks.
@@ -1279,7 +1230,6 @@ function _add_valves_to_tanks!(data::Dict{String,<:Any})
     end
 end
 
-
 function _add_valves_from_pipes!(data::Dict{String,<:Any})
     # Add valves to parsed pipes that have the attribute "has_valve" equal to true.
     for (a, pipe) in filter(x -> x.second["has_valve"], data["pipe"])
@@ -1301,3 +1251,34 @@ function _add_valves_from_pipes!(data::Dict{String,<:Any})
         data["valve"][a], data["node"][string(dummy_node_id)] = valve, dummy_node
     end
 end
+
+
+_INP_SECTIONS = [
+    "[OPTIONS]",
+    "[TITLE]",
+    "[JUNCTIONS]",
+    "[RESERVOIRS]",
+    "[TANKS]",
+    "[PIPES]",
+    "[PUMPS]",
+    "[VALVES]",
+    "[EMITTERS]",
+    "[CURVES]",
+    "[PATTERNS]",
+    "[ENERGY]",
+    "[STATUS]",
+    "[CONTROLS]",
+    "[RULES]",
+    "[DEMANDS]",
+    "[QUALITY]",
+    "[REACTIONS]",
+    "[SOURCES]",
+    "[MIXING]",
+    "[TIMES]",
+    "[REPORT]",
+    "[COORDINATES]",
+    "[VERTICES]",
+    "[LABELS]",
+    "[BACKDROP]",
+    "[TAGS]",
+]

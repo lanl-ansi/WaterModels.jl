@@ -207,8 +207,8 @@ function constraint_on_off_pump_head_gain(wm::LRDWaterModel, n::Int, a::Int, nod
 
     for qp_hat in breakpoints
         # Add head gain outer (i.e., upper) approximations.
-        lhs = _get_head_gain_oa(qp, z, qp_hat, pc)
-        c_7_k = JuMP.@constraint(wm.model, g <= lhs)
+        rhs = _get_head_gain_oa(qp, z, qp_hat, pc)
+        c_7_k = JuMP.@constraint(wm.model, g <= rhs)
         append!(con(wm, n, :on_off_pump_head_gain, a), [c_7_k])
     end
 
