@@ -65,7 +65,7 @@ function objective_wf(wm::QRDWaterModel)
 end
 
 
-function objective_owf(wm::QRDWaterModel)
+function objective_owf_default(wm::QRDWaterModel)
     # Initialize the objective function.
     objective = zero(JuMP.QuadExpr)
 

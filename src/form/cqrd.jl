@@ -82,7 +82,7 @@ function objective_wf(wm::CQRDWaterModel)
 end
 
 
-function objective_owf(wm::CQRDWaterModel)
+function objective_owf_default(wm::CQRDWaterModel)
     # Initialize the objective function.
     objective = JuMP.AffExpr(0.0)
 

@@ -1,6 +1,8 @@
 WaterModels.jl Change Log
 =========================
 
+### v0.6.0
+
 ### v0.5.0
 - Rename formulation types.
 - Decoupled `check_valve` and `shutoff_valve` objects from `pipe` objects.

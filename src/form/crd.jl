@@ -132,7 +132,7 @@ end
 
 
 "Instantiate the objective associated with the Optimal Water Flow problem."
-function objective_owf(wm::CRDWaterModel)
+function objective_owf_default(wm::CRDWaterModel)
     # Get the number of breakpoints for the pump.
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 2)
 

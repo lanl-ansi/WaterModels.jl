@@ -54,7 +54,7 @@ end
 
 
 "Defines the objective for the owf problem is `NC` formulations."
-function objective_owf(wm::NCWaterModel)
+function objective_owf_default(wm::NCWaterModel)
     objective = zero(JuMP.QuadExpr)
 
     for (n, nw_ref) in nws(wm)

@@ -19,7 +19,13 @@ end
 function _calc_pump_energy_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, num_points::Int)
     pump = ref(wm, nw, :pump, pump_id)
     constant = _DENSITY * _GRAVITY * ref(wm, nw, :time_step)
-    curve_fun = _get_function_from_head_curve(pump["head_curve"])
+
+    if get(wm.ext, :use_best_efficiency_form, false)
+        curve_fun = _calc_pump_best_efficiency_head_gain_curve(pump)
+    else
+        curve_fun = _calc_pump_head_gain_curve(pump)
+    end
+
     q_min, q_max = pump["q_min_forward"], pump["q_max"]
     q_build = range(q_min, stop = q_max, length = 100)
     f_build = _calc_cubic_flow_values(collect(q_build), curve_fun)
@@ -54,7 +60,12 @@ end
 function _calc_pump_energy(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Float64)
     pump = ref(wm, nw, :pump, pump_id)
     constant = _DENSITY * _GRAVITY * ref(wm, nw, :time_step)
-    pc = _get_function_from_head_curve(pump["head_curve"])
+
+    if get(wm.ext, :use_best_efficiency_form, false)
+        pc = _calc_pump_best_efficiency_head_gain_curve(pump)
+    else
+        pc = _calc_pump_head_gain_curve(pump)
+    end
 
     if haskey(pump, "efficiency_curve")
         eff_curve = pump["efficiency_curve"]
@@ -71,21 +82,25 @@ function _calc_head_loss_values(points::Array{Float64}, alpha::Float64)
     return [sign(x) * abs(x)^alpha for x in points]
 end
 
+
 function _calc_pump_gain_values(points::Array{Float64}, curve_fun::Array{Float64})
     return [curve_fun[1]*x*x + curve_fun[2]*x + curve_fun[3] for x in points]
 end
+
 
 function _calc_cubic_flow_values(points::Array{Float64}, curve_fun::Array{Float64})
     return [curve_fun[1]*x^3 + curve_fun[2]*x^2 + curve_fun[3]*x for x in points]
 end
 
-function _calc_efficiencies(points::Array{Float64}, curve::Array{Tuple{Float64,Float64}})
+
+function _calc_efficiencies(points::Array{Float64}, curve::Array{Tuple{Float64, Float64}})
     q, eff = [[x[1] for x in curve], [x[2] for x in curve]]
     return Interpolations.LinearInterpolation(q, eff,
         extrapolation_bc=Interpolations.Flat()).(points)
 end
 
-function _get_function_from_head_curve(head_curve::Array{Tuple{Float64,Float64}})
+
+function _get_function_from_head_curve(head_curve::Array{Tuple{Float64, Float64}})
     LsqFit.@. func(x, p) = p[1]*x*x + p[2]*x + p[3]
 
     if length(head_curve) > 1
@@ -100,8 +115,13 @@ function _get_function_from_head_curve(head_curve::Array{Tuple{Float64,Float64}}
 end
 
 
-function _get_maximum_head_gain(pump::Dict{String,<:Any})
-    c = _get_function_from_head_curve(pump["head_curve"])
+function _get_maximum_head_gain(pump::Dict{String,<:Any}, use_best_efficiency::Bool)
+    if use_best_efficiency
+        c = _calc_pump_best_efficiency_head_gain_curve(pump)
+    else
+        c = _calc_pump_head_gain_curve(pump)
+    end
+
     q_at_max = -c[2] * inv(2.0 * c[1]) > 0.0 ? -c[2] * inv(2.0 * c[1]) : 0.0
     return c[1] * q_at_max^2 + c[2] * q_at_max + c[3]
 end
@@ -131,7 +151,8 @@ function calc_head_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     end
 
     if length(ref(wm, n, :pump)) > 0
-        max_head += maximum(_get_maximum_head_gain(pump) for (i, pump) in ref(wm, n, :pump))
+        use_bep = get(wm.ext, :use_best_efficiency_form, false)
+        max_head += maximum(_get_maximum_head_gain(pump, use_bep) for (i, pump) in ref(wm, n, :pump))
     end
 
     # Initialize the dictionaries for minimum and maximum heads.
@@ -283,8 +304,11 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     lb["pump"], ub["pump"] = Dict{Int,Array{Float64}}(), Dict{Int,Array{Float64}}()
 
     for (a, pump) in ref(wm, n, :pump)
-        head_curve = ref(wm, n, :pump, a)["head_curve"]
-        c = _get_function_from_head_curve(head_curve)
+        if get(wm.ext, :use_best_efficiency_form, false)
+            c = _calc_pump_best_efficiency_head_gain_curve(pump)
+        else
+            c = _calc_pump_head_gain_curve(pump)
+        end
 
         q_max = (-c[2] + sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1])
         q_max = max(q_max, (-c[2] - sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1]))

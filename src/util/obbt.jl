@@ -423,6 +423,7 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_relaxed_network:
 
     # Set up algorithm metadata.
     current_iteration = 1
+    terminate = current_iteration >= max_iter
 
     while any([x.changed for x in bound_problems]) && !terminate
         # Obtain new candidate bounds, update bounds, and update the data.

@@ -227,7 +227,7 @@ end
 
 
 "Instantiate the objective associated with the Optimal Water Flow problem."
-function objective_owf(wm::LRDWaterModel)
+function objective_owf_default(wm::LRDWaterModel)
     # Get the number of breakpoints for the pump.
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 2)
 
@@ -238,15 +238,10 @@ function objective_owf(wm::LRDWaterModel)
         # Get common variables.
         lambda = var(wm, n, :lambda_pump)
 
-        # Get common constant parameters.
-        constant = _DENSITY * _GRAVITY * ref(wm, n, :time_step)
-
         for (a, pump) in nw_ref[:pump]
             if haskey(pump, "energy_price")
-                # Get price and pump curve data.
+                # Get pump energy price data.
                 price = pump["energy_price"]
-                head_curve = ref(wm, n, :pump, a)["head_curve"]
-                curve_fun = _get_function_from_head_curve(head_curve)
 
                 # Get pump flow and status variables.
                 qp, z = var(wm, n, :qp_pump, a), var(wm, n, :z_pump, a)

@@ -30,8 +30,8 @@ variables for all nodes in the network, i.e., `h[i]` for `i` in `node`."
 function variable_head(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
     # Initialize variables for total hydraulic head.
     h = var(wm, nw)[:h] = JuMP.@variable(wm.model,
-        [i in ids(wm, nw, :node)], base_name="$(nw)_h",
-        start=comp_start_value(ref(wm, nw, :node, i), "h_start"))
+        [i in ids(wm, nw, :node)], base_name = "$(nw)_h",
+        start = comp_start_value(ref(wm, nw, :node, i), "h_start"))
        
     if bounded
         # Compute the lower and upper head bound dictionaries.

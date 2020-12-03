@@ -254,7 +254,13 @@ function constraint_on_off_pump_head_gain(wm::AbstractWaterModel, a::Int; nw::In
     node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
     _initialize_con_dict(wm, :on_off_pump_head_gain, nw=nw, is_array=true)
     con(wm, nw, :on_off_pump_head_gain)[a] = Array{JuMP.ConstraintRef}([])
-    coeffs = _get_function_from_head_curve(ref(wm, nw, :pump, a)["head_curve"])
+
+    if get(wm.ext, :use_best_efficiency_form, false) == true
+        coeffs = _calc_pump_best_efficiency_head_gain_curve(ref(wm, nw, :pump, a))
+    else
+        coeffs = _calc_pump_head_gain_curve(ref(wm, nw, :pump, a))
+    end
+
     q_min_forward = max(get(ref(wm, nw, :pump, a), "q_min_forward", _FLOW_MIN), _FLOW_MIN)
     constraint_on_off_pump_head_gain(wm, nw, a, node_fr, node_to, coeffs, q_min_forward)
 end

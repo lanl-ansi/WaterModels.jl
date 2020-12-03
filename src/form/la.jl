@@ -56,7 +56,7 @@ end
 function variable_flow(wm::LAWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
     for name in ["pipe", "pump", "regulator", "short_pipe", "valve"]
         # Create directed flow (`qp` and `qn`) variables for each component.
-        variable_component_flow(wm, name; nw=nw, bounded=bounded, report=report)
+        _variable_component_flow(wm, name; nw=nw, bounded=bounded, report=report)
     end
 
     # Create variables required for convex combination piecewise approximation.
@@ -123,7 +123,7 @@ function constraint_pipe_head_loss(wm::LAWaterModel, n::Int, a::Int, node_fr::In
 
     # Generate a set of uniform flow breakpoints.
     q_lb, q_ub = JuMP.lower_bound(q), JuMP.upper_bound(q)
-    breakpoints = range(q_lb, stop=q_ub, length=pipe_breakpoints)
+    breakpoints = range(q_lb, stop = q_ub, length = pipe_breakpoints)
 
     # Add a constraint for the flow piecewise approximation.
     q_lhs = sum(breakpoints[k] * lambda[a, k] for k in 1:pipe_breakpoints)
@@ -198,7 +198,7 @@ function constraint_on_off_pipe_head_loss_des(wm::LAWaterModel, n::Int, a::Int, 
 end
 
 
-function objective_owf(wm::LAWaterModel) 
+function objective_owf_default(wm::LAWaterModel) 
     # Get the number of breakpoints for the pump.
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 2)
 
@@ -237,7 +237,7 @@ function objective_owf(wm::LAWaterModel)
 
                 # Add the cost corresponding to the current pump's operation.
                 inner_expr = constant * price * inv.(eff) .* f
-                cost = sum(inner_expr[k]*lambda[a, k] for k in 1:pump_breakpoints)
+                cost = sum(inner_expr[k] * lambda[a, k] for k in 1:pump_breakpoints)
                 JuMP.add_to_expression!(objective, cost)
             else
                 Memento.error(_LOGGER, "No cost given for pump \"$(pump["name"])\"")

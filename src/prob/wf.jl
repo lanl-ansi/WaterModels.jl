@@ -15,7 +15,6 @@ function build_wf(wm::AbstractWaterModel)
     # Indicator (status) variables.
     variable_pump_indicator(wm)
     variable_regulator_indicator(wm)
-    variable_tank_indicator(wm)
     variable_valve_indicator(wm)
 
     # Create flow-related variables for node attachments.
@@ -58,8 +57,6 @@ function build_wf(wm::AbstractWaterModel)
     # Constraints on tank volumes.
     for (i, tank) in ref(wm, :tank)
         # Set the initial tank volume.
-        constraint_on_off_tank_head(wm, i)
-        constraint_on_off_tank_flow(wm, i)
         constraint_tank_volume(wm, i)
     end
 
@@ -92,7 +89,6 @@ function build_mn_wf(wm::AbstractWaterModel)
         # Indicator (status) variables.
         variable_pump_indicator(wm; nw=n)
         variable_regulator_indicator(wm; nw=n)
-        variable_tank_indicator(wm; nw=n)
         variable_valve_indicator(wm; nw=n)
 
         # Create flow-related variables for node attachments.
@@ -104,13 +100,6 @@ function build_mn_wf(wm::AbstractWaterModel)
         for (i, node) in ref(wm, :node; nw=n)
             constraint_flow_conservation(wm, i; nw=n)
             constraint_node_directionality(wm, i; nw=n)
-        end
-
-        # Constraints on tank volumes.
-        for (i, tank) in ref(wm, :tank; nw=n)
-            # Set initial conditions of tanks.
-            constraint_on_off_tank_head(wm, i; nw=n)
-            constraint_on_off_tank_flow(wm, i; nw=n)
         end
 
         # Constraints on pipe flows, heads, and physics.
