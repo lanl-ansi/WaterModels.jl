@@ -43,14 +43,12 @@ function _variable_component_head_difference(
         start=comp_start_value(ref(wm, nw, comp_sym, a), "dhn_start"))
 
     if bounded # Bound flow-related variables if desired.
-        # Get the head bound variables.
-        h_lb, h_ub = calc_head_bounds(wm, nw)
-
         # Set lower and upper bounds on head differences.
         for (a, comp) in ref(wm, nw, comp_sym)
-            i, j = comp["node_fr"], comp["node_to"]
-            JuMP.set_upper_bound(dhp[a], max(0.0, h_ub[i] - h_lb[j]))
-            JuMP.set_upper_bound(dhn[a], max(0.0, h_ub[j] - h_lb[i]))
+            node_fr = ref(wm, nw, :node, comp["node_fr"])
+            node_to = ref(wm, nw, :node, comp["node_to"])
+            JuMP.set_upper_bound(dhp[a], max(0.0, node_fr["head_max"] - node_to["head_min"]))
+            JuMP.set_upper_bound(dhn[a], max(0.0, node_to["head_max"] - node_fr["head_min"]))
         end
     end
 
@@ -80,11 +78,9 @@ function _variable_component_flow(
         start=comp_start_value(ref(wm, nw, comp_sym, a), "qn_start"))
 
     if bounded # Bound flow-related variables if desired.
-        q_lb, q_ub = calc_flow_bounds(wm, nw)
-
         for (a, comp) in ref(wm, nw, comp_sym)
-            JuMP.set_upper_bound(qp[a], max(0.0, maximum(q_ub[component_name][a])))
-            JuMP.set_upper_bound(qn[a], max(0.0, -minimum(q_lb[component_name][a])))
+            JuMP.set_upper_bound(qp[a], max(0.0, comp["flow_max"]))
+            JuMP.set_upper_bound(qn[a], max(0.0, -comp["flow_min"]))
         end
     end
 
@@ -141,8 +137,6 @@ function variable_flow_des(wm::AbstractDirectedModel; nw::Int=wm.cnw, bounded::B
     end
 
     if bounded # If the variables are bounded, apply the bounds.
-        q_lb, q_ub = calc_flow_bounds(wm, nw)
-
         for a in ids(wm, nw, :des_pipe)
             for r in 1:length(ref(wm, nw, :resistance, a))
                 JuMP.set_upper_bound(qp_des_pipe[a][r], max(0.0, q_ub["des_pipe"][a][r]))

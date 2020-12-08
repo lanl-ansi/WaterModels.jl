@@ -19,7 +19,7 @@ function _sum_remaining_demands(wm::AbstractWaterModel, nws::Array{Int64,1})
             # Sum the constant demands required at node `i`.
             demands = ref(wm, nw, :node_demand, i) # Demands attached to node `i`.
             nondispatchable_demands = filter(j -> j in ids(wm, nw, :nondispatchable_demand), demands)
-            fixed_demands = [ref(wm, nw, :nondispatchable_demand, j)["flow_rate"] for j in nondispatchable_demands]
+            fixed_demands = [ref(wm, nw, :nondispatchable_demand, j)["flow_nominal"] for j in nondispatchable_demands]
             net_fixed_demand = length(fixed_demands) > 0 ? sum(fixed_demands) : 0.0
 
             # Get the indices of dispatchable demands connected to node `i`.

@@ -74,7 +74,7 @@ function objective_owf_default(wm::QRDWaterModel)
         constant = _DENSITY * _GRAVITY * ref(wm, n, :time_step)
 
         for (a, pump) in nw_ref[:pump]
-            q_min_forward = get(pump, "q_min_forward", _FLOW_MIN)
+            q_min_forward = get(pump, "flow_min_forward", _FLOW_MIN)
 
             if haskey(pump, "energy_price")
                 # Get price and pump curve data.

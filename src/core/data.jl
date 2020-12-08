@@ -12,16 +12,51 @@ function replicate(data::Dict{String,<:Any}, count::Int; global_keys::Set{String
 end
 
 
-function _correct_flow_bounds!(data::Dict{String,<:Any})
-    # TODO: Correct flow bounds for the remaining edge components, as well.
-    for (idx, pump) in get(data, "pump", Dict{String,Any}())
-        node_fr_id, node_to_id = string(pump["node_fr"]), string(pump["node_to"])
-        node_fr, node_to = data["node"][node_fr_id], data["node"][node_to_id]
-        pump["flow_min"] = _calc_pump_flow_min(pump, node_fr, node_to)
-        pump["flow_max"] = _calc_pump_flow_max(pump, node_fr, node_to)
-        pump["flow_min_forward"] = _calc_pump_flow_min_forward(pump, node_fr, node_to)
-        pump["flow_max_reverse"] = _calc_pump_flow_max_reverse(pump, node_fr, node_to)
+function _calc_head_max(data::Dict{String, <:Any})
+    # Compute the maximum elevation of all nodes in the network.
+    head_max = maximum(get(node, "head_min", -Inf) for (i, node) in data["node"])
+    head_max = maximum(get(node, "head_nominal", head_max) for (i, node) in data["node"])
+    head_max = maximum(get(node, "head_max", head_max) for (i, node) in data["node"])
+
+    for (i, tank) in data["tank"]
+        # Consider maximum tank head in computation of head_max.
+        elevation = data["node"][string(tank["node"])]["elevation"]
+        head_max = max(head_max, elevation + tank["max_level"])
     end
+
+    for (i, pump) in data["pump"]
+        # Consider possible pump head gains in computation of head_max.
+        node_fr = data["node"][string(pump["node_fr"])]
+        node_to = data["node"][string(pump["node_to"])]
+        head_gain = calc_pump_head_gain_max(pump, node_fr, node_to)
+        head_max = max(head_max, node_to["elevation"] + head_gain)
+    end
+
+    for (i, regulator) in data["regulator"]
+        # Consider possible downstream regulator heads in computation of head_max.
+        p_setting, node_to_index = regulator["setting"], string(regulator["node_to"])
+        elevation = data["node"][node_to_index]["elevation"]
+        head_max = max(head_max, elevation + p_setting)
+    end
+
+    return head_max
+end
+
+
+function _calc_capacity_max(data::Dict{String, <:Any})
+    # Include the sum of all maximal flows from demands.
+    capacity = sum(x["flow_max"] for (i, x) in data["demand"])
+
+    for (i, tank) in data["tank"]
+        # Add the sum of maximum possible demanded flow from tanks.
+        surface_area = 0.25 * pi * tank["diameter"]^2
+        volume_min = max(tank["min_vol"], surface_area * tank["min_level"])
+        volume_max = surface_area * tank["max_level"]
+        capacity += (volume_max - volume_min) * inv(data["time_step"])
+    end
+
+    # Return the maximum capacity of the network.
+    return capacity
 end
 
 
@@ -91,8 +126,8 @@ function convert_short_pipes_with_bounds!(data::Dict{String,<:Any})
     L_x_r = Dict{String,Any}(a => res[a][1] .* x["length"] for (a, x) in data["pipe"])
 
     for (a, pipe) in data["pipe"]
-        if haskey(pipe, "q_min") && haskey(pipe, "q_max")
-            q_min, q_max = pipe["q_min"], pipe["q_max"]
+        if haskey(pipe, "flow_min") && haskey(pipe, "flow_max")
+            q_min, q_max = pipe["flow_min"], pipe["flow_max"]
             dh_min = sign(q_min) * L_x_r[a] * abs(q_min)^exponent
             dh_max = sign(q_max) * L_x_r[a] * abs(q_max)^exponent
 

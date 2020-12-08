@@ -34,13 +34,10 @@ function variable_head(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=tru
         start = comp_start_value(ref(wm, nw, :node, i), "h_start"))
        
     if bounded
-        # Compute the lower and upper head bound dictionaries.
-        h_lb, h_ub = calc_head_bounds(wm, nw)
-
         for (i, node) in ref(wm, nw, :node)
             # Set the lower and upper bounds for each head.
-            JuMP.set_lower_bound(h[i], h_lb[i])
-            JuMP.set_upper_bound(h[i], h_ub[i])
+            JuMP.set_lower_bound(h[i], node["head_min"])
+            JuMP.set_upper_bound(h[i], node["head_max"])
         end
     end
 
@@ -96,11 +93,9 @@ function variable_demand_flow(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::B
         start=comp_start_value(ref(wm, nw, :dispatchable_demand, i), "q_demand_start"))
 
     if bounded
-        q_demand_lb, q_demand_ub = calc_demand_bounds(wm, nw)
-
         for (i, demand) in ref(wm, nw, :dispatchable_demand)
-            JuMP.set_lower_bound(q_demand[i], q_demand_lb[i])
-            JuMP.set_upper_bound(q_demand[i], q_demand_ub[i])
+            JuMP.set_lower_bound(q_demand[i], demand["flow_min"])
+            JuMP.set_upper_bound(q_demand[i], demand["flow_max"])
         end
     end
 

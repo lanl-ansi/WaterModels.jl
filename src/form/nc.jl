@@ -8,22 +8,23 @@
 
 "Adds head loss constraint for a pipe in the `NC` formulation."
 function constraint_pipe_head_loss(
-    wm::NCWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
+    wm::AbstractNCModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
     L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
     # Gather flow and head variables included in head loss constraints.
     q, h_i, h_j = var(wm, n, :q_pipe, a), var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
     # Add nonconvex constraint for the head loss relationship.
-    c = JuMP.@NLconstraint(wm.model, r * head_loss(q) == inv(L) * (h_i - h_j))
+    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(q) <= inv(L) * (h_i - h_j))
+    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(q) >= inv(L) * (h_i - h_j))
 
     # Append the :pipe_head_loss constraint array.
-    append!(con(wm, n, :pipe_head_loss)[a], [c])
+    append!(con(wm, n, :pipe_head_loss)[a], [c_1, c_2])
 end
 
 
 "Adds head loss constraint for a design pipe in the `NC` formulation."
 function constraint_on_off_pipe_head_loss_des(
-    wm::NCWaterModel, n::Int, a::Int, exponent::Float64, node_fr::Int, node_to::Int,
+    wm::AbstractNCModel, n::Int, a::Int, exponent::Float64, node_fr::Int, node_to::Int,
     L::Float64, resistances)
     # Gather common flow and head variables, as well as design indices.
     q, R = var(wm, n, :q_des_pipe, a), 1:length(resistances)
@@ -31,30 +32,32 @@ function constraint_on_off_pipe_head_loss_des(
 
     # Add the nonconvex, design-expanded head loss constraint.
     lhs = JuMP.@NLexpression(wm.model, sum(resistances[r] * head_loss(q[r]) for r in R))
-    c = JuMP.@NLconstraint(wm.model, lhs == inv(L) * (h_i - h_j))
+    c_1 = JuMP.@NLconstraint(wm.model, lhs <= inv(L) * (h_i - h_j))
+    c_2 = JuMP.@NLconstraint(wm.model, lhs >= inv(L) * (h_i - h_j))
 
     # Append the :on_off_pipe_head_loss_des constraint array.
-    append!(con(wm, n, :on_off_pipe_head_loss_des)[a], [c])
+    append!(con(wm, n, :on_off_pipe_head_loss_des)[a], [c_1, c_2])
 end
 
 
 "Adds head gain constraints for pumps in `NC` formulations."
 function constraint_on_off_pump_head_gain(
-    wm::NCWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64},
+    wm::AbstractNCModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64},
     q_min_forward::Float64)
     # Gather pump flow, head gain, and status variables.
     q, g, z = var(wm, n, :q_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
 
     # Add constraint equating head gain with respect to the pump curve.
-    c = JuMP.@constraint(wm.model, pc[1]*q^2 + pc[2]*q + pc[3]*z == g)
+    c_1 = JuMP.@constraint(wm.model, pc[1]*q^2 + pc[2]*q + pc[3]*z <= g)
+    c_2 = JuMP.@constraint(wm.model, pc[1]*q^2 + pc[2]*q + pc[3]*z >= g)
 
     # Append the :on_off_pump_head_gain constraint array.
-    append!(con(wm, n, :on_off_pump_head_gain)[a], [c])
+    append!(con(wm, n, :on_off_pump_head_gain)[a], [c_1, c_2])
 end
 
 
 "Defines the objective for the owf problem is `NC` formulations."
-function objective_owf_default(wm::NCWaterModel)
+function objective_owf_default(wm::AbstractNCModel)
     objective = zero(JuMP.QuadExpr)
 
     for (n, nw_ref) in nws(wm)

@@ -29,11 +29,9 @@ function _variable_component_flow(
         start=comp_start_value(ref(wm, nw, comp_sym, a), "q_start", _FLOW_MIN))
 
     if bounded # If the variables are bounded, apply the bounds.
-        q_lb, q_ub = calc_flow_bounds(wm, nw)
-
         for (a, comp) in ref(wm, nw, comp_sym)
-            JuMP.set_lower_bound(q[a], minimum(q_lb[component_name][a]))
-            JuMP.set_upper_bound(q[a], maximum(q_ub[component_name][a]))
+            JuMP.set_lower_bound(q[a], comp["flow_min"])
+            JuMP.set_upper_bound(q[a], comp["flow_max"])
         end
     end
 
@@ -55,8 +53,6 @@ function variable_flow_des_common(wm::AbstractUndirectedModel; nw::Int=wm.cnw, b
     end
 
     if bounded # If the variables are bounded, apply the bounds.
-        q_lb, q_ub = calc_flow_bounds(wm, nw)
-
         for a in ids(wm, nw, :des_pipe)
             for r in 1:length(ref(wm, nw, :resistance, a))
                 JuMP.set_lower_bound(q_des_pipe[a][r], q_lb["des_pipe"][a][r])

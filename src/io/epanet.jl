@@ -267,7 +267,13 @@ function _add_nodes!(data::Dict{String,<:Any})
 
             # Save common data from the component within the node entry.
             node["status"], node["elevation"] = comp["status"], pop!(comp, "elevation")
-            node["head"] = "head" in keys(comp) ? pop!(comp, "head") : node["elevation"]
+
+            if haskey(node, "head_nominal")
+                node["head_nominal"] = pop!(comp, "head_nominal")
+            else node["elevation"]
+                node["head_nominal"] = node["elevation"]
+            end
+
             node["source_id"] = comp["source_id"]
 
             # Append the node to the node dictionary.
@@ -278,6 +284,7 @@ function _add_nodes!(data::Dict{String,<:Any})
         end
     end
 end
+
 
 function _split_line(line::AbstractString)
     _vc = split(line, ","; limit = 1)
@@ -297,8 +304,6 @@ function _split_line(line::AbstractString)
 
     return _values, _comment
 end
-
-
 
 
 """
@@ -652,29 +657,36 @@ function _read_demand!(data::Dict{String,<:Any})
             # Convert the unscaled demand to cubic meters per second.
             if data["flow_units"] == "LPS" # If liters per second...
                 # Convert from liters per second to cubic meters per second.
-                demand["flow_rate"] = 1.0e-3 * demand_unscaled
+                demand["flow_nominal"] = 1.0e-3 * demand_unscaled
             elseif data["flow_units"] == "CMH" # If cubic meters per hour...
                 # Convert from cubic meters per hour to cubic meters per second.
-                demand["flow_rate"] = inv(3600.0) * demand_unscaled
+                demand["flow_nominal"] = inv(3600.0) * demand_unscaled
             elseif data["flow_units"] == "GPM" # If gallons per minute...
                 # Convert from gallons per minute to cubic meters per second.
-                demand["flow_rate"] = 6.30902e-5 * demand_unscaled
+                demand["flow_nominal"] = 6.30902e-5 * demand_unscaled
             end
         else # No value for demand exists in the line.
             demand["status"] = 0 # Set the status of the demand to zero.
-            demand["flow_rate"] = 0.0 # Initialize demand to zero.
+            demand["flow_nominal"] = 0.0 # Initialize demand to zero.
         end
+
+        demand["flow_min"] = demand["flow_nominal"]
+        demand["flow_max"] = demand["flow_nominal"]
 
         # Parse the name of the pattern used to scale demand at the demand.
         pattern = length(current) > 3 ? current[4] : data["default_pattern"]
 
         # Scale the parsed demand by the specified pattern, if it exists.
         if pattern != nothing && length(data["pattern"][pattern]) > 1
-            flow_rate = demand["flow_rate"] .* data["pattern"][pattern]
-            entry = Dict{String,Array{Float64}}("flow_rate" => flow_rate)
+            flow_rate = demand["flow_nominal"] .* data["pattern"][pattern]
+            entry = Dict{String,Array{Float64}}("flow_nominal" => flow_rate)
+            entry["flow_min"] = entry["flow_nominal"]
+            entry["flow_max"] = entry["flow_nominal"]
             data["time_series"]["demand"][current[1]] = entry
         elseif pattern != nothing && pattern != "1"
-            demand["flow_rate"] *= data["pattern"][pattern][1]
+            demand["flow_nominal"] *= data["pattern"][pattern][1]
+            demand["flow_min"] = demand["flow_nominal"]
+            demand["flow_max"] = demand["flow_nominal"]
         end
 
         # Add a temporary index to be used in the data dictionary.
@@ -953,10 +965,10 @@ function _read_reservoir!(data::Dict{String,<:Any})
         # Parse the head of the reservoir (in meters).
         if data["flow_units"] == "LPS" || data["flow_units"] == "CMH"
             # Retain the original value (in meters).
-            reservoir["head"] = parse(Float64, current[2])
+            reservoir["head_nominal"] = parse(Float64, current[2])
         elseif data["flow_units"] == "GPM" # If gallons per minute...
             # Convert head from feet to meters.
-            reservoir["head"] = 0.3048 * parse(Float64, current[2])
+            reservoir["head_nominal"] = 0.3048 * parse(Float64, current[2])
         else
             Memento.error(_LOGGER, "Could not find a valid \"units\" option type.")
         end
@@ -967,15 +979,19 @@ function _read_reservoir!(data::Dict{String,<:Any})
         # Scale the parsed head by the specified pattern, if it exists. Also, assume the
         # reservoir's elevation is equal to the minimum value of head presented in the data.
         if pattern != nothing && length(data["pattern"][pattern]) > 1
-            head = reservoir["head"] .* data["pattern"][pattern]
-            entry = Dict{String,Array{Float64}}("head" => head)
+            head = reservoir["head_nominal"] .* data["pattern"][pattern]
+            entry = Dict{String,Array{Float64}}("head_nominal" => head)
+            entry["head_min"] = entry["head_nominal"]
+            entry["head_max"] = entry["head_nominal"]
             data["time_series"]["reservoir"][current[1]] = entry
             reservoir["elevation"] = minimum(head)
         elseif pattern != nothing && pattern != "1"
-            reservoir["head"] *= data["pattern"][pattern][1]
-            reservoir["elevation"] = reservoir["head"]
+            reservoir["head_nominal"] *= data["pattern"][pattern][1]
+            reservoir["head_min"] = reservoir["head_nominal"]
+            reservoir["head_max"] = reservoir["head_nominal"]
+            reservoir["elevation"] = reservoir["head_nominal"]
         else
-            reservoir["elevation"] = reservoir["head"]
+            reservoir["elevation"] = reservoir["head_nominal"]
         end
 
         # Add a temporary index to be used in the data dictionary.
@@ -1150,9 +1166,11 @@ function epanet_to_watermodels!(data::Dict{String,<:Any}; import_all::Bool = fal
     _drop_pipe_flags!(data) # Drop irrelevant pipe attributes.
 end
 
+
 function _get_max_comp_id(data::Dict{String,<:Any}, comp::String)
     return length(data[comp]) > 0 ? maximum([x["index"] for (i, x) in data[comp]]) : 0
 end
+
 
 function _get_max_link_id(data::Dict{String,<:Any})
     arc_types = ["pipe", "pump", "regulator", "short_pipe", "valve"]
@@ -1165,26 +1183,9 @@ function _get_max_node_id(data::Dict{String,<:Any})
 end
 
 
-function _get_flow_sum(data::Dict{String, <:Any})
-    flow_sum = 0.0
-
-    for (i, demand) in data["demand"]
-        if haskey(data["time_series"], "demand")
-            if haskey(data["time_series"]["demand"], i)
-                flow_sum += maximum(data["time_series"]["demand"][i]["flow_rate"])
-            end
-        else
-            flow_sum += demand["flow_rate"]
-        end
-    end
-
-    return flow_sum
-end
-
-
 function _convert_short_pipes!(data::Dict{String,<:Any})
     exponent = uppercase(data["head_loss"]) == "H-W" ? 1.852 : 2.0
-    max_flow_exp = abs(_get_flow_sum(data))^exponent
+    max_flow_exp = abs(_calc_capacity_max(data))^exponent
 
     res = calc_resistances(data["pipe"], data["viscosity"], data["head_loss"])
     dh = Dict{String,Any}(a => res[a] .* x["length"] * max_flow_exp for (a, x) in data["pipe"])
@@ -1213,8 +1214,17 @@ function _convert_short_pipes!(data::Dict{String,<:Any})
     end
 end
 
+
+function _has_zero_demand(demand::Dict{String, <:Any})
+    zero_flow_min = demand["flow_min"] == 0.0
+    zero_flow_max = demand["flow_max"] == 0.0
+    return zero_flow_min && zero_flow_max
+end
+
+
+
 function _drop_zero_demands!(data::Dict{String,<:Any})
-    for (i, demand) in filter(x -> x.second["flow_rate"] == 0.0, data["demand"])
+    for (i, demand) in filter(x -> _has_zero_demand(x.second), data["demand"])
         delete!(data["demand"], i)
         haskey(data, "time_series") && delete!(data["time_series"]["demand"], i)
     end

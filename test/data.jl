@@ -1,13 +1,4 @@
 @testset "src/core/data.jl" begin
-    @testset "_correct_flow_bounds!" begin
-        data = WaterModels.parse_file("../test/data/epanet/snapshot/pump-hw-lps.inp")
-        WaterModels._correct_flow_bounds!(data)
-        @test haskey(data["pump"]["1"], "flow_min")
-        @test haskey(data["pump"]["1"], "flow_max")
-        @test haskey(data["pump"]["1"], "flow_min_forward")
-        @test haskey(data["pump"]["1"], "flow_max_reverse")
-    end
-
     @testset "set_start! (single network)" begin
         data = WaterModels.parse_file("../test/data/epanet/snapshot/pipe-hw-lps.inp")
         data["pipe"]["1"]["q"] = 1.0 # Set the flow along the pipe.
@@ -32,9 +23,9 @@
 
         @test !_IM.ismultinetwork(network_data)
         @test haskey(network_data, "time_series")
-        @test isapprox(network_data["time_series"]["demand"]["2"]["flow_rate"][1], 0.02777, rtol=1.0e-4)
-        @test isapprox(network_data["time_series"]["demand"]["2"]["flow_rate"][2], 0.5*0.02777, rtol=1.0e-4)
-        @test isapprox(network_data["time_series"]["demand"]["2"]["flow_rate"][3], 0.25*0.02777, rtol=1.0e-4)
+        @test isapprox(network_data["time_series"]["demand"]["2"]["flow_nominal"][1], 0.02777, rtol=1.0e-4)
+        @test isapprox(network_data["time_series"]["demand"]["2"]["flow_nominal"][2], 0.5*0.02777, rtol=1.0e-4)
+        @test isapprox(network_data["time_series"]["demand"]["2"]["flow_nominal"][3], 0.25*0.02777, rtol=1.0e-4)
 
         ts_length = network_data["time_series"]["num_steps"]
         mn_data = WaterModels.make_multinetwork(network_data)
@@ -42,9 +33,9 @@
         @test _IM.ismultinetwork(mn_data)
         @test !haskey(mn_data, "time_series")
         @test length(mn_data["nw"]) == ts_length
-        @test isapprox(mn_data["nw"]["1"]["demand"]["2"]["flow_rate"], 0.02777, rtol=1.0e-4)
-        @test isapprox(mn_data["nw"]["2"]["demand"]["2"]["flow_rate"], 0.5*0.02777, rtol=1.0e-4)
-        @test isapprox(mn_data["nw"]["3"]["demand"]["2"]["flow_rate"], 0.25*0.02777, rtol=1.0e-4)
+        @test isapprox(mn_data["nw"]["1"]["demand"]["2"]["flow_nominal"], 0.02777, rtol=1.0e-4)
+        @test isapprox(mn_data["nw"]["2"]["demand"]["2"]["flow_nominal"], 0.5*0.02777, rtol=1.0e-4)
+        @test isapprox(mn_data["nw"]["3"]["demand"]["2"]["flow_nominal"], 0.25*0.02777, rtol=1.0e-4)
     end
 
     @testset "epanet_to_watermodels!" begin

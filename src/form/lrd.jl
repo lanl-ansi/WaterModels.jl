@@ -45,9 +45,7 @@ function constraint_pipe_head_loss(wm::LRDWaterModel, n::Int, a::Int, node_fr::I
         lhs = _get_head_loss_oa_binary(qp, y, pt, exponent)
 
         # Add the normalized constraint to the model.
-        expr = r * lhs - inv(L) * dhp
-        scalar = minimum(abs.(values(expr.terms)))
-        c = JuMP.@constraint(wm.model, inv(scalar) * expr <= 0.0)
+        c = JuMP.@constraint(wm.model, r * lhs - inv(L) * dhp <= 0.0)
 
         # Append the :pipe_head_loss constraint array.
         append!(con(wm, n, :pipe_head_loss)[a], [c])
@@ -60,9 +58,7 @@ function constraint_pipe_head_loss(wm::LRDWaterModel, n::Int, a::Int, node_fr::I
         dhp_lb_line = dhp_slope * (qp - qp_min_forward * y) + dhp_1 * y
 
         # Add the normalized constraint to the model.
-        expr = inv(L) * dhp - dhp_lb_line
-        scalar = minimum(abs.(values(expr.terms)))
-        c = JuMP.@constraint(wm.model, inv(scalar) * expr <= 0.0)
+        c = JuMP.@constraint(wm.model, inv(L) * dhp - dhp_lb_line <= 0.0)
 
         # Append the :pipe_head_loss constraint array.
         append!(con(wm, n, :pipe_head_loss)[a], [c])
@@ -78,9 +74,7 @@ function constraint_pipe_head_loss(wm::LRDWaterModel, n::Int, a::Int, node_fr::I
         lhs = _get_head_loss_oa_binary(qn, 1.0 - y, pt, exponent)
 
         # Add the normalized constraint to the model.
-        expr = r * lhs - inv(L) * dhn
-        scalar = minimum(abs.(values(expr.terms)))
-        c = JuMP.@constraint(wm.model, inv(scalar) * expr <= 0.0)
+        c = JuMP.@constraint(wm.model, r * lhs - inv(L) * dhn <= 0.0)
 
         # Append the :pipe_head_loss constraint array.
         append!(con(wm, n, :pipe_head_loss)[a], [c])
@@ -93,9 +87,7 @@ function constraint_pipe_head_loss(wm::LRDWaterModel, n::Int, a::Int, node_fr::I
         dhn_lb_line = dhn_slope * (qn - qn_min_forward * (1.0 - y)) + dhn_1 * (1.0 - y)
 
         # Add the normalized constraint to the model.
-        expr = inv(L) * dhn - dhn_lb_line
-        scalar = minimum(abs.(values(expr.terms)))
-        c = JuMP.@constraint(wm.model, inv(scalar) * expr <= 0.0)
+        c = JuMP.@constraint(wm.model, inv(L) * dhn - dhn_lb_line <= 0.0)
 
         # Append the :pipe_head_loss constraint array.
         append!(con(wm, n, :pipe_head_loss)[a], [c])
@@ -245,7 +237,7 @@ function objective_owf_default(wm::LRDWaterModel)
 
                 # Get pump flow and status variables.
                 qp, z = var(wm, n, :qp_pump, a), var(wm, n, :z_pump, a)
-                q_min_forward = max(get(pump, "q_min_forward", _FLOW_MIN), _FLOW_MIN)
+                q_min_forward = max(get(pump, "flow_min_forward", _FLOW_MIN), _FLOW_MIN)
 
                 # Generate a set of uniform flow and cubic function breakpoints.
                 breakpoints = range(q_min_forward, stop = JuMP.upper_bound(qp), length = pump_breakpoints)

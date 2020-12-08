@@ -1,32 +1,111 @@
-function _calc_pump_flow_min(pump::Dict{String,<:Any}, node_fr::Dict{String,Any}, node_to::Dict{String,Any})
+function correct_pumps!(data::Dict{String, <:Any})
+    for (idx, pump) in data["pump"]
+        # Get common connecting node data for later use.
+        node_fr = data["node"][string(pump["node_fr"])]
+        node_to = data["node"][string(pump["node_to"])]
+
+        # Correct various pump properties. The sequence is important, here.
+        _correct_pump_head_curve_form!(pump)
+        _correct_pump_flow_bounds!(pump, node_fr, node_to)
+    end
+end
+
+
+function _correct_pump_head_curve_form!(pump::Dict{String, <:Any})
+    pump["head_curve_form"] = get(pump, "head_curve_form", QUADRATIC)
+end
+
+
+function _correct_pump_flow_bounds!(pump::Dict{String, <:Any}, node_fr::Dict{String, <:Any}, node_to::Dict{String, <:Any})
+    pump["flow_min"] = _calc_pump_flow_min(pump, node_fr, node_to)
+    pump["flow_max"] = _calc_pump_flow_max(pump, node_fr, node_to)
+    pump["flow_min_forward"] = _calc_pump_flow_min_forward(pump, node_fr, node_to)
+    pump["flow_max_reverse"] = _calc_pump_flow_max_reverse(pump, node_fr, node_to)
+end
+
+
+function _calc_pump_flow_min(pump::Dict{String, <:Any}, node_fr::Dict{String, <:Any}, node_to::Dict{String, <:Any})
     return max(0.0, get(pump, "flow_min", 0.0))
 end
 
 
-function _calc_pump_flow_min_forward(pump::Dict{String,<:Any}, node_fr::Dict{String,Any}, node_to::Dict{String,Any})
+function _calc_pump_flow_min_forward(pump::Dict{String, <:Any}, node_fr::Dict{String,<: Any}, node_to::Dict{String, <:Any})
     flow_min_forward = get(pump, "flow_min_forward", _FLOW_MIN)
     return max(_calc_pump_flow_min(pump, node_fr, node_to), flow_min_forward)
 end
 
 
-function _calc_pump_flow_max_reverse(pump::Dict{String,<:Any}, node_fr::Dict{String,Any}, node_to::Dict{String,Any})
+function _calc_pump_flow_max_reverse(pump::Dict{String, <:Any}, node_fr::Dict{String, <:Any}, node_to::Dict{String, <:Any})
     flow_max_reverse = get(pump, "flow_max_reverse", 0.0)
     return min(_calc_pump_flow_max(pump, node_fr, node_to), flow_max_reverse)
 end
 
 
-function _calc_pump_flow_max(pump::Dict{String,<:Any}, node_fr::Dict{String,Any}, node_to::Dict{String,Any})
-    coeff = _get_function_from_head_curve(pump["head_curve"])
-    q_max_1 = (-coeff[2] + sqrt(coeff[2]^2 - 4.0*coeff[1]*coeff[3])) * inv(2.0*coeff[1])
-    q_max_2 = (-coeff[2] - sqrt(coeff[2]^2 - 4.0*coeff[1]*coeff[3])) * inv(2.0*coeff[1])
-    return min(max(q_max_1, q_max_2), get(pump, "flow_max", Inf))
+function calc_pump_head_gain_max(pump::Dict{String,<:Any}, node_fr::Dict{String,Any}, node_to::Dict{String,Any})
+    # Calculate the flow at the maximum head gain, then return maximum head gain.
+    c = _calc_head_curve_coefficients(pump)
+    flow_at_max = -c[2] * inv(2.0 * c[1]) > 0.0 ? -c[2] * inv(2.0 * c[1]) : 0.0
+    return c[1]*flow_at_max^2 + c[2]*flow_at_max + c[3]
 end
 
 
-function _calc_pump_flow_bounds_active(pump::Dict{String,<:Any})
-    q_min, q_max = _calc_pump_flow_bounds(pump)
-    q_min = max(max(get(pump, "flow_min_forward", _FLOW_MIN), _FLOW_MIN), q_min)
-    return q_min, q_max
+function _calc_pump_flow_max(pump::Dict{String,<:Any}, node_fr::Dict{String,Any}, node_to::Dict{String,Any})
+    # Get possible maximal flow values based on the head curve.
+    c = _calc_head_curve_coefficients(pump)
+    q_max_1 = (-c[2] + sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1])
+    q_max_2 = (-c[2] - sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1])
+
+    # Get possible maximal flow values based on maximum head gain.
+    g = get(node_to, "head_max", Inf) - get(node_fr, "head_min", -Inf)
+    q_max_3 = g < Inf ? (-c[2] - sqrt(c[2]^2 - 4.0*c[1]*(c[3] + g))) * inv(2.0*c[1]) : Inf
+    q_max_4 = g < Inf ? (-c[2] + sqrt(c[2]^2 - 4.0*c[1]*(c[3] + g))) * inv(2.0*c[1]) : Inf
+
+    # Get the minimal value of the above and the possible "flow_max" value.
+    return min(max(q_max_1, q_max_2), max(q_max_3, q_max_4), get(pump, "flow_max", Inf))
+end
+
+
+function _calc_head_curve_coefficients(pump::Dict{String, <:Any})
+    if pump["head_curve_form"] == QUADRATIC
+        return _calc_head_curve_coefficients_quadratic(pump)
+    elseif pump["head_curve_form"] == BEST_EFFICIENCY_POINT
+        return _calc_head_curve_coefficients_best_efficiency_point(pump)
+    else
+        error("\"$(pump["head_curve_form"])\" is not a valid head curve formulation.")
+    end
+end
+
+
+function _calc_head_curve_function(pump::Dict{String, <:Any})
+    if pump["head_curve_form"] == QUADRATIC
+        coeff = _calc_head_curve_coefficients_quadratic(pump)
+        return x -> coeff .* [x^2, x, 1.0]
+    elseif pump["head_curve_form"] == BEST_EFFICIENCY_POINT
+        coeff = _calc_head_curve_coefficients_best_efficiency_point(pump)
+        return x -> coeff .* [x^2, x, 1.0]
+    else
+        error("\"$(pump["head_curve_form"])\" is not a valid head curve formulation.")
+    end
+end
+
+
+function _calc_head_curve_coefficients_quadratic(pump::Dict{String, <:Any})
+    if length(pump["head_curve"]) > 1
+        array = pump["head_curve"]
+    elseif length(pump["head_curve"]) == 1
+        array = [0.0 1.33 * pump["head_curve"][1][2]; 2.0 * pump["head_curve"][1][1] 0.0]
+    else
+        error("Pump \"$(pump["name"])\" has no head curve points.")
+    end
+
+    # Build a two-dimensional array of the head curve points.
+    array = vcat([hcat(x[1], x[2]) for x in pump["head_curve"]]...)
+
+    # Build another array for fitting the efficiency curve.
+    fit_array = hcat(array[:, 1].^2, array[:, 1], ones(size(array, 1)))
+
+    # Perform a fit of the head curve and return the model coefficients.
+    return fit_array \ array[:, 2]
 end
 
 
@@ -128,7 +207,7 @@ function _calc_pump_best_efficiency_power(pump::Dict{String, <:Any})
 end
 
 
-function _calc_pump_best_efficiency_head_gain_curve(pump::Dict{String, <:Any})
+function _calc_head_curve_coefficients_best_efficiency_point(pump::Dict{String, <:Any})
     flow = _calc_pump_best_efficiency_flow(pump)
     head_gain = _calc_pump_best_efficiency_head_gain(pump)
     return [-inv(3.0) * head_gain * inv(flow^2), 0.0, 4.0 * head_gain * inv(3.0)]

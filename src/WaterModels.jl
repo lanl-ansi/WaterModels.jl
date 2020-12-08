@@ -51,6 +51,9 @@ include("core/tank.jl")
 
 include("core/pipe.jl")
 include("core/pump.jl")
+include("core/regulator.jl")
+include("core/short_pipe.jl")
+include("core/valve.jl")
 
 include("core/data.jl")
 include("core/ref.jl")

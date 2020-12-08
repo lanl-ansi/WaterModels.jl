@@ -48,7 +48,7 @@ function constraint_flow_conservation(wm::AbstractWaterModel, i::Int; nw::Int=wm
 
     # Sum the constant demands required at node `i`.
     nondispatchable_demands = filter(j -> j in ids(wm, nw, :nondispatchable_demand), demands)
-    fixed_demands = [ref(wm, nw, :nondispatchable_demand, j)["flow_rate"] for j in nondispatchable_demands]
+    fixed_demands = [ref(wm, nw, :nondispatchable_demand, j)["flow_nominal"] for j in nondispatchable_demands]
     net_fixed_demand = length(fixed_demands) > 0 ? sum(fixed_demands) : 0.0
 
     # Get the indices of dispatchable demands connected to node `i`.
@@ -87,7 +87,7 @@ function constraint_node_directionality(wm::AbstractWaterModel, i::Int; nw::Int=
 
     # Sum the constant demands required at node `i`.
     nondispatchable_demands = filter(j -> j in ids(wm, nw, :nondispatchable_demand), demands)
-    fixed_demands = [ref(wm, nw, :nondispatchable_demand, j)["flow_rate"] for j in nondispatchable_demands]
+    fixed_demands = [ref(wm, nw, :nondispatchable_demand, j)["flow_nominal"] for j in nondispatchable_demands]
     net_fixed_demand = length(fixed_demands) > 0 ? sum(fixed_demands) : 0.0
 
     # Get the number of nodal components attached to node `i`.
@@ -177,8 +177,8 @@ end
 function constraint_pipe_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     _initialize_con_dict(wm, :pipe_flow, nw=nw, is_array=true)
     con(wm, nw, :pipe_flow)[a] = Array{JuMP.ConstraintRef}([])
-    q_max_reverse = min(get(ref(wm, nw, :pipe, a), "q_max_reverse", 0.0), 0.0)
-    q_min_forward = max(get(ref(wm, nw, :pipe, a), "q_min_forward", 0.0), 0.0)
+    q_max_reverse = min(get(ref(wm, nw, :pipe, a), "flow_max_reverse", 0.0), 0.0)
+    q_min_forward = max(get(ref(wm, nw, :pipe, a), "flow_min_forward", 0.0), 0.0)
     constraint_pipe_flow(wm, nw, a, q_max_reverse, q_min_forward)
 end
 
@@ -197,8 +197,8 @@ function constraint_pipe_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cn
     node_fr, node_to = ref(wm, nw, :pipe, a)["node_fr"], ref(wm, nw, :pipe, a)["node_to"]
     exponent, L = ref(wm, nw, :alpha), ref(wm, nw, :pipe, a)["length"]
     r = minimum(ref(wm, nw, :resistance, a))
-    q_max_reverse = min(get(ref(wm, nw, :pipe, a), "q_max_reverse", 0.0), 0.0)
-    q_min_forward = max(get(ref(wm, nw, :pipe, a), "q_min_forward", 0.0), 0.0)
+    q_max_reverse = min(get(ref(wm, nw, :pipe, a), "flow_max_reverse", 0.0), 0.0)
+    q_min_forward = max(get(ref(wm, nw, :pipe, a), "flow_min_forward", 0.0), 0.0)
     constraint_pipe_head_loss(wm, nw, a, node_fr, node_to, exponent, L, r, q_max_reverse, q_min_forward)
 end
 
@@ -237,7 +237,7 @@ function constraint_on_off_pump_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.
     node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
     _initialize_con_dict(wm, :on_off_pump_flow, nw=nw, is_array=true)
     con(wm, nw, :on_off_pump_flow)[a] = Array{JuMP.ConstraintRef}([])
-    q_min_forward = max(get(ref(wm, nw, :pump, a), "q_min_forward", _FLOW_MIN), _FLOW_MIN)
+    q_min_forward = max(get(ref(wm, nw, :pump, a), "flow_min_forward", _FLOW_MIN), _FLOW_MIN)
     constraint_on_off_pump_flow(wm, nw, a, q_min_forward)
 end
 
@@ -254,14 +254,8 @@ function constraint_on_off_pump_head_gain(wm::AbstractWaterModel, a::Int; nw::In
     node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
     _initialize_con_dict(wm, :on_off_pump_head_gain, nw=nw, is_array=true)
     con(wm, nw, :on_off_pump_head_gain)[a] = Array{JuMP.ConstraintRef}([])
-
-    if get(wm.ext, :use_best_efficiency_form, false) == true
-        coeffs = _calc_pump_best_efficiency_head_gain_curve(ref(wm, nw, :pump, a))
-    else
-        coeffs = _calc_pump_head_gain_curve(ref(wm, nw, :pump, a))
-    end
-
-    q_min_forward = max(get(ref(wm, nw, :pump, a), "q_min_forward", _FLOW_MIN), _FLOW_MIN)
+    coeffs = _calc_head_curve_coefficients(ref(wm, nw, :pump, a))
+    q_min_forward = max(get(ref(wm, nw, :pump, a), "flow_min_forward", _FLOW_MIN), _FLOW_MIN)
     constraint_on_off_pump_head_gain(wm, nw, a, node_fr, node_to, coeffs, q_min_forward)
 end
 
@@ -270,8 +264,8 @@ end
 function constraint_short_pipe_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     _initialize_con_dict(wm, :short_pipe_flow, nw=nw, is_array=true)
     con(wm, nw, :short_pipe_flow)[a] = Array{JuMP.ConstraintRef}([])
-    q_max_reverse = min(get(ref(wm, nw, :short_pipe, a), "q_max_reverse", 0.0), 0.0)
-    q_min_forward = max(get(ref(wm, nw, :short_pipe, a), "q_min_forward", 0.0), 0.0)
+    q_max_reverse = min(get(ref(wm, nw, :short_pipe, a), "flow_max_reverse", 0.0), 0.0)
+    q_min_forward = max(get(ref(wm, nw, :short_pipe, a), "flow_min_forward", 0.0), 0.0)
     constraint_short_pipe_flow(wm, nw, a, q_max_reverse, q_min_forward)
 end
 
@@ -290,8 +284,8 @@ function constraint_on_off_valve_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm
     node_fr, node_to = ref(wm, nw, :valve, a)["node_fr"], ref(wm, nw, :valve, a)["node_to"]
     _initialize_con_dict(wm, :on_off_valve_flow, nw=nw, is_array=true)
     con(wm, nw, :on_off_valve_flow)[a] = Array{JuMP.ConstraintRef}([])
-    q_max_reverse = min(get(ref(wm, nw, :valve, a), "q_max_reverse", 0.0), 0.0)
-    q_min_forward = max(get(ref(wm, nw, :valve, a), "q_min_forward", 0.0), 0.0)
+    q_max_reverse = min(get(ref(wm, nw, :valve, a), "flow_max_reverse", 0.0), 0.0)
+    q_min_forward = max(get(ref(wm, nw, :valve, a), "flow_min_forward", 0.0), 0.0)
     constraint_on_off_valve_flow(wm, nw, a, q_max_reverse, q_min_forward)
 end
 
@@ -308,7 +302,7 @@ end
 function constraint_on_off_regulator_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     _initialize_con_dict(wm, :on_off_regulator_flow, nw=nw, is_array=true)
     con(wm, nw, :on_off_regulator_flow)[a] = Array{JuMP.ConstraintRef}([])
-    q_min_forward = get(ref(wm, nw, :regulator, a), "q_min_forward", _FLOW_MIN)
+    q_min_forward = get(ref(wm, nw, :regulator, a), "flow_min_forward", _FLOW_MIN)
     constraint_on_off_regulator_flow(wm, nw, a, q_min_forward)
 end
 

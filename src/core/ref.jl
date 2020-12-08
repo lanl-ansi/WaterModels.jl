@@ -26,7 +26,7 @@ function _calc_pump_energy_points(wm::AbstractWaterModel, nw::Int, pump_id::Int,
         curve_fun = _calc_pump_head_gain_curve(pump)
     end
 
-    q_min, q_max = pump["q_min_forward"], pump["q_max"]
+    q_min, q_max = get(pump, "flow_min_forward", _FLOW_MIN), pump["flow_max"]
     q_build = range(q_min, stop = q_max, length = 100)
     f_build = _calc_cubic_flow_values(collect(q_build), curve_fun)
 
@@ -212,9 +212,9 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     alpha = ref(wm, n, :alpha)
 
     nondispatchable_demands = values(ref(wm, n, :nondispatchable_demand))
-    sum_demand = length(nondispatchable_demands) > 0 ? sum(demand["flow_rate"] for demand in nondispatchable_demands) : 0.0
+    sum_demand = length(nondispatchable_demands) > 0 ? sum(demand["flow_nominal"] for demand in nondispatchable_demands) : 0.0
     dispatchable_demands = values(ref(wm, n, :dispatchable_demand))
-    sum_demand += length(dispatchable_demands) > 0 ? sum(demand["demand_max"] for demand in dispatchable_demands) : 0.0
+    sum_demand += length(dispatchable_demands) > 0 ? sum(demand["flow_max"] for demand in dispatchable_demands) : 0.0
 
     if :time_step in keys(ref(wm, n))
         time_step = ref(wm, n, :time_step)
@@ -256,8 +256,8 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
                 end
             end
 
-            haskey(comp, "q_min") && (lb[name][a][1] = max(lb[name][a][1], comp["q_min"]))
-            haskey(comp, "q_max") && (ub[name][a][1] = min(ub[name][a][1], comp["q_max"]))
+            haskey(comp, "flow_min") && (lb[name][a][1] = max(lb[name][a][1], comp["flow_min"]))
+            haskey(comp, "flow_max") && (ub[name][a][1] = min(ub[name][a][1], comp["flow_max"]))
         end
     end
 
@@ -267,8 +267,8 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
     for (a, regulator) in ref(wm, n, :regulator)
         name = "regulator"
         lb[name][a], ub[name][a] = [0.0], [sum_demand]
-        haskey(regulator, "q_min") && (lb[name][a][1] = max(lb[name][a][1], regulator["q_min"]))
-        haskey(regulator, "q_max") && (ub[name][a][1] = min(ub[name][a][1], regulator["q_max"]))
+        haskey(regulator, "flow_min") && (lb[name][a][1] = max(lb[name][a][1], regulator["flow_min"]))
+        haskey(regulator, "flow_max") && (ub[name][a][1] = min(ub[name][a][1], regulator["flow_max"]))
     end
 
     lb["short_pipe"] = Dict{Int,Float64}()
@@ -276,8 +276,8 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
 
     for (a, short_pipe) in ref(wm, n, :short_pipe)
         lb["short_pipe"][a], ub["short_pipe"][a] = -sum_demand, sum_demand
-        haskey(short_pipe, "q_min") && (lb["short_pipe"][a] = max(lb["short_pipe"][a], short_pipe["q_min"]))
-        haskey(short_pipe, "q_max") && (ub["short_pipe"][a] = min(ub["short_pipe"][a], short_pipe["q_max"]))
+        haskey(short_pipe, "flow_min") && (lb["short_pipe"][a] = max(lb["short_pipe"][a], short_pipe["flow_min"]))
+        haskey(short_pipe, "flow_max") && (ub["short_pipe"][a] = min(ub["short_pipe"][a], short_pipe["flow_max"]))
 
         if short_pipe["flow_direction"] == POSITIVE
             lb["short_pipe"][a] = max(lb["short_pipe"][a], 0.0)
@@ -291,8 +291,8 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
 
     for (a, valve) in ref(wm, n, :valve)
         lb["valve"][a], ub["valve"][a] = -sum_demand, sum_demand
-        haskey(valve, "q_min") && (lb["valve"][a] = max(lb["valve"][a], valve["q_min"]))
-        haskey(valve, "q_max") && (ub["valve"][a] = min(ub["valve"][a], valve["q_max"]))
+        haskey(valve, "flow_min") && (lb["valve"][a] = max(lb["valve"][a], valve["flow_min"]))
+        haskey(valve, "flow_max") && (ub["valve"][a] = min(ub["valve"][a], valve["flow_max"]))
 
         if valve["flow_direction"] == POSITIVE
             lb["valve"][a] = max(lb["valve"][a], 0.0)
@@ -314,8 +314,8 @@ function calc_flow_bounds(wm::AbstractWaterModel, n::Int=wm.cnw)
         q_max = max(q_max, (-c[2] - sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1]))
         lb["pump"][a], ub["pump"][a] = [[0.0], [min(sum_demand, q_max)]]
 
-        haskey(pump, "q_min") && (lb["pump"][a][1] = max(lb["pump"][a][1], pump["q_min"]))
-        haskey(pump, "q_max") && (ub["pump"][a][1] = min(ub["pump"][a][1], pump["q_max"]))
+        haskey(pump, "flow_min") && (lb["pump"][a][1] = max(lb["pump"][a][1], pump["flow_min"]))
+        haskey(pump, "flow_max") && (ub["pump"][a][1] = min(ub["pump"][a][1], pump["flow_max"]))
     end
 
     return lb, ub
