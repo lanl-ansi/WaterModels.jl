@@ -212,20 +212,3 @@ function _calc_head_curve_coefficients_best_efficiency_point(pump::Dict{String, 
     head_gain = _calc_pump_best_efficiency_head_gain(pump)
     return [-inv(3.0) * head_gain * inv(flow^2), 0.0, 4.0 * head_gain * inv(3.0)]
 end
-
-
-function _calc_pump_head_gain_curve(pump::Dict{String, <:Any})
-    head_curve = pump["head_curve"]
-
-    LsqFit.@. func(x, p) = p[1]*x*x + p[2]*x + p[3]
-
-    if length(head_curve) > 1
-        fit = LsqFit.curve_fit(func, first.(head_curve), last.(head_curve), [0.0, 0.0, 0.0])
-        return LsqFit.coef(fit)
-    elseif length(head_curve) == 1
-        new_points = [(0.0, 1.33 * head_curve[1][2]), (2.0 * head_curve[1][1], 0.0)]
-        head_curve = vcat(new_points, head_curve)
-        fit = LsqFit.curve_fit(func, first.(head_curve), last.(head_curve), [0.0, 0.0, 0.0])
-        return LsqFit.coef(fit)
-    end
-end

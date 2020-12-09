@@ -41,11 +41,11 @@ function _read_epanet_sections(file_path::String)
                 msg = "$(file_path): $(line_number): Invalid section \"$(section_tmp)\"."
                 Memento.error(_LOGGER, msg)
             end
-        elseif section == nothing && startswith(line, ";")
+        elseif section === nothing && startswith(line, ";")
             # If there is no current section and the section is a comment, store it.
             data["top_comments"] = vcat(data["top_comments"], line[2:end])
             continue
-        elseif section == nothing && !startswith(line, ";")
+        elseif section === nothing && !startswith(line, ";")
             # If there is no current section and the line is not a comment, throw an error.
             message = "$(file_path): $(line_number): Invalid EPANET input syntax."
             Memento.error(_LOGGER, message)
@@ -201,7 +201,7 @@ end
 
 "Standardize component indices to be integers instead of strings."
 function _transform_component_indices(components::Dict{String,<:Any})
-    if all([tryparse(Int64, x["name"]) != nothing for (i, x) in components])
+    if all([tryparse(Int64, x["name"]) !== nothing for (i, x) in components])
         for (name, component) in components
             component["index"] = parse(Int, component["name"])
         end
@@ -329,7 +329,7 @@ function _clock_time_to_seconds(s::AbstractString, am_pm::AbstractString)
 
     time_tuple = match(r"^(\d+):(\d+):(\d+)$", s)
 
-    if time_tuple != nothing
+    if time_tuple !== nothing
         seconds_1 = parse(Int64, time_tuple[1]) * 3600
         seconds_2 = parse(Int64, time_tuple[2]) * 60
         seconds_3 = convert(Int64, round(parse(Float64, time_tuple[3])))
@@ -351,7 +351,7 @@ function _clock_time_to_seconds(s::AbstractString, am_pm::AbstractString)
     else
         time_tuple = match(r"^(\d+):(\d+)$", s)
 
-        if time_tuple != nothing
+        if time_tuple !== nothing
             seconds_1 = parse(Int64, time_tuple[1]) * 3600
             seconds_2 = parse(Int64, time_tuple[2]) * 60
 
@@ -374,7 +374,7 @@ function _clock_time_to_seconds(s::AbstractString, am_pm::AbstractString)
         else
             time_tuple = match(r"^(\d+)$", s)
 
-            if time_tuple != nothing
+            if time_tuple !== nothing
                 time_seconds = parse(Int64, time_tuple[1]) * 3600
 
                 if startswith(s, "12")
@@ -413,7 +413,7 @@ Returns
 function _string_time_to_seconds(s::AbstractString)
     time_tuple = match(r"^(\d+):(\d+):(\d+)$", s)
 
-    if time_tuple != nothing
+    if time_tuple !== nothing
         seconds_1 = parse(Int64, time_tuple[1]) * 3600
         seconds_2 = parse(Int64, time_tuple[2]) * 60
         seconds_3 = convert(Int64, round(parse(Float64, time_tuple[3])))
@@ -421,14 +421,14 @@ function _string_time_to_seconds(s::AbstractString)
     else
         time_tuple = match(r"^(\d+):(\d+)$", s)
 
-        if time_tuple != nothing
+        if time_tuple !== nothing
             seconds_1 = parse(Int64, time_tuple[1]) * 3600
             seconds_2 = parse(Int64, time_tuple[2]) * 60
             return seconds_1 + seconds_2
         else
             time_tuple = match(r"^(\d+)$", s)
 
-            if time_tuple != nothing
+            if time_tuple !== nothing
                 return parse(Int64, time_tuple[1]) * 3600
             else
                 Memento.error(_LOGGER, "Time format in INP file not recognized")
@@ -441,7 +441,7 @@ function _clean_nothing!(data)
     for (key, value) in data
         if isa(value, Dict)
             value = _clean_nothing!(value)
-        elseif value == nothing
+        elseif value === nothing
             delete!(data, key)
         end
     end
@@ -677,13 +677,13 @@ function _read_demand!(data::Dict{String,<:Any})
         pattern = length(current) > 3 ? current[4] : data["default_pattern"]
 
         # Scale the parsed demand by the specified pattern, if it exists.
-        if pattern != nothing && length(data["pattern"][pattern]) > 1
+        if pattern !== nothing && length(data["pattern"][pattern]) > 1
             flow_rate = demand["flow_nominal"] .* data["pattern"][pattern]
             entry = Dict{String,Array{Float64}}("flow_nominal" => flow_rate)
             entry["flow_min"] = entry["flow_nominal"]
             entry["flow_max"] = entry["flow_nominal"]
             data["time_series"]["demand"][current[1]] = entry
-        elseif pattern != nothing && pattern != "1"
+        elseif pattern !== nothing && pattern != "1"
             demand["flow_nominal"] *= data["pattern"][pattern][1]
             demand["flow_min"] = demand["flow_nominal"]
             demand["flow_max"] = demand["flow_nominal"]
@@ -724,7 +724,7 @@ function _parse_epanet_options(data::Dict{String,<:Any})
     for (line_number, line) in data["section"]["[OPTIONS]"]
         words, comments = _split_line(line)
 
-        if words != nothing && length(words) > 0
+        if words !== nothing && length(words) > 0
             if length(words) < 2
                 Memento.error(_LOGGER, "No value provided for option $(words[1])")
             end
@@ -804,7 +804,7 @@ function _read_pattern!(data::Dict{String,<:Any})
         # Sanity check: if the default pattern does not exist and it is not "1", then balk.
         # If default is "1" but it does not exist, then it is constant.
         # Any other default that does not exist is an error.
-        if data["default_pattern"] != nothing && data["default_pattern"] != "1"
+        if data["default_pattern"] !== nothing && data["default_pattern"] != "1"
             Memento.error("Default pattern \"$(data["default_pattern"])\" is undefined.")
         end
 
@@ -978,14 +978,14 @@ function _read_reservoir!(data::Dict{String,<:Any})
 
         # Scale the parsed head by the specified pattern, if it exists. Also, assume the
         # reservoir's elevation is equal to the minimum value of head presented in the data.
-        if pattern != nothing && length(data["pattern"][pattern]) > 1
+        if pattern !== nothing && length(data["pattern"][pattern]) > 1
             head = reservoir["head_nominal"] .* data["pattern"][pattern]
             entry = Dict{String,Array{Float64}}("head_nominal" => head)
             entry["head_min"] = entry["head_nominal"]
             entry["head_max"] = entry["head_nominal"]
             data["time_series"]["reservoir"][current[1]] = entry
             reservoir["elevation"] = minimum(head)
-        elseif pattern != nothing && pattern != "1"
+        elseif pattern !== nothing && pattern != "1"
             reservoir["head_nominal"] *= data["pattern"][pattern][1]
             reservoir["head_min"] = reservoir["head_nominal"]
             reservoir["head_max"] = reservoir["head_nominal"]

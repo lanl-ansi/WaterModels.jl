@@ -50,6 +50,8 @@ function _calc_node_head_min(
 
         # Return the head associated with the minimum level.
         return max(node["elevation"] + min_level_min, head_min_base)
+    elseif length(tanks) + length(demands) + length(reservoirs) == 0
+        return max(node["elevation"] - 100.0, head_min_base)
     else
         return max(node["elevation"], head_min_base)
     end

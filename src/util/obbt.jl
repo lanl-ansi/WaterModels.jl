@@ -209,7 +209,7 @@ function _fix_indicator(v::JuMP.VariableRef, value::Float64)
     if JuMP.is_binary(v)
         JuMP.fix(v, value)
     else
-        JuMP.fix(v, value; force=true)
+        JuMP.fix(v, value; force = true)
     end
 end
 
