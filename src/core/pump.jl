@@ -52,8 +52,8 @@ end
 function _calc_pump_flow_max(pump::Dict{String,<:Any}, node_fr::Dict{String,Any}, node_to::Dict{String,Any})
     # Get possible maximal flow values based on the head curve.
     c = _calc_head_curve_coefficients(pump)
-    q_max_1 = (-c[2] + sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1])
-    q_max_2 = (-c[2] - sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0*c[1])
+    q_max_1 = (-c[2] + sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0 * c[1])
+    q_max_2 = (-c[2] - sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0 * c[1])
 
     # Get possible maximal flow values based on maximum head gain.
     g = get(node_to, "head_max", Inf) - get(node_fr, "head_min", -Inf)

@@ -48,8 +48,8 @@ function constraint_on_off_pump_head_gain(
     q, g, z = var(wm, n, :q_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
 
     # Add constraint equating head gain with respect to the pump curve.
-    c_1 = JuMP.@constraint(wm.model, pc[1]*q^2 + pc[2]*q + pc[3]*z <= g)
-    c_2 = JuMP.@constraint(wm.model, pc[1]*q^2 + pc[2]*q + pc[3]*z >= g)
+    c_1 = JuMP.@constraint(wm.model, pc[1] * q^2 + pc[2] * q + pc[3] * z <= g)
+    c_2 = JuMP.@constraint(wm.model, pc[1] * q^2 + pc[2] * q + pc[3] * z >= g)
 
     # Append the :on_off_pump_head_gain constraint array.
     append!(con(wm, n, :on_off_pump_head_gain)[a], [c_1, c_2])

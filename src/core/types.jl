@@ -33,10 +33,10 @@ abstract type AbstractLRDModel <: AbstractCQRDModel end
 mutable struct LRDWaterModel <: AbstractLRDModel @wm_fields end
 
 "Models that use direction variables."
-AbstractDirectedModel = Union{CRDWaterModel,LRDWaterModel,QRDWaterModel,CQRDWaterModel}
+AbstractDirectedModel = Union{NCDWaterModel,CRDWaterModel,LRDWaterModel,QRDWaterModel,CQRDWaterModel}
 
 "Models that don't use direction variables."
-AbstractUndirectedModel = Union{NCWaterModel,LAWaterModel}
+AbstractUndirectedModel = Union{NCWaterModel, LAWaterModel}
 
 "Models that include nonlinearities."
-AbstractNonlinearModel = Union{NCWaterModel,CRDWaterModel}
+AbstractNonlinearModel = Union{NCWaterModel, NCDWaterModel, CRDWaterModel}

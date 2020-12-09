@@ -2,6 +2,7 @@
 # This file defines the nonlinear head loss functions for water systems models. #
 #################################################################################
 
+
 function _f_alpha(alpha::Float64; convex::Bool=false)
     if convex
         return function(x::Float64)
@@ -13,6 +14,7 @@ function _f_alpha(alpha::Float64; convex::Bool=false)
         end
     end
 end
+
 
 function _df_alpha(alpha::Float64; convex::Bool=false)
     if convex
@@ -26,6 +28,7 @@ function _df_alpha(alpha::Float64; convex::Bool=false)
     end
 end
 
+
 function _d2f_alpha(alpha::Float64; convex::Bool=false)
     if convex
         return function(x::Float64)
@@ -38,6 +41,7 @@ function _d2f_alpha(alpha::Float64; convex::Bool=false)
     end
 end
 
+
 function _get_alpha_min_1(wm::AbstractWaterModel)
     alphas = [ref(wm, nw, :alpha) for nw in nw_ids(wm)]
 
@@ -48,11 +52,13 @@ function _get_alpha_min_1(wm::AbstractWaterModel)
     end
 end
 
-function head_loss_args(wm::CRDWaterModel)
+
+function head_loss_args(wm::Union{NCDWaterModel, CRDWaterModel})
     alpha_m1 = _get_alpha_min_1(wm)
     return (:head_loss, 1, _f_alpha(alpha_m1, convex=true),
         _df_alpha(alpha_m1, convex=true), _d2f_alpha(alpha_m1, convex=true))
 end
+
 
 function head_loss_args(wm::NCWaterModel)
     alpha_m1 = _get_alpha_min_1(wm)
@@ -60,9 +66,11 @@ function head_loss_args(wm::NCWaterModel)
         _df_alpha(alpha_m1, convex=false), _d2f_alpha(alpha_m1, convex=false))
 end
 
+
 function _function_head_loss(wm::AbstractWaterModel)
     # By default, head loss is not defined by nonlinear registered functions.
 end
+
 
 function _function_head_loss(wm::AbstractNonlinearModel)
     JuMP.register(wm.model, head_loss_args(wm)...)
