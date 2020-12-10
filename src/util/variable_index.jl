@@ -51,7 +51,7 @@ function _get_indicator_variable_indices(wm::AbstractWaterModel; nw::Int=wm.cnw)
 end
 
 
-function _get_direction_variable_indices(wm::AbstractDirectedModel; nw::Int=wm.cnw)
+function _get_direction_variable_indices(wm::AbstractNCDModel; nw::Int=wm.cnw)
     vars = Array{_VariableIndex, 1}()
 
     for comp_type in [:pipe, :pump, :regulator, :short_pipe, :valve]
@@ -70,7 +70,7 @@ function _get_binary_variable_indices(wm::AbstractWaterModel; nw::Int=wm.cnw)
 end
 
 
-function _get_binary_variable_indices(wm::AbstractDirectedModel; nw::Int=wm.cnw)
+function _get_binary_variable_indices(wm::AbstractNCDModel; nw::Int=wm.cnw)
     indicator_vars = _get_indicator_variable_indices(wm; nw=nw)
     direction_vars = _get_direction_variable_indices(wm; nw=nw)
     return vcat(indicator_vars, direction_vars)

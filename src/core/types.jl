@@ -1,5 +1,3 @@
-"Models derived from AbstractDirectedFlowModel"
-
 "Undirected nonlinear, nonconvex models."
 abstract type AbstractNCModel <: AbstractWaterModel end
 mutable struct NCWaterModel <: AbstractNCModel @wm_fields end
@@ -32,11 +30,5 @@ mutable struct PWLRDWaterModel <: AbstractPWLRDModel @wm_fields end
 abstract type AbstractLRDModel <: AbstractCQRDModel end
 mutable struct LRDWaterModel <: AbstractLRDModel @wm_fields end
 
-"Models that use direction variables."
-AbstractDirectedModel = Union{NCDWaterModel,CRDWaterModel,LRDWaterModel,QRDWaterModel,CQRDWaterModel}
-
-"Models that don't use direction variables."
-AbstractUndirectedModel = Union{NCWaterModel, LAWaterModel}
-
-"Models that include nonlinearities."
+"Models that include nonquadratic nonlinearities."
 AbstractNonlinearModel = Union{NCWaterModel, NCDWaterModel, CRDWaterModel}

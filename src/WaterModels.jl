@@ -65,8 +65,6 @@ include("core/constraint.jl")
 include("core/constraint_template.jl")
 include("core/objective.jl")
 
-include("form/directed_flow.jl")
-include("form/undirected_flow.jl")
 include("form/crd.jl")
 include("form/la.jl")
 include("form/lrd.jl")

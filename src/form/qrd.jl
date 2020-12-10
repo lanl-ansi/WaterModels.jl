@@ -2,66 +2,43 @@
 # of water distribution network constraints, which use directed flow variables.
 
 
-function constraint_pipe_head_loss(
-    wm::QRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
-    L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
-    # Get the number of breakpoints for the pipe.
-    num_breakpoints = get(wm.ext, :pipe_breakpoints, 1)
+function _calc_pipe_exponent_second_order_expansion(q::Float64, exponent::Float64, v::JuMP.VariableRef, z::Union{JuMP.VariableRef, JuMP.GenericAffExpr})
+    affine_term = q^exponent * z + exponent * q^(exponent - 1.0) * (v - q * z)
+    quad_term = 0.5 * exponent * (exponent - 1.0) * q^(exponent - 2.0) * (v^2 + q^2 * z - 2.0 * v * q)
+    return q != 0.0 ? affine_term + quad_term : 0.0
+end
 
-    # Get the variable for flow directionality.
+
+function constraint_pipe_head_loss(
+    wm::AbstractQRDModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
+    L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
+    # Get the flow direction variable.
     y = var(wm, n, :y_pipe, a)
 
     # Get variables for positive flow and head difference.
     qp, dhp = var(wm, n, :qp_pipe, a), var(wm, n, :dhp_pipe, a)
 
-    # Loop over breakpoints strictly between the lower and upper variable bounds.
-    for pt in range(0.0, stop = JuMP.upper_bound(qp), length = num_breakpoints+2)[2:end-1]
-        # Add a linear outer approximation of the convex relaxation at `pt`.
-        lhs = _get_head_loss_oa_binary(qp, y, pt, exponent)
-        c = JuMP.@constraint(wm.model, r * lhs <= inv(L) * dhp)
-        append!(con(wm, n, :pipe_head_loss)[a], [c])
-    end
+    # Get a second-order expansion of the positive nonlinearity at a point.
+    qp_mid = 0.5 * JuMP.upper_bound(qp) # Get the positive flow point.
+    expansion_p = _calc_pipe_exponent_second_order_expansion(qp_mid, exponent, qp, y)
 
-    # Add linear upper bounds on the above outer approximations.
-    rhs = r * JuMP.upper_bound(qp)^(exponent - 1.0) * qp
-    c = JuMP.@constraint(wm.model, inv(L) * dhp <= rhs)
-
-    # Append the :pipe_head_loss constraint array.
-    append!(con(wm, n, :pipe_head_loss)[a], [c])
+    # Add constraints for the positive head loss approximation.
+    c_1 = JuMP.@constraint(wm.model, r * expansion_p <= inv(L) * dhp)
+    c_2 = JuMP.@constraint(wm.model, r * expansion_p >= inv(L) * dhp)
 
     # Get variables for negative flow and head difference.
     qn, dhn = var(wm, n, :qn_pipe, a), var(wm, n, :dhn_pipe, a)
 
-    # Loop over breakpoints strictly between the lower and upper variable bounds.
-    for pt in range(0.0, stop = JuMP.upper_bound(qn), length = num_breakpoints+2)[2:end-1]
-        # Add a linear outer approximation of the convex relaxation at `pt`.
-        lhs = _get_head_loss_oa_binary(qn, 1.0 - y, pt, exponent)
-        c = JuMP.@constraint(wm.model, r * lhs <= inv(L) * dhn)
-        append!(con(wm, n, :pipe_head_loss)[a], [c])
-    end
+    # Get a second-order expansion of the head loss nonlinearity at a point.
+    qn_mid = 0.5 * JuMP.upper_bound(qn) # Get the negative flow point.
+    expansion_n = _calc_pipe_exponent_second_order_expansion(qn_mid, exponent, qn, 1.0 - y)
 
-    # Add linear upper bounds on the above outer approximations.
-    rhs = r * JuMP.upper_bound(qn)^(exponent - 1.0) * qn
-    c = JuMP.@constraint(wm.model, inv(L) * dhn <= rhs)
+    # Add constraints for the negative head loss approximation.
+    c_3 = JuMP.@constraint(wm.model, r * expansion_n <= inv(L) * dhn)
+    c_4 = JuMP.@constraint(wm.model, r * expansion_n >= inv(L) * dhn)
 
     # Append the :pipe_head_loss constraint array.
-    append!(con(wm, n, :pipe_head_loss)[a], [c])
-end
-
-
-"Pump head gain constraint when the pump status is ambiguous."
-function constraint_on_off_pump_head_gain(wm::QRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64}, q_min_forward::Float64)
-    # Gather pump flow, head gain, and status variables.
-    qp, g, z = var(wm, n, :qp_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
-
-    # Define the (relaxed) head gain relationship for the pump.
-    c = JuMP.@constraint(wm.model, g == pc[1]*qp^2 + pc[2]*qp + pc[3]*z)
-    append!(con(wm, n, :on_off_pump_head_gain, a), [c])
-end
-
-
-function objective_wf(wm::QRDWaterModel)
-    JuMP.set_objective_sense(wm.model, _MOI.FEASIBILITY_SENSE)
+    append!(con(wm, n, :pipe_head_loss)[a], [c_1, c_2, c_3, c_4])
 end
 
 
