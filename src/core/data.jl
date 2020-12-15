@@ -12,6 +12,14 @@ function replicate(data::Dict{String,<:Any}, count::Int; global_keys::Set{String
 end
 
 
+function _remove_last_networks!(data::Dict{String, <:Any}; last_num_steps::Int = length(nw_ids(wm)))
+    network_ids = sort([parse(Int, x) for x in keys(data["nw"])]; rev = true)
+    network_ids_exclude = network_ids[1:min(length(network_ids), last_num_steps)]
+    network_ids_exclude_str = [string(x) for x in network_ids_exclude]
+    data["nw"] = filter(x -> !(x.first in network_ids_exclude_str), data["nw"])
+end
+
+
 function _calc_head_max(data::Dict{String, <:Any})
     # Compute the maximum elevation of all nodes in the network.
     head_max = maximum(get(node, "head_min", -Inf) for (i, node) in data["node"])
