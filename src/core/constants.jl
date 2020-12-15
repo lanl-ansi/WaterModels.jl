@@ -2,7 +2,7 @@
 @enum FLOW_DIRECTION POSITIVE=1 NEGATIVE=-1 UNKNOWN=0
 
 "Enumerated type specifying the form of the pump head curve."
-@enum HEAD_CURVE_FORM QUADRATIC=0 BEST_EFFICIENCY_POINT=1
+@enum HEAD_CURVE_FORM QUADRATIC=0 BEST_EFFICIENCY_POINT=1 EPANET=2
 
 "Defines a constant for determining whether flow along a pump is considered appreciable."
 const _FLOW_MIN = 6.31465679e-6

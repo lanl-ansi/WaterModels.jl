@@ -1160,7 +1160,7 @@ internal WaterModels use. Imports all data from the EPANET file if `import_all` 
 """
 function epanet_to_watermodels!(data::Dict{String,<:Any}; import_all::Bool = false)
     _drop_zero_demands!(data) # Drop demands of zero from nodes.
-    _convert_short_pipes!(data) # Convert pipes that are short to short pipes and valves.
+    #_convert_short_pipes!(data) # Convert pipes that are short to short pipes and valves.
     #_add_valves_to_tanks!(data) # Ensure that shutoff valves are connected to tanks.
     _add_valves_from_pipes!(data) # Convert pipes with valves to pipes *and* valves.
     _drop_pipe_flags!(data) # Drop irrelevant pipe attributes.
@@ -1266,7 +1266,8 @@ end
 
 function _add_valves_from_pipes!(data::Dict{String,<:Any})
     # Add valves to parsed pipes that have the attribute "has_valve" equal to true.
-    for (a, pipe) in filter(x -> x.second["has_valve"], data["pipe"])
+    for (a, pipe) in data["pipe"]
+    #for (a, pipe) in filter(x -> x.second["has_valve"], data["pipe"])
         # Create a dummy node to which the valve and pipe will be attached.
         dummy_node_id = _get_max_comp_id(data, "node") + 1
         dummy_node = deepcopy(data["node"][string(pipe["node_fr"])])

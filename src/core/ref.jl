@@ -19,11 +19,11 @@ end
 function _calc_pump_energy_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, num_points::Int)
     pump = ref(wm, nw, :pump, pump_id)
     constant = _DENSITY * _GRAVITY * ref(wm, nw, :time_step)
-    curve_fun = _calc_head_curve_coefficients(pump)
+    head_curve_function = _calc_head_curve_function(pump)
 
     q_min, q_max = get(pump, "flow_min_forward", _FLOW_MIN), pump["flow_max"]
     q_build = range(q_min, stop = q_max, length = 100)
-    f_build = _calc_cubic_flow_values(collect(q_build), curve_fun)
+    f_build = head_curve_function.(collect(q_build)) .* q_build
 
     if haskey(pump, "efficiency_curve")
         eff_curve = pump["efficiency_curve"]
@@ -49,22 +49,6 @@ function _calc_pump_energy_ua(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::
     end
 
     return f_interp
-end
-
-
-function _calc_pump_energy(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Float64)
-    pump = ref(wm, nw, :pump, pump_id)
-    constant = _DENSITY * _GRAVITY * ref(wm, nw, :time_step)
-    pc = _calc_head_curve_coefficients(pump)
-
-    if haskey(pump, "efficiency_curve")
-        eff_curve = pump["efficiency_curve"]
-        eff = _calc_efficiencies([q], eff_curve)[1]
-    else
-        eff = pump["efficiency"]
-    end
-
-    return constant * inv(eff) * (pc[1]*q^3 + pc[2]*q^2 + pc[3]*q)
 end
 
 

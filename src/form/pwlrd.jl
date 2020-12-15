@@ -1,27 +1,64 @@
 # Define common PWLRD (piecewise linear relaxation- and direction-based) implementations of water
 # distribution network constraints, which use directed flow variables.
 
-function _get_owf_oa(q::JuMP.VariableRef, z::JuMP.VariableRef, q_hat::Float64, coeffs::Array{Float64})
-    f = coeffs[1]*q_hat^3 + coeffs[2]*q_hat^2 + coeffs[3]*q_hat
-    df = 3.0*coeffs[1]*q_hat^2 + 2.0*coeffs[2]*q_hat + coeffs[3]
-    return f*z + df*(q - q_hat*z)
-end
+
+########################################## VARIABLES ##########################################
 
 
-function _get_head_loss_oa(q::JuMP.VariableRef, q_hat::Float64, alpha::Float64)
-    return q_hat^alpha + alpha * q_hat^(alpha - 1.0) * (q - q_hat)
-end
+"Create flow-related variables common to all directed flow models for node-connecting components."
+function variable_flow(wm::AbstractPWLRDModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+    for name in ["pipe", "pump", "regulator", "short_pipe", "valve"]
+        # Create directed flow (`qp` and `qn`) variables for each component.
+        _variable_component_flow(wm, name; nw=nw, bounded=bounded, report=report)
 
+        # Create directed head difference (`dhp` and `dhn`) variables for each component.
+        _variable_component_head_difference(wm, name; nw=nw, bounded=bounded, report=report)
 
-function _get_head_loss_oa_binary(q::JuMP.VariableRef, z::Union{JuMP.VariableRef, JuMP.GenericAffExpr}, q_hat::Float64, exponent::Float64)
-    return q_hat^exponent*z + exponent * q_hat^(exponent - 1.0) * (q - q_hat*z)
-end
+        # Create directed flow binary direction variables (`y`) for each component.
+        _variable_component_direction(wm, name; nw=nw, report=report)
+    end
 
+    # Create flow-related variables for design components.
+    variable_flow_des(wm; nw=nw, bounded=bounded, report=report)
 
-function _get_head_gain_oa(q::JuMP.VariableRef, z::JuMP.VariableRef, q_hat::Float64, curve_fun::Array{Float64})
-    f = curve_fun[1]*q_hat^2 + curve_fun[2]*q_hat + curve_fun[3]
-    df = 2.0 * curve_fun[1] * q_hat + curve_fun[2]
-    return f * z + df * (q - q_hat * z)
+    # Get the number of breakpoints for pumps.
+    pump_breakpoints = get(wm.ext, :pump_breakpoints, 2)
+
+    # Create weights involved in convex combination constraints for pumps.
+    lambda_pump = var(wm, nw)[:lambda_pump] = JuMP.@variable(wm.model,
+        [a in ids(wm, nw, :pump), k in 1:pump_breakpoints],
+        base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
+        start=comp_start_value(ref(wm, nw, :pump, a), "lambda_start", k))
+
+    # Create binary variables involved in convex combination constraints for pumps.
+    x_pw_pump = var(wm, nw)[:x_pw_pump] = JuMP.@variable(wm.model,
+        [a in ids(wm, nw, :pump), k in 1:pump_breakpoints-1], base_name="$(nw)_x_pw",
+        binary=true, start=comp_start_value(ref(wm, nw, :pump, a), "x_pw_start"))
+
+    # Get the number of breakpoints for pipes.
+    pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 2)
+
+    # Create weights involved in convex combination constraints for pipes.
+    lambda_p_pipe = var(wm, nw)[:lambda_p_pipe] = JuMP.@variable(wm.model,
+        [a in ids(wm, nw, :pipe), k in 1:pipe_breakpoints],
+        base_name="$(nw)_lambda_p", lower_bound=0.0, upper_bound=1.0,
+        start=comp_start_value(ref(wm, nw, :pipe, a), "lambda_p_start", k))
+
+    # Create weights involved in convex combination constraints for pipes.
+    lambda_n_pipe = var(wm, nw)[:lambda_n_pipe] = JuMP.@variable(wm.model,
+        [a in ids(wm, nw, :pipe), k in 1:pipe_breakpoints],
+        base_name="$(nw)_lambda_n", lower_bound=0.0, upper_bound=1.0,
+        start=comp_start_value(ref(wm, nw, :pipe, a), "lambda_n_start", k))
+    
+    # Create binary variables involved in convex combination constraints for pipes.
+    x_p_pipe = var(wm, nw)[:x_p_pipe] = JuMP.@variable(wm.model,
+        [a in ids(wm, nw, :pipe), k in 1:pipe_breakpoints-1], base_name="$(nw)_x_p",
+        binary=true, start=comp_start_value(ref(wm, nw, :pipe, a), "x_p_start"))
+
+    # Create binary variables involved in convex combination constraints for pipes.
+    x_n_pipe = var(wm, nw)[:x_n_pipe] = JuMP.@variable(wm.model,
+        [a in ids(wm, nw, :pipe), k in 1:pipe_breakpoints-1], base_name="$(nw)_x_n",
+        binary=true, start=comp_start_value(ref(wm, nw, :pipe, a), "x_n_start"))
 end
 
 
@@ -30,67 +67,75 @@ end
 
 function constraint_pipe_head_loss(wm::PWLRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64, L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
     # Get the number of breakpoints for the pipe.
-    num_breakpoints = get(wm.ext, :pipe_breakpoints, 1)
+    pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 2)
 
-    # Get the variable for flow directionality.
-    y = var(wm, n, :y_pipe, a)
+    # Gather directed pipe flow and direction variables.
+    qp, qn, y = var(wm, n, :qp_pipe, a), var(wm, n, :qn_pipe, a), var(wm, n, :y_pipe, a)
 
-    # Get variables for positive flow and head difference.
-    qp, dhp = var(wm, n, :qp_pipe, a), var(wm, n, :dhp_pipe, a)
-    qp_min_forward, qp_ub = max(0.0, q_min_forward), JuMP.upper_bound(qp)
+    # Gather directed head loss variables.
+    dhp, dhn = var(wm, n, :dhp_pipe, a), var(wm, n, :dhn_pipe, a)
 
-    # Loop over breakpoints strictly between the lower and upper variable bounds.
-    for pt in range(qp_min_forward, stop = JuMP.upper_bound(qp), length = num_breakpoints+2)[2:end-1]
-        # Add a linear outer approximation of the convex relaxation at `pt`.
-        lhs = _get_head_loss_oa_binary(qp, y, pt, exponent)
+    # Gather convex combination variables.
+    lambda_p, x_p = var(wm, n, :lambda_p_pipe), var(wm, n, :x_p_pipe)
+    lambda_n, x_n = var(wm, n, :lambda_n_pipe), var(wm, n, :x_n_pipe)
 
-        # Add the normalized constraint to the model.
-        c = JuMP.@constraint(wm.model, r * lhs - inv(L) * dhp <= 0.0)
+    # Add the required SOS constraints.
+    c_1 = JuMP.@constraint(wm.model, sum(lambda_p[a, :]) == y)
+    c_2 = JuMP.@constraint(wm.model, sum(x_p[a, :]) == y)
+    c_3 = JuMP.@constraint(wm.model, lambda_p[a, 1] <= x_p[a, 1])
+    c_4 = JuMP.@constraint(wm.model, lambda_p[a, end] <= x_p[a, end])
 
-        # Append the :pipe_head_loss constraint array.
-        append!(con(wm, n, :pipe_head_loss)[a], [c])
+    c_5 = JuMP.@constraint(wm.model, sum(lambda_n[a, :]) == 1.0 - y)
+    c_6 = JuMP.@constraint(wm.model, sum(x_n[a, :]) == 1.0 - y)
+    c_7 = JuMP.@constraint(wm.model, lambda_n[a, 1] <= x_n[a, 1])
+    c_8 = JuMP.@constraint(wm.model, lambda_n[a, end] <= x_n[a, end])
+
+    # Add a constraint for the flow piecewise approximation.
+    breakpoints_p = range(max(0.0, q_min_forward), stop=JuMP.upper_bound(qp), length=pipe_breakpoints)
+    qp_lhs = sum(breakpoints_p[k] * lambda_p[a, k] for k in 1:pipe_breakpoints)
+    c_5 = JuMP.@constraint(wm.model, qp_lhs == qp)
+
+    # Add a constraint that upper-bounds the head loss variable.
+    f_p = r .* breakpoints_p.^exponent
+    loss_p_ub_expr = sum(f_p[k] * lambda_p[a, k] for k in 1:pipe_breakpoints)
+    c_6 = JuMP.@constraint(wm.model, inv(L) * dhp <= loss_p_ub_expr)
+
+    # Add a constraint for the flow piecewise approximation.
+    breakpoints_n = range(max(0.0, -q_max_reverse), stop=JuMP.upper_bound(qn), length=pipe_breakpoints)
+    qn_lhs = sum(breakpoints_n[k] * lambda_n[a, k] for k in 1:pipe_breakpoints)
+    c_5 = JuMP.@constraint(wm.model, qn_lhs == qn)
+
+    # Add a constraint that upper-bounds the head loss variable.
+    f_n =  r .* breakpoints_n.^exponent
+    loss_n_ub_expr = sum(f_n[k] .* lambda_n[a, k] for k in 1:pipe_breakpoints)
+    c_6 = JuMP.@constraint(wm.model, inv(L) * dhn <= loss_n_ub_expr)
+
+    ## Append the constraint array.
+    #append!(con(wm, n, :on_off_pipe_head_gain, a), [c_1, c_2, c_3, c_4, c_5, c_6])
+
+    for qp_hat in breakpoints_p
+        # Add head loss outer (i.e., lower) approximations.
+        lhs_p = _get_head_loss_oa_binary(qp, y, qp_hat, exponent)
+        c_7_k = JuMP.@constraint(wm.model, r * lhs_p <= inv(L) * dhp)
+        #append!(con(wm, n, :on_off_pipe_head_gain, a), [c_7_k])
     end
 
-    # Get the lower-bounding line for the qp curve.
-    if qp_min_forward < qp_ub
-        dhp_1, dhp_2 = r * qp_min_forward^exponent, r * qp_ub^exponent
-        dhp_slope = (dhp_2 - dhp_1) * inv(qp_ub - qp_min_forward)
-        dhp_lb_line = dhp_slope * (qp - qp_min_forward * y) + dhp_1 * y
-
-        # Add the normalized constraint to the model.
-        c = JuMP.@constraint(wm.model, inv(L) * dhp - dhp_lb_line <= 0.0)
-
-        # Append the :pipe_head_loss constraint array.
-        append!(con(wm, n, :pipe_head_loss)[a], [c])
+    for qn_hat in breakpoints_n
+        # Add head loss outer (i.e., lower) approximations.
+        lhs_n = _get_head_loss_oa_binary(qn, 1.0 - y, qn_hat, exponent)
+        c_7_k = JuMP.@constraint(wm.model, r * lhs_n <= inv(L) * dhn)
+        #append!(con(wm, n, :on_off_pipe_head_gain, a), [c_7_k])
     end
 
-    # Get variables for negative flow and head difference.
-    qn, dhn = var(wm, n, :qn_pipe, a), var(wm, n, :dhn_pipe, a)
-    qn_min_forward, qn_ub = max(0.0, -q_max_reverse), JuMP.upper_bound(qn)
+    for k in 2:pipe_breakpoints-1
+        # Add the adjacency constraints for piecewise variables.
+        adjacency_p = x_p[a, k-1] + x_p[a, k]
+        c_8_k = JuMP.@constraint(wm.model, lambda_p[a, k] <= adjacency_p)
 
-    # Loop over breakpoints strictly between the lower and upper variable bounds.
-    for pt in range(qn_min_forward, stop = JuMP.upper_bound(qn), length = num_breakpoints+2)[2:end-1]
-        # Add a linear outer approximation of the convex relaxation at `pt`.
-        lhs = _get_head_loss_oa_binary(qn, 1.0 - y, pt, exponent)
+        adjacency_n = x_n[a, k-1] + x_n[a, k]
+        c_8_k = JuMP.@constraint(wm.model, lambda_n[a, k] <= adjacency_n)
 
-        # Add the normalized constraint to the model.
-        c = JuMP.@constraint(wm.model, r * lhs - inv(L) * dhn <= 0.0)
-
-        # Append the :pipe_head_loss constraint array.
-        append!(con(wm, n, :pipe_head_loss)[a], [c])
-    end
-
-    # Get the lower-bounding line for the qn curve.
-    if qn_min_forward < qn_ub
-        dhn_1, dhn_2 = r * qn_min_forward^exponent, r * qn_ub^exponent
-        dhn_slope = (dhn_2 - dhn_1) * inv(qn_ub - qn_min_forward)
-        dhn_lb_line = dhn_slope * (qn - qn_min_forward * (1.0 - y)) + dhn_1 * (1.0 - y)
-
-        # Add the normalized constraint to the model.
-        c = JuMP.@constraint(wm.model, inv(L) * dhn - dhn_lb_line <= 0.0)
-
-        # Append the :pipe_head_loss constraint array.
-        append!(con(wm, n, :pipe_head_loss)[a], [c])
+        #append!(con(wm, n, :on_off_pipe_head_gain, a), [c_8_k])
     end
 end
 
@@ -143,32 +188,6 @@ end
 ########################################## PUMPS ##########################################
 
 
-"Instantiate variables associated with modeling each pump's head gain."
-function variable_pump_head_gain(wm::PWLRDWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
-    # Initialize variables for total hydraulic head gain from a pump.
-    g = var(wm, nw)[:g_pump] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
-        base_name="$(nw)_g_pump", lower_bound=0.0, # Pump gain is nonnegative.
-        start=comp_start_value(ref(wm, nw, :pump, a), "g_pump_start"))
-
-    # Initialize an entry to the solution component dictionary for head gains.
-    report && sol_component_value(wm, nw, :pump, :g, ids(wm, nw, :pump), g)
-
-    # Get the number of breakpoints for the pump.
-    pump_breakpoints = get(wm.ext, :pump_breakpoints, 2)
-
-    # Create weights involved in convex combination constraints for pumps.
-    lambda_pump = var(wm, nw)[:lambda_pump] = JuMP.@variable(wm.model,
-        [a in ids(wm, nw, :pump), k in 1:pump_breakpoints],
-        base_name="$(nw)_lambda", lower_bound=0.0, upper_bound=1.0,
-        start=comp_start_value(ref(wm, nw, :pump, a), "lambda_start", k))
-
-    # Create binary variables involved in convex combination constraints for pumps.
-    x_pw_pump = var(wm, nw)[:x_pw_pump] = JuMP.@variable(wm.model,
-        [a in ids(wm, nw, :pump), k in 1:pump_breakpoints-1], base_name="$(nw)_x_pw",
-        binary=true, start=comp_start_value(ref(wm, nw, :pump, a), "x_pw_start"))
-end
-
-
 "Add constraints associated with modeling a pump's head gain."
 function constraint_on_off_pump_head_gain(wm::PWLRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64}, q_min_forward::Float64)
     # Get the number of breakpoints for the pump.
@@ -191,9 +210,12 @@ function constraint_on_off_pump_head_gain(wm::PWLRDWaterModel, n::Int, a::Int, n
     qp_lhs = sum(breakpoints[k] * lambda[a, k] for k in 1:pump_breakpoints)
     c_5 = JuMP.@constraint(wm.model, qp_lhs == qp)
 
+    head_curve_function = _calc_head_curve_function(ref(wm, n, :pump, a))
+    head_curve_derivative = _calc_head_curve_derivative(ref(wm, n, :pump, a))
+
     # Add a constraint that lower-bounds the head gain variable.
-    f = (pc[1] .* breakpoints.^2) .+ (pc[2] .* breakpoints) .+ pc[3]
-    gain_lb_expr = sum(f[k] .* lambda[a, k] for k in 1:pump_breakpoints)
+    f_all = head_curve_function.(collect(breakpoints))
+    gain_lb_expr = sum(f_all[k] .* lambda[a, k] for k in 1:pump_breakpoints)
     c_6 = JuMP.@constraint(wm.model, gain_lb_expr <= g)
 
     # Append the constraint array.
@@ -201,7 +223,8 @@ function constraint_on_off_pump_head_gain(wm::PWLRDWaterModel, n::Int, a::Int, n
 
     for qp_hat in breakpoints
         # Add head gain outer (i.e., upper) approximations.
-        rhs = _get_head_gain_oa(qp, z, qp_hat, pc)
+        f, df = head_curve_function(qp_hat), head_curve_derivative(qp_hat)
+        rhs = f * z + df * (qp - qp_hat * z)
         c_7_k = JuMP.@constraint(wm.model, g <= rhs)
         append!(con(wm, n, :on_off_pump_head_gain, a), [c_7_k])
     end

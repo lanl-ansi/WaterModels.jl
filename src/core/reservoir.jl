@@ -7,3 +7,19 @@ function _relax_reservoirs!(data::Dict{String,<:Any})
         map(x -> x["dispatchable"] = true, reservoirs)
     end
 end
+
+
+function _fix_reservoir!(reservoir::Dict{String,<:Any})
+    reservoir["dispatchable"] = false
+end
+
+
+function _fix_reservoirs!(data::Dict{String, <:Any})
+    if _IM.ismultinetwork(data)
+        for (n, nw) in data["nw"]
+            map(x -> _fix_reservoir!(x), values(nw["reservoir"]))
+        end
+    else
+        map(x -> _fix_reservoir!(x), values(data["reservoir"]))
+    end
+end

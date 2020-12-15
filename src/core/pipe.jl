@@ -104,18 +104,6 @@ function _get_exponent_from_head_loss_form(head_loss_form::String)
 end
 
 
-function _calc_pipe_flow_min_forward(pipe::Dict{String, <:Any}, node_fr::Dict{String, <:Any}, node_to::Dict{String, <:Any}, form::String)
-    flow_min_forward = get(pipe, "flow_min_forward", 0.0)
-    return max(_calc_pipe_flow_min(pipe, node_fr, node_to), flow_min_forward)
-end
-
-
-function _calc_pipe_flow_max_reverse(pipe::Dict{String, <:Any}, node_fr::Dict{String, <:Any}, node_to::Dict{String, <:Any}, form::String)
-    flow_max_reverse = get(pipe, "flow_max_reverse", 0.0)
-    return min(_calc_pipe_flow_max(pipe, node_fr, node_to), flow_max_reverse)
-end
-
-
 """
 Computes the resistance for a pipe governed by the Hazen-Williams relationship.
 """

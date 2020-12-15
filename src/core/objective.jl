@@ -68,9 +68,5 @@ end
 Sets the objective function for optimal water flow (owf) problem specifications.
 """
 function objective_owf(wm::AbstractWaterModel)
-    if get(wm.ext, :use_best_efficiency_form, false)
-        return objective_owf_best_efficiency(wm)
-    else
-        return objective_owf_default(wm)
-    end
+    return objective_owf_default(wm)
 end

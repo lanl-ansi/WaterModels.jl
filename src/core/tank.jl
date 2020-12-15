@@ -23,3 +23,19 @@ function make_tank_start_dispatchable!(data::Dict{String,<:Any})
         end
     end
 end
+
+
+function _fix_tank!(tank::Dict{String,<:Any})
+    tank["dispatchable"] = false
+end
+
+
+function _fix_tanks!(data::Dict{String, <:Any})
+    if _IM.ismultinetwork(data)
+        for (n, nw) in data["nw"]
+            map(x -> _fix_tank!(x), values(nw["tank"]))
+        end
+    else
+        map(x -> _fix_tank!(x), values(data["tank"]))
+    end
+end

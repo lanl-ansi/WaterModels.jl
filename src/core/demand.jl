@@ -23,3 +23,17 @@ function _relax_demands!(data::Dict{String,<:Any})
         map(x -> _relax_demand!(x), values(data["demand"]))
     end
 end
+
+function _fix_demand!(demand::Dict{String,<:Any})
+    demand["dispatchable"] = false
+end
+
+function _fix_demands!(data::Dict{String, <:Any})
+    if _IM.ismultinetwork(data)
+        for (n, nw) in data["nw"]
+            map(x -> _fix_demand!(x), values(nw["demand"]))
+        end
+    else
+        map(x -> _fix_demand!(x), values(data["demand"]))
+    end
+end

@@ -36,33 +36,6 @@ function run_obbt_owf!(file::String, optimizer; kwargs...)
 end
 
 
-function _revert_relaxed_data!(ts_data::Dict{String,<:Any})
-    for comp_type in keys(ts_data["time_series"])
-        # If not a component type (Dict), skip parsing.
-        !isa(ts_data["time_series"][comp_type], Dict) && continue
-
-        for (i, comp) in ts_data["time_series"][comp_type]
-            if comp_type == "demand"
-                ts_data["demand"][i]["dispatchable"] = false
-                #delete!(ts_data["demand"][i], "flow_min")
-                #delete!(ts_data["demand"][i], "flow_max")
-            end
-        end
-    end
-
-    for (i, tank) in ts_data["tank"]
-        tank["dispatchable"] = false
-    end
-
-    for (i, reservoir) in ts_data["reservoir"]
-        #node_id = string(reservoir["node"])
-        reservoir["dispatchable"] = false
-        #delete!(ts_data["node"][node_id], "head_min")
-        #delete!(ts_data["node"][node_id], "head_max")
-    end
-end
-
-
 mutable struct BoundProblem
     sense::_MOI.OptimizationSense
     variable_to_tighten::_VariableIndex
@@ -390,7 +363,7 @@ end
 function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_relaxed_network::Bool = true,
     model_type::Type = CQRDWaterModel, time_limit::Float64 = 3600.0, upper_bound::Float64 =
     Inf, upper_bound_constraint::Bool = false, max_iter::Int = 100, improvement_tol::Float64
-    = 1.0e-6, solve_relaxed::Bool = true, precision = 1.0e-2, min_width::Float64 = 1.0e-2,
+    = 1.0e-6, solve_relaxed::Bool = true, precision = 1.0e-3, min_width::Float64 = 1.0e-2,
     ext::Dict{Symbol,<:Any} = Dict{Symbol,Any}(:pump_breakpoints=>3), kwargs...)
     # Print a message with relevant algorithm limit information.
     Memento.info(_LOGGER, "[OBBT] Maximum time limit for OBBT set to default value of $(time_limit) seconds.")
@@ -399,7 +372,7 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_relaxed_network:
     use_relaxed_network && _relax_network!(data)
 
     # Set the problem specification that will be used for bound tightening.
-    build_type = _IM.ismultinetwork(data) ? build_wf : build_mn_wf
+    build_type = _IM.ismultinetwork(data) ? build_mn_wf : build_wf
 
     # Check for keyword argument inconsistencies.
     _check_obbt_options(upper_bound, upper_bound_constraint)
@@ -446,7 +419,7 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_relaxed_network:
         current_iteration += 1
 
         # Set up the next optimization problem using the new bounds.
-        wm = instantiate_model(data, model_type, build_type; ext=ext)
+        wm = instantiate_model(data, model_type, build_type; ext = ext)
         upper_bound_constraint && _constraint_obj_bound(wm, upper_bound)
         solve_relaxed && relax_all_binary_variables!(wm)
         JuMP.set_optimizer(wm.model, optimizer)
@@ -456,7 +429,9 @@ function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_relaxed_network:
     end
 
     if use_relaxed_network
-        _revert_relaxed_data!(data)
+        _fix_demands!(data)
+        _fix_tanks!(data)
+        _fix_reservoirs!(data)
     end
 end
 
