@@ -51,6 +51,31 @@ function _get_indicator_variable_indices(wm::AbstractWaterModel; nw::Int=wm.cnw)
 end
 
 
+function _get_flow_variable_indices(wm::AbstractWaterModel; nw::Int=wm.cnw)
+    vars = Array{_VariableIndex, 1}()
+
+    for comp_type in [:pipe, :pump, :regulator, :short_pipe, :valve]
+        for comp_id in ids(wm, nw, comp_type)
+            v_sym = Symbol("q_" * string(comp_type))
+            append!(vars, [_VariableIndex(nw, comp_type, v_sym, comp_id)])
+        end
+    end
+
+    return vars
+end
+
+
+function _get_head_variable_indices(wm::AbstractWaterModel; nw::Int=wm.cnw)
+    vars = Array{_VariableIndex, 1}()
+
+    for i in ids(wm, nw, :node)
+        append!(vars, [_VariableIndex(nw, :node, :h, i)])
+    end
+
+    return vars
+end 
+
+
 function _get_direction_variable_indices(wm::AbstractNCDModel; nw::Int=wm.cnw)
     vars = Array{_VariableIndex, 1}()
 
