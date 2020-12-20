@@ -12,7 +12,7 @@ end
 
 
 function _correct_pump_head_curve_form!(pump::Dict{String, <:Any})
-    pump["head_curve_form"] = get(pump, "head_curve_form", EPANET)
+    pump["head_curve_form"] = get(pump, "head_curve_form", QUADRATIC)
 end
 
 
