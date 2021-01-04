@@ -1160,8 +1160,8 @@ internal WaterModels use. Imports all data from the EPANET file if `import_all` 
 """
 function epanet_to_watermodels!(data::Dict{String,<:Any}; import_all::Bool = false)
     _drop_zero_demands!(data) # Drop demands of zero from nodes.
-    #_convert_short_pipes!(data) # Convert pipes that are short to short pipes and valves.
-    #_add_valves_to_tanks!(data) # Ensure that shutoff valves are connected to tanks.
+    _convert_short_pipes!(data) # Convert pipes that are short to short pipes and valves.
+    _add_valves_to_tanks!(data) # Ensure that shutoff valves are connected to tanks.
     _add_valves_from_pipes!(data) # Convert pipes with valves to pipes *and* valves.
     _drop_pipe_flags!(data) # Drop irrelevant pipe attributes.
 end
@@ -1189,7 +1189,7 @@ function _convert_short_pipes!(data::Dict{String,<:Any})
 
     res = calc_resistances(data["pipe"], data["viscosity"], data["head_loss"])
     dh = Dict{String,Any}(a => res[a] .* x["length"] * max_flow_exp for (a, x) in data["pipe"])
-    pipe_indices = [a for (a, x) in dh if all(x .<= 0.50)] # Pipes with small head loss.
+    pipe_indices = [a for (a, x) in dh if all(x .<= 0.01)] # Pipes with small head loss.
 
     for a in pipe_indices
         pipe = deepcopy(data["pipe"][a])

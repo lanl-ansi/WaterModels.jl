@@ -69,8 +69,23 @@ end
 
 
 "Turns a single network with a `time_series` data block into a multinetwork."
-function make_multinetwork(data::Dict{String, <:Any}; global_keys::Set{String}=Set{String}())
+function make_multinetwork(data::Dict{String, <:Any}; global_keys::Set{String} = Set{String}())
     return InfrastructureModels.make_multinetwork(data, union(global_keys, _wm_global_keys))
+end
+
+
+function split_multinetwork(data::Dict{String, <:Any}, nw_ids::Array{Array{String, 1}, 1})
+    # Ensure the data has the multinetwork attribute.
+    @assert _IM.ismultinetwork(data) == true
+
+    # Get sub-multinetwork datasets indexed by the "nw" key.
+    sub_mn = [Dict{String, Any}(i => data["nw"][i] for i in ids) for ids in nw_ids]
+
+    # Get all data not associated with multinetwork components
+    g_data = filter(x -> x.first != "nw", data)
+
+    # Return the new, split multinetwork data dictionaries.
+    return [merge(g_data, Dict{String, Any}("nw" => sub_mn[i])) for i in 1:length(nw_ids)]
 end
 
 

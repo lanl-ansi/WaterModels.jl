@@ -38,6 +38,15 @@
         @test isapprox(mn_data["nw"]["3"]["demand"]["2"]["flow_nominal"], 0.25*0.02777, rtol=1.0e-4)
     end
 
+    @testset "split_multinetwork" begin
+        data = WaterModels.parse_file("../test/data/epanet/snapshot/pipe-hw-lps.inp")
+        mn_data = WaterModels.replicate(data, 3)
+        new_mns = WaterModels.split_multinetwork(mn_data, [["1", "2"], ["2", "3"]])
+
+        @test sort(collect(keys(new_mns[1]["nw"]))) == ["1", "2"]
+        @test sort(collect(keys(new_mns[2]["nw"]))) == ["2", "3"]
+    end
+
     @testset "epanet_to_watermodels!" begin
         network_data = WaterModels.parse_epanet("../test/data/epanet/snapshot/short-pipe-lps.inp")
         WaterModels.epanet_to_watermodels!(network_data)
