@@ -1,5 +1,5 @@
 # Iterate over all possible WaterModels formulations.
-for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LRDWaterModel]#, PWLRDWaterModel]
+for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LRDWaterModel, PWLRDWaterModel]
     # Set a generic extensions dictionary for testing purposes.
     ext = Dict(:pipe_breakpoints => 3, :pump_breakpoints => 3)
 
