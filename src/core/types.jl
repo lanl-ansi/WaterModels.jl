@@ -10,24 +10,16 @@ mutable struct LAWaterModel <: AbstractLAModel @wm_fields end
 abstract type AbstractNCDModel <: AbstractNCModel end
 mutable struct NCDWaterModel <: AbstractNCDModel @wm_fields end
 
-"Directed nonlinear, quadratic nonconvex models."
-abstract type AbstractQRDModel <: AbstractNCDModel end
-mutable struct QRDWaterModel <: AbstractQRDModel @wm_fields end
-
 "Directed nonlinear, convex models."
 abstract type AbstractCRDModel <: AbstractNCDModel end
 mutable struct CRDWaterModel <: AbstractCRDModel @wm_fields end
 
-"Directed nonlinear, convex quadratic models."
-abstract type AbstractCQRDModel <: AbstractCRDModel end
-mutable struct CQRDWaterModel <: AbstractCQRDModel @wm_fields end
-
 "Directed piecewise-linear relaxation-based models."
-abstract type AbstractPWLRDModel <: AbstractCQRDModel end
+abstract type AbstractPWLRDModel <: AbstractCRDModel end
 mutable struct PWLRDWaterModel <: AbstractPWLRDModel @wm_fields end
 
 "Directed linear relaxation-based models."
-abstract type AbstractLRDModel <: AbstractCQRDModel end
+abstract type AbstractLRDModel <: AbstractCRDModel end
 mutable struct LRDWaterModel <: AbstractLRDModel @wm_fields end
 
 "Models that include nonquadratic nonlinearities."

@@ -36,7 +36,7 @@ function logger_config!(level)
     Memento.config!(Memento.getlogger("WaterModels"), level)
 end
 
-const _wm_global_keys = Set(["time_series", "per_unit"])
+const _wm_global_keys = Set(["time_series", "per_unit", "head_loss", "viscosity"])
 
 include("io/common.jl")
 include("io/epanet.jl")
@@ -72,8 +72,6 @@ include("form/la.jl")
 include("form/outer_approximation.jl")
 include("form/pwlrd.jl")
 include("form/lrd.jl")
-include("form/qrd.jl")
-include("form/cqrd.jl")
 
 include("prob/wf.jl")
 include("prob/owf.jl")

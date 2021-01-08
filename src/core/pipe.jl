@@ -13,6 +13,21 @@ function correct_pipes!(data::Dict{String, <:Any})
 end
 
 
+function correct_des_pipes!(data::Dict{String, <:Any})
+    head_loss_form, visc = data["head_loss"], data["viscosity"]
+    capacity = _calc_capacity_max(data)
+
+    for (idx, des_pipe) in data["des_pipe"]
+        # Get common connecting node data for later use.
+        node_fr = data["node"][string(des_pipe["node_fr"])]
+        node_to = data["node"][string(des_pipe["node_to"])]
+
+        # Correct various pipe properties. The sequence is important, here.
+        _correct_pipe_flow_bounds!(des_pipe, node_fr, node_to, head_loss_form, visc, capacity)
+    end
+end
+
+
 function _correct_pipe_flow_bounds!(
     pipe::Dict{String, <:Any}, node_fr::Dict{String, <:Any}, node_to::Dict{String, <:Any},
     form::String, viscosity::Float64, capacity::Float64)
@@ -45,6 +60,16 @@ function _calc_pipe_flow_max(
         return _calc_pipe_flow_max_hw(pipe, node_fr, node_to, capacity)
     elseif uppercase(form) == "D-W"
         return _calc_pipe_flow_max_dw(pipe, node_fr, node_to, viscosity, capacity)
+    end
+end
+
+
+function _calc_pipe_resistance(pipe::Dict{String, <:Any}, form::String, viscosity::Float64)
+    if uppercase(form) == "H-W"
+        return _calc_pipe_resistance_hw(pipe["diameter"], pipe["roughness"])
+    elseif uppercase(form) == "D-W"
+        diameter, roughness, speed = pipe["diameter"], pipe["roughness"], 10.0
+        return _calc_pipe_resistance_dw(diameter, roughness, viscosity, speed, _DENSITY)
     end
 end
 

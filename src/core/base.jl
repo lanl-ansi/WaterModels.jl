@@ -117,6 +117,7 @@ system-wide values that need to be computed globally.
 Some of the common keys include:
 
 * `:pipe` -- the set of pipes in the network,
+* `:des_pipe` -- the set of design pipes in the network,
 * `:pump` -- the set of pumps in the network,
 * `:regulator` -- the set of regulators in the network,
 * `:short_pipe` -- the set of short pipes in the network,
@@ -127,32 +128,26 @@ Some of the common keys include:
 * `:tank` -- the set of tanks in the network
 """
 function ref_add_core!(refs::Dict{Symbol,<:Any})
-    _ref_add_core!(refs[:nw])
+    _ref_add_core!(refs[:nw], refs[:head_loss])
 end
 
 
-function _ref_add_core!(nw_refs::Dict{Int,<:Any})
+function _ref_add_core!(nw_refs::Dict{Int,<:Any}, head_loss::String)
     for (nw, ref) in nw_refs
         # Collect dispatchable and nondispatchable nodal components in the network.
         ref[:dispatchable_demand] = filter(x -> x.second["dispatchable"], ref[:demand])
         ref[:nondispatchable_demand] = filter(x -> !x.second["dispatchable"], ref[:demand])
-
-        # Compute resistances for pipe-type components in the network.
-        ref[:resistance] = calc_resistances(ref[:pipe], ref[:viscosity], ref[:head_loss])
-        ref[:resistance_cost] =
-            calc_resistance_costs(ref[:pipe], ref[:viscosity], ref[:head_loss])
-        ref[:des_pipe] = filter(is_des_pipe, ref[:pipe])
-        ref[:pipe] = filter(!is_des_pipe, ref[:pipe])
+        ref[:des_pipe_arcs] = Set((x["node_fr"], x["node_to"]) for (i, x) in ref[:des_pipe])
 
         # Create mappings of "from" and "to" arcs for link- (i.e., edge-) type components.
-        for name in ["pipe", "pump", "regulator", "short_pipe", "valve"]
+        for name in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
             fr_sym, to_sym = Symbol(name * "_fr"), Symbol(name * "_to")
             ref[fr_sym] = [(a, c["node_fr"], c["node_to"]) for (a, c) in ref[Symbol(name)]]
             ref[to_sym] = [(a, c["node_to"], c["node_fr"]) for (a, c) in ref[Symbol(name)]]
         end
 
         # Set up dictionaries mapping node indices to attached component indices.
-        for name in ["demand", "tank", "reservoir"]
+        for name in ["demand", "reservoir", "tank"]
             name_sym = Symbol("node_" * name)
             ref[name_sym] = Dict{Int,Array{Int,1}}(i => Int[] for (i, node) in ref[:node])
 
@@ -162,6 +157,6 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any})
         end
 
         # Set alpha, that is, the exponent used for head loss relationships.
-        ref[:alpha] = uppercase(ref[:head_loss]) == "H-W" ? 1.852 : 2.0
+        ref[:alpha] = uppercase(head_loss) == "H-W" ? 1.852 : 2.0
     end
 end

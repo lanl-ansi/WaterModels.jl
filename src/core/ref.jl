@@ -52,6 +52,22 @@ function _calc_pump_energy_ua(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::
 end
 
 
+function _calc_pump_energy_linear_approximation(wm::AbstractWaterModel, nw::Int, pump_id::Int, z::JuMP.VariableRef)
+    LsqFit.@. func(x, p) = p[1]*x + p[2]
+    q_true, f_true = _calc_pump_energy_points(wm, nw, pump_id, 100)
+    fit = LsqFit.curve_fit(func, q_true, f_true, [0.0, 0.0])
+    return x -> sum(LsqFit.coef(fit) .* [x, z])
+end
+
+
+function _calc_pump_energy_quadratic_approximation(wm::AbstractWaterModel, nw::Int, pump_id::Int, z::JuMP.VariableRef)
+    LsqFit.@. func(x, p) = p[1]*x*x + p[2]*x + p[3]
+    q_true, f_true = _calc_pump_energy_points(wm, nw, pump_id, 100)
+    fit = LsqFit.curve_fit(func, q_true, f_true, [0.0, 0.0, 0.0])
+    return x -> sum(LsqFit.coef(fit) .* [x^2, x, z])
+end
+
+
 function _calc_head_loss_values(points::Array{Float64}, alpha::Float64)
     return [sign(x) * abs(x)^alpha for x in points]
 end

@@ -3,8 +3,10 @@ WaterModels.jl Change Log
 
 ### v0.6.0
 - Standardized network data conventions.
-- Implemented `D` and `PWLRD` formulations.
+- Implemented `NCD` and `PWLRD` formulations.
+- Removed `QRD` and `CQRD` formulations.
 - Cleaned up remainder of the formulation hierarchy.
+- Modified data conventions for components, especially design pipes.
 
 ### v0.5.0
 - Rename formulation types.

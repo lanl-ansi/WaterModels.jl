@@ -29,7 +29,11 @@ WaterModels data structure (a dictionary of data).
 """
 function parse_json(path::String)
     dict = JSON.parsefile(path)
-    dict["per_unit"] = false
+
+    if !haskey(dict, "per_unit")
+        dict["per_unit"] = false
+    end
+
     return dict
 end
 
@@ -50,6 +54,7 @@ end
 function correct_network_data!(data::Dict{String, <:Any})
     # Correct edge-type component data.
     correct_pipes!(data)
+    correct_des_pipes!(data)
     correct_pumps!(data)
     correct_regulators!(data)
     correct_short_pipes!(data)

@@ -114,6 +114,9 @@ function parse_epanet(filename::String)
     # Set up a dictionary containing short pipe objects.
     epanet_data["short_pipe"] = Dict{String,Any}()
 
+    # Set up a dictionary containing design pipe objects.
+    epanet_data["des_pipe"] = Dict{String,Any}()
+
     # Parse [PUMPS] section.
     _read_pump!(epanet_data)
 

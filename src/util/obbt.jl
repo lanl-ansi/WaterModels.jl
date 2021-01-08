@@ -361,10 +361,10 @@ end
 
 
 function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_relaxed_network::Bool = true,
-    model_type::Type = CQRDWaterModel, time_limit::Float64 = 3600.0, upper_bound::Float64 =
+    model_type::Type = PWLRDWaterModel, time_limit::Float64 = 3600.0, upper_bound::Float64 =
     Inf, upper_bound_constraint::Bool = false, max_iter::Int = 100, improvement_tol::Float64
     = 1.0e-6, solve_relaxed::Bool = true, precision = 1.0e-3, min_width::Float64 = 1.0e-2,
-    ext::Dict{Symbol,<:Any} = Dict{Symbol,Any}(:pump_breakpoints=>3), kwargs...)
+    ext::Dict{Symbol,<:Any} = Dict{Symbol,Any}(:pipe_breakpoints => 3, :pump_breakpoints=>3), kwargs...)
     # Print a message with relevant algorithm limit information.
     Memento.info(_LOGGER, "[OBBT] Maximum time limit for OBBT set to default value of $(time_limit) seconds.")
 

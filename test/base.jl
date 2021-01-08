@@ -26,7 +26,7 @@
 
     @testset "_ref_add_core!" begin
         wm = instantiate_model(parse_file(network_path), LAWaterModel, build_wf)
-        WaterModels._ref_add_core!(wm.ref[:nw])
+        WaterModels._ref_add_core!(wm.ref[:nw], wm.ref[:head_loss])
         @test length(_IM.ref(wm, :pipe)) == 1
     end
 

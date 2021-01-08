@@ -20,7 +20,7 @@ function constraint_flow_conservation(
     reservoirs::Array{Int64,1}, tanks::Array{Int64,1}, dispatchable_demands::Array{Int64,1},
     fixed_demand::Float64)
     # Collect flow variable references per component.
-    q_pipe, q_des_pipe = var(wm, n, :q_pipe), var(wm, n, :q_des_pipe_sum)
+    q_pipe, q_des_pipe = var(wm, n, :q_pipe), var(wm, n, :q_des_pipe)
     q_pump, q_regulator = var(wm, n, :q_pump), var(wm, n, :q_regulator)
     q_short_pipe, q_valve = var(wm, n, :q_short_pipe), var(wm, n, :q_valve)
     q_reservoir, q_tank = var(wm, n, :q_reservoir), var(wm, n, :q_tank)
@@ -52,6 +52,13 @@ function constraint_tank_volume_fixed(wm::AbstractWaterModel, n::Int, i::Int, V_
     V = var(wm, n, :V, i)
     c = JuMP.@constraint(wm.model, V == V_0)
     con(wm, n, :tank_volume)[i] = c
+end
+
+
+function constraint_des_pipe_selection(wm::AbstractWaterModel, n::Int, node_fr::Int, node_to::Int, des_pipes::Array{Int64,1})
+    z_des_pipe = var(wm, n, :z_des_pipe)
+    c = JuMP.@constraint(wm.model, sum(z_des_pipe[a] for a in des_pipes) == 1.0)
+    append!(con(wm, n, :des_pipe_selection)[(node_fr, node_to)], [c])
 end
 
 

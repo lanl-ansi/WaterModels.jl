@@ -103,6 +103,22 @@ function _calc_head_curve_function(pump::Dict{String, <:Any})
     end
 end
 
+
+function _calc_head_curve_function(pump::Dict{String, <:Any}, z::JuMP.VariableRef)
+    if pump["head_curve_form"] == QUADRATIC
+        coeff = _calc_head_curve_coefficients_quadratic(pump)
+        return x -> sum(coeff .* [x^2, x, z])
+    elseif pump["head_curve_form"] == BEST_EFFICIENCY_POINT
+        coeff = _calc_head_curve_coefficients_best_efficiency_point(pump)
+        return x -> sum(coeff .* [x^2, x, z])
+    elseif pump["head_curve_form"] == EPANET
+        coeff = _calc_head_curve_coefficients_epanet(pump)
+        return x -> coeff[1] * z + coeff[2] * x^coeff[3]
+    else
+        error("\"$(pump["head_curve_form"])\" is not a valid head curve formulation.")
+    end
+end
+
 function _calc_head_curve_derivative(pump::Dict{String, <:Any})
     if pump["head_curve_form"] == QUADRATIC
         coeff = _calc_head_curve_coefficients_quadratic(pump)

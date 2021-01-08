@@ -1,0 +1,740 @@
+{
+    "demand": {
+        "2": {
+            "dispatchable": false,
+            "flow_max": 0.02777,
+            "flow_min": 0.02777,
+            "flow_nominal": 0.02777,
+            "index": 2,
+            "name": "2",
+            "node": 2,
+            "source_id": [
+                "demand",
+                "2"
+            ],
+            "status": 1
+        },
+        "3": {
+            "dispatchable": false,
+            "flow_max": 0.02777,
+            "flow_min": 0.02777,
+            "flow_nominal": 0.02777,
+            "index": 3,
+            "name": "3",
+            "node": 3,
+            "source_id": [
+                "demand",
+                "3"
+            ],
+            "status": 1
+        },
+        "4": {
+            "dispatchable": false,
+            "flow_max": 0.03333,
+            "flow_min": 0.03333,
+            "flow_nominal": 0.03333,
+            "index": 4,
+            "name": "4",
+            "node": 4,
+            "source_id": [
+                "demand",
+                "4"
+            ],
+            "status": 1
+        },
+        "5": {
+            "dispatchable": false,
+            "flow_max": 0.075,
+            "flow_min": 0.075,
+            "flow_nominal": 0.075,
+            "index": 5,
+            "name": "5",
+            "node": 5,
+            "source_id": [
+                "demand",
+                "5"
+            ],
+            "status": 1
+        },
+        "6": {
+            "dispatchable": false,
+            "flow_max": 0.09167,
+            "flow_min": 0.09167,
+            "flow_nominal": 0.09167,
+            "index": 6,
+            "name": "6",
+            "node": 6,
+            "source_id": [
+                "demand",
+                "6"
+            ],
+            "status": 1
+        },
+        "7": {
+            "dispatchable": false,
+            "flow_max": 0.055549999999999995,
+            "flow_min": 0.055549999999999995,
+            "flow_nominal": 0.055549999999999995,
+            "index": 7,
+            "name": "7",
+            "node": 7,
+            "source_id": [
+                "demand",
+                "7"
+            ],
+            "status": 1
+        }
+    },
+    "des_pipe": {
+        "1": {
+            "cost": 170000.0,
+            "diameter": 0.508,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 3,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "3",
+            "node_fr": 2,
+            "node_to": 4,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "1"
+            ],
+            "status": 1
+        },
+        "10": {
+            "cost": 170000.0,
+            "diameter": 0.508,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 5,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "5",
+            "node_fr": 4,
+            "node_to": 6,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "10"
+            ],
+            "status": 1
+        },
+        "11": {
+            "cost": 300000.0,
+            "diameter": 0.5588,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 5,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "5",
+            "node_fr": 4,
+            "node_to": 6,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "11"
+            ],
+            "status": 1
+        },
+        "12": {
+            "cost": 550000.0,
+            "diameter": 0.6096,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 5,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "5",
+            "node_fr": 4,
+            "node_to": 6,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "12"
+            ],
+            "status": 1
+        },
+        "13": {
+            "cost": 170000.0,
+            "diameter": 0.508,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 2,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "2",
+            "node_fr": 2,
+            "node_to": 3,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "13"
+            ],
+            "status": 1
+        },
+        "14": {
+            "cost": 300000.0,
+            "diameter": 0.5588,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 2,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "2",
+            "node_fr": 2,
+            "node_to": 3,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "14"
+            ],
+            "status": 1
+        },
+        "15": {
+            "cost": 550000.0,
+            "diameter": 0.6096,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 2,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "2",
+            "node_fr": 2,
+            "node_to": 3,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "15"
+            ],
+            "status": 1
+        },
+        "16": {
+            "cost": 170000.0,
+            "diameter": 0.508,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 6,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "6",
+            "node_fr": 6,
+            "node_to": 7,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "16"
+            ],
+            "status": 1
+        },
+        "17": {
+            "cost": 300000.0,
+            "diameter": 0.5588,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 6,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "6",
+            "node_fr": 6,
+            "node_to": 7,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "17"
+            ],
+            "status": 1
+        },
+        "18": {
+            "cost": 550000.0,
+            "diameter": 0.6096,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 6,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "6",
+            "node_fr": 6,
+            "node_to": 7,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "18"
+            ],
+            "status": 1
+        },
+        "19": {
+            "cost": 170000.0,
+            "diameter": 0.508,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 7,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "7",
+            "node_fr": 3,
+            "node_to": 5,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "19"
+            ],
+            "status": 1
+        },
+        "2": {
+            "cost": 300000.0,
+            "diameter": 0.5588,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 3,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "3",
+            "node_fr": 2,
+            "node_to": 4,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "2"
+            ],
+            "status": 1
+        },
+        "20": {
+            "cost": 300000.0,
+            "diameter": 0.5588,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 7,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "7",
+            "node_fr": 3,
+            "node_to": 5,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "20"
+            ],
+            "status": 1
+        },
+        "21": {
+            "cost": 550000.0,
+            "diameter": 0.6096,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 7,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "7",
+            "node_fr": 3,
+            "node_to": 5,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "21"
+            ],
+            "status": 1
+        },
+        "22": {
+            "cost": 170000.0,
+            "diameter": 0.508,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 8,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "8",
+            "node_fr": 5,
+            "node_to": 7,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "22"
+            ],
+            "status": 1
+        },
+        "23": {
+            "cost": 300000.0,
+            "diameter": 0.5588,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 8,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "8",
+            "node_fr": 5,
+            "node_to": 7,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "23"
+            ],
+            "status": 1
+        },
+        "24": {
+            "cost": 550000.0,
+            "diameter": 0.6096,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 8,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "8",
+            "node_fr": 5,
+            "node_to": 7,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "24"
+            ],
+            "status": 1
+        },
+        "3": {
+            "cost": 550000.0,
+            "diameter": 0.6096,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 3,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "3",
+            "node_fr": 2,
+            "node_to": 4,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "3"
+            ],
+            "status": 1
+        },
+        "4": {
+            "cost": 170000.0,
+            "diameter": 0.508,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 4,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "4",
+            "node_fr": 4,
+            "node_to": 5,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "4"
+            ],
+            "status": 1
+        },
+        "5": {
+            "cost": 300000.0,
+            "diameter": 0.5588,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 4,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "4",
+            "node_fr": 4,
+            "node_to": 5,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "5"
+            ],
+            "status": 1
+        },
+        "6": {
+            "cost": 550000.0,
+            "diameter": 0.6096,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 4,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "4",
+            "node_fr": 4,
+            "node_to": 5,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "6"
+            ],
+            "status": 1
+        },
+        "7": {
+            "cost": 170000.0,
+            "diameter": 0.508,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 1,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "1",
+            "node_fr": 1,
+            "node_to": 2,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "7"
+            ],
+            "status": 1
+        },
+        "8": {
+            "cost": 300000.0,
+            "diameter": 0.5588,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 1,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "1",
+            "node_fr": 1,
+            "node_to": 2,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "8"
+            ],
+            "status": 1
+        },
+        "9": {
+            "cost": 550000.0,
+            "diameter": 0.6096,
+            "flow_direction": 0,
+            "flow_max": 0.31109000000000003,
+            "flow_max_reverse": 0.0,
+            "flow_min": -0.31109000000000003,
+            "flow_min_forward": 0.0,
+            "index": 1,
+            "length": 1000.0,
+            "minor_loss": 0.0,
+            "name": "1",
+            "node_fr": 1,
+            "node_to": 2,
+            "roughness": 130.0,
+            "source_id": [
+                "des_pipe",
+                "9"
+            ],
+            "status": 1
+        }
+    },
+    "head_loss": "H-W",
+    "name": "Shamir (Two-loop) Water Network",
+    "node": {
+        "1": {
+            "coordinates": [
+                3000.0,
+                3000.0
+            ],
+            "elevation": 210.0,
+            "head_max": 210.0,
+            "head_min": 210.0,
+            "head_nominal": 210.0,
+            "index": 1,
+            "name": "1",
+            "source_id": [
+                "reservoir",
+                "1"
+            ],
+            "status": 1
+        },
+        "2": {
+            "coordinates": [
+                2000.0,
+                3000.0
+            ],
+            "elevation": 180.0,
+            "head_max": 210.0,
+            "head_min": 180.0,
+            "head_nominal": 180.0,
+            "index": 2,
+            "name": "2",
+            "source_id": [
+                "demand",
+                "2"
+            ],
+            "status": 1
+        },
+        "3": {
+            "coordinates": [
+                1000.0,
+                3000.0
+            ],
+            "elevation": 190.0,
+            "head_max": 210.0,
+            "head_min": 190.0,
+            "head_nominal": 190.0,
+            "index": 3,
+            "name": "3",
+            "source_id": [
+                "demand",
+                "3"
+            ],
+            "status": 1
+        },
+        "4": {
+            "coordinates": [
+                2000.0,
+                2000.0
+            ],
+            "elevation": 185.0,
+            "head_max": 210.0,
+            "head_min": 185.0,
+            "head_nominal": 185.0,
+            "index": 4,
+            "name": "4",
+            "source_id": [
+                "demand",
+                "4"
+            ],
+            "status": 1
+        },
+        "5": {
+            "coordinates": [
+                1000.0,
+                2000.0
+            ],
+            "elevation": 180.0,
+            "head_max": 210.0,
+            "head_min": 180.0,
+            "head_nominal": 180.0,
+            "index": 5,
+            "name": "5",
+            "source_id": [
+                "demand",
+                "5"
+            ],
+            "status": 1
+        },
+        "6": {
+            "coordinates": [
+                2000.0,
+                1000.0
+            ],
+            "elevation": 195.0,
+            "head_max": 210.0,
+            "head_min": 195.0,
+            "head_nominal": 195.0,
+            "index": 6,
+            "name": "6",
+            "source_id": [
+                "demand",
+                "6"
+            ],
+            "status": 1
+        },
+        "7": {
+            "coordinates": [
+                1000.0,
+                1000.0
+            ],
+            "elevation": 190.0,
+            "head_max": 210.0,
+            "head_min": 190.0,
+            "head_nominal": 190.0,
+            "index": 7,
+            "name": "7",
+            "source_id": [
+                "demand",
+                "7"
+            ],
+            "status": 1
+        }
+    },
+    "per_unit": false,
+    "pipe": {},
+    "pump": {},
+    "regulator": {},
+    "reservoir": {
+        "1": {
+            "dispatchable": false,
+            "head_nominal": 210.0,
+            "index": 1,
+            "name": "1",
+            "node": 1,
+            "source_id": [
+                "reservoir",
+                "1"
+            ],
+            "status": 1
+        }
+    },
+    "short_pipe": {},
+    "tank": {},
+    "time_step": 3600.0,
+    "valve": {},
+    "viscosity": 0.001
+}

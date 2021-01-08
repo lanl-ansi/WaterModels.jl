@@ -12,8 +12,8 @@ function build_des(wm::AbstractWaterModel)
     variable_flow(wm)
     variable_pump_head_gain(wm)
 
-    # Component-specific variables.
-    variable_pipe_des_indicator(wm)
+    # Indicator (status) variables.
+    variable_des_pipe_indicator(wm)
     variable_pump_indicator(wm)
     variable_regulator_indicator(wm)
     variable_valve_indicator(wm)
@@ -31,16 +31,23 @@ function build_des(wm::AbstractWaterModel)
 
     # Constraints on pipe flows, heads, and physics.
     for (a, pipe) in ref(wm, :pipe)
+        constraint_pipe_flow(wm, a)
         constraint_pipe_head(wm, a)
         constraint_pipe_head_loss(wm, a)
-        constraint_pipe_flow(wm, a)
     end
 
     # Constraints on design pipe flows, heads, and physics.
-    for (a, pipe) in ref(wm, :des_pipe)
-        constraint_on_off_pipe_head_des(wm, a)
-        constraint_on_off_pipe_head_loss_des(wm, a)
-        constraint_on_off_pipe_flow_des(wm, a)
+    for (a, des_pipe) in ref(wm, :des_pipe)
+        constraint_on_off_des_pipe_flow(wm, a)
+        constraint_on_off_des_pipe_head(wm, a)
+        constraint_on_off_des_pipe_head_loss(wm, a)
+    end
+
+    # Selection of design pipes along unique arcs.
+    for arc in ref(wm, :des_pipe_arcs)
+        constraint_des_pipe_flow(wm, arc[1], arc[2])
+        constraint_des_pipe_head(wm, arc[1], arc[2])
+        constraint_des_pipe_selection(wm, arc[1], arc[2])
     end
 
     # Constraints on pump flows, heads, and physics.

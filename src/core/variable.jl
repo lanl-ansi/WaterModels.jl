@@ -204,27 +204,27 @@ function variable_pump_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, relax::
 end
 
 
-"Creates binary variables for all network design or design resistances in the network, i.e.,
-`z_des_pipe[a]` for `a` in `pipe`, for `r` in `resistance[a]`, where one denotes that the
-given resistance is active in the design."
-function variable_pipe_des_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, relax::Bool=false, report::Bool=true)
-    z = var(wm, nw)[:z_des_pipe] = Dict{Int, Array{JuMP.VariableRef}}()
-
-    for a in ids(wm, nw, :des_pipe)
-        n_r = length(ref(wm, nw, :resistance, a)) # Number of resistances.
-
-        if !relax
-            var(wm, nw, :z_des_pipe)[a] = JuMP.@variable(wm.model, [r in 1:n_r],
-                binary=true, base_name="$(nw)_z_des_pipe[$(a)]",
-                start=comp_start_value(ref(wm, nw, :des_pipe, a), "z_des_pipe_start", r))
-        else
-            var(wm, nw, :z_des_pipe)[a] = JuMP.@variable(wm.model, [r in 1:n_r],
-                lower_bound = 0.0, upper_bound = 0.0, base_name="$(nw)_z_des_pipe[$(a)]",
-                start=comp_start_value(ref(wm, nw, :des_pipe, a), "z_des_pipe_start", r))
-        end
+"Creates binary variables for all design pipes in the network, i.e.,
+`z_des_pipe[a]` for `a` in `des_pipe`, where one denotes that the pipe is
+selected within the design, and zero denotes that the pipe is not selected."
+function variable_des_pipe_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, relax::Bool=false, report::Bool=true)
+    if !relax
+        z_des_pipe = var(wm, nw)[:z_des_pipe] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :des_pipe)], base_name = "$(nw)_z_des_pipe",
+            binary = true,
+            start = comp_start_value(ref(wm, nw, :des_pipe, a), "z_des_pipe_start"))
+    else
+        z_des_pipe = var(wm, nw)[:z_des_pipe] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :des_pipe)], base_name = "$(nw)_z_des_pipe",
+            lower_bound = 0.0, upper_bound = 1.0,
+            start = comp_start_value(ref(wm, nw, :des_pipe, a), "z_des_pipe_start"))
     end
 
-    report && sol_component_value(wm, nw, :des_pipe, :built, ids(wm, nw, :des_pipe), z)
+    for (a, des_pipe) in ref(wm, nw, :des_pipe)
+        _fix_indicator_variable(z_des_pipe[a], des_pipe, "z")
+    end
+
+    report && sol_component_value(wm, nw, :des_pipe, :status, ids(wm, nw, :des_pipe), z_des_pipe)
 end
 
 

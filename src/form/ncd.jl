@@ -19,7 +19,7 @@ function _variable_component_direction(
         start=comp_start_value(ref(wm, nw, comp_sym, a), "y_start"))
 
     for (a, comp) in ref(wm, nw, comp_sym)
-        #_fix_indicator_variable(y[a], comp, "y")
+        _fix_indicator_variable(y[a], comp, "y")
     end
 
     # Report back flow values as part of the solution.
@@ -72,12 +72,12 @@ function _variable_component_flow(
     # Initialize variables associated with positive flows.
     qp = var(wm, nw)[Symbol("qp_" * component_name)] = JuMP.@variable(
         wm.model, [a in ids(wm, nw, comp_sym)], lower_bound=0.0, base_name="$(nw)_qp",
-        start=comp_start_value(ref(wm, nw, comp_sym, a), "qp_start"))
+        start=comp_start_value(ref(wm, nw, comp_sym, a), "qp_start", _FLOW_MIN))
 
     # Initialize variables associated with negative flows.
     qn = var(wm, nw)[Symbol("qn_" * component_name)] = JuMP.@variable(
         wm.model, [a in ids(wm, nw, comp_sym)], lower_bound=0.0, base_name="$(nw)_qn",
-        start=comp_start_value(ref(wm, nw, comp_sym, a), "qn_start"))
+        start=comp_start_value(ref(wm, nw, comp_sym, a), "qn_start", _FLOW_MIN))
 
     if bounded # Bound flow-related variables if desired.
         for (a, comp) in ref(wm, nw, comp_sym)
@@ -103,7 +103,7 @@ end
 
 "Create flow-related variables common to all directed flow models for node-connecting components."
 function variable_flow(wm::AbstractNCDModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
-    for name in ["pipe", "pump", "regulator", "short_pipe", "valve"]
+    for name in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
         # Create directed flow (`qp` and `qn`) variables for each component.
         _variable_component_flow(wm, name; nw=nw, bounded=bounded, report=report)
 
@@ -113,53 +113,6 @@ function variable_flow(wm::AbstractNCDModel; nw::Int=wm.cnw, bounded::Bool=true,
         # Create directed flow binary direction variables (`y`) for each component.
         _variable_component_direction(wm, name; nw=nw, report=report)
     end
-
-    # Create flow-related variables for design components.
-    variable_flow_des(wm; nw=nw, bounded=bounded, report=report)
-end
-
-
-"Create network design flow variables for directed flow formulations."
-function variable_flow_des(wm::AbstractNCDModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
-    # Create dictionary for undirected design flow variables (qp_des_pipe and qn_des_pipe).
-    qp_des_pipe = var(wm, nw)[:qp_des_pipe] = Dict{Int,Array{JuMP.VariableRef}}()
-    qn_des_pipe = var(wm, nw)[:qn_des_pipe] = Dict{Int,Array{JuMP.VariableRef}}()
-
-    # Initialize the variables. (The default start value of _FLOW_MIN is crucial.)
-    for a in ids(wm, nw, :des_pipe)
-        var(wm, nw, :qp_des_pipe)[a] = JuMP.@variable(wm.model,
-            [r in 1:length(ref(wm, nw, :resistance, a))], lower_bound=0.0,
-            base_name="$(nw)_qp_des_pipe[$(a)]",
-            start=comp_start_value(ref(wm, nw, :des_pipe, a), "qp_des_pipe_start", r, _FLOW_MIN))
-
-        var(wm, nw, :qn_des_pipe)[a] = JuMP.@variable(wm.model,
-            [r in 1:length(ref(wm, nw, :resistance, a))], lower_bound=0.0,
-            base_name="$(nw)_qn_des_pipe[$(a)]",
-            start=comp_start_value(ref(wm, nw, :des_pipe, a), "qn_des_pipe_start", r, _FLOW_MIN))
-    end
-
-    if bounded # If the variables are bounded, apply the bounds.
-        for a in ids(wm, nw, :des_pipe)
-            for r in 1:length(ref(wm, nw, :resistance, a))
-                JuMP.set_upper_bound(qp_des_pipe[a][r], max(0.0, q_ub["des_pipe"][a][r]))
-                JuMP.set_upper_bound(qn_des_pipe[a][r], max(0.0, -q_lb["des_pipe"][a][r]))
-            end
-        end
-    end
-
-    # Create directed head difference (`dhp` and `dhn`) variables for each component.
-    _variable_component_head_difference(wm, "des_pipe"; nw=nw, bounded=bounded, report=report)
-
-    # Create directed flow binary direction variables (`y`) for each component.
-    _variable_component_direction(wm, "des_pipe"; nw=nw, report=report)
-
-    # Create expressions capturing the relationships among q, qp_des_pipe, and qn_des_pipe.
-    q = var(wm, nw)[:q_des_pipe_sum] = JuMP.@expression(
-        wm.model, [a in ids(wm, nw, :des_pipe)],
-        sum(var(wm, nw, :qp_des_pipe, a)) - sum(var(wm, nw, :qn_des_pipe, a)))
-
-    # Initialize the solution reporting data structures.
-    report && sol_component_value(wm, nw, :des_pipe, :q, ids(wm, nw, :des_pipe), q)
 end
 
 
@@ -200,49 +153,75 @@ function constraint_pipe_head(wm::AbstractNCDModel, n::Int, a::Int, node_fr::Int
 end
 
 
-function constraint_on_off_pipe_flow_des(wm::AbstractNCDModel, n::Int, a::Int, resistances)
-    # Get design pipe direction and status variable references.
+function constraint_on_off_des_pipe_flow(wm::AbstractNCDModel, n::Int, a::Int, q_max_reverse::Float64, q_min_forward::Float64)
+    # Get des_pipe status variable.
+    qp, qn = var(wm, n, :qp_des_pipe, a), var(wm, n, :qn_des_pipe, a)
     y, z = var(wm, n, :y_des_pipe, a), var(wm, n, :z_des_pipe, a)
 
-    # Ensure that only one flow can be nonnegative per solution.
-    c_1 = JuMP.@constraint(wm.model, sum(z) == 1.0)
-    append!(con(wm, n, :on_off_pipe_flow_des)[a], [c_1])
+    # If the des_pipe is inactive, flow must be zero.
+    qp_ub, qn_ub = JuMP.upper_bound(qp), JuMP.upper_bound(qn)
+    c_1 = JuMP.@constraint(wm.model, qp <= qp_ub * y)
+    c_2 = JuMP.@constraint(wm.model, qn <= qn_ub * (1.0 - y))
+    c_3 = JuMP.@constraint(wm.model, qp <= qp_ub * z)
+    c_4 = JuMP.@constraint(wm.model, qn <= qn_ub * z)
 
-    for r_id in 1:length(resistances)
-        # Get directed flow variables and associated data.
-        qp, qn = var(wm, n, :qp_des_pipe, a)[r_id], var(wm, n, :qn_des_pipe, a)[r_id]
-        qp_ub, qn_ub = JuMP.upper_bound(qp), JuMP.upper_bound(qn)
-
-        # Constraint the pipes based on direction and construction status.
-        c_2 = JuMP.@constraint(wm.model, qp <= qp_ub * y)
-        c_3 = JuMP.@constraint(wm.model, qn <= qn_ub * (1.0 - y))
-        c_4 = JuMP.@constraint(wm.model, qp <= qp_ub * z[r_id])
-        c_5 = JuMP.@constraint(wm.model, qn <= qn_ub * z[r_id])
-
-        # Append the :on_off_pipe_flow_des constraint array.
-        append!(con(wm, n, :on_off_pipe_flow_des)[a], [c_2, c_3, c_4, c_5])
-    end
+    # Append the constraint array.
+    append!(con(wm, n, :on_off_des_pipe_flow, a), [c_1, c_2, c_3, c_4])
 end
 
 
-function constraint_on_off_pipe_head_des(wm::AbstractNCDModel, n::Int, a::Int, node_fr::Int, node_to::Int)
-    # Get design pipe direction variable reference.
-    y = var(wm, n, :y_des_pipe, a)
-
-    # Get directed head variables and associated data.
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+function constraint_on_off_des_pipe_head(wm::AbstractNCDModel, n::Int, a::Int, node_fr::Int, node_to::Int)
+    # Get head difference variables for the des_pipe.
     dhp, dhn = var(wm, n, :dhp_des_pipe, a), var(wm, n, :dhn_des_pipe, a)
-    dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
 
-    # Constrain the pipe heads based on direction variables.
+    # Get des_pipe direction and status variable.
+    y, z = var(wm, n, :y_des_pipe, a), var(wm, n, :z_des_pipe, a)
+
+    # If the des_pipe is off, decouple the head difference relationship.
+    dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
     c_1 = JuMP.@constraint(wm.model, dhp <= dhp_ub * y)
     c_2 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - y))
+    c_3 = JuMP.@constraint(wm.model, dhp <= dhp_ub * z)
+    c_4 = JuMP.@constraint(wm.model, dhn <= dhn_ub * z)
 
-    # Equate head difference variables with heads.
-    c_3 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
+    # Append the constraint array.
+    append!(con(wm, n, :on_off_des_pipe_head, a), [c_1, c_2, c_3, c_4])
+end
 
-    # Append the :on_off_pipe_flow_des constraint array.
-    append!(con(wm, n, :on_off_pipe_head_des)[a], [c_1, c_2, c_3])
+
+"Adds head loss constraint for a design pipe in the `NC` formulation."
+function constraint_on_off_des_pipe_head_loss(
+    wm::AbstractNCDModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
+    L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
+    # Get flow and design status variables.
+    qp, qn = var(wm, n, :qp_des_pipe, a), var(wm, n, :qn_des_pipe, a)
+    dhp, dhn = var(wm, n, :dhp_des_pipe, a), var(wm, n, :dhn_des_pipe, a)
+
+    # Add nonconvex constraint for the head loss relationship.
+    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= inv(L) * dhp)
+    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) >= inv(L) * dhp)
+    c_3 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) <= inv(L) * dhn)
+    c_4 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) >= inv(L) * dhn)
+
+    # Append the :pipe_head_loss constraint array.
+    append!(con(wm, n, :on_off_des_pipe_head_loss)[a], [c_1, c_2, c_3, c_4])
+end
+
+
+function constraint_des_pipe_flow(wm::AbstractNCDModel, n::Int, node_fr::Int, node_to::Int, des_pipes::Array{Int64,1})
+    y_des_pipe = var(wm, n, :y_des_pipe)
+    lhs = sum(y_des_pipe[a] for a in des_pipes)
+    rhs = length(des_pipes) * y_des_pipe[des_pipes[1]]
+    c = JuMP.@constraint(wm.model, lhs == rhs) # All directions are the same.
+    append!(con(wm, n, :des_pipe_flow)[(node_fr, node_to)], [c])
+end
+
+
+function constraint_des_pipe_head(wm::AbstractNCDModel, n::Int, node_fr::Int, node_to::Int, des_pipes::Array{Int64,1})
+    dhp, dhn = var(wm, n, :dhp_des_pipe), var(wm, n, :dhn_des_pipe)
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+    dhp_sum, dhn_sum = sum(dhp[a] for a in des_pipes), sum(dhn[a] for a in des_pipes)
+    c = JuMP.@constraint(wm.model, dhp_sum - dhn_sum == h_i - h_j)
 end
 
 
@@ -283,6 +262,23 @@ function constraint_on_off_pump_head(wm::AbstractNCDModel, n::Int, a::Int, node_
 
     # Append the constraint array.
     append!(con(wm, n, :on_off_pump_head, a), [c_1, c_2, c_3, c_4, c_5])
+end
+
+
+
+
+"Pump head gain constraint when the pump status is ambiguous."
+function constraint_on_off_pump_head_gain(
+    wm::AbstractNCDModel, n::Int, a::Int, node_fr::Int,
+    node_to::Int, pc::Array{Float64}, q_min_forward::Float64)
+    # Gather pump flow, head gain, and status variables.
+    qp, g, z = var(wm, n, :qp_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
+
+    # Define the (relaxed) head gain relationship for the pump.
+    head_curve_func = _calc_head_curve_function(ref(wm, n, :pump, a), z)
+    c_1 = JuMP.@constraint(wm.model, head_curve_func(qp) <= g)
+    c_2 = JuMP.@constraint(wm.model, head_curve_func(qp) >= g)
+    append!(con(wm, n, :on_off_pump_head_gain, a), [c_1, c_2])
 end
 
 
@@ -508,9 +504,8 @@ function constraint_sink_directionality(
     con(wm, n, :node_directionality)[i] = c
 end
 
-
 function constraint_pipe_head_loss(
-    wm::AbstractNCDModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
+    wm::NCDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
     L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
     # Add constraints for positive flow and head difference.
     qp, dhp = var(wm, n, :qp_pipe, a), var(wm, n, :dhp_pipe, a)
@@ -527,38 +522,19 @@ function constraint_pipe_head_loss(
 end
 
 
-"Pump head gain constraint when the pump status is ambiguous."
-function constraint_on_off_pump_head_gain(
-    wm::AbstractNCDModel, n::Int, a::Int, node_fr::Int,
-    node_to::Int, pc::Array{Float64}, q_min_forward::Float64)
-    # Gather pump flow, head gain, and status variables.
-    qp, g, z = var(wm, n, :qp_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
-
-    # Define the (relaxed) head gain relationship for the pump.
-    c_1 = JuMP.@constraint(wm.model, g >= pc[1] * qp^2 + pc[2] * qp + pc[3] * z)
-    c_2 = JuMP.@constraint(wm.model, g <= pc[1] * qp^2 + pc[2] * qp + pc[3] * z)
-    append!(con(wm, n, :on_off_pump_head_gain, a), [c_1, c_2])
-end
-
-
 "Defines the objective for the owf problem is `NCD` formulations."
 function objective_owf_default(wm::AbstractNCDModel)
     objective = zero(JuMP.QuadExpr)
 
     for (n, nw_ref) in nws(wm)
-        efficiency = 0.85 # TODO: How can the efficiency curve be used?
-        coeff = _DENSITY * _GRAVITY * ref(wm, n, :time_step) * inv(efficiency)
-
         for (a, pump) in nw_ref[:pump]
-            if haskey(pump, "energy_price")
-                # Get pump flow and head gain variables.
-                qp, g = var(wm, n, :qp_pump, a), var(wm, n, :g_pump, a)
+            # Ensure that the pump has an associated energy price.
+            @assert haskey(pump, "energy_price")
 
-                # Constrain cost_var and append to the objective expression.
-                JuMP.add_to_expression!(objective, coeff * pump["energy_price"], qp, g)
-            else
-                Memento.error(_LOGGER, "No cost given for pump \"$(pump["name"])\"")
-            end
+            # Get pump flow and status variables.
+            qp, z = var(wm, n, :qp_pump, a), var(wm, n, :z_pump, a)
+            energy_qa = _calc_pump_energy_quadratic_approximation(wm, n, a, z)
+            JuMP.add_to_expression!(objective, pump["energy_price"] * energy_qa(qp))
         end
     end
 
