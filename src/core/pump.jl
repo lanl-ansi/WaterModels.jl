@@ -75,6 +75,20 @@ function _calc_pump_flow_max(pump::Dict{String,<:Any}, node_fr::Dict{String,Any}
 end
 
 
+function _calc_pump_power_max(pump::Dict{String,<:Any}, node_fr::Dict{String,Any}, node_to::Dict{String,Any})
+    flow_max = _calc_pump_flow_max(pump, node_fr, node_to)
+    gain_max = calc_pump_head_gain_max(pump, node_fr, node_to)
+
+    if haskey(pump, "efficiency_curve")
+        min_efficiency = minimum.(x[2] for x in pump["efficiency_curve"])
+    else
+        min_efficiency = pump["efficiency"]
+    end
+
+    return _DENSITY * _GRAVITY * flow_max * gain_max * inv(min_efficiency)
+end
+
+
 function _calc_head_curve_coefficients(pump::Dict{String, <:Any})
     if pump["head_curve_form"] == QUADRATIC
         return _calc_head_curve_coefficients_quadratic(pump)
@@ -159,7 +173,7 @@ function _calc_head_curve_coefficients_quadratic(pump::Dict{String, <:Any})
     # Build a two-dimensional array of the head curve points.
     array = vcat([hcat(x[1], x[2]) for x in pump["head_curve"]]...)
 
-    # Build another array for fitting the efficiency curve.
+    # Build another array for fitting the head curve.
     fit_array = hcat(array[:, 1].^2, array[:, 1], ones(size(array, 1)))
 
     # Perform a fit of the head curve and return the model coefficients.

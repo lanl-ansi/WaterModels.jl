@@ -1117,6 +1117,7 @@ function _read_regulator!(data::Dict{String,<:Any})
         # Parse the valve type and throw an error if not supported.
         if uppercase(current[5]) == "PRV"
             valve["source_id"] = ["regulator", current[1]]
+            valve["flow_direction"] = POSITIVE
         elseif uppercase(current[5]) == "TCV"
             valve["source_id"] = ["throttle_control_valve", current[1]]
             Memento.error(_LOGGER, "Valves of type $(current[5]) are not supported.")
