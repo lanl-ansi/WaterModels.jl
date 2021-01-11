@@ -1165,7 +1165,7 @@ internal WaterModels use. Imports all data from the EPANET file if `import_all` 
 function epanet_to_watermodels!(data::Dict{String,<:Any}; import_all::Bool = false)
     _drop_zero_demands!(data) # Drop demands of zero from nodes.
     _convert_short_pipes!(data) # Convert pipes that are short to short pipes and valves.
-    _add_valves_to_tanks!(data) # Ensure that shutoff valves are connected to tanks.
+    #_add_valves_to_tanks!(data) # Ensure that shutoff valves are connected to tanks.
     _add_valves_from_pipes!(data) # Convert pipes with valves to pipes *and* valves.
     _drop_pipe_flags!(data) # Drop irrelevant pipe attributes.
 end
@@ -1191,30 +1191,29 @@ function _convert_short_pipes!(data::Dict{String,<:Any})
     exponent = uppercase(data["head_loss"]) == "H-W" ? 1.852 : 2.0
     max_flow_exp = abs(_calc_capacity_max(data))^exponent
 
-    res = calc_resistances(data["pipe"], data["viscosity"], data["head_loss"])
-    dh = Dict{String,Any}(a => res[a] .* x["length"] * max_flow_exp for (a, x) in data["pipe"])
-    pipe_indices = [a for (a, x) in dh if all(x .<= 0.01)] # Pipes with small head loss.
+    for (a, pipe) in data["pipe"]
+        r = _calc_pipe_resistance(pipe, data["head_loss"], data["viscosity"])
+        dh_max = r * pipe["length"] * max_flow_exp
 
-    for a in pipe_indices
-        pipe = deepcopy(data["pipe"][a])
+        if dh_max <= 0.1
+            # Delete unnecessary fields.
+            delete!(pipe, "diameter")
+            delete!(pipe, "length")
+            delete!(pipe, "roughness")
 
-        # Delete unnecessary fields.
-        delete!(pipe, "diameter")
-        delete!(pipe, "length")
-        delete!(pipe, "roughness")
+            if pipe["has_valve"]
+                # Transform the pipe into a valve.
+                delete!(pipe, "has_valve")
+                data["valve"][a] = deepcopy(pipe)
+            else
+                # Transform the pipe into a short pipe.
+                delete!(pipe, "has_valve")
+                data["short_pipe"][a] = deepcopy(pipe)
+            end
 
-        if pipe["has_valve"]
-            # Transform the pipe into a valve.
-            delete!(pipe, "has_valve")
-            data["valve"][a] = pipe
-        else
-            # Transform the pipe into a short pipe.
-            delete!(pipe, "has_valve")
-            data["short_pipe"][a] = pipe
+            # Delete the original pipe component.
+            delete!(data["pipe"], a)
         end
-
-        # Delete the original pipe component.
-        delete!(data["pipe"], a)
     end
 end
 
