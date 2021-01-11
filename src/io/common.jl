@@ -9,6 +9,8 @@ function parse_file(path::String; skip_correct::Bool = false)
     if endswith(path, ".inp")
         network_data = WaterModels.parse_epanet(path)
         epanet_to_watermodels!(network_data; import_all = false)
+    elseif endswith(path, ".json")
+        network_data = WaterModels.parse_json(path)
     else
         error("\"$(path)\" is not a valid file type.")
     end

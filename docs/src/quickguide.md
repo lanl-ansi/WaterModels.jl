@@ -1,5 +1,5 @@
 # Quick Start Guide
-The following guide walks through the solution of a water network design (`des`) problem using two mixed-integer linear programming formulations (LA and LRD) of the problem specification.
+The following guide walks through the solution of a water network design (`des`) problem using two mixed-integer linear programming formulations (PWLRD and LRD) of the problem specification.
 This is to enable solution using the readily-available open-source mixed-integer linear programming solver [Cbc](https://github.com/JuliaOpt/Cbc.jl).
 Other formulations rely on the availability of mixed-integer nonlinear programming solvers that support [user-defined nonlinear functions in JuMP](http://www.juliaopt.org/JuMP.jl/dev/nlp/#User-defined-Functions-1).
 However, these solvers (e.g., [Juniper](https://github.com/lanl-ansi/Juniper.jl), [KNITRO](https://github.com/JuliaOpt/KNITRO.jl)) either require additional effort to register user-defined functions or are proprietary and require a commercial license.
@@ -21,56 +21,47 @@ Finally, test that the package works as expected by executing
 ```
 
 ## Solving a Network Design Problem
-Once the above dependencies have been installed, obtain the files [`shamir.inp`](https://raw.githubusercontent.com/lanl-ansi/WaterModels.jl/master/examples/data/epanet/shamir.inp) and [`shamir.json`](https://raw.githubusercontent.com/lanl-ansi/WaterModels.jl/master/examples/data/json/shamir.json).
-Here, `shamir.inp` is an EPANET file describing a simple seven-node, eight-link water distribution network with one reservoir, six demands, and eight pipes.
-In accord, `shamir.json` is a JSON file specifying possible pipe diameters and associated costs per unit length, per diameter setting.
-The combination of data from these two files provides the required information to set up a corresponding network design problem, where the goal is to select the most cost-efficient pipe diameters while satisfying all demand in the network.
+Once the above dependencies have been installed, obtain the file [`shamir.json`](https://raw.githubusercontent.com/lanl-ansi/WaterModels.jl/master/examples/data/json/shamir.json).
+Here, `shamir.json` is a JSON file specifying the network, as well as possible pipe diameters and associated costs, per diameter setting.
+The file provides the required information to set up a corresponding network design problem, where the goal is to select the most cost-efficient pipe diameters while satisfying all demand in the network.
 
-First, the diameter and cost data from the `shamir.json` problem specification must be appended to the initial data provided by the EPANET `shamir.inp` file.
-To read in the EPANET data, execute the following:
+To read in the data, execute the following:
 
 ```julia
 using WaterModels
-data = parse_file("examples/data/epanet/shamir.inp")
+data = parse_file("examples/data/json/shamir.json")
 ```
 
-Next, to read in the JSON diameter and cost data, execute the following:
-```julia
-modifications = parse_file("examples/data/json/shamir.json")
-```
-
-To merge these data together, InfrastructureModels is used to update the original network data using
-```julia
-WaterModels._IM.update_data!(data, modifications)
-```
-
-Finally, the LA formulation for the network design specification can be solved using
+Finally, the PWLRD formulation for the network design specification can be solved using
 ```julia
 import Cbc
-run_des(data, LAWaterModel, Cbc.Optimizer)
+run_des(data, PWLRDWaterModel, Cbc.Optimizer)
 ```
 
-By default, no breakpoints are used for the linear approximation of each head loss curve, and the problem is infeasible.
+By default, two breakpoints are used for the linear approximation of each head loss curve.
 These approximations can be more finely discretized by using additional arguments to the `run_des` function.
 For example, to employ five breakpoints per head loss curve in this formulation, the following can be executed:
 ```julia
-run_des(data, LAWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>5))
+import JuMP
+cbc = JuMP.optimizer_with_attributes(Cbc.Optimizer, "seconds" => 30.0)
+run_des(data, PWLRDWaterModel, cbc, ext=Dict(:pipe_breakpoints=>5))
 ```
-Note that this takes much longer to solve due to the use of more binary variables.
+Note that this formulation takes much longer to solve to global optimality due to the use of more binary variables.
 However, because of the finer discretization, a better approximation of the physics is attained.
 
-Instead of linear approximation, head loss curves can also be linearly outer-approximated via the LRD formulation.
-This formulation employs less strict requirements and avoids the use of binary variables, but solutions (e.g., diameters) may not necessarily be feasible with respect to the full (nonconvex) water network physics.
+Instead of a piecewise-linear relaxation, head loss curves can also be simply outer-approximated via the LRD formulation.
+This formulation employs less strict requirements and avoids the use of binary variables for piecewise approximation, but solutions (e.g., diameters) may not necessarily be _as_ feasible with respect to the full (nonconvex) water network physics.
 To employ five outer approximation points per (positive or negative) head loss curve in this formulation, the following can be executed:
 ```julia
 run_des(data, LRDWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>5))
 ```
+This relaxation of the problem turns out to converge to the known globally optimal objective value.
 
 ## Obtaining Results
 The `run` commands in WaterModels return detailed results data in the form of a Julia `Dict`.
 This dictionary can be saved for further processing as follows:
 ```julia
-result = run_des(data, LRDWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>5))
+result = run_des(data, LRDWaterModel, Cbc.Optimizer)
 ```
 
 For example, the algorithm's runtime and final objective value can be accessed with,
@@ -82,7 +73,17 @@ result["objective"]
 The `"solution"` field contains detailed information about the solution produced by the `run` method.
 For example, the following dictionary comprehension can be used to inspect the flows in the solution:
 ```
-Dict(name => data["q"] for (name, data) in result["solution"]["des_pipe"])
+flows = Dict(name => data["q"] for (name, data) in result["solution"]["des_pipe"])
+```
+
+To determine the design pipes that were selected via the optimization, the following can be used:
+```
+pipes_selected = filter(x -> x.second["status"] == 1, result["solution"]["des_pipe"])
+```
+
+To retrieve the subset of the original pipe dataset, the following can be used:
+```
+pipes_subset = filter(x -> x.first in keys(pipes_selected), data["des_pipe"])
 ```
 
 For more information about WaterModels result data see the [WaterModels Result Data Format](@ref) section.
@@ -99,15 +100,15 @@ run_des(data, NCWaterModel, KNITRO.Optimizer)
 ## Modifying Network Data
 The following example demonstrates one way to perform multiple WaterModels solves while modifying network data:
 ```julia
-run_des(data, LRDWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>5))
+run_des(data, LRDWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>3))
 
-data["demand"]["3"]["flow_rate"] *= 2.0
-data["demand"]["4"]["flow_rate"] *= 2.0
-data["demand"]["5"]["flow_rate"] *= 2.0
+data["demand"]["3"]["flow_min"] *= 0.5
+data["demand"]["3"]["flow_max"] *= 0.5
+data["demand"]["3"]["flow_nominal"] *= 0.5
 
-run_des(data, LRDWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>5))
+run_des(data, LRDWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>3))
 ```
-Note that the greater demands in the second problem result in an overall larger network cost.
+Note that the smaller demands in the second problem result in an overall smaller network cost.
 For additional details about the network data, see the [WaterModels Network Data Format](@ref) section.
 
 ## Alternative Methods for Building and Solving Models
