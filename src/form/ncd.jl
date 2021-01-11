@@ -230,11 +230,11 @@ function constraint_on_off_pump_flow(wm::AbstractNCDModel, n::Int, a::Int, q_min
     qp, y, z = var(wm, n, :qp_pump, a), var(wm, n, :y_pump, a), var(wm, n, :z_pump, a)
 
     # If the pump is inactive, flow must be zero.
-    qp_ub = JuMP.upper_bound(qp)
-    c_1 = JuMP.@constraint(wm.model, qp >= q_min_forward * z)
+    qp_lb, qp_ub = q_min_forward, JuMP.upper_bound(qp)
+    c_1 = JuMP.@constraint(wm.model, qp >= qp_lb * z)
     c_2 = JuMP.@constraint(wm.model, qp <= qp_ub * z)
 
-    # If the pump is on, flow across the pump must be nonnegative.
+    # If the pump is on, the flow direction must be positive.
     c_3 = JuMP.@constraint(wm.model, y >= z)
 
     # Append the constraint array.
@@ -265,12 +265,8 @@ function constraint_on_off_pump_head(wm::AbstractNCDModel, n::Int, a::Int, node_
 end
 
 
-
-
 "Pump head gain constraint when the pump status is ambiguous."
-function constraint_on_off_pump_head_gain(
-    wm::AbstractNCDModel, n::Int, a::Int, node_fr::Int,
-    node_to::Int, pc::Array{Float64}, q_min_forward::Float64)
+function constraint_on_off_pump_head_gain(wm::AbstractNCDModel, n::Int, a::Int, node_fr::Int, node_to::Int, q_min_forward::Float64)
     # Gather pump flow, head gain, and status variables.
     qp, g, z = var(wm, n, :qp_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
 

@@ -143,44 +143,6 @@ function fix_all_indicators!(data::Dict{String,<:Any})
 end
 
 
-function convert_short_pipes_with_bounds!(data::Dict{String,<:Any})
-    exponent = uppercase(data["head_loss"]) == "H-W" ? 1.852 : 2.0
-    res = calc_resistances(data["pipe"], data["viscosity"], data["head_loss"])
-    L_x_r = Dict{String,Any}(a => res[a][1] .* x["length"] for (a, x) in data["pipe"])
-
-    for (a, pipe) in data["pipe"]
-        if haskey(pipe, "flow_min") && haskey(pipe, "flow_max")
-            q_min, q_max = pipe["flow_min"], pipe["flow_max"]
-            dh_min = sign(q_min) * L_x_r[a] * abs(q_min)^exponent
-            dh_max = sign(q_max) * L_x_r[a] * abs(q_max)^exponent
-
-            if max(abs(dh_min), abs(dh_max)) <= 0.50
-                println("removing pipe $(a)")
-                pipe = deepcopy(data["pipe"][a])
-
-                # Delete unnecessary fields.
-                delete!(pipe, "diameter")
-                delete!(pipe, "length")
-                delete!(pipe, "roughness")
-
-                if pipe["has_valve"]
-                    # Transform the pipe into a valve.
-                    delete!(pipe, "has_valve")
-                    data["valve"][a] = pipe
-                else
-                    # Transform the pipe into a short pipe.
-                    delete!(pipe, "has_valve")
-                    data["short_pipe"][a] = pipe
-                end
-
-                # Delete the original pipe component.
-                delete!(data["pipe"], a)
-            end
-        end
-    end
-end
-
-
 "Translate a multinetwork dataset to a snapshot dataset with dispatchable components."
 function _relax_network!(data::Dict{String,<:Any})
     _relax_nodes!(data)

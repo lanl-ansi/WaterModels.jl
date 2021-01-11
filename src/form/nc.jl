@@ -171,9 +171,7 @@ end
 
 
 "Adds head gain constraints for pumps in `NC` formulations."
-function constraint_on_off_pump_head_gain(
-    wm::AbstractNCModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64},
-    q_min_forward::Float64)
+function constraint_on_off_pump_head_gain(wm::AbstractNCModel, n::Int, a::Int, node_fr::Int, node_to::Int, q_min_forward::Float64)
     # Gather pump flow, head gain, and status variables.
     q, g, z = var(wm, n, :q_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
 
@@ -249,7 +247,7 @@ function constraint_on_off_valve_head(wm::AbstractNCModel, n::Int, a::Int, node_
     dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
     c_1 = JuMP.@constraint(wm.model, h_i - h_j >= (1.0 - z) * dh_lb)
 
-    # When the valve is closed, positive head loss is not possible.
+    # When the valve is open, positive head loss is not possible.
     dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
     c_2 = JuMP.@constraint(wm.model, h_i - h_j <= (1.0 - z) * dh_ub)
 

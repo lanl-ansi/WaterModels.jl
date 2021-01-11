@@ -151,3 +151,13 @@ function _calc_pipe_resistance_dw(diameter::Float64, roughness::Float64, viscosi
     y_3 = -8.685889638e-01 * log(y_2)
     return 0.0826 * inv(diameter^5) * inv(y_3*y_3)
 end
+
+
+function _calc_head_loss_values(points::Array{Float64}, alpha::Float64)
+    return [sign(x) * abs(x)^alpha for x in points]
+end
+
+
+function _calc_head_loss_oa(q::JuMP.VariableRef, z::Union{JuMP.VariableRef, JuMP.GenericAffExpr}, q_hat::Float64, exponent::Float64)
+    return q_hat^exponent * z + exponent * q_hat^(exponent - 1.0) * (q - q_hat * z)
+end

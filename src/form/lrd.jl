@@ -20,7 +20,7 @@ function constraint_pipe_head_loss(
     # Loop over breakpoints strictly between the lower and upper variable bounds.
     for pt in range(qp_min_forward, stop = JuMP.upper_bound(qp), length = num_breakpoints+2)[2:end-1]
         # Add a linear outer approximation of the convex relaxation at `pt`.
-        lhs = _get_head_loss_oa_binary(qp, y, pt, exponent)
+        lhs = _calc_head_loss_oa(qp, y, pt, exponent)
 
         # Add outer-approximation of the head loss constraint.
         c = JuMP.@constraint(wm.model, r * lhs - inv(L) * dhp <= 0.0)
@@ -48,7 +48,7 @@ function constraint_pipe_head_loss(
     # Loop over breakpoints strictly between the lower and upper variable bounds.
     for pt in range(qn_min_forward, stop = JuMP.upper_bound(qn), length = num_breakpoints+2)[2:end-1]
         # Add a linear outer approximation of the convex relaxation at `pt`.
-        lhs = _get_head_loss_oa_binary(qn, 1.0 - y, pt, exponent)
+        lhs = _calc_head_loss_oa(qn, 1.0 - y, pt, exponent)
 
         # Add outer-approximation of the head loss constraint.
         c = JuMP.@constraint(wm.model, r * lhs - inv(L) * dhn <= 0.0)
@@ -86,23 +86,23 @@ function constraint_on_off_des_pipe_head_loss(
 
     # Loop over breakpoints strictly between the lower and upper variable bounds.
     for pt in range(qp_min_forward, stop = JuMP.upper_bound(qp), length = num_breakpoints+2)[2:end-1]
-        # Add a linear outer approximation of the convex relaxation at `pt`.
-        lhs = _get_head_loss_oa_binary(qp, y, pt, exponent)
+        # Get a linear outer approximation of the convex relaxation at `pt`.
+        lhs = _calc_head_loss_oa(qp, y, pt, exponent)
 
-        # Add the normalized constraint to the model.
+        # Add outer-approximation of the head loss constraint.
         c = JuMP.@constraint(wm.model, r * lhs - inv(L) * dhp <= 0.0)
 
         # Append the :on_off_des_pipe_head_loss constraint array.
         append!(con(wm, n, :on_off_des_pipe_head_loss)[a], [c])
     end
 
-    # Get the lower-bounding line for the qp curve.
+    # Get the upper-bounding line for the qp curve.
     if qp_min_forward < qp_ub
         dhp_1, dhp_2 = r * qp_min_forward^exponent, r * qp_ub^exponent
         dhp_slope = (dhp_2 - dhp_1) * inv(qp_ub - qp_min_forward)
         dhp_lb_line = dhp_slope * (qp - qp_min_forward * y) + dhp_1 * y
 
-        # Add the normalized constraint to the model.
+        # Add upper-bounding line of the head loss constraint.
         c = JuMP.@constraint(wm.model, inv(L) * dhp - dhp_lb_line <= 0.0)
 
         # Append the :on_off_des_pipe_head_loss constraint array.
@@ -115,10 +115,10 @@ function constraint_on_off_des_pipe_head_loss(
 
     # Loop over breakpoints strictly between the lower and upper variable bounds.
     for pt in range(qn_min_forward, stop = JuMP.upper_bound(qn), length = num_breakpoints+2)[2:end-1]
-        # Add a linear outer approximation of the convex relaxation at `pt`.
-        lhs = _get_head_loss_oa_binary(qn, 1.0 - y, pt, exponent)
+        # Get a linear outer approximation of the convex relaxation at `pt`.
+        lhs = _calc_head_loss_oa(qn, 1.0 - y, pt, exponent)
 
-        # Add the normalized constraint to the model.
+        # Add upper-bounding line of the head loss constraint.
         c = JuMP.@constraint(wm.model, r * lhs - inv(L) * dhn <= 0.0)
 
         # Append the :on_off_des_pipe_head_loss constraint array.
@@ -143,7 +143,7 @@ end
 ########################################## PUMPS ##########################################
 
 "Add constraints associated with modeling a pump's head gain."
-function constraint_on_off_pump_head_gain(wm::LRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64}, q_min_forward::Float64)
+function constraint_on_off_pump_head_gain(wm::LRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, q_min_forward::Float64)
     # Get the number of breakpoints for the pump.
     num_breakpoints = get(wm.ext, :pump_breakpoints, 1)
 

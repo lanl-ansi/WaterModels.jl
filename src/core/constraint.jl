@@ -62,25 +62,6 @@ function constraint_des_pipe_selection(wm::AbstractWaterModel, n::Int, node_fr::
 end
 
 
-function constraint_on_off_tank_head(wm::AbstractWaterModel, n::Int, tank_id::Int, node_id::Int)
-    tank_node = ref(wm, n, :tank, tank_id)["node"]
-    h, z = var(wm, n, :h, tank_node), var(wm, n, :z_tank, tank_id)
-    c = JuMP.@constraint(wm.model, h >= JuMP.upper_bound(h) * (1.0 - z))
-    append!(con(wm, n, :on_off_tank_head)[tank_id], [c])
-end
-
-
-function constraint_on_off_tank_flow(wm::AbstractWaterModel, n::Int, tank_id::Int, valve_ids::Array{Int, 1})
-    z_tank = var(wm, n, :z_tank, tank_id)
-
-    for valve_id in valve_ids # For connected valves...
-        z_valve = var(wm, n, :z_valve, valve_id)
-        c = JuMP.@constraint(wm.model, z_valve == z_tank)
-        append!(con(wm, n, :on_off_tank_flow)[tank_id], [c])
-    end
-end
-
-
 """
     constraint_tank_volume(wm, n_1, n_2, i, time_step)
 
@@ -106,10 +87,8 @@ greater than or equal to the volume of the tank at the beginning of the time hor
 multinetwork, `n_f` is the index of the final subnetwork, and i is the index of the tank.
 """
 function constraint_tank_volume_recovery(wm::AbstractWaterModel, i::Int, n_1::Int, n_f::Int)
-    if !ref(wm, n_f, :tank, i)["dispatchable"]
-        _initialize_con_dict(wm, :tank_volume_recovery, nw = n_f)
-        V_1, V_f = var(wm, n_1, :V, i), var(wm, n_f, :V, i)
-        c = JuMP.@constraint(wm.model, V_1 <= V_f)
-        con(wm, n_f, :tank_volume_recovery)[i] = c
-    end
+    _initialize_con_dict(wm, :tank_volume_recovery, nw = n_f)
+    V_1, V_f = var(wm, n_1, :V, i), var(wm, n_f, :V, i)
+    c = JuMP.@constraint(wm.model, V_1 <= V_f)
+    con(wm, n_f, :tank_volume_recovery)[i] = c
 end

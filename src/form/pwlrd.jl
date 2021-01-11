@@ -47,13 +47,13 @@ function variable_flow(wm::AbstractPWLRDModel; nw::Int=wm.cnw, bounded::Bool=tru
         base_name="$(nw)_lambda_n", lower_bound=0.0, upper_bound=1.0,
         start=comp_start_value(ref(wm, nw, :pipe, a), "lambda_n_start", k))
 
-    # Create weights involved in convex combination constraints for des_pipes.
+    # Create weights involved in convex combination constraints for design pipes.
     lambda_p_des_pipe = var(wm, nw)[:lambda_p_des_pipe] = JuMP.@variable(wm.model,
         [a in ids(wm, nw, :des_pipe), k in 1:pipe_breakpoints],
         base_name="$(nw)_lambda_p", lower_bound=0.0, upper_bound=1.0,
         start=comp_start_value(ref(wm, nw, :des_pipe, a), "lambda_p_start", k))
 
-    # Create weights involved in convex combination constraints for des_pipes.
+    # Create weights involved in convex combination constraints for design pipes.
     lambda_n_des_pipe = var(wm, nw)[:lambda_n_des_pipe] = JuMP.@variable(wm.model,
         [a in ids(wm, nw, :des_pipe), k in 1:pipe_breakpoints],
         base_name="$(nw)_lambda_n", lower_bound=0.0, upper_bound=1.0,
@@ -69,12 +69,12 @@ function variable_flow(wm::AbstractPWLRDModel; nw::Int=wm.cnw, bounded::Bool=tru
         [a in ids(wm, nw, :pipe), k in 1:pipe_breakpoints-1], base_name="$(nw)_x_n",
         binary=true, start=comp_start_value(ref(wm, nw, :pipe, a), "x_n_start"))
 
-    # Create binary variables involved in convex combination constraints for des_pipes.
+    # Create binary variables involved in convex combination constraints for design pipes.
     x_p_des_pipe = var(wm, nw)[:x_p_des_pipe] = JuMP.@variable(wm.model,
         [a in ids(wm, nw, :des_pipe), k in 1:pipe_breakpoints-1], base_name="$(nw)_x_p",
         binary=true, start=comp_start_value(ref(wm, nw, :des_pipe, a), "x_p_start"))
 
-    # Create binary variables involved in convex combination constraints for des_pipes.
+    # Create binary variables involved in convex combination constraints for design pipes.
     x_n_des_pipe = var(wm, nw)[:x_n_des_pipe] = JuMP.@variable(wm.model,
         [a in ids(wm, nw, :des_pipe), k in 1:pipe_breakpoints-1], base_name="$(nw)_x_n",
         binary=true, start=comp_start_value(ref(wm, nw, :des_pipe, a), "x_n_start"))
@@ -136,14 +136,14 @@ function constraint_pipe_head_loss(
 
     for qp_hat in breakpoints_p
         # Add head loss outer (i.e., lower) approximations.
-        lhs_p = _get_head_loss_oa_binary(qp, y, qp_hat, exponent)
+        lhs_p = _calc_head_loss_oa(qp, y, qp_hat, exponent)
         c_7_k = JuMP.@constraint(wm.model, r * lhs_p <= inv(L) * dhp)
         append!(con(wm, n, :pipe_head_loss, a), [c_7_k])
     end
 
     for qn_hat in breakpoints_n
         # Add head loss outer (i.e., lower) approximations.
-        lhs_n = _get_head_loss_oa_binary(qn, 1.0 - y, qn_hat, exponent)
+        lhs_n = _calc_head_loss_oa(qn, 1.0 - y, qn_hat, exponent)
         c_7_k = JuMP.@constraint(wm.model, r * lhs_n <= inv(L) * dhn)
         append!(con(wm, n, :pipe_head_loss, a), [c_7_k])
     end
@@ -218,14 +218,14 @@ function constraint_on_off_des_pipe_head_loss(
 
     for qp_hat in breakpoints_p
         # Add head loss outer (i.e., lower) approximations.
-        lhs_p = _get_head_loss_oa_binary(qp, y, qp_hat, exponent)
+        lhs_p = _calc_head_loss_oa(qp, y, qp_hat, exponent)
         c_7_k = JuMP.@constraint(wm.model, r * lhs_p <= inv(L) * dhp)
         append!(con(wm, n, :on_off_des_pipe_head_loss, a), [c_7_k])
     end
 
     for qn_hat in breakpoints_n
         # Add head loss outer (i.e., lower) approximations.
-        lhs_n = _get_head_loss_oa_binary(qn, 1.0 - y, qn_hat, exponent)
+        lhs_n = _calc_head_loss_oa(qn, 1.0 - y, qn_hat, exponent)
         c_7_k = JuMP.@constraint(wm.model, r * lhs_n <= inv(L) * dhn)
         append!(con(wm, n, :on_off_des_pipe_head_loss, a), [c_7_k])
     end
@@ -247,7 +247,7 @@ end
 
 
 "Add constraints associated with modeling a pump's head gain."
-function constraint_on_off_pump_head_gain(wm::PWLRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, pc::Array{Float64}, q_min_forward::Float64)
+function constraint_on_off_pump_head_gain(wm::PWLRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, q_min_forward::Float64)
     # Get the number of breakpoints for the pump.
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 2)
 

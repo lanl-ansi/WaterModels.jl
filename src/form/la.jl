@@ -36,7 +36,7 @@ function variable_flow_piecewise_adjacency(wm::LAWaterModel; nw::Int=wm.cnw, rep
         [a in ids(wm, nw, :pipe), k in 1:pipe_breakpoints-1], base_name="$(nw)_x_pw", binary=true,
         start=comp_start_value(ref(wm, nw, :pipe, a), "x_pw_start"))
 
-    # Create binary variables for des_pipe convex combination constraints.
+    # Create binary variables for design pipe convex combination constraints.
     x_pw_des_pipe = var(wm, nw)[:x_pw_des_pipe] = JuMP.@variable(wm.model,
         [a in ids(wm, nw, :des_pipe), k in 1:pipe_breakpoints-1], base_name="$(nw)_x_pw", binary=true,
         start=comp_start_value(ref(wm, nw, :des_pipe, a), "x_pw_start"))
@@ -105,8 +105,7 @@ function constraint_pipe_head_loss(
 end
 
 
-"Pump head gain constraint when the pump status is ambiguous."
-function constraint_on_off_pump_head_gain(wm::LAWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, curve_fun::Array{Float64}, q_min_forward::Float64)
+function constraint_on_off_pump_head_gain(wm::LAWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, q_min_forward::Float64)
     # Get the number of breakpoints for the pump.
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 2)
 
@@ -128,7 +127,10 @@ function constraint_on_off_pump_head_gain(wm::LAWaterModel, n::Int, a::Int, node
     c_5 = JuMP.@constraint(wm.model, q_lhs == q)
 
     # Add a constraint for the head gain piecewise approximation.
-    f = _calc_pump_gain_values(collect(breakpoints), curve_fun)
+    head_curve_function = _calc_head_curve_function(ref(wm, n, :pump, a))
+
+    # Add a constraint that linearly approximates the head gain variable.
+    f = head_curve_function.(collect(breakpoints))
     g_lhs = sum(f[k] * lambda[a, k] for k in 1:pump_breakpoints)
     c_6 = JuMP.@constraint(wm.model, g_lhs == g)
 
@@ -170,6 +172,8 @@ function constraint_on_off_des_pipe_head_loss(wm::LAWaterModel, n::Int, a::Int, 
     # Add a constraint for the head loss piecewise approximation.
     f = _calc_head_loss_values(collect(breakpoints), exponent)
     lhs = r * sum(f[k] * lambda[a, k] for k in 1:pipe_breakpoints)
+
+    # TODO: Use a McCormick expansion of the below multiplication with z.
     c_6 = JuMP.@constraint(wm.model, lhs == inv(L) * (h_i - h_j) * z)
 
     # Append the constraint array with the above-generated constraints.
