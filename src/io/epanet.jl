@@ -7,9 +7,6 @@ end
 
 
 function _read_epanet_sections(file_path::String)
-    # Read the entire EPANET file as a string.
-    file_contents = _read_file_as_string(file_path)
-
     # Initialize the dictionary that stores raw EPANET data.
     data = _initialize_epanet_dictionary()
 
@@ -17,7 +14,7 @@ function _read_epanet_sections(file_path::String)
     section, line_number = nothing, 0
 
     # Populate sections in the EPANET dictionary.
-    for line in split(file_contents, "\n")
+    for line in eachline(file_path)
         # Update important data associated with the line.
         line, line_number = strip(line), line_number + 1,
 

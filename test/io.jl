@@ -30,7 +30,6 @@
 
     @testset "parse_json" begin
         data = WaterModels.parse_json("../examples/data/json/shamir.json")
-        pipe_1_max_velocity = data["pipe"]["1"]["maximumVelocity"]
-        @test pipe_1_max_velocity == 2.0
+        @test haskey(data, "des_pipe")
     end
 end
