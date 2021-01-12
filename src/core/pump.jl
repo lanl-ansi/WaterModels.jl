@@ -80,7 +80,7 @@ function _calc_pump_power_max(pump::Dict{String,<:Any}, node_fr::Dict{String,Any
     gain_max = calc_pump_head_gain_max(pump, node_fr, node_to)
 
     if haskey(pump, "efficiency_curve")
-        min_efficiency = minimum.(x[2] for x in pump["efficiency_curve"])
+        min_efficiency = minimum(x[2] for x in pump["efficiency_curve"])
     else
         min_efficiency = pump["efficiency"]
     end
@@ -379,4 +379,11 @@ end
 function _calc_pump_energy_quadratic_approximation(wm::AbstractWaterModel, nw::Int, pump_id::Int, z::JuMP.VariableRef)
     func = _calc_pump_power_quadratic_approximation(wm, nw, pump_id, z)
     return x -> func(x) * ref(wm, nw, :time_step)
+end
+
+
+function _calc_efficiencies(points::Array{Float64}, curve::Array{Tuple{Float64, Float64}})
+    q, eff = [[x[1] for x in curve], [x[2] for x in curve]]
+    return Interpolations.LinearInterpolation(q, eff,
+        extrapolation_bc=Interpolations.Flat()).(points)
 end
