@@ -150,3 +150,16 @@ function _relax_network!(data::Dict{String,<:Any})
     _relax_reservoirs!(data)
     _relax_demands!(data)
 end
+
+
+"Convenience function for recomputing component bounds, e.g., after modifying data."
+function recompute_bounds!(data::Dict{String, <:Any})
+    # Clear the existing flow bounds for node-connecting components.
+    for comp_type in ["pipe", "des_pipe", "pump", "regulator", "short_pipe", "valve"]
+        map(x -> x["flow_min"] = -Inf, values(data[comp_type]))
+        map(x -> x["flow_max"] = Inf, values(data[comp_type]))
+    end
+
+    # Recompute bounds and correct data.
+    correct_network_data!(data)
+end

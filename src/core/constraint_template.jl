@@ -284,6 +284,20 @@ function constraint_on_off_pump_head_gain(wm::AbstractWaterModel, a::Int; nw::In
 end
 
 
+function constraint_on_off_pump_power(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+    q_min_forward = max(get(ref(wm, nw, :pump, a), "flow_min_forward", _FLOW_MIN), _FLOW_MIN)
+
+    _initialize_con_dict(wm, :on_off_pump_power, nw=nw, is_array=true)
+    con(wm, nw, :on_off_pump_power)[a] = Array{JuMP.ConstraintRef}([])
+
+    if ref(wm, nw, :pump, a)["head_curve_form"] in [QUADRATIC, EPANET]
+        constraint_on_off_pump_power(wm, nw, a, q_min_forward)
+    elseif ref(wm, nw, :pump, a)["head_curve_form"] == BEST_EFFICIENCY_POINT
+        constraint_on_off_pump_power_best_efficiency(wm, nw, a, q_min_forward)
+    end
+end
+
+
 ### Short Pipe Constraints ###
 function constraint_short_pipe_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     q_max_reverse = min(get(ref(wm, nw, :short_pipe, a), "flow_max_reverse", 0.0), 0.0)

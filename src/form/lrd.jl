@@ -5,7 +5,7 @@
 ########################################## PIPES ##########################################
 
 function constraint_pipe_head_loss(
-    wm::LRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
+    wm::AbstractLRDModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
     L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
     # Get the number of breakpoints for the pipe.
     num_breakpoints = get(wm.ext, :pipe_breakpoints, 1)
@@ -143,7 +143,7 @@ end
 ########################################## PUMPS ##########################################
 
 "Add constraints associated with modeling a pump's head gain."
-function constraint_on_off_pump_head_gain(wm::LRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, q_min_forward::Float64)
+function constraint_on_off_pump_head_gain(wm::AbstractLRDModel, n::Int, a::Int, node_fr::Int, node_to::Int, q_min_forward::Float64)
     # Get the number of breakpoints for the pump.
     num_breakpoints = get(wm.ext, :pump_breakpoints, 1)
 
@@ -179,33 +179,4 @@ function constraint_on_off_pump_head_gain(wm::LRDWaterModel, n::Int, a::Int, nod
         # Append the :on_off_pump_head_gain constraint array.
         append!(con(wm, n, :on_off_pump_head_gain)[a], [c])
     end
-end
-
-
-######################################## OBJECTIVES ########################################
-
-
-"Instantiate the objective associated with the Optimal Water Flow problem."
-function objective_owf_default(wm::LRDWaterModel)
-    # Initialize the objective function.
-    objective = JuMP.AffExpr(0.0)
-
-    for (n, nw_ref) in nws(wm)
-        for (a, pump) in nw_ref[:pump]
-            # Ensure that the pump has an associated energy price.
-            @assert haskey(pump, "energy_price")
-
-            # Get flow-related variables and data.
-            qp, z = var(wm, n, :qp_pump, a), var(wm, n, :z_pump, a)
-            qp_lb, qp_ub = pump["flow_min_forward"], JuMP.upper_bound(qp)
-            f_ua = _calc_pump_energy_ua(wm, n, a, [qp_lb, qp_ub])
-
-            # Build a linear under-approximation of the cost.
-            slope = (f_ua[2] - f_ua[1]) * inv(qp_ub - qp_lb)
-            energy = (slope * (qp - qp_lb * z) + f_ua[1] * z)
-            JuMP.add_to_expression!(objective, pump["energy_price"] * energy)
-        end
-    end
-
-    return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
 end

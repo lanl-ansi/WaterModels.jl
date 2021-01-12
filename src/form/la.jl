@@ -1,6 +1,6 @@
 # Define LA (linear approximation-based) implementations of water models.
 
-function variable_flow_piecewise_weights(wm::LAWaterModel; nw::Int=wm.cnw, report::Bool=false)
+function variable_flow_piecewise_weights(wm::AbstractLAModel; nw::Int=wm.cnw, report::Bool=false)
     # Get the number of breakpoints for the pipe.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 2)
 
@@ -27,7 +27,7 @@ function variable_flow_piecewise_weights(wm::LAWaterModel; nw::Int=wm.cnw, repor
 end
 
 
-function variable_flow_piecewise_adjacency(wm::LAWaterModel; nw::Int=wm.cnw, report::Bool=false)
+function variable_flow_piecewise_adjacency(wm::AbstractLAModel; nw::Int=wm.cnw, report::Bool=false)
     # Get the number of breakpoints for the pipe.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 2)
 
@@ -52,7 +52,7 @@ end
 
 
 "Creates flow variables for `LA` formulations (`q`, `lambda`, `x_pw`)."
-function variable_flow(wm::LAWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_flow(wm::AbstractLAModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
     for name in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
         # Create flow variables for each node-connecting component.
         _variable_component_flow(wm, name; nw=nw, bounded=bounded, report=report)
@@ -65,7 +65,7 @@ end
 
 
 function constraint_pipe_head_loss(
-    wm::LAWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
+    wm::AbstractLAModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
     L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
     # If the number of breakpoints is not positive, no constraints are added.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 2)
@@ -105,48 +105,7 @@ function constraint_pipe_head_loss(
 end
 
 
-function constraint_on_off_pump_head_gain(wm::LAWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, q_min_forward::Float64)
-    # Get the number of breakpoints for the pump.
-    pump_breakpoints = get(wm.ext, :pump_breakpoints, 2)
-
-    # Gather common variables.
-    q, g, z = var(wm, n, :q_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
-    lambda, x_pw = var(wm, n, :lambda_pump), var(wm, n, :x_pw_pump)
-
-    # Add the required SOS constraints.
-    c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == z)
-    c_2 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == z)
-    c_3 = JuMP.@constraint(wm.model, lambda[a, 1] <= x_pw[a, 1])
-    c_4 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
-
-    # Generate a set of uniform flow breakpoints.
-    breakpoints = range(q_min_forward, stop=JuMP.upper_bound(q), length=pump_breakpoints)
-
-    # Add a constraint for the flow piecewise approximation.
-    q_lhs = sum(breakpoints[k] * lambda[a, k] for k in 1:pump_breakpoints)
-    c_5 = JuMP.@constraint(wm.model, q_lhs == q)
-
-    # Add a constraint for the head gain piecewise approximation.
-    head_curve_function = _calc_head_curve_function(ref(wm, n, :pump, a))
-
-    # Add a constraint that linearly approximates the head gain variable.
-    f = head_curve_function.(collect(breakpoints))
-    g_lhs = sum(f[k] * lambda[a, k] for k in 1:pump_breakpoints)
-    c_6 = JuMP.@constraint(wm.model, g_lhs == g)
-
-    # Append the constraint array with the above-generated constraints.
-    append!(con(wm, n, :on_off_pump_head_gain, a), [c_1, c_2, c_3, c_4, c_5, c_6])
-
-    for k in 2:pump_breakpoints-1
-        # Add adjacency constraints for each interval.
-        adjacency = x_pw[a, k-1] + x_pw[a, k]
-        c_7_k = JuMP.@constraint(wm.model, lambda[a, k] <= adjacency)
-        append!(con(wm, n, :on_off_pump_head_gain, a), [c_7_k])
-    end
-end
-
-
-function constraint_on_off_des_pipe_head_loss(wm::LAWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64, L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
+function constraint_on_off_des_pipe_head_loss(wm::AbstractLAModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64, L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
     # If the number of breakpoints is not positive, no constraints are added.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 2)
 
@@ -188,27 +147,63 @@ function constraint_on_off_des_pipe_head_loss(wm::LAWaterModel, n::Int, a::Int, 
 end
 
 
-function objective_owf_default(wm::LAWaterModel) 
+function constraint_on_off_pump_head_gain(wm::AbstractLAModel, n::Int, a::Int, node_fr::Int, node_to::Int, q_min_forward::Float64)
     # Get the number of breakpoints for the pump.
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 2)
 
-    # Initialize the objective function.
-    objective = JuMP.AffExpr(0.0)
+    # Gather common variables.
+    q, g, z = var(wm, n, :q_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
+    lambda, x_pw = var(wm, n, :lambda_pump), var(wm, n, :x_pw_pump)
 
-    for (n, nw_ref) in nws(wm)
-        # Get convex combination variable set.
-        lambda = var(wm, n, :lambda_pump)
+    # Add the required SOS constraints.
+    c_1 = JuMP.@constraint(wm.model, sum(lambda[a, :]) == z)
+    c_2 = JuMP.@constraint(wm.model, sum(x_pw[a, :]) == z)
+    c_3 = JuMP.@constraint(wm.model, lambda[a, 1] <= x_pw[a, 1])
+    c_4 = JuMP.@constraint(wm.model, lambda[a, end] <= x_pw[a, end])
 
-        for (a, pump) in nw_ref[:pump]
-            # Ensure that the pump has an associated energy price.
-            @assert haskey(pump, "energy_price")
+    # Generate a set of uniform flow breakpoints.
+    breakpoints = range(q_min_forward, stop=JuMP.upper_bound(q), length=pump_breakpoints)
 
-            # Add piecewise linear approximation of cost to the objective.
-            q_bp, f_bp = _calc_pump_energy_points(wm, n, a, pump_breakpoints)
-            energy = sum(f_bp[k] * lambda[a, k] for k in 1:pump_breakpoints)
-            JuMP.add_to_expression!(objective, pump["energy_price"] * energy)
-        end
+    # Add a constraint for the flow piecewise approximation.
+    q_lhs = sum(breakpoints[k] * lambda[a, k] for k in 1:pump_breakpoints)
+    c_5 = JuMP.@constraint(wm.model, q_lhs == q)
+
+    # Add a constraint for the head gain piecewise approximation.
+    head_curve_function = _calc_head_curve_function(ref(wm, n, :pump, a))
+
+    # Add a constraint that linearly approximates the head gain variable.
+    f = head_curve_function.(collect(breakpoints))
+    g_lhs = sum(f[k] * lambda[a, k] for k in 1:pump_breakpoints)
+    c_6 = JuMP.@constraint(wm.model, g_lhs == g)
+
+    # Append the constraint array with the above-generated constraints.
+    append!(con(wm, n, :on_off_pump_head_gain, a), [c_1, c_2, c_3, c_4, c_5, c_6])
+
+    for k in 2:pump_breakpoints-1
+        # Add adjacency constraints for each interval.
+        adjacency = x_pw[a, k-1] + x_pw[a, k]
+        c_7_k = JuMP.@constraint(wm.model, lambda[a, k] <= adjacency)
+        append!(con(wm, n, :on_off_pump_head_gain, a), [c_7_k])
     end
+end
 
-    return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
+
+function constraint_on_off_pump_power(wm::AbstractLAModel, n::Int, a::Int, q_min_forward::Float64)
+    # Get the number of breakpoints for the pump.
+    pump_breakpoints = get(wm.ext, :pump_breakpoints, 2)
+
+    # Gather pump flow, power, and status variables.
+    q, P = var(wm, n, :q_pump, a), var(wm, n, :P_pump, a)
+    z, lambda = var(wm, n, :z_pump, a), var(wm, n, :lambda_pump)
+
+    # Generate a set of uniform flow and power approximation breakpoints.
+    breakpoints = range(q_min_forward, stop = JuMP.upper_bound(q), length = pump_breakpoints)
+    f_all = _calc_pump_power(wm, n, a, collect(breakpoints))
+
+    # Add a constraint that lower-bounds the power variable.
+    power_expr = sum(f_all[k] * lambda[a, k] for k in 1:pump_breakpoints)
+    c = JuMP.@constraint(wm.model, power_expr == P)
+
+    # Append the :on_off_pump_power constraint array.
+    append!(con(wm, n, :on_off_pump_power)[a], [c])
 end

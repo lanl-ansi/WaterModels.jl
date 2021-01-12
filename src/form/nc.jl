@@ -65,7 +65,7 @@ end
 
 "Adds head loss constraint for a pipe in the `NC` formulation."
 function constraint_pipe_head_loss(
-    wm::NCWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
+    wm::AbstractNCModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
     L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
     # Gather flow and head variables included in head loss constraints.
     q, h_i, h_j = var(wm, n, :q_pipe, a), var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
@@ -185,6 +185,20 @@ function constraint_on_off_pump_head_gain(wm::AbstractNCModel, n::Int, a::Int, n
 end
 
 
+function constraint_on_off_pump_power(wm::AbstractNCModel, n::Int, a::Int, q_min_forward::Float64)
+    # Gather pump flow, power, and status variables.
+    q, P, z = var(wm, n, :q_pump, a), var(wm, n, :P_pump, a), var(wm, n, :z_pump, a)
+
+    # Add constraint equating power with respect to the power curve.
+    power_qa = _calc_pump_power_quadratic_approximation(wm, n, a, z)
+    c_1 = JuMP.@constraint(wm.model, power_qa(q) <= P)
+    c_2 = JuMP.@constraint(wm.model, power_qa(q) >= P)
+
+    # Append the :on_off_pump_power constraint array.
+    append!(con(wm, n, :on_off_pump_power)[a], [c_1, c_2])
+end
+
+
 function constraint_on_off_regulator_flow(wm::AbstractNCModel, n::Int, a::Int, q_min_forward::Float64)
     # Get flow and regulator status variables.
     q, z = var(wm, n, :q_regulator, a), var(wm, n, :z_regulator, a)
@@ -300,25 +314,4 @@ function constraint_source_directionality(
     regulator_to::Array{Int64,1}, short_pipe_fr::Array{Int64,1},
     short_pipe_to::Array{Int64,1}, valve_fr::Array{Int64,1}, valve_to::Array{Int64,1})
     # For undirected formulations, there are no constraints, here.
-end
-
-
-"Defines the objective for the owf problem is `NC` formulations."
-function objective_owf_default(wm::AbstractNCModel)
-    objective = zero(JuMP.QuadExpr)
-
-    for (n, nw_ref) in nws(wm)
-        for (a, pump) in nw_ref[:pump]
-            # Ensure that the pump has an associated energy price.
-            @assert haskey(pump, "energy_price")
-
-            # Get pump flow and status variables.
-            q, z = var(wm, n, :q_pump, a), var(wm, n, :z_pump, a)
-            energy_qa = _calc_pump_energy_quadratic_approximation(wm, n, a, z)
-            JuMP.add_to_expression!(objective, pump["energy_price"] * energy_qa(q))
-        end
-    end
-
-    # Minimize the cost (in units of currency) required to operate pumps.
-    return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
 end

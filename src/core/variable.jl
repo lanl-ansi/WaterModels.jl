@@ -68,8 +68,50 @@ function variable_pump_head_gain(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded
         base_name="$(nw)_g_pump", lower_bound=0.0, # Pump gain is nonnegative.
         start=comp_start_value(ref(wm, nw, :pump, a), "g_pump_start", 1.0e-6))
 
+    if bounded
+        for (a, pump) in ref(wm, nw, :pump)
+            # Get the nodes that are connected by the pump.
+            node_fr = ref(wm, nw, :node, pump["node_fr"])
+            node_to = ref(wm, nw, :node, pump["node_to"])
+
+            # Set the upper bound for the head gain variable.
+            head_gain_max = calc_pump_head_gain_max(pump, node_fr, node_to)
+            JuMP.set_upper_bound(g[a], head_gain_max)
+        end
+    end
+
     # Initialize an entry to the solution component dictionary for head gains.
     report && sol_component_value(wm, nw, :pump, :g, ids(wm, nw, :pump), g)
+end
+
+
+function variable_pump_power(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+    # Initialize variables for the power utilization of a pump.
+    Ps = var(wm, nw)[:Ps_pump] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
+        base_name="$(nw)_Ps_pump", lower_bound=0.0, # Pump power is nonnegative.
+        start=comp_start_value(ref(wm, nw, :pump, a), "Ps_pump_start", 1.0e-6))
+
+    if bounded
+        for (a, pump) in ref(wm, nw, :pump)
+            # Get the nodes that are connected by the pump.
+            node_fr = ref(wm, nw, :node, pump["node_fr"])
+            node_to = ref(wm, nw, :node, pump["node_to"])
+    
+            # Set the upper bound for the power variable.
+            Ps_max = _calc_pump_power_max(pump, node_fr, node_to) / (_DENSITY * _GRAVITY)
+            JuMP.set_upper_bound(Ps[a], Ps_max)
+        end
+    end
+
+    # Initialize an entry to the solution component dictionary for powers.
+    report && sol_component_value(wm, nw, :pump, :Ps, ids(wm, nw, :pump), Ps)
+
+    # Create expressions to compute the unscaled power values.
+    P = var(wm, nw)[:P_pump] = JuMP.@expression(
+        wm.model, [a in ids(wm, nw, :pump)], Ps[a] * _DENSITY * _GRAVITY)
+
+    # Initialize an entry to the solution component dictionary for powers.
+    report && sol_component_value(wm, nw, :pump, :P, ids(wm, nw, :pump), P)
 end
 
 

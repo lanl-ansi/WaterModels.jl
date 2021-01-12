@@ -153,6 +153,24 @@ function constraint_pipe_head(wm::AbstractNCDModel, n::Int, a::Int, node_fr::Int
 end
 
 
+function constraint_pipe_head_loss(
+    wm::AbstractNCDModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
+    L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
+    # Add constraints for positive flow and head difference.
+    qp, dhp = var(wm, n, :qp_pipe, a), var(wm, n, :dhp_pipe, a)
+    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= inv(L) * dhp)
+    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) >= inv(L) * dhp)
+
+    # Add constraints for negative flow and head difference.
+    qn, dhn = var(wm, n, :qn_pipe, a), var(wm, n, :dhn_pipe, a)
+    c_3 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) <= inv(L) * dhn)
+    c_4 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) >= inv(L) * dhn)
+
+    # Append the :pipe_head_loss constraint array.
+    append!(con(wm, n, :pipe_head_loss)[a], [c_1, c_2, c_3, c_4])
+end
+
+
 function constraint_on_off_des_pipe_flow(wm::AbstractNCDModel, n::Int, a::Int, q_max_reverse::Float64, q_min_forward::Float64)
     # Get des_pipe status variable.
     qp, qn = var(wm, n, :qp_des_pipe, a), var(wm, n, :qn_des_pipe, a)
@@ -265,7 +283,6 @@ function constraint_on_off_pump_head(wm::AbstractNCDModel, n::Int, a::Int, node_
 end
 
 
-"Pump head gain constraint when the pump status is ambiguous."
 function constraint_on_off_pump_head_gain(wm::AbstractNCDModel, n::Int, a::Int, node_fr::Int, node_to::Int, q_min_forward::Float64)
     # Gather pump flow, head gain, and status variables.
     qp, g, z = var(wm, n, :qp_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
@@ -275,6 +292,20 @@ function constraint_on_off_pump_head_gain(wm::AbstractNCDModel, n::Int, a::Int, 
     c_1 = JuMP.@constraint(wm.model, head_curve_func(qp) <= g)
     c_2 = JuMP.@constraint(wm.model, head_curve_func(qp) >= g)
     append!(con(wm, n, :on_off_pump_head_gain, a), [c_1, c_2])
+end
+
+
+function constraint_on_off_pump_power(wm::AbstractNCDModel, n::Int, a::Int, q_min_forward::Float64)
+    # Gather pump flow, power, and status variables.
+    q, P, z = var(wm, n, :qp_pump, a), var(wm, n, :P_pump, a), var(wm, n, :z_pump, a)
+
+    # Add constraint equating power with respect to the power curve.
+    power_qa = _calc_pump_power_quadratic_approximation(wm, n, a, z)
+    c_1 = JuMP.@constraint(wm.model, power_qa(q) <= P)
+    c_2 = JuMP.@constraint(wm.model, power_qa(q) >= P)
+
+    # Append the :on_off_pump_power constraint array.
+    append!(con(wm, n, :on_off_pump_power)[a], [c_1, c_2])
 end
 
 
@@ -498,42 +529,4 @@ function constraint_sink_directionality(
     # Add the sink flow direction constraint.
     c = JuMP.@constraint(wm.model, sum_in - sum_out >= 1.0 - out_length)
     con(wm, n, :node_directionality)[i] = c
-end
-
-function constraint_pipe_head_loss(
-    wm::NCDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
-    L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
-    # Add constraints for positive flow and head difference.
-    qp, dhp = var(wm, n, :qp_pipe, a), var(wm, n, :dhp_pipe, a)
-    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= inv(L) * dhp)
-    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) >= inv(L) * dhp)
-
-    # Add constraints for negative flow and head difference.
-    qn, dhn = var(wm, n, :qn_pipe, a), var(wm, n, :dhn_pipe, a)
-    c_3 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) <= inv(L) * dhn)
-    c_4 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) >= inv(L) * dhn)
-
-    # Append the :pipe_head_loss constraint array.
-    append!(con(wm, n, :pipe_head_loss)[a], [c_1, c_2, c_3, c_4])
-end
-
-
-"Defines the objective for the owf problem is `NCD` formulations."
-function objective_owf_default(wm::AbstractNCDModel)
-    objective = zero(JuMP.QuadExpr)
-
-    for (n, nw_ref) in nws(wm)
-        for (a, pump) in nw_ref[:pump]
-            # Ensure that the pump has an associated energy price.
-            @assert haskey(pump, "energy_price")
-
-            # Get pump flow and status variables.
-            qp, z = var(wm, n, :qp_pump, a), var(wm, n, :z_pump, a)
-            energy_qa = _calc_pump_energy_quadratic_approximation(wm, n, a, z)
-            JuMP.add_to_expression!(objective, pump["energy_price"] * energy_qa(qp))
-        end
-    end
-
-    # Minimize the cost (in units of currency) required to operate pumps.
-    return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
 end

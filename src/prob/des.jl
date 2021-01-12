@@ -11,6 +11,7 @@ function build_des(wm::AbstractWaterModel)
     variable_head(wm)
     variable_flow(wm)
     variable_pump_head_gain(wm)
+    variable_pump_power(wm)
 
     # Indicator (status) variables.
     variable_des_pipe_indicator(wm)
@@ -55,6 +56,7 @@ function build_des(wm::AbstractWaterModel)
         constraint_on_off_pump_head(wm, a)
         constraint_on_off_pump_head_gain(wm, a)
         constraint_on_off_pump_flow(wm, a)
+        constraint_on_off_pump_power(wm, a)
     end
 
     # Constraints on short pipe flows and heads.

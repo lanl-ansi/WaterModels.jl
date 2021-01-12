@@ -85,7 +85,7 @@ end
 
 
 function constraint_pipe_head_loss(
-    wm::PWLRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
+    wm::AbstractPWLRDModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
     L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
     # Get the number of breakpoints for the pipe.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 2)
@@ -247,7 +247,7 @@ end
 
 
 "Add constraints associated with modeling a pump's head gain."
-function constraint_on_off_pump_head_gain(wm::PWLRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, q_min_forward::Float64)
+function constraint_on_off_pump_head_gain(wm::AbstractPWLRDModel, n::Int, a::Int, node_fr::Int, node_to::Int, q_min_forward::Float64)
     # Get the number of breakpoints for the pump.
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 2)
 
@@ -296,38 +296,27 @@ function constraint_on_off_pump_head_gain(wm::PWLRDWaterModel, n::Int, a::Int, n
 end
 
 
-######################################## OBJECTIVES ########################################
-
-
-"Instantiate the objective associated with the Optimal Water Flow problem."
-function objective_owf_default(wm::PWLRDWaterModel)
+function constraint_on_off_pump_power(wm::AbstractPWLRDModel, n::Int, a::Int, q_min_forward::Float64)
     # Get the number of breakpoints for the pump.
     pump_breakpoints = get(wm.ext, :pump_breakpoints, 2)
 
-    # Initialize the objective function.
-    objective = JuMP.AffExpr(0.0)
+    # Gather pump flow, power, and status variables.
+    q, P = var(wm, n, :qp_pump, a), var(wm, n, :P_pump, a)
+    z, lambda = var(wm, n, :z_pump, a), var(wm, n, :lambda_pump)
 
-    for (n, nw_ref) in nws(wm)
-        # Get common variables.
-        lambda = var(wm, n, :lambda_pump)
+    # Generate a set of uniform flow breakpoints.
+    breakpoints = range(q_min_forward, stop = JuMP.upper_bound(q), length = pump_breakpoints)
 
-        for (a, pump) in nw_ref[:pump]
-            # Ensure that the pump has an associated energy price.
-            @assert haskey(pump, "energy_price")
+    # Add a constraint that lower-bounds the power variable.
+    f_ua = _calc_pump_power_ua(wm, n, a, collect(breakpoints))
+    power_lb_expr = sum(f_ua[k] * lambda[a, k] for k in 1:pump_breakpoints)
+    c_1 = JuMP.@constraint(wm.model, power_lb_expr <= P)
 
-            # Get pump flow and status variables.
-            qp, z = var(wm, n, :qp_pump, a), var(wm, n, :z_pump, a)
-            q_min_forward = max(get(pump, "flow_min_forward", _FLOW_MIN), _FLOW_MIN)
+    # Add a constraint that upper-bounds the power variable.
+    f_oa = _calc_pump_power_oa(wm, n, a, collect(breakpoints))
+    power_ub_expr = sum(f_oa[k] * lambda[a, k] for k in 1:pump_breakpoints)
+    c_2 = JuMP.@constraint(wm.model, P <= power_ub_expr)
 
-            # Generate a set of uniform flow and cubic function breakpoints.
-            breakpoints = range(q_min_forward, stop = JuMP.upper_bound(qp), length = pump_breakpoints)
-            energy_ua = _calc_pump_energy_ua(wm, n, a, collect(breakpoints))
-
-            # Add the cost corresponding to the current pump's operation.
-            energy_pw = sum(energy_ua[k] * lambda[a, k] for k in 1:pump_breakpoints)
-            JuMP.add_to_expression!(objective, pump["energy_price"] * energy_pw)
-        end
-    end
-
-    return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
+    # Append the :on_off_pump_power constraint array.
+    append!(con(wm, n, :on_off_pump_power)[a], [c_1, c_2])
 end

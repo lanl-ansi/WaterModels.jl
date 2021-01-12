@@ -286,9 +286,8 @@ function _calc_head_curve_coefficients_best_efficiency_point(pump::Dict{String, 
 end
 
 
-function _calc_pump_energy_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, num_points::Int)
+function _calc_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, num_points::Int)
     pump = ref(wm, nw, :pump, pump_id)
-    constant = _DENSITY * _GRAVITY * ref(wm, nw, :time_step)
     head_curve_function = _calc_head_curve_function(pump)
 
     q_min, q_max = get(pump, "flow_min_forward", _FLOW_MIN), pump["flow_max"]
@@ -302,12 +301,18 @@ function _calc_pump_energy_points(wm::AbstractWaterModel, nw::Int, pump_id::Int,
         eff = pump["efficiency"]
     end
 
-    return q_build, constant .* inv.(eff) .* f_build
+    return q_build, _DENSITY * _GRAVITY * inv.(eff) .* f_build
 end
 
 
-function _calc_pump_energy_ua(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Array{Float64, 1})
-    q_true, f_true = _calc_pump_energy_points(wm, nw, pump_id, 100)
+function _calc_pump_power(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Array{Float64, 1})
+    q_true, f_true = _calc_pump_power_points(wm, nw, pump_id, 100)
+    return max.(Interpolations.LinearInterpolation(q_true, f_true).(q), 0.0)
+end
+
+
+function _calc_pump_power_ua(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Array{Float64, 1})
+    q_true, f_true = _calc_pump_power_points(wm, nw, pump_id, 100)
     f_interp = Interpolations.LinearInterpolation(q_true, f_true).(q)
 
     for i in 2:length(q)
@@ -322,17 +327,56 @@ function _calc_pump_energy_ua(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::
 end
 
 
-function _calc_pump_energy_linear_approximation(wm::AbstractWaterModel, nw::Int, pump_id::Int, z::JuMP.VariableRef)
+function _calc_pump_power_oa(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Array{Float64, 1})
+    q_true, f_true = _calc_pump_power_points(wm, nw, pump_id, 100)
+    f_interp = Interpolations.LinearInterpolation(q_true, f_true).(q)
+
+    for i in 2:length(q)
+        slope = (f_interp[i] - f_interp[i-1]) * inv(q[i] - q[i-1])
+        true_ids = filter(x -> q_true[x] >= q[i-1] && q_true[x] <= q[i], 1:length(q_true))
+        f_est_s = f_interp[i-1] .+ (slope .* (q_true[true_ids] .- q[i-1]))
+        est_err = max(0.0, maximum(f_true[true_ids] .- f_est_s))
+        f_interp[i-1:i] .+= est_err
+    end
+
+    return f_interp
+end
+
+
+function _calc_pump_power_linear_approximation(wm::AbstractWaterModel, nw::Int, pump_id::Int, z::JuMP.VariableRef)
     LsqFit.@. func(x, p) = p[1]*x + p[2]
-    q_true, f_true = _calc_pump_energy_points(wm, nw, pump_id, 100)
+    q_true, f_true = _calc_pump_power_points(wm, nw, pump_id, 100)
     fit = LsqFit.curve_fit(func, q_true, f_true, [0.0, 0.0])
     return x -> sum(LsqFit.coef(fit) .* [x, z])
 end
 
 
-function _calc_pump_energy_quadratic_approximation(wm::AbstractWaterModel, nw::Int, pump_id::Int, z::JuMP.VariableRef)
+function _calc_pump_power_quadratic_approximation(wm::AbstractWaterModel, nw::Int, pump_id::Int, z::JuMP.VariableRef)
     LsqFit.@. func(x, p) = p[1]*x*x + p[2]*x + p[3]
-    q_true, f_true = _calc_pump_energy_points(wm, nw, pump_id, 100)
+    q_true, f_true = _calc_pump_power_points(wm, nw, pump_id, 100)
     fit = LsqFit.curve_fit(func, q_true, f_true, [0.0, 0.0, 0.0])
-    return x -> sum(LsqFit.coef(fit) .* [x^2, x, z])
+    return x -> sum(LsqFit.coef(fit) .* [x * x, x, z])
+end
+
+
+function _calc_pump_energy_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, num_points::Int)
+    q, power = _calc_pump_power_points(wm, nw, pump_id, num_points)
+    return q, power .* ref(wm, nw, :time_step)
+end
+
+
+function _calc_pump_energy_ua(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Array{Float64, 1})
+    return _calc_pump_power_ua(wm, nw, pump_id, q) .* ref(wm, nw, :time_step)
+end
+
+
+function _calc_pump_energy_linear_approximation(wm::AbstractWaterModel, nw::Int, pump_id::Int, z::JuMP.VariableRef)
+    func = _calc_pump_power_linear_approximation(wm, nw, pump_id, z)
+    return x -> func(x) * ref(wm, nw, :time_step)
+end
+
+
+function _calc_pump_energy_quadratic_approximation(wm::AbstractWaterModel, nw::Int, pump_id::Int, z::JuMP.VariableRef)
+    func = _calc_pump_power_quadratic_approximation(wm, nw, pump_id, z)
+    return x -> func(x) * ref(wm, nw, :time_step)
 end

@@ -6,7 +6,7 @@
 
 
 function constraint_pipe_head_loss(
-    wm::CRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
+    wm::AbstractCRDModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
     L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
     # Gather directed flow and head difference variables.
     qp, qn = var(wm, n, :qp_pipe, a), var(wm, n, :qn_pipe, a)
@@ -28,7 +28,7 @@ end
 
 
 function constraint_on_off_des_pipe_head_loss(
-    wm::CRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
+    wm::AbstractCRDModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
     L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
     # Gather directed flow and head difference variables.
     qp, qn = var(wm, n, :qp_des_pipe, a), var(wm, n, :qn_des_pipe, a)
@@ -52,8 +52,7 @@ end
 ########################################## PUMPS ##########################################
 
 
-"Add constraints associated with modeling a pump's head gain."
-function constraint_on_off_pump_head_gain(wm::CRDWaterModel, n::Int, a::Int, node_fr::Int, node_to::Int, q_min_forward::Float64)
+function constraint_on_off_pump_head_gain(wm::AbstractCRDModel, n::Int, a::Int, node_fr::Int, node_to::Int, q_min_forward::Float64)
     # Gather pump flow, head gain, and status variables.
     qp, g, z = var(wm, n, :qp_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
 
@@ -73,30 +72,19 @@ function constraint_on_off_pump_head_gain(wm::CRDWaterModel, n::Int, a::Int, nod
 end
 
 
-######################################## OBJECTIVES ########################################
+function constraint_on_off_pump_power(wm::AbstractCRDModel, n::Int, a::Int, q_min_forward::Float64)
+    # Gather pump flow, power, and status variables.
+    q, Ps, z = var(wm, n, :qp_pump, a), var(wm, n, :Ps_pump, a), var(wm, n, :z_pump, a)
 
+    # Compute pump flow and power breakpoints.
+    q_lb, q_ub = q_min_forward, JuMP.upper_bound(q)
+    f_ua = _calc_pump_power_ua(wm, n, a, [q_lb, q_ub])
 
-"Instantiate the objective associated with the Optimal Water Flow problem."
-function objective_owf_default(wm::CRDWaterModel)
-    # Initialize the objective function.
-    objective = JuMP.AffExpr(0.0)
-
-    for (n, nw_ref) in nws(wm)
-        for (a, pump) in nw_ref[:pump]
-            # Ensure that the pump has an associated energy price.
-            @assert haskey(pump, "energy_price")
-
-            # Get flow-related variables and data.
-            qp, z = var(wm, n, :qp_pump, a), var(wm, n, :z_pump, a)
-            qp_lb, qp_ub = pump["flow_min_forward"], JuMP.upper_bound(qp)
-            f_ua = _calc_pump_energy_ua(wm, n, a, [qp_lb, qp_ub])
-
-            # Build a linear under-approximation of the cost.
-            slope = (f_ua[2] - f_ua[1]) * inv(qp_ub - qp_lb)
-            cost = pump["energy_price"] * (slope * (qp - qp_lb * z) + f_ua[1] * z)
-            JuMP.add_to_expression!(objective, cost)
-        end
+    if f_ua[1] == f_ua[2]
+        # Build a linear under-approximation of the power.
+        slope = (f_ua[2] - f_ua[1]) * inv(q_ub - q_lb)
+        power_expr = slope * (q - q_lb * z) + f_ua[1] * z
+        c = JuMP.@constraint(wm.model, power_expr / (_DENSITY * _GRAVITY) <= Ps)
+        append!(con(wm, n, :on_off_pump_power)[a], [c])
     end
-
-    return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
 end
