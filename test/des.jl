@@ -4,7 +4,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
     ext = Dict(:pipe_breakpoints => 3, :pump_breakpoints => 3)
 
     @testset "Network Design Problems: $(formulation)" begin
-        network = parse_json("../test/data/json/shamir.json")
+        network = parse_file("../test/data/json/shamir.json")
 
         @testset "Shamir Network Design (Reduced): $(formulation)" begin
             wm = instantiate_model(network, formulation, build_des; ext = ext)

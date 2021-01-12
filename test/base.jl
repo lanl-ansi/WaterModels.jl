@@ -14,6 +14,12 @@
         Memento.warn(wm_logger, "Silenced message should not be displayed.")
     end
 
+    @testset "build_ref" begin
+        ref = build_ref(parse_file(network_path))
+        @test haskey(ref, :head_loss)
+        @test haskey(ref[:nw][0][:pipe], 1)
+    end
+
     @testset "instantiate_model (with file path input)" begin
         wm = instantiate_model(network_path, LAWaterModel, build_wf)
         @test isa(wm, LAWaterModel) && isa(wm, AbstractWaterModel)

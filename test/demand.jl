@@ -1,4 +1,12 @@
 @testset "src/core/demand.jl" begin
+    @testset "_fix_demands! (multinetwork)" begin
+        data = WaterModels.parse_file("../test/data/epanet/multinetwork/pipe-hw-lps.inp")
+        mn_data = WaterModels.make_multinetwork(data)
+        WaterModels._fix_demands!(mn_data)
+        @test mn_data["nw"]["1"]["demand"]["2"]["dispatchable"] == false
+        @test mn_data["nw"]["3"]["demand"]["2"]["dispatchable"] == false
+    end
+
     @testset "_relax_demand! (has keys)" begin
         data = WaterModels.parse_file("../test/data/epanet/snapshot/pipe-hw-lps.inp")
         data["demand"]["2"]["flow_min"], data["demand"]["2"]["flow_max"] = 0.0, 1.0

@@ -13,6 +13,7 @@ end
 
 
 function _remove_last_networks!(data::Dict{String, <:Any}; last_num_steps::Int = length(nw_ids(wm)))
+    @assert _IM.ismultinetwork(data) # Ensure the data being operated on is multinetwork.
     network_ids = sort([parse(Int, x) for x in keys(data["nw"])]; rev = true)
     network_ids_exclude = network_ids[1:min(length(network_ids), last_num_steps)]
     network_ids_exclude_str = [string(x) for x in network_ids_exclude]

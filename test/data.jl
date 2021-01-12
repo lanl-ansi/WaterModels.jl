@@ -70,4 +70,11 @@
         WaterModels.epanet_to_watermodels!(network_data)
         @test haskey(network_data["valve"], "1")
     end
+
+    @testset "_remove_last_networks! (multinetwork)" begin
+        data = WaterModels.parse_file("../test/data/epanet/snapshot/pipe-hw-lps.inp")
+        mn_data = WaterModels.replicate(data, 3)
+        WaterModels._remove_last_networks!(mn_data; last_num_steps = 1)
+        @test length(mn_data["nw"]) == 2
+    end
 end
