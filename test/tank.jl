@@ -1,4 +1,16 @@
 @testset "src/core/tank.jl" begin
+    @testset "_fix_tanks! (multinetwork)" begin
+        data = WaterModels.parse_file("../test/data/epanet/multinetwork/tank-hw-lps.inp")
+        mn_data = WaterModels.make_multinetwork(data)
+
+        mn_data["nw"]["1"]["tank"]["1"]["dispatchable"] = true
+        mn_data["nw"]["3"]["tank"]["1"]["dispatchable"] = true
+
+        WaterModels._fix_tanks!(mn_data)
+        @test mn_data["nw"]["1"]["tank"]["1"]["dispatchable"] == false
+        @test mn_data["nw"]["3"]["tank"]["1"]["dispatchable"] == false
+    end
+
     @testset "_relax_tanks! (single network)" begin
         data = WaterModels.parse_file("../test/data/epanet/snapshot/tank-hw-lps.inp")
         WaterModels._relax_tanks!(data)
