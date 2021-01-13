@@ -44,7 +44,7 @@ function objective_owf(wm::AbstractWaterModel)
     for (n, nw_ref) in nws(wm)
         for (a, pump) in ref(wm, n, :pump)
             @assert haskey(pump, "energy_price") # Ensure a price exists.
-            coeff = _DENSITY * _GRAVITY * ref(wm, n, :time_step) * pump["energy_price"]
+            coeff = ref(wm, n, :time_step) * pump["energy_price"] # * _DENSITY * _GRAVITY
             JuMP.add_to_expression!(objective, coeff * var(wm, n, :Ps_pump, a))
         end
     end

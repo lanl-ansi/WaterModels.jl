@@ -49,6 +49,7 @@ function _variable_component_head_difference(
         for (a, comp) in ref(wm, nw, comp_sym)
             node_fr = ref(wm, nw, :node, comp["node_fr"])
             node_to = ref(wm, nw, :node, comp["node_to"])
+            
             JuMP.set_upper_bound(dhp[a], max(0.0, node_fr["head_max"] - node_to["head_min"]))
             JuMP.set_upper_bound(dhn[a], max(0.0, node_to["head_max"] - node_fr["head_min"]))
         end
@@ -297,12 +298,12 @@ end
 
 function constraint_on_off_pump_power(wm::AbstractNCDModel, n::Int, a::Int, q_min_forward::Float64)
     # Gather pump flow, power, and status variables.
-    q, P, z = var(wm, n, :qp_pump, a), var(wm, n, :P_pump, a), var(wm, n, :z_pump, a)
+    q, Ps, z = var(wm, n, :qp_pump, a), var(wm, n, :Ps_pump, a), var(wm, n, :z_pump, a)
 
     # Add constraint equating power with respect to the power curve.
     power_qa = _calc_pump_power_quadratic_approximation(wm, n, a, z)
-    c_1 = JuMP.@constraint(wm.model, power_qa(q) <= P)
-    c_2 = JuMP.@constraint(wm.model, power_qa(q) >= P)
+    c_1 = JuMP.@constraint(wm.model, power_qa(q) / (_GRAVITY * _DENSITY) <= Ps)
+    c_2 = JuMP.@constraint(wm.model, power_qa(q) / (_GRAVITY * _DENSITY) >= Ps)
 
     # Append the :on_off_pump_power constraint array.
     append!(con(wm, n, :on_off_pump_power)[a], [c_1, c_2])

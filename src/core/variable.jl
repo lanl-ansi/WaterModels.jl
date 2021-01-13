@@ -75,7 +75,7 @@ function variable_pump_head_gain(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded
             node_to = ref(wm, nw, :node, pump["node_to"])
 
             # Set the upper bound for the head gain variable.
-            head_gain_max = calc_pump_head_gain_max(pump, node_fr, node_to)
+            head_gain_max = _calc_pump_head_gain_max(pump, node_fr, node_to)
             JuMP.set_upper_bound(g[a], head_gain_max)
         end
     end
@@ -89,7 +89,7 @@ function variable_pump_power(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bo
     # Initialize variables for the power utilization of a pump.
     Ps = var(wm, nw)[:Ps_pump] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
         base_name="$(nw)_Ps_pump", lower_bound=0.0, # Pump power is nonnegative.
-        start=comp_start_value(ref(wm, nw, :pump, a), "Ps_pump_start", 1.0e-6))
+        start=comp_start_value(ref(wm, nw, :pump, a), "Ps_pump_start", 0.0))
 
     if bounded
         for (a, pump) in ref(wm, nw, :pump)
@@ -98,8 +98,8 @@ function variable_pump_power(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bo
             node_to = ref(wm, nw, :node, pump["node_to"])
     
             # Set the upper bound for the power variable.
-            Ps_max = _calc_pump_power_max(pump, node_fr, node_to) / (_DENSITY * _GRAVITY)
-            JuMP.set_upper_bound(Ps[a], Ps_max)
+            P_max = _calc_pump_power_max(pump, node_fr, node_to)
+            JuMP.set_upper_bound(Ps[a], P_max / (_DENSITY * _GRAVITY))
         end
     end
 
@@ -208,12 +208,13 @@ function variable_pump_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, relax::
     if !relax
         z_pump = var(wm, nw)[:z_pump] = JuMP.@variable(wm.model,
             [a in ids(wm, nw, :pump)], base_name = "$(nw)_z_pump",
-            binary = true, start = comp_start_value(ref(wm, nw, :pump, a), "z_pump_start"))
+            binary = true,
+            start = comp_start_value(ref(wm, nw, :pump, a), "z_pump_start", 1.0))
     else
         z_pump = var(wm, nw)[:z_pump] = JuMP.@variable(wm.model,
             [a in ids(wm, nw, :pump)], base_name = "$(nw)_z_pump",
             lower_bound = 0.0, upper_bound = 1.0,
-            start = comp_start_value(ref(wm, nw, :pump, a), "z_pump_start"))
+            start = comp_start_value(ref(wm, nw, :pump, a), "z_pump_start", 1.0))
     end
 
     for (a, pump) in ref(wm, nw, :pump)

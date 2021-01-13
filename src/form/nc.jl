@@ -187,12 +187,12 @@ end
 
 function constraint_on_off_pump_power(wm::AbstractNCModel, n::Int, a::Int, q_min_forward::Float64)
     # Gather pump flow, scaled power, and status variables.
-    q, P, z = var(wm, n, :q_pump, a), var(wm, n, :P_pump, a), var(wm, n, :z_pump, a)
+    q, Ps, z = var(wm, n, :q_pump, a), var(wm, n, :Ps_pump, a), var(wm, n, :z_pump, a)
 
     # Add constraint equating power with respect to the power curve.
     power_qa = _calc_pump_power_quadratic_approximation(wm, n, a, z)
-    c_1 = JuMP.@constraint(wm.model, power_qa(q) <= P)
-    c_2 = JuMP.@constraint(wm.model, power_qa(q) >= P)
+    c_1 = JuMP.@constraint(wm.model, power_qa(q) / (_GRAVITY * _DENSITY) <= Ps)
+    c_2 = JuMP.@constraint(wm.model, power_qa(q) / (_GRAVITY * _DENSITY) >= Ps)
 
     # Append the :on_off_pump_power constraint array.
     append!(con(wm, n, :on_off_pump_power)[a], [c_1, c_2])

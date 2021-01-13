@@ -35,10 +35,25 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
 
     @testset "Optimal Water Flow Problems (Multinetwork): $(formulation)" begin
         network = WaterModels.parse_file("../test/data/epanet/multinetwork/owf-hw-lps.inp")
-        network = WaterModels.make_multinetwork(network)
-        wm = instantiate_model(network, formulation, build_mn_owf; ext = ext)
+        network_mn = WaterModels.make_multinetwork(network)
+        wm = instantiate_model(network_mn, formulation, build_mn_owf; ext = ext)
         result = WaterModels.optimize_model!(wm, optimizer = _make_juniper(wm, ipopt))
-        
+
         @test result["termination_status"] == LOCALLY_SOLVED
     end
+end
+
+
+@testset "run_owf" begin
+    network = WaterModels.parse_file("../test/data/epanet/snapshot/pump-hw-lps.inp")
+    result = WaterModels.run_owf(network, LRDWaterModel, cbc)
+    @test result["termination_status"] == OPTIMAL
+end
+
+
+@testset "run_mn_owf" begin
+    network = WaterModels.parse_file("../test/data/epanet/multinetwork/owf-hw-lps.inp")
+    network_mn = WaterModels.make_multinetwork(network)
+    result = WaterModels.run_mn_owf(network_mn, LRDWaterModel, cbc)
+    @test result["termination_status"] == OPTIMAL
 end

@@ -41,7 +41,7 @@ function _calc_pump_flow_max_reverse(pump::Dict{String, <:Any}, node_fr::Dict{St
 end
 
 
-function calc_pump_head_gain_max(pump::Dict{String, <:Any}, node_fr::Dict{String,Any}, node_to::Dict{String,Any})
+function _calc_pump_head_gain_max(pump::Dict{String, <:Any}, node_fr::Dict{String,Any}, node_to::Dict{String,Any})
     # Calculate the flow at the maximum head gain, then return maximum head gain.
     c = _calc_head_curve_coefficients(pump)
 
@@ -77,7 +77,7 @@ end
 
 function _calc_pump_power_max(pump::Dict{String,<:Any}, node_fr::Dict{String,Any}, node_to::Dict{String,Any})
     flow_max = _calc_pump_flow_max(pump, node_fr, node_to)
-    gain_max = calc_pump_head_gain_max(pump, node_fr, node_to)
+    gain_max = _calc_pump_head_gain_max(pump, node_fr, node_to)
 
     if haskey(pump, "efficiency_curve")
         min_efficiency = minimum(x[2] for x in pump["efficiency_curve"])
@@ -85,6 +85,10 @@ function _calc_pump_power_max(pump::Dict{String,<:Any}, node_fr::Dict{String,Any
         min_efficiency = pump["efficiency"]
     end
 
+    # Ensure minimum efficiency is greater than zero.
+    @assert min_efficiency > 0.0
+
+    # Return the maximum pump power.
     return _DENSITY * _GRAVITY * flow_max * gain_max * inv(min_efficiency)
 end
 
@@ -301,7 +305,7 @@ function _calc_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, 
         eff = pump["efficiency"]
     end
 
-    return q_build, _DENSITY * _GRAVITY * inv.(eff) .* f_build
+    return q_build, max.(0.0, _DENSITY * _GRAVITY * inv.(eff) .* f_build)
 end
 
 
@@ -343,19 +347,21 @@ function _calc_pump_power_oa(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::A
 end
 
 
-function _calc_pump_power_linear_approximation(wm::AbstractWaterModel, nw::Int, pump_id::Int, z::JuMP.VariableRef)
-    LsqFit.@. func(x, p) = p[1]*x + p[2]
-    q_true, f_true = _calc_pump_power_points(wm, nw, pump_id, 100)
-    fit = LsqFit.curve_fit(func, q_true, f_true, [0.0, 0.0])
-    return x -> sum(LsqFit.coef(fit) .* [x, z])
-end
-
-
 function _calc_pump_power_quadratic_approximation(wm::AbstractWaterModel, nw::Int, pump_id::Int, z::JuMP.VariableRef)
-    LsqFit.@. func(x, p) = p[1]*x*x + p[2]*x + p[3]
+    # Get good approximations of pump flow and power points.
     q_true, f_true = _calc_pump_power_points(wm, nw, pump_id, 100)
-    fit = LsqFit.curve_fit(func, q_true, f_true, [0.0, 0.0, 0.0])
-    return x -> sum(LsqFit.coef(fit) .* [x * x, x, z])
+
+    # Build a two-dimensional array of the feature points.
+    q_array = hcat(q_true .* q_true, q_true, ones(length(q_true)))
+
+    # Obtain coefficients for the quadratic approximation from a least squares fit.
+    linear_coefficients = q_array \ f_true
+
+    # Ensure that a negative constant term does not exist.
+    linear_coefficients[3] = max(0.0, linear_coefficients[3])
+
+    # Return the least squares-fitted quadratic approximation.
+    return x -> sum(linear_coefficients .* [x * x, x, z])
 end
 
 

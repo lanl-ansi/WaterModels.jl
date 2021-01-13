@@ -14,3 +14,9 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
         end
     end
 end
+
+@testset "run_des" begin
+    network = WaterModels.parse_file("../test/data/json/shamir.json")
+    result = WaterModels.run_des(network, LRDWaterModel, cbc)
+    @test result["termination_status"] == OPTIMAL
+end

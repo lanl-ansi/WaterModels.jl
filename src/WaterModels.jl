@@ -7,7 +7,6 @@ const _IM = InfrastructureModels
 import Interpolations
 import JSON
 import JuMP
-import LsqFit
 import Memento
 
 import MathOptInterface

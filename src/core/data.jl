@@ -37,7 +37,7 @@ function _calc_head_max(data::Dict{String, <:Any})
         # Consider possible pump head gains in computation of head_max.
         node_fr = data["node"][string(pump["node_fr"])]
         node_to = data["node"][string(pump["node_to"])]
-        head_gain = calc_pump_head_gain_max(pump, node_fr, node_to)
+        head_gain = _calc_pump_head_gain_max(pump, node_fr, node_to)
         head_max = max(head_max, node_to["elevation"] + head_gain)
     end
 
