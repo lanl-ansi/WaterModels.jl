@@ -10,4 +10,4 @@ docs/site/
 docs/.documenter
 .project
 .tags
-scripts/*.jl
+scripts/
