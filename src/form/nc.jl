@@ -186,7 +186,7 @@ end
 
 
 function constraint_on_off_pump_power(wm::AbstractNCModel, n::Int, a::Int, q_min_forward::Float64)
-    # Gather pump flow, power, and status variables.
+    # Gather pump flow, scaled power, and status variables.
     q, P, z = var(wm, n, :q_pump, a), var(wm, n, :P_pump, a), var(wm, n, :z_pump, a)
 
     # Add constraint equating power with respect to the power curve.

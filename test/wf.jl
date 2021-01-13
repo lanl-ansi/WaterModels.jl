@@ -18,6 +18,13 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             end
         end
 
+        @testset "Shamir Network Design (Reduced): $(formulation)" begin
+            network = parse_file("../test/data/json/shamir.json")
+            wm = instantiate_model(network, formulation, build_wf; ext = ext)
+            result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
+            @test result["termination_status"] == LOCALLY_SOLVED
+        end
+
         @testset "Hazen-Williams Head Loss (Negative Demand): $(formulation)" begin
             network = WaterModels.parse_file("../test/data/epanet/snapshot/negative_demand-hw-lps.inp")
             wm = instantiate_model(network, formulation, build_wf; ext = ext)
