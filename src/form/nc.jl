@@ -36,6 +36,12 @@ function _variable_component_flow(
         for (a, comp) in ref(wm, nw, comp_sym)
             JuMP.set_lower_bound(q[a], comp["flow_min"])
             JuMP.set_upper_bound(q[a], comp["flow_max"])
+
+            # Set start value for the head variable with possibly better data.
+            q_mid = comp["flow_min"] + 0.5 * (comp["flow_max"] - comp["flow_min"])
+            q_start_m = comp_start_value(comp, "q_start", q_mid)
+            q_start = isapprox(q_start_m, 0.0; atol = 1.0e-6) ? _FLOW_MIN : q_start_m
+            JuMP.set_start_value(q[a], q_start)
         end
     end
 
