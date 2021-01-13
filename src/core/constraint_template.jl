@@ -223,34 +223,53 @@ end
 
 
 function constraint_on_off_des_pipe_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
-    q_max_reverse = min(get(ref(wm, nw, :des_pipe, a), "flow_max_reverse", 0.0), 0.0)
-    q_min_forward = max(get(ref(wm, nw, :des_pipe, a), "flow_min_forward", 0.0), 0.0)
+    # Get the design pipe from the specified index.
+    des_pipe = ref(wm, nw, :des_pipe, a)
 
+    # Compute metadata associated with the design pipe.
+    q_max_reverse = min(get(des_pipe, "flow_max_reverse", 0.0), 0.0)
+    q_min_forward = max(get(des_pipe, "flow_min_forward", 0.0), 0.0)
+
+    # Initialize :on_off_des_pipe_flow constraint dictionary.
     _initialize_con_dict(wm, :on_off_des_pipe_flow, nw=nw, is_array=true)
     con(wm, nw, :on_off_des_pipe_flow)[a] = Array{JuMP.ConstraintRef}([])
+
+    # Apply the :on_off_des_pipe_flow constraints.
     constraint_on_off_des_pipe_flow(wm, nw, a, q_max_reverse, q_min_forward)
 end
 
 
 function constraint_on_off_des_pipe_head(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
-    node_fr, node_to = ref(wm, nw, :des_pipe, a)["node_fr"], ref(wm, nw, :des_pipe, a)["node_to"]
+    # Get the design pipe from the specified index.
+    des_pipe = ref(wm, nw, :des_pipe, a)
 
+    # Initialize :on_off_des_pipe_head constraint dictionary.
     _initialize_con_dict(wm, :on_off_des_pipe_head, nw=nw, is_array=true)
     con(wm, nw, :on_off_des_pipe_head)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_on_off_des_pipe_head(wm, nw, a, node_fr, node_to)
+
+    # Apply the :on_off_des_pipe_head constraints.
+    constraint_on_off_des_pipe_head(wm, nw, a, des_pipe["node_fr"], des_pipe["node_to"])
 end
 
 
 function constraint_on_off_des_pipe_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
-    node_fr, node_to = ref(wm, nw, :des_pipe, a)["node_fr"], ref(wm, nw, :des_pipe, a)["node_to"]
-    exponent, L = ref(wm, nw, :alpha), ref(wm, nw, :des_pipe, a)["length"]
-    r = _calc_pipe_resistance(ref(wm, nw, :des_pipe, a), wm.data["head_loss"], wm.data["viscosity"])
-    q_max_reverse = min(get(ref(wm, nw, :des_pipe, a), "flow_max_reverse", 0.0), 0.0)
-    q_min_forward = max(get(ref(wm, nw, :des_pipe, a), "flow_min_forward", 0.0), 0.0)
+    # Get the design pipe from the specified index.
+    des_pipe = ref(wm, nw, :des_pipe, a)
 
+    # Compute metadata associated with the design pipe.
+    exponent = _get_exponent_from_head_loss_form(wm.ref[:head_loss])
+    res = _calc_pipe_resistance(des_pipe, wm.ref[:head_loss], wm.ref[:viscosity])
+    q_max_reverse = min(get(des_pipe, "flow_max_reverse", 0.0), 0.0)
+    q_min_forward = max(get(des_pipe, "flow_min_forward", 0.0), 0.0)
+
+    # Initialize :on_off_des_pipe_head_loss constraint dictionary.
     _initialize_con_dict(wm, :on_off_des_pipe_head_loss, nw=nw, is_array=true)
     con(wm, nw, :on_off_des_pipe_head_loss)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_on_off_des_pipe_head_loss(wm, nw, a, node_fr, node_to, exponent, L, r, q_max_reverse, q_min_forward)
+
+    # Apply the :on_off_des_pipe_head_loss constraints.
+    constraint_on_off_des_pipe_head_loss(
+        wm, nw, a, des_pipe["node_fr"], des_pipe["node_to"], exponent,
+        des_pipe["length"], res, q_max_reverse, q_min_forward)
 end
 
 

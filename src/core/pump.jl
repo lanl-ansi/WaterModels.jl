@@ -359,29 +359,6 @@ function _calc_pump_power_quadratic_approximation(wm::AbstractWaterModel, nw::In
 end
 
 
-function _calc_pump_energy_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, num_points::Int)
-    q, power = _calc_pump_power_points(wm, nw, pump_id, num_points)
-    return q, power .* ref(wm, nw, :time_step)
-end
-
-
-function _calc_pump_energy_ua(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Array{Float64, 1})
-    return _calc_pump_power_ua(wm, nw, pump_id, q) .* ref(wm, nw, :time_step)
-end
-
-
-function _calc_pump_energy_linear_approximation(wm::AbstractWaterModel, nw::Int, pump_id::Int, z::JuMP.VariableRef)
-    func = _calc_pump_power_linear_approximation(wm, nw, pump_id, z)
-    return x -> func(x) * ref(wm, nw, :time_step)
-end
-
-
-function _calc_pump_energy_quadratic_approximation(wm::AbstractWaterModel, nw::Int, pump_id::Int, z::JuMP.VariableRef)
-    func = _calc_pump_power_quadratic_approximation(wm, nw, pump_id, z)
-    return x -> func(x) * ref(wm, nw, :time_step)
-end
-
-
 function _calc_efficiencies(points::Array{Float64}, curve::Array{Tuple{Float64, Float64}})
     q, eff = [[x[1] for x in curve], [x[2] for x in curve]]
     return Interpolations.LinearInterpolation(q, eff,

@@ -32,4 +32,11 @@
         data = WaterModels.parse_json("../examples/data/json/shamir.json")
         @test haskey(data, "des_pipe")
     end
+
+    @testset "JSON serialization" begin
+        network = WaterModels.parse_file("../test/data/epanet/snapshot/pump-hw-lps.inp")
+        data = JSON.parse(JSON.json(network)) # Convert data to JSON dictionary.
+        @test data["pump"]["1"]["flow_direction"] == 1
+        @test data["pump"]["1"]["head_curve_form"] == 0
+    end
 end
