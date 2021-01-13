@@ -38,10 +38,10 @@ function build_wf(wm::AbstractWaterModel)
     end
 
     # Selection of design pipes along unique arcs.
-    for arc in ref(wm, :des_pipe_arcs)
-        constraint_des_pipe_flow(wm, arc[1], arc[2])
-        constraint_des_pipe_head(wm, arc[1], arc[2])
-        constraint_des_pipe_selection(wm, arc[1], arc[2])
+    for (k, arc) in ref(wm, :des_pipe_arc)
+        constraint_des_pipe_flow(wm, k, arc[1], arc[2])
+        constraint_des_pipe_head(wm, k, arc[1], arc[2])
+        constraint_des_pipe_selection(wm, k, arc[1], arc[2])
     end
 
     # Constraints on design pipe flows, heads, and physics.
@@ -136,10 +136,10 @@ function build_mn_wf(wm::AbstractWaterModel)
         end
 
         # Selection of design pipes along unique arcs.
-        for arc in ref(wm, :des_pipe_arcs; nw=n)
-            constraint_des_pipe_flow(wm, arc[1], arc[2]; nw=n)
-            constraint_des_pipe_head(wm, arc[1], arc[2]; nw=n)
-            constraint_des_pipe_selection(wm, arc[1], arc[2]; nw=n)
+        for (k, arc) in ref(wm, :des_pipe_arc; nw=n)
+            constraint_des_pipe_flow(wm, k, arc[1], arc[2]; nw=n)
+            constraint_des_pipe_head(wm, k, arc[1], arc[2]; nw=n)
+            constraint_des_pipe_selection(wm, k, arc[1], arc[2]; nw=n)
         end
 
         # Constraints on pump flows, heads, and physics.

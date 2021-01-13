@@ -241,20 +241,26 @@ function constraint_on_off_des_pipe_head_loss(
 end
 
 
-function constraint_des_pipe_flow(wm::AbstractNCDModel, n::Int, node_fr::Int, node_to::Int, des_pipes::Array{Int64,1})
+function constraint_des_pipe_flow(wm::AbstractNCDModel, n::Int, k::Int, node_fr::Int, node_to::Int, des_pipes::Array{Int64,1})
     y_des_pipe = var(wm, n, :y_des_pipe)
     lhs = sum(y_des_pipe[a] for a in des_pipes)
     rhs = length(des_pipes) * y_des_pipe[des_pipes[1]]
     c = JuMP.@constraint(wm.model, lhs == rhs) # All directions are the same.
-    append!(con(wm, n, :des_pipe_flow)[(node_fr, node_to)], [c])
+    append!(con(wm, n, :des_pipe_flow)[k], [c])
 end
 
 
-function constraint_des_pipe_head(wm::AbstractNCDModel, n::Int, node_fr::Int, node_to::Int, des_pipes::Array{Int64,1})
+function constraint_des_pipe_head(wm::AbstractNCDModel, n::Int, k::Int, node_fr::Int, node_to::Int, des_pipes::Array{Int64,1})
+    # Collect relevant design pipe variables and summations.
     dhp, dhn = var(wm, n, :dhp_des_pipe), var(wm, n, :dhn_des_pipe)
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
     dhp_sum, dhn_sum = sum(dhp[a] for a in des_pipes), sum(dhn[a] for a in des_pipes)
-    c = JuMP.@constraint(wm.model, dhp_sum - dhn_sum == h_i - h_j)
+    dh_sum = sum(var(wm, n, :dh_des_pipe, a) for a in des_pipes)
+
+    # Add constraints equating the sums of head differences to head difference.
+    c_1 = JuMP.@constraint(wm.model, dh_sum == dhp_sum - dhn_sum)
+    c_2 = JuMP.@constraint(wm.model, dhp_sum - dhn_sum == h_i - h_j)
+    append!(con(wm, n, :des_pipe_head)[k], [c_1, c_2])
 end
 
 

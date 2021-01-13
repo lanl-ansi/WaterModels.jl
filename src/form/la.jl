@@ -111,7 +111,7 @@ function constraint_on_off_des_pipe_head_loss(wm::AbstractLAModel, n::Int, a::In
 
     # Get required variables.
     q, z = var(wm, n, :q_des_pipe, a), var(wm, n, :z_des_pipe, a)
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+    dh = var(wm, n, :dh_des_pipe, a) # Zero when design pipe is not selected.
     lambda, x_pw = var(wm, n, :lambda_des_pipe), var(wm, n, :x_pw_des_pipe)
 
     # Add the required SOS constraints.
@@ -133,7 +133,7 @@ function constraint_on_off_des_pipe_head_loss(wm::AbstractLAModel, n::Int, a::In
     lhs = r * sum(f[k] * lambda[a, k] for k in 1:pipe_breakpoints)
 
     # TODO: Use a McCormick expansion of the below multiplication with z.
-    c_6 = JuMP.@constraint(wm.model, lhs == inv(L) * (h_i - h_j) * z)
+    c_6 = JuMP.@constraint(wm.model, lhs == inv(L) * dh)
 
     # Append the constraint array with the above-generated constraints.
     append!(con(wm, n, :on_off_des_pipe_head_loss, a), [c_1, c_2, c_3, c_4, c_5, c_6])

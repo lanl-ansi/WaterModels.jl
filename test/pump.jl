@@ -14,7 +14,7 @@
             ext = Dict(:pipe_breakpoints => 3, :pump_breakpoints => 3)
             wm = instantiate_model(network, LRDWaterModel, build_wf; ext = ext)
             result = WaterModels.optimize_model!(wm, optimizer = _make_juniper(wm, ipopt))
-            @test result["termination_status"] == LOCALLY_SOLVED
+            @test is_valid_status(result["termination_status"])
         end
     end
 end

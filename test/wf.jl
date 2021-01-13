@@ -11,7 +11,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
                 wm = instantiate_model(network, formulation, build_wf; ext = ext)
                 result = WaterModels.optimize_model!(wm, optimizer = _make_juniper(wm, ipopt))
 
-                @test result["termination_status"] == LOCALLY_SOLVED
+                @test is_valid_status(result["termination_status"])
                 @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol = 1.0e-4)
                 @test isapprox(result["solution"]["node"]["2"]["p"], 7.89, rtol = 1.0e-2)
                 @test isapprox(result["solution"]["pipe"]["1"]["q"], 1.0, rtol = 1.0e-4)
@@ -23,7 +23,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             wm = instantiate_model(network, formulation, build_wf; ext = ext)
             result = WaterModels.optimize_model!(wm, optimizer = _make_juniper(wm, ipopt))
 
-            @test result["termination_status"] == LOCALLY_SOLVED
+            @test is_valid_status(result["termination_status"])
             @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol = 1.0e-4)
             @test isapprox(result["solution"]["node"]["2"]["p"], 8.27, rtol = 1.0e-2)
             @test isapprox(result["solution"]["node"]["3"]["p"], 8.29, rtol = 1.0e-1)
@@ -35,7 +35,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             wm = instantiate_model(network, formulation, build_wf; ext = ext)
             result = WaterModels.optimize_model!(wm, optimizer = _make_juniper(wm, ipopt))
 
-            @test result["termination_status"] == LOCALLY_SOLVED
+            @test is_valid_status(result["termination_status"])
             @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol = 1.0e-4)
             @test isapprox(result["solution"]["node"]["2"]["p"], 2.38, rtol = 1.0e-1)
             @test isapprox(result["solution"]["node"]["3"]["h"], 2.00, rtol = 1.0e-2)
@@ -48,7 +48,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             wm = instantiate_model(network, formulation, build_wf; ext = ext)
             result = WaterModels.optimize_model!(wm, optimizer = _make_juniper(wm, ipopt))
 
-            @test result["termination_status"] == LOCALLY_SOLVED
+            @test is_valid_status(result["termination_status"])
             @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol = 1.0e-4)
             @test isapprox(result["solution"]["node"]["2"]["h"], 10.0, rtol = 1.0e-4)
             @test isapprox(result["solution"]["short_pipe"]["1"]["q"], 1.0, rtol = 1.0e-4)
@@ -59,7 +59,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             wm = instantiate_model(network, formulation, build_wf; ext = ext)
             result = WaterModels.optimize_model!(wm, optimizer = _make_juniper(wm, ipopt))
 
-            @test result["termination_status"] == LOCALLY_SOLVED
+            @test is_valid_status(result["termination_status"])
             @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol = 1.0e-3)
             @test isapprox(result["solution"]["node"]["2"]["h"], 98.98, rtol = 2.5e-1)
             @test isapprox(result["solution"]["pump"]["1"]["status"], 1.0, atol = 1.0e-3)
@@ -70,7 +70,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             wm = instantiate_model(network, formulation, build_wf; ext = ext)
             result = WaterModels.optimize_model!(wm, optimizer = _make_juniper(wm, ipopt))
 
-            @test result["termination_status"] == LOCALLY_SOLVED
+            @test is_valid_status(result["termination_status"])
             @test isapprox(result["solution"]["node"]["1"]["h"], 20.0, rtol = 1.0e-3)
             @test isapprox(result["solution"]["node"]["2"]["h"], 17.89, rtol = 2.5e-1)
             @test isapprox(result["solution"]["pipe"]["1"]["q"], 1.0, rtol = 1.0e-3)
@@ -86,7 +86,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
                 wm = instantiate_model(network, formulation, build_mn_wf; ext = ext)
                 result = WaterModels.optimize_model!(wm, optimizer = _make_juniper(wm, ipopt))
 
-                @test result["termination_status"] == LOCALLY_SOLVED
+                @test is_valid_status(result["termination_status"])
                 @test isapprox(result["solution"]["nw"]["2"]["node"]["1"]["h"], 10.0, rtol=1.0e-3)
                 @test isapprox(result["solution"]["nw"]["1"]["node"]["2"]["p"], 7.89, rtol=1.0e-1)
                 @test isapprox(result["solution"]["nw"]["2"]["node"]["2"]["h"], 9.42, rtol=1.0e-1)
@@ -103,7 +103,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             wm = instantiate_model(network, formulation, build_mn_wf; ext = ext)
             result = WaterModels.optimize_model!(wm, optimizer = _make_juniper(wm, ipopt))
 
-            @test result["termination_status"] == LOCALLY_SOLVED
+            @test is_valid_status(result["termination_status"])
             @test isapprox(result["solution"]["nw"]["1"]["node"]["1"]["h"], 10.0, rtol = 1.0e-3)
             @test isapprox(result["solution"]["nw"]["2"]["node"]["2"]["p"], 8.27, rtol = 1.0e-1)
             @test isapprox(result["solution"]["nw"]["3"]["node"]["3"]["p"], 8.29, rtol = 1.0e-1)
@@ -116,7 +116,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             wm = instantiate_model(network, formulation, build_mn_wf; ext = ext)
             result = WaterModels.optimize_model!(wm, optimizer = _make_juniper(wm, ipopt))
 
-            @test result["termination_status"] == LOCALLY_SOLVED
+            @test is_valid_status(result["termination_status"])
             @test isapprox(result["solution"]["nw"]["1"]["node"]["2"]["h"], 2.38, rtol = 2.5e-1)
             @test isapprox(result["solution"]["nw"]["2"]["node"]["2"]["h"], 7.89, rtol = 2.5e-1)
             @test isapprox(result["solution"]["nw"]["3"]["node"]["2"]["h"], 9.42, rtol = 2.5e-1)
@@ -134,7 +134,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             wm = instantiate_model(network, formulation, build_mn_wf; ext = ext)
             result = WaterModels.optimize_model!(wm, optimizer = _make_juniper(wm, ipopt))
 
-            @test result["termination_status"] == LOCALLY_SOLVED
+            @test is_valid_status(result["termination_status"])
             @test isapprox(result["solution"]["nw"]["1"]["node"]["2"]["h"], 10.0, rtol = 1.0e-3)
             @test isapprox(result["solution"]["nw"]["1"]["short_pipe"]["1"]["q"], 1.0, rtol = 1.0e-3)
             @test isapprox(result["solution"]["nw"]["3"]["node"]["2"]["h"], 10.0, rtol = 1.0e-3)
@@ -147,7 +147,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             wm = instantiate_model(network, formulation, build_mn_wf; ext = ext)
             result = WaterModels.optimize_model!(wm, optimizer = _make_juniper(wm, ipopt))
 
-            @test result["termination_status"] == LOCALLY_SOLVED
+            @test is_valid_status(result["termination_status"])
             @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["q"], 0.125, rtol = 1.0e-3)
             @test isapprox(result["solution"]["nw"]["3"]["pump"]["1"]["q"], 0.03125, rtol = 1.0e-3)
             @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["status"], 1.0, atol = 1.0e-3)
@@ -161,7 +161,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             wm = instantiate_model(network, formulation, build_mn_wf; ext = ext)
             result = WaterModels.optimize_model!(wm, optimizer = _make_juniper(wm, ipopt))
 
-            @test result["termination_status"] == LOCALLY_SOLVED
+            @test is_valid_status(result["termination_status"])
             @test isapprox(result["solution"]["nw"]["1"]["node"]["1"]["h"], 60.00, rtol = 1.0e-3)
             @test isapprox(result["solution"]["nw"]["1"]["node"]["2"]["h"], 59.42, rtol = 1.0e-1)
             @test isapprox(result["solution"]["nw"]["3"]["node"]["1"]["h"], 25.62, rtol = 1.0e-3)
@@ -176,7 +176,7 @@ end
 @testset "run_wf" begin
     network = WaterModels.parse_file("../test/data/epanet/snapshot/pipe-hw-lps.inp")
     result = WaterModels.run_wf(network, LRDWaterModel, cbc)
-    @test result["termination_status"] == OPTIMAL
+    @test is_valid_status(result["termination_status"])
 end
 
 
@@ -184,5 +184,5 @@ end
     network = WaterModels.parse_file("../test/data/epanet/multinetwork/pipe-hw-lps.inp")
     network_mn = WaterModels.make_multinetwork(network)
     result = WaterModels.run_mn_wf(network_mn, LRDWaterModel, cbc)
-    @test result["termination_status"] == OPTIMAL
+    @test is_valid_status(result["termination_status"])
 end

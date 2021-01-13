@@ -32,6 +32,11 @@ function variable_head(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=tru
     h = var(wm, nw)[:h] = JuMP.@variable(wm.model,
         [i in ids(wm, nw, :node)], base_name = "$(nw)_h",
         start = comp_start_value(ref(wm, nw, :node, i), "h_start"))
+
+    # Initialize variables for head differences across design pipe arcs.
+    dh_des_pipe = var(wm, nw)[:dh_des_pipe] = JuMP.@variable(wm.model,
+        [a in ids(wm, nw, :des_pipe)], base_name = "$(nw)_dh",
+        start = comp_start_value(ref(wm, nw, :des_pipe, a), "dh_start"))
        
     if bounded
         for (i, node) in ref(wm, nw, :node)
@@ -43,6 +48,16 @@ function variable_head(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=tru
             h_mid = node["head_min"] + 0.5 * (node["head_max"] - node["head_min"])
             h_start = comp_start_value(node, "h_start", h_mid)
             JuMP.set_start_value(h[i], h_start)
+        end
+
+        for (a, des_pipe) in ref(wm, nw, :des_pipe)
+            # Get the nodes that are connected by the design pipe.
+            node_fr = ref(wm, nw, :node, des_pipe["node_fr"])
+            node_to = ref(wm, nw, :node, des_pipe["node_to"])
+
+            # Set the lower and upper bounds for the design pipe head difference.
+            JuMP.set_lower_bound(dh_des_pipe[a], node_fr["head_min"] - node_to["head_max"])
+            JuMP.set_upper_bound(dh_des_pipe[a], node_fr["head_max"] - node_to["head_min"])
         end
     end
 

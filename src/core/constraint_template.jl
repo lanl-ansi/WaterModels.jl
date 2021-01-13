@@ -192,33 +192,33 @@ end
 
 
 ### Design Pipe Constraints ###
-function constraint_des_pipe_flow(wm::AbstractWaterModel, node_fr::Int, node_to::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_des_pipe_flow(wm::AbstractWaterModel, k::Int, node_fr::Int, node_to::Int; nw::Int=wm.cnw, kwargs...)
     des_pipes = collect(keys(filter(x -> x.second["node_fr"] == node_fr &&
         x.second["node_to"] == node_to, ref(wm, nw, :des_pipe))))
 
     _initialize_con_dict(wm, :des_pipe_flow, nw=nw, is_array=true)
-    con(wm, nw, :des_pipe_flow)[(node_fr, node_to)] = Array{JuMP.ConstraintRef}([])
-    constraint_des_pipe_flow(wm, nw, node_fr, node_to, des_pipes)
+    con(wm, nw, :des_pipe_flow)[k] = Array{JuMP.ConstraintRef}([])
+    constraint_des_pipe_flow(wm, nw, k, node_fr, node_to, des_pipes)
 end
 
 
-function constraint_des_pipe_head(wm::AbstractWaterModel, node_fr::Int, node_to::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_des_pipe_head(wm::AbstractWaterModel, k::Int, node_fr::Int, node_to::Int; nw::Int=wm.cnw, kwargs...)
     des_pipes = collect(keys(filter(x -> x.second["node_fr"] == node_fr &&
         x.second["node_to"] == node_to, ref(wm, nw, :des_pipe))))
 
     _initialize_con_dict(wm, :des_pipe_head, nw=nw, is_array=true)
-    con(wm, nw, :des_pipe_head)[(node_fr, node_to)] = Array{JuMP.ConstraintRef}([])
-    constraint_des_pipe_head(wm, nw, node_fr, node_to, des_pipes)
+    con(wm, nw, :des_pipe_head)[k] = Array{JuMP.ConstraintRef}([])
+    constraint_des_pipe_head(wm, nw, k, node_fr, node_to, des_pipes)
 end
 
 
-function constraint_des_pipe_selection(wm::AbstractWaterModel, node_fr::Int, node_to::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_des_pipe_selection(wm::AbstractWaterModel, k::Int, node_fr::Int, node_to::Int; nw::Int=wm.cnw, kwargs...)
     des_pipes = collect(keys(filter(x -> x.second["node_fr"] == node_fr &&
         x.second["node_to"] == node_to, ref(wm, nw, :des_pipe))))
 
     _initialize_con_dict(wm, :des_pipe_selection, nw=nw, is_array=true)
-    con(wm, nw, :des_pipe_selection)[(node_fr, node_to)] = Array{JuMP.ConstraintRef}([])
-    constraint_des_pipe_selection(wm, nw, node_fr, node_to, des_pipes)
+    con(wm, nw, :des_pipe_selection)[k] = Array{JuMP.ConstraintRef}([])
+    constraint_des_pipe_selection(wm, nw, k, node_fr, node_to, des_pipes)
 end
 
 

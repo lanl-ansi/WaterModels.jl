@@ -10,3 +10,8 @@ function _make_juniper(wm::AbstractWaterModel, nl_solver::_MOI.OptimizerWithAttr
             "allow_almost_solved_integral" => false)
     end
 end
+
+
+function is_valid_status(status::_MOI.TerminationStatusCode)
+    return status in [OPTIMAL, LOCALLY_SOLVED, ALMOST_LOCALLY_SOLVED]
+end

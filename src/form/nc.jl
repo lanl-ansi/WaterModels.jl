@@ -77,8 +77,8 @@ function constraint_pipe_head_loss(
     q, h_i, h_j = var(wm, n, :q_pipe, a), var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
     # Add nonconvex constraint for the head loss relationship.
-    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(q) <= inv(L) * (h_i - h_j))
-    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(q) >= inv(L) * (h_i - h_j))
+    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(q) <= (h_i - h_j) / L)
+    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(q) >= (h_i - h_j) / L)
 
     # Append the :pipe_head_loss constraint array.
     append!(con(wm, n, :pipe_head_loss)[a], [c_1, c_2])
@@ -100,16 +100,17 @@ end
 
 
 function constraint_on_off_des_pipe_head(wm::AbstractNCModel, n::Int, a::Int, node_fr::Int, node_to::Int)
-    # Get head variables for from and to nodes.
+    # Get head difference and status variables for the design pipe.
+    dh, z = var(wm, n, :dh_des_pipe, a), var(wm, n, :z_des_pipe, a)
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
     # For pipes, the differences must satisfy lower and upper bounds.
     dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
-    c_1 = JuMP.@constraint(wm.model, h_i - h_j >= dh_lb)
+    c_1 = JuMP.@constraint(wm.model, dh >= dh_lb * z)
     dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
-    c_2 = JuMP.@constraint(wm.model, h_i - h_j <= dh_ub)
+    c_2 = JuMP.@constraint(wm.model, dh <= dh_ub * z)
 
-    # Append the constraint array.
+    # Append the :n_off_des_pipe_head constraint array.
     append!(con(wm, n, :on_off_des_pipe_head, a), [c_1, c_2])
 end
 
@@ -118,28 +119,34 @@ end
 function constraint_on_off_des_pipe_head_loss(
     wm::AbstractNCModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
     L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
-    # Get flow and design status variables.
+    # Get flow, design status, and head difference variables.
     q, z = var(wm, n, :q_des_pipe, a), var(wm, n, :z_des_pipe, a)
-
-    # Gather flow and head variables included in head loss constraints.
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+    dh = var(wm, n, :dh_des_pipe, a) # Zero when design pipe is not selected.
 
     # Add nonconvex constraint for the head loss relationship.
-    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(q) <= inv(L) * z * (h_i - h_j))
-    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(q) >= inv(L) * z * (h_i - h_j))
+    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(q) <= dh / L)
+    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(q) >= dh / L)
 
     # Append the :pipe_head_loss constraint array.
     append!(con(wm, n, :on_off_des_pipe_head_loss)[a], [c_1, c_2])
 end
 
 
-function constraint_des_pipe_flow(wm::AbstractNCModel, n::Int, node_fr::Int, node_to::Int, des_pipes::Array{Int64,1})
+function constraint_des_pipe_flow(wm::AbstractNCModel, n::Int, k::Int, node_fr::Int, node_to::Int, des_pipes::Array{Int64,1})
     # For undirected formulations, there are no constraints, here.
 end
 
 
-function constraint_des_pipe_head(wm::AbstractNCModel, n::Int, node_fr::Int, node_to::Int, des_pipes::Array{Int64,1})
-    # For undirected formulations, there are no constraints, here.
+function constraint_des_pipe_head(wm::AbstractNCModel, n::Int, k::Int, node_fr::Int, node_to::Int, des_pipes::Array{Int64,1})
+    # Get head-related variables for design pipes and arcs.
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+    dh_sum = sum(var(wm, n, :dh_des_pipe, a) for a in des_pipes)
+
+    # Add constraint equating the sum of head differences to head difference.
+    c = JuMP.@constraint(wm.model, dh_sum == h_i - h_j)
+
+    # Append the :pipe_head_loss constraint array.
+    append!(con(wm, n, :des_pipe_head)[k], [c])
 end
 
 
@@ -286,7 +293,7 @@ function constraint_short_pipe_head(wm::AbstractNCModel, n::Int, a::Int, node_fr
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
     # For short pipes, the heads at adjacent nodes are equal.
-    c = JuMP.@constraint(wm.model, h_i - h_j == 0.0)
+    c = JuMP.@constraint(wm.model, h_i == h_j)
 
     # Append the constraint array.
     append!(con(wm, n, :short_pipe_head, a), [c])

@@ -20,9 +20,11 @@ Logging.disable_logging(Logging.Info)
 
 using Test
 
-# Default MIP and NLP optimizers.
+# Default MIP optimizer
 cbc = JuMP.optimizer_with_attributes(Cbc.Optimizer, "logLevel" => 0)
-ipopt = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "acceptable_tol" => 1.0e-8, "print_level" => 0, "sb" => "yes")
+
+# Default NLP optimizer.
+ipopt = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "tol" => 1.0e-6, "print_level" => 0, "sb" => "yes")
 
 include("common.jl")
 

@@ -176,8 +176,9 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any}, head_loss::String)
         end
 
         # Collect common arcs (i.e., node pairs) of design pipes in the network
-        ref[:des_pipe_arcs] = Set((x["node_fr"], x["node_to"]) for (i, x) in ref[:des_pipe])
-
+        des_arcs = collect(Set((x["node_fr"], x["node_to"]) for (i, x) in ref[:des_pipe]))
+        ref[:des_pipe_arc] = Dict{Int,Any}(i => des_arcs[i] for i in 1:length(des_arcs))
+        
         # Set up dictionaries mapping node indices to attached component indices.
         for name in ["demand", "reservoir", "tank"]
             # Filter inactive components from the ref data dictionary.
