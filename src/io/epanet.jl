@@ -902,7 +902,9 @@ function _read_pump!(data::Dict{String,<:Any})
 
         # Loop over remaining entries and store remaining properties.
         for i in range(4; stop = length(current), step = 2)
-            if uppercase(current[i]) != "HEAD"
+            if uppercase(current[i]) == "POWER"
+                Memento.error(_LOGGER, "Constant power pumps are not supported.")
+            elseif uppercase(current[i]) != "HEAD"
                 Memento.error(_LOGGER, "Pump keyword in INP file not recognized.")
             end
 
