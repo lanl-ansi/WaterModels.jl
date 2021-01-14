@@ -112,24 +112,24 @@ function constraint_pipe_head_loss(
     c_8 = JuMP.@constraint(wm.model, lambda_n[a, end] <= x_n[a, end])
 
     # Add a constraint for the flow piecewise approximation.
-    breakpoints_p = range(max(0.0, q_min_forward), stop=JuMP.upper_bound(qp), length=pipe_breakpoints)
+    breakpoints_p = range(q_min_forward, stop=JuMP.upper_bound(qp), length=pipe_breakpoints)
     qp_lhs = sum(breakpoints_p[k] * lambda_p[a, k] for k in 1:pipe_breakpoints)
     c_5 = JuMP.@constraint(wm.model, qp_lhs == qp)
 
     # Add a constraint that upper-bounds the head loss variable.
     f_p = r .* breakpoints_p.^exponent
     loss_p_ub_expr = sum(f_p[k] * lambda_p[a, k] for k in 1:pipe_breakpoints)
-    c_6 = JuMP.@constraint(wm.model, inv(L) * dhp <= loss_p_ub_expr)
+    c_6 = JuMP.@constraint(wm.model, dhp / L <= loss_p_ub_expr)
 
     # Add a constraint for the flow piecewise approximation.
-    breakpoints_n = range(max(0.0, -q_max_reverse), stop=JuMP.upper_bound(qn), length=pipe_breakpoints)
+    breakpoints_n = range(-q_max_reverse, stop=JuMP.upper_bound(qn), length=pipe_breakpoints)
     qn_lhs = sum(breakpoints_n[k] * lambda_n[a, k] for k in 1:pipe_breakpoints)
     c_5 = JuMP.@constraint(wm.model, qn_lhs == qn)
 
     # Add a constraint that upper-bounds the head loss variable.
     f_n =  r .* breakpoints_n.^exponent
     loss_n_ub_expr = sum(f_n[k] .* lambda_n[a, k] for k in 1:pipe_breakpoints)
-    c_6 = JuMP.@constraint(wm.model, inv(L) * dhn <= loss_n_ub_expr)
+    c_6 = JuMP.@constraint(wm.model, dhn / L <= loss_n_ub_expr)
 
     # Append the constraint array.
     append!(con(wm, n, :pipe_head_loss, a), [c_1, c_2, c_3, c_4, c_5, c_6])
@@ -137,25 +137,21 @@ function constraint_pipe_head_loss(
     for qp_hat in breakpoints_p
         # Add head loss outer (i.e., lower) approximations.
         lhs_p = _calc_head_loss_oa(qp, y, qp_hat, exponent)
-        c_7_k = JuMP.@constraint(wm.model, r * lhs_p <= inv(L) * dhp)
+        c_7_k = JuMP.@constraint(wm.model, r * lhs_p <= dhp / L)
         append!(con(wm, n, :pipe_head_loss, a), [c_7_k])
     end
 
     for qn_hat in breakpoints_n
         # Add head loss outer (i.e., lower) approximations.
         lhs_n = _calc_head_loss_oa(qn, 1.0 - y, qn_hat, exponent)
-        c_7_k = JuMP.@constraint(wm.model, r * lhs_n <= inv(L) * dhn)
+        c_7_k = JuMP.@constraint(wm.model, r * lhs_n <= dhn / L)
         append!(con(wm, n, :pipe_head_loss, a), [c_7_k])
     end
 
     for k in 2:pipe_breakpoints-1
         # Add the adjacency constraints for piecewise variables.
-        adjacency_p = x_p[a, k-1] + x_p[a, k]
-        c_8_k_p = JuMP.@constraint(wm.model, lambda_p[a, k] <= adjacency_p)
-
-        adjacency_n = x_n[a, k-1] + x_n[a, k]
-        c_8_k_n = JuMP.@constraint(wm.model, lambda_n[a, k] <= adjacency_n)
-
+        c_8_k_p = JuMP.@constraint(wm.model, lambda_p[a, k] <= x_p[a, k-1] + x_p[a, k])
+        c_8_k_n = JuMP.@constraint(wm.model, lambda_n[a, k] <= x_n[a, k-1] + x_n[a, k])
         append!(con(wm, n, :pipe_head_loss, a), [c_8_k_p, c_8_k_n])
     end
 end
