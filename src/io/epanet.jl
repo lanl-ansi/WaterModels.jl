@@ -1,8 +1,7 @@
 function _initialize_epanet_dictionary()
     data = Dict{String,Any}("time_series" => Dict{String,Any}(), "top_comments" => [])
-    data["section"] = Dict{String,Array}()
-    map(section -> data["section"][section] = [], _INP_SECTIONS)
-    return data
+    data["section"] = Dict{String,Array}(x => [] for x in _INP_SECTIONS)
+    return data # Return an empty dictionary of the sectional data.
 end
 
 
@@ -22,7 +21,7 @@ function _read_epanet_sections(file_path::String)
             # If the line is empty, continue to the next line.
             continue
         elseif startswith(line, "[")
-            # If the line starts with "[", it's a section.
+            # If the line starts with "[", it must be a section.
             values = split(line; limit = 1)
             section_tmp = uppercase(values[1])
 
@@ -95,9 +94,6 @@ function parse_epanet(filename::String)
 
     # Add a data structure mapping names to node indices.
     _add_node_map!(epanet_data)
-
-    # Update time series information for demands.
-    _update_demand_ts!(epanet_data)
 
     # Update time series information for reservoirs.
     _update_reservoir_ts!(epanet_data)
@@ -212,6 +208,12 @@ function _transform_component_indices(components::Dict{String,<:Any})
     end
 
     return Dict{String,Any}(string(x["index"]) => x for (i, x) in components)
+end
+
+"Standardize component time series indices to match primary indices."
+function _transform_time_series_indices(components::Dict{String,<:Any}, time_series::Dict{String,<:Any})
+    name_to_index = Dict{String,String}(x["name"] => i for (i, x) in components)
+    return Dict{String,Any}(name_to_index[i] => x for (i, x) in time_series)
 end
 
 function _update_demand_ts!(data::Dict{String,<:Any})
@@ -626,7 +628,7 @@ function _read_demand!(data::Dict{String,<:Any})
     data["time_series"]["demand"] = Dict{String,Any}()
 
     # Initialize a temporary index to be updated while parsing.
-    index::Int64 = 0
+    index::Int64 = 0 # This will track the order that demands appear.
 
     # Loop over all lines in the [JUNCTIONS] section and parse each.
     for (line_number, line) in data["section"]["[JUNCTIONS]"]
@@ -696,8 +698,10 @@ function _read_demand!(data::Dict{String,<:Any})
         data["demand"][current[1]] = demand
     end
 
-    # Replace with a new dictionary that uses integer component indices.
-    return data["demand"] = _transform_component_indices(data["demand"])
+    # Replace with new dictionaries that use integer component indices.
+    data["demand"] = _transform_component_indices(data["demand"])
+    data["time_series"]["demand"] = _transform_time_series_indices(
+        data["demand"], data["time_series"]["demand"])
 end
 
 function _add_node_map!(data::Dict{String,<:Any})
@@ -748,6 +752,9 @@ function _parse_epanet_options(data::Dict{String,<:Any})
             end
         end
     end
+
+    # Ensure that required data fields have been populated.
+    @assert all(haskey.(Ref(data), ["flow_units", "head_loss", "viscosity"]))
 end
 
 function _read_pattern!(data::Dict{String,<:Any})
@@ -877,8 +884,8 @@ function _read_pipe!(data::Dict{String,<:Any})
         data["pipe"][current[1]] = pipe
     end
 
-    # Replace with a new dictionary that uses integer component indices.
-    return data["pipe"] = _transform_component_indices(data["pipe"])
+    # Replace with new dictionaries that use integer component indices.
+    data["pipe"] = _transform_component_indices(data["pipe"])
 end
 
 function _read_pump!(data::Dict{String,<:Any})
@@ -942,8 +949,10 @@ function _read_pump!(data::Dict{String,<:Any})
         data["pump"][current[1]] = pump
     end
 
-    # Replace with a new dictionary that uses integer component indices.
-    return data["pump"] = _transform_component_indices(data["pump"])
+    # Replace with new dictionaries that use integer component indices.
+    data["pump"] = _transform_component_indices(data["pump"])
+    data["time_series"]["pump"] = _transform_time_series_indices(
+        data["pump"], data["time_series"]["pump"])
 end
 
 function _read_reservoir!(data::Dict{String,<:Any})
@@ -1003,8 +1012,10 @@ function _read_reservoir!(data::Dict{String,<:Any})
         data["reservoir"][current[1]] = reservoir
     end
 
-    # Replace with a new dictionary that uses integer component indices.
-    return data["reservoir"] = _transform_component_indices(data["reservoir"])
+    # Replace with new dictionaries that use integer component indices.
+    data["reservoir"] = _transform_component_indices(data["reservoir"])
+    #data["time_series"]["reservoir"] = _transform_time_series_indices(
+    #    data["reservoir"], data["time_series"]["reservoir"])
 end
 
 function _read_tank!(data::Dict{String,<:Any})
@@ -1056,8 +1067,8 @@ function _read_tank!(data::Dict{String,<:Any})
         data["tank"][current[1]] = tank
     end
 
-    # Replace with a new dictionary that uses integer component indices.
-    return data["tank"] = _transform_component_indices(data["tank"])
+    # Replace with new dictionaries that use integer component indices.
+    data["tank"] = _transform_component_indices(data["tank"])
 end
 
 function _read_time!(data::Dict{String,<:Any})
@@ -1152,7 +1163,7 @@ function _read_regulator!(data::Dict{String,<:Any})
     end
 
     # Replace with a new dictionary that uses integer component indices.
-    return data["regulator"] = _transform_component_indices(data["regulator"])
+    data["regulator"] = _transform_component_indices(data["regulator"])
 end
 
 """

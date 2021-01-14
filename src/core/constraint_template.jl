@@ -13,31 +13,15 @@ function _initialize_con_dict(wm::AbstractWaterModel, key::Symbol; nw::Int=wm.cn
 end
 
 
-function _collect_comps_fr(wm::AbstractWaterModel, i::Int, sym::Symbol; nw::Int=wm.cnw)
-    return collect(keys(filter(x -> x.second["node_fr"] == i, ref(wm, nw, sym))))
-end
-
-
-function _collect_comps_to(wm::AbstractWaterModel, i::Int, sym::Symbol; nw::Int=wm.cnw)
-    return collect(keys(filter(x -> x.second["node_to"] == i, ref(wm, nw, sym))))
-end
-
-
 ### Nodal Constraints ###
 function constraint_flow_conservation(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
     # Collect various indices for edge-type components connected to node `i`.
-    pipe_fr = _collect_comps_fr(wm, i, :pipe; nw=nw)
-    pipe_to = _collect_comps_to(wm, i, :pipe; nw=nw)
-    des_pipe_fr = _collect_comps_fr(wm, i, :des_pipe; nw=nw)
-    des_pipe_to = _collect_comps_to(wm, i, :des_pipe; nw=nw)
-    pump_fr = _collect_comps_fr(wm, i, :pump; nw=nw)
-    pump_to = _collect_comps_to(wm, i, :pump; nw=nw)
-    regulator_fr = _collect_comps_fr(wm, i, :regulator; nw=nw)
-    regulator_to = _collect_comps_to(wm, i, :regulator; nw=nw)
-    short_pipe_fr = _collect_comps_fr(wm, i, :short_pipe; nw=nw)
-    short_pipe_to = _collect_comps_to(wm, i, :short_pipe; nw=nw)
-    valve_fr = _collect_comps_fr(wm, i, :valve; nw=nw)
-    valve_to = _collect_comps_to(wm, i, :valve; nw=nw)
+    pipe_fr, pipe_to = ref(wm, nw, :pipe_fr, i), ref(wm, nw, :pipe_to, i)
+    des_pipe_fr, des_pipe_to = ref(wm, nw, :des_pipe_fr, i), ref(wm, nw, :des_pipe_to, i)
+    pump_fr, pump_to = ref(wm, nw, :pump_fr, i), ref(wm, nw, :pump_to, i)
+    regulator_fr, regulator_to = ref(wm, nw, :regulator_fr, i), ref(wm, nw, :regulator_to, i)
+    short_pipe_fr, short_pipe_to = ref(wm, nw, :short_pipe_fr, i), ref(wm, nw, :short_pipe_to, i)
+    valve_fr, valve_to = ref(wm, nw, :valve_fr, i), ref(wm, nw, :valve_to, i)
 
     # Collect various indices for node-type components connected to node `i`.
     reservoirs = ref(wm, nw, :node_reservoir, i) # Reservoirs attached to node `i`.
@@ -65,18 +49,12 @@ end
 
 function constraint_node_directionality(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
     # Collect various indices for edge-type components connected to node `i`.
-    pipe_fr = _collect_comps_fr(wm, i, :pipe; nw=nw)
-    pipe_to = _collect_comps_to(wm, i, :pipe; nw=nw)
-    des_pipe_fr = _collect_comps_fr(wm, i, :des_pipe; nw=nw)
-    des_pipe_to = _collect_comps_to(wm, i, :des_pipe; nw=nw)
-    pump_fr = _collect_comps_fr(wm, i, :pump; nw=nw)
-    pump_to = _collect_comps_to(wm, i, :pump; nw=nw)
-    regulator_fr = _collect_comps_fr(wm, i, :regulator; nw=nw)
-    regulator_to = _collect_comps_to(wm, i, :regulator; nw=nw)
-    short_pipe_fr = _collect_comps_fr(wm, i, :short_pipe; nw=nw)
-    short_pipe_to = _collect_comps_to(wm, i, :short_pipe; nw=nw)
-    valve_fr = _collect_comps_fr(wm, i, :valve; nw=nw)
-    valve_to = _collect_comps_to(wm, i, :valve; nw=nw)
+    pipe_fr, pipe_to = ref(wm, nw, :pipe_fr, i), ref(wm, nw, :pipe_to, i)
+    des_pipe_fr, des_pipe_to = ref(wm, nw, :des_pipe_fr, i), ref(wm, nw, :des_pipe_to, i)
+    pump_fr, pump_to = ref(wm, nw, :pump_fr, i), ref(wm, nw, :pump_to, i)
+    regulator_fr, regulator_to = ref(wm, nw, :regulator_fr, i), ref(wm, nw, :regulator_to, i)
+    short_pipe_fr, short_pipe_to = ref(wm, nw, :short_pipe_fr, i), ref(wm, nw, :short_pipe_to, i)
+    valve_fr, valve_to = ref(wm, nw, :valve_fr, i), ref(wm, nw, :valve_to, i)
 
     # Collect various indices for node-type components connected to node `i`.
     reservoirs = ref(wm, nw, :node_reservoir, i) # Reservoirs attached to node `i`.

@@ -162,6 +162,19 @@ function _filter_active_components(components::Dict{Int,<:Any})::Dict{Int,<:Any}
 end
 
 
+function _build_node_map(nodes::Dict{Int,<:Any}, components::Dict{Int,<:Any})
+    ref_fr = Dict{Int,Array{Int,1}}(i => Array{Int,1}([]) for i in keys(nodes))
+    ref_to = Dict{Int,Array{Int,1}}(i => Array{Int,1}([]) for i in keys(nodes))
+
+    for (i, component) in components
+        push!(ref_fr[component["node_fr"]], i)
+        push!(ref_to[component["node_to"]], i)
+    end
+
+    return ref_fr, ref_to
+end
+
+
 function _ref_add_core!(nw_refs::Dict{Int,<:Any}, head_loss::String)
     for (nw, ref) in nw_refs
         # Remove inactive nodes from the ref data dictionary.
@@ -171,8 +184,7 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any}, head_loss::String)
         for name in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
             ref[Symbol(name)] = _filter_active_components(ref[Symbol(name)])
             fr_sym, to_sym = Symbol(name * "_fr"), Symbol(name * "_to")
-            ref[fr_sym] = [(a, c["node_fr"], c["node_to"]) for (a, c) in ref[Symbol(name)]]
-            ref[to_sym] = [(a, c["node_to"], c["node_fr"]) for (a, c) in ref[Symbol(name)]]
+            ref[fr_sym], ref[to_sym] = _build_node_map(ref[:node], ref[Symbol(name)])
         end
 
         # Collect common arcs (i.e., node pairs) of design pipes in the network
