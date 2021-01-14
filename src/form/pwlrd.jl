@@ -218,16 +218,24 @@ function constraint_on_off_des_pipe_head_loss(
 
     for qp_hat in breakpoints_p
         # Add head loss outer (i.e., lower) approximations.
-        lhs_p = _calc_head_loss_oa(qp, y, qp_hat, exponent)
-        c_7_k = JuMP.@constraint(wm.model, r * lhs_p <= inv(L) * dhp)
-        append!(con(wm, n, :on_off_des_pipe_head_loss, a), [c_7_k])
+        lhs_p_y = _calc_head_loss_oa(qp, y, qp_hat, exponent)
+        c_7_k_y = JuMP.@constraint(wm.model, r * lhs_p_y <= dhp / L)
+
+        lhs_p_z = _calc_head_loss_oa(qp, z, qp_hat, exponent)
+        c_7_k_z = JuMP.@constraint(wm.model, r * lhs_p_z <= dhp / L)
+
+        append!(con(wm, n, :on_off_des_pipe_head_loss, a), [c_7_k_y, c_7_k_z])
     end
 
     for qn_hat in breakpoints_n
         # Add head loss outer (i.e., lower) approximations.
-        lhs_n = _calc_head_loss_oa(qn, 1.0 - y, qn_hat, exponent)
-        c_7_k = JuMP.@constraint(wm.model, r * lhs_n <= inv(L) * dhn)
-        append!(con(wm, n, :on_off_des_pipe_head_loss, a), [c_7_k])
+        lhs_n_y = _calc_head_loss_oa(qn, 1.0 - y, qn_hat, exponent)
+        c_7_k_y = JuMP.@constraint(wm.model, r * lhs_n_y <= dhn / L)
+
+        lhs_n_z = _calc_head_loss_oa(qn, z, qn_hat, exponent)
+        c_7_k_z = JuMP.@constraint(wm.model, r * lhs_n_z <= dhn / L)
+
+        append!(con(wm, n, :on_off_des_pipe_head_loss, a), [c_7_k_y, c_7_k_z])
     end
 
     for k in 2:pipe_breakpoints-1
