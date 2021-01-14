@@ -8,8 +8,8 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
 
         @testset "Shamir Network Design (Reduced): $(formulation)" begin
             wm = instantiate_model(network, formulation, build_des; ext = ext)
-            result = WaterModels.optimize_model!(wm, optimizer=_make_juniper(wm, ipopt))
-            @test is_valid_status(result["termination_status"])
+            result = WaterModels.optimize_model!(wm, optimizer=_choose_solver(wm, ipopt, cbc))
+            @test _is_valid_status(result["termination_status"])
             @test isapprox(result["objective"], 1.36e6, rtol=1.0e-4)
         end
     end

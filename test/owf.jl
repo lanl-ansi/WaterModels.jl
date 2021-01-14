@@ -6,12 +6,12 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
     @testset "Optimal Water Flow Problems (Single Network): $(formulation)" begin
         network = WaterModels.parse_file("../test/data/epanet/snapshot/pump-hw-lps.inp")
         wm = instantiate_model(network, formulation, build_owf; ext = ext)
-        result = WaterModels.optimize_model!(wm, optimizer = _make_juniper(wm, ipopt))
+        result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
 
-        @test is_valid_status(result["termination_status"])
+        @test _is_valid_status(result["termination_status"])
         @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol = 1.0e-3)
-        @test isapprox(result["solution"]["node"]["2"]["h"], 98.98, rtol = 2.5e-1)
         @test isapprox(result["solution"]["pump"]["1"]["status"], 1.0, atol = 1.0e-3)
+        @test result["solution"]["node"]["2"]["h"] > 10.0
 
         # In some relaxations, the objective may be near zero.
         @test result["objective"] >= -1.0e-6
@@ -22,12 +22,12 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
         map(x -> x["head_curve_form"] = WaterModels.BEST_EFFICIENCY_POINT, values(network["pump"]))
         WaterModels.recompute_bounds!(network) # Recompute component bounds after the above changes.
         wm = instantiate_model(network, formulation, build_owf; ext = ext)
-        result = WaterModels.optimize_model!(wm, optimizer = _make_juniper(wm, ipopt))
+        result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
 
-        @test is_valid_status(result["termination_status"])
+        @test _is_valid_status(result["termination_status"])
         @test isapprox(result["solution"]["node"]["1"]["h"], 10.0, rtol = 1.0e-3)
-        @test isapprox(result["solution"]["node"]["2"]["h"], 98.98, rtol = 2.5e-1)
         @test isapprox(result["solution"]["pump"]["1"]["status"], 1.0, atol = 1.0e-3)
+        @test result["solution"]["node"]["2"]["h"] > 10.0
 
         # In some relaxations, the objective may be near zero.
         @test result["objective"] >= -1.0e-6
@@ -37,9 +37,9 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
         network = WaterModels.parse_file("../test/data/epanet/multinetwork/owf-hw-lps.inp")
         network_mn = WaterModels.make_multinetwork(network)
         wm = instantiate_model(network_mn, formulation, build_mn_owf; ext = ext)
-        result = WaterModels.optimize_model!(wm, optimizer = _make_juniper(wm, ipopt))
+        result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
 
-        @test is_valid_status(result["termination_status"])
+        @test _is_valid_status(result["termination_status"])
     end
 end
 
