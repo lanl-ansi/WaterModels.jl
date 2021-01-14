@@ -140,8 +140,19 @@ function variable_pump_power(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bo
     P = var(wm, nw)[:P_pump] = JuMP.@expression(
         wm.model, [a in ids(wm, nw, :pump)], Ps[a] * _DENSITY * _GRAVITY)
 
-    # Initialize an entry to the solution component dictionary for powers.
+    # Create expressions to compute the unscaled pump energies.
+    E = var(wm, nw)[:E_pump] = JuMP.@expression(
+        wm.model, [a in ids(wm, nw, :pump)], P[a] * ref(wm, nw, :time_step))
+
+    # Create expressions to compute the unscaled pump costs.
+    c = var(wm, nw)[:c_pump] = JuMP.@expression(
+        wm.model, [a in ids(wm, nw, :pump)], E[a] *
+        ref(wm, nw, :pump, a)["energy_price"])
+
+    # Initialize entries to the solution component dictionary for expressions.
     report && sol_component_value(wm, nw, :pump, :P, ids(wm, nw, :pump), P)
+    report && sol_component_value(wm, nw, :pump, :E, ids(wm, nw, :pump), E)
+    report && sol_component_value(wm, nw, :pump, :c, ids(wm, nw, :pump), c)
 end
 
 
