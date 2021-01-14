@@ -297,6 +297,11 @@ function constraint_on_off_pump_head_gain(wm::AbstractWaterModel, a::Int; nw::In
     node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
     q_min_forward = max(get(ref(wm, nw, :pump, a), "flow_min_forward", _FLOW_MIN), _FLOW_MIN)
 
+    if ref(wm, nw, :pump, a)["head_curve_form"] == EPANET && isa(wm, AbstractNonlinearModel)
+        message = "EPANET head curves are not currently supported for nonlinear models."
+        Memento.error(_LOGGER, message)
+    end
+
     _initialize_con_dict(wm, :on_off_pump_head_gain, nw=nw, is_array=true)
     con(wm, nw, :on_off_pump_head_gain)[a] = Array{JuMP.ConstraintRef}([])
     constraint_on_off_pump_head_gain(wm, nw, a, node_fr, node_to, q_min_forward)
@@ -305,7 +310,6 @@ end
 
 function constraint_on_off_pump_power(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     q_min_forward = max(get(ref(wm, nw, :pump, a), "flow_min_forward", _FLOW_MIN), _FLOW_MIN)
-
     _initialize_con_dict(wm, :on_off_pump_power, nw=nw, is_array=true)
     con(wm, nw, :on_off_pump_power)[a] = Array{JuMP.ConstraintRef}([])
 
