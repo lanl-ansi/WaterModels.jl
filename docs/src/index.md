@@ -36,11 +36,11 @@ Installation of the JuMP interface to CBC can be performed via the Julia package
 ] add Cbc
 ```
 
-Then, as one example, a piecewise-linear relaxed convexification of the physics for the well-known [Shamir (two-loop) network](https://github.com/lanl-ansi/WaterModels.jl/blob/master/examples/data/epanet/shamir.inp), using ten breakpoints to model each pipe's Hazen-Williams head loss curve, can be solved to feasibility using
+Then, as one example, a piecewise-linear, relaxation-based convexification of the physics for the well-known [Shamir (two-loop) network](https://github.com/lanl-ansi/WaterModels.jl/blob/master/examples/data/epanet/shamir.inp), using ten breakpoints to model the envelope of each pipe's directed Hazen-Williams head loss curve, can be solved to feasibility using
 
 ```julia
 using WaterModels, Cbc
-ext = Dict(:pipe_breakpoints=>3) # Defines additional parameters used in model construction.
+ext = Dict(:pipe_breakpoints=>10) # Defines additional parameters used in model construction.
 result = run_wf("examples/data/epanet/shamir.inp", PWLRDWaterModel, Cbc.Optimizer; ext=ext)
 ```
 

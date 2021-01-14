@@ -38,7 +38,7 @@ import Cbc
 run_des(data, PWLRDWaterModel, Cbc.Optimizer)
 ```
 
-By default, two breakpoints are used for the linear approximation of each head loss curve.
+By default, two breakpoints are used for the linear approximation of each directed head loss curve.
 These approximations can be more finely discretized by using additional arguments to the `run_des` function.
 For example, to employ five breakpoints per head loss curve in this formulation, the following can be executed:
 ```julia
@@ -49,9 +49,9 @@ run_des(data, PWLRDWaterModel, cbc, ext=Dict(:pipe_breakpoints=>5))
 Note that this formulation takes much longer to solve to global optimality due to the use of more binary variables.
 However, because of the finer discretization, a better approximation of the physics is attained.
 
-Instead of a piecewise-linear relaxation, head loss curves can also be simply outer-approximated via the LRD formulation.
-This formulation employs less strict requirements and avoids the use of binary variables for piecewise approximation, but solutions (e.g., diameters) may not necessarily be _as_ feasible with respect to the full (nonconvex) water network physics.
-To employ five outer approximation points per (positive or negative) head loss curve in this formulation, the following can be executed:
+Instead of using piecewise-linear envelopes, head loss curves can also be simply outer-approximated via the LRD formulation.
+This formulation employs less strict requirements and avoids the use of binary variables for piecewise approximation, but solutions (e.g., diameters) may not be as close to feasibility with respect to the full (nonconvex) water network physics.
+To employ five outer approximation points per directed head loss curve in this formulation, the following can be executed:
 ```julia
 run_des(data, LRDWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>5))
 ```
@@ -115,7 +115,7 @@ For additional details about the network data, see the [WaterModels Network Data
 The following example demonstrates how to break a `run_des` call into separate model building and solving steps.
 This allows inspection of the JuMP model created by WaterModels for the problem.
 ```julia
-wm = instantiate_model(data, LRDWaterModel, WaterModels.build_des)
+wm = instantiate_model(data, LRDWaterModel, WaterModels.build_des);
 
 print(wm.model)
 
