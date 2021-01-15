@@ -11,11 +11,13 @@ function variable_flow(wm::AbstractPWLRDModel; nw::Int=wm.cnw, bounded::Bool=tru
         # Create directed flow (`qp` and `qn`) variables for each component.
         _variable_component_flow(wm, name; nw=nw, bounded=bounded, report=report)
 
-        # Create directed head difference (`dhp` and `dhn`) variables for each component.
-        _variable_component_head_difference(wm, name; nw=nw, bounded=bounded, report=report)
-
         # Create directed flow binary direction variables (`y`) for each component.
         _variable_component_direction(wm, name; nw=nw, report=report)
+    end
+
+    for name in ["des_pipe", "pipe"]
+        # Create directed head difference (`dhp` and `dhn`) variables for each component.
+        _variable_component_head_difference(wm, name; nw=nw, bounded=bounded, report=report)
     end
 
     # Get the number of breakpoints for pumps.
