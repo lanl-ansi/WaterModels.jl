@@ -126,7 +126,7 @@ function variable_flow(wm::AbstractNCDModel; nw::Int=wm.cnw, bounded::Bool=true,
         _variable_component_direction(wm, name; nw=nw, report=report)
     end
 
-    for name in ["des_pipe", "pipe", "pump", "regulator", "valve"]
+    for name in ["des_pipe", "pipe", "pump", "regulator"]
         # Create directed head difference (`dhp` and `dhn`) variables for each component.
         _variable_component_head_difference(wm, name; nw=nw, bounded=bounded, report=report)
     end
@@ -393,27 +393,6 @@ function constraint_on_off_valve_flow(wm::AbstractNCDModel, n::Int, a::Int, q_ma
 
     # Append the constraint array.
     append!(con(wm, n, :on_off_valve_flow, a), [c_1, c_2, c_3, c_4, c_5, c_6])
-end
-
-
-function constraint_on_off_valve_head(wm::AbstractNCDModel, n::Int, a::Int, node_fr::Int, node_to::Int)
-    # Get valve direction and status variables.
-    y, z = var(wm, n, :y_valve, a), var(wm, n, :z_valve, a)
-
-    # Get head variables for from and to nodes.
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-    dhp, dhn = var(wm, n, :dhp_valve, a), var(wm, n, :dhn_valve, a)
-
-    # For valves, head differences must satisfy lower and upper bounds.
-    dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
-    c_1 = JuMP.@constraint(wm.model, dhp <= dhp_ub * y)
-    c_2 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - y))
-    c_3 = JuMP.@constraint(wm.model, dhp <= dhp_ub * (1.0 - z))
-    c_4 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - z))
-    c_5 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
-
-    # Append the constraint array.
-    append!(con(wm, n, :on_off_valve_head, a), [c_1, c_2, c_3, c_4, c_5])
 end
 
 

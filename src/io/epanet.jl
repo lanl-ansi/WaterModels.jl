@@ -15,7 +15,7 @@ function _read_epanet_sections(file_path::String)
     # Populate sections in the EPANET dictionary.
     for line in eachline(file_path)
         # Update important data associated with the line.
-        line, line_number = strip(line), line_number + 1,
+        line, line_number = strip(line), line_number + 1
 
         if length(line) == 0
             # If the line is empty, continue to the next line.
@@ -34,7 +34,7 @@ function _read_epanet_sections(file_path::String)
                 break
             else
                 # If the section title is not valid, throw an error.
-                msg = "$(file_path): $(line_number): Invalid section \"$(section_tmp)\"."
+                msg = "File \"$(file_path)\", line $(line_number) has invalid section \"$(section_tmp)\"."
                 Memento.error(_LOGGER, msg)
             end
         elseif section === nothing && startswith(line, ";")
@@ -43,8 +43,8 @@ function _read_epanet_sections(file_path::String)
             continue
         elseif section === nothing && !startswith(line, ";")
             # If there is no current section and the line is not a comment, throw an error.
-            message = "$(file_path): $(line_number): Invalid EPANET input syntax."
-            Memento.error(_LOGGER, message)
+            msg = "File \"$(file_path)\", line $(line_number) has invalid syntax."
+            Memento.error(_LOGGER, msg)
         end
 
         # Append a tuple of the line number and the line string to the dictionary.
