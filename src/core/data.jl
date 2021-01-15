@@ -134,13 +134,60 @@ function set_start_all!(data::Dict{String,<:Any})
 end
 
 
+function fix_all_flow_directions!(data::Dict{String,<:Any})
+    fix_flow_directions!(data, "pipe")
+    fix_flow_directions!(data, "short_pipe")
+    fix_flow_directions!(data, "pump")
+    fix_flow_directions!(data, "regulator")
+    fix_flow_directions!(data, "valve")
+end
+
+
+function fix_flow_directions!(data::Dict{String,<:Any}, component_type::String)
+    if _IM.ismultinetwork(data)
+        for (n, nw) in data["nw"]
+            comps = values(nw[component_type])
+            _fix_flow_direction!.(comps)
+        end
+    else
+        comps = values(data[component_type])
+        _fix_flow_direction!.(comps)
+    end
+end
+
+
+function _fix_flow_direction!(component::Dict{String,<:Any})
+    if haskey(component, "q") && !isapprox(component["q"], 0.0; atol=1.0e-6)
+        component["y_min"] = component["q"] > 0.0 ? 1.0 : 0.0
+        component["y_max"] = component["q"] > 0.0 ? 1.0 : 0.0
+    end
+end
+
+
 function fix_all_indicators!(data::Dict{String,<:Any})
-    set_start!(data, "pump", "status", "z_min")
-    set_start!(data, "pump", "status", "z_max")
-    set_start!(data, "regulator", "status", "z_min")
-    set_start!(data, "regulator", "status", "z_max")
-    set_start!(data, "valve", "status", "z_min")
-    set_start!(data, "valve", "status", "z_max")
+    fix_indicators!(data, "pump")
+    fix_indicators!(data, "regulator")
+    fix_indicators!(data, "valve")
+end
+
+function fix_indicators!(data::Dict{String,<:Any}, component_type::String)
+    if _IM.ismultinetwork(data)
+        for (n, nw) in data["nw"]
+            comps = values(nw[component_type])
+            _fix_indicator!.(comps)
+        end
+    else
+        comps = values(data[component_type])
+        _fix_indicator!.(comps)
+    end
+end
+
+
+function _fix_indicator!(component::Dict{String,<:Any})
+    if haskey(component, "status") # Assumes this is binary.
+        component["z_min"] = component["status"] > 0.5 ? 1.0 : 0.0
+        component["z_max"] = component["status"] > 0.5 ? 1.0 : 0.0
+    end
 end
 
 

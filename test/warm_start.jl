@@ -7,6 +7,7 @@
         _IM.update_data!(data, cold_result["solution"])
         WaterModels.set_start_all!(data)
         WaterModels.fix_all_indicators!(data)
+        WaterModels.fix_all_flow_directions!(data)
 
         result = WaterModels.run_wf(data, NCWaterModel, ipopt)
         @test _is_valid_status(result["termination_status"])
