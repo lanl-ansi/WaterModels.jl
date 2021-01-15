@@ -126,7 +126,7 @@ function variable_flow(wm::AbstractNCDModel; nw::Int=wm.cnw, bounded::Bool=true,
         _variable_component_direction(wm, name; nw=nw, report=report)
     end
 
-    for name in ["des_pipe", "pipe", "pump", "regulator"]
+    for name in ["des_pipe", "pipe", "pump"]
         # Create directed head difference (`dhp` and `dhn`) variables for each component.
         _variable_component_head_difference(wm, name; nw=nw, bounded=bounded, report=report)
     end
@@ -345,32 +345,6 @@ function constraint_on_off_regulator_flow(wm::AbstractNCDModel, n::Int, a::Int, 
 
     # Append the :on_off_regulator_flow constraint array.
     append!(con(wm, n, :on_off_regulator_flow, a), [c_1, c_2, c_3])
-end
-
-
-function constraint_on_off_regulator_head(wm::AbstractNCDModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_setting::Float64)
-    # Get regulator direction and status variable.
-    y, z = var(wm, n, :y_regulator, a), var(wm, n, :z_regulator, a)
-
-    # Get common head variables and associated data.
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-    dhp, dhn = var(wm, n, :dhp_regulator, a), var(wm, n, :dhn_regulator, a)
-
-    # When the pressure reducing valve is open, the head at node j is predefined.
-    h_lb, h_ub = JuMP.lower_bound(h_j), JuMP.upper_bound(h_j)
-    c_1 = JuMP.@constraint(wm.model, h_j >= (1.0 - z) * h_lb + z * head_setting)
-    c_2 = JuMP.@constraint(wm.model, h_j <= (1.0 - z) * h_ub + z * head_setting)
-
-    # Constrain directed head differences based on status.
-    dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
-    c_3 = JuMP.@constraint(wm.model, dhp <= dhp_ub * z)
-    c_4 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - z))
-    c_5 = JuMP.@constraint(wm.model, dhp <= dhp_ub * y)
-    c_6 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - y))
-    c_7 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
-
-    # Append the :on_off_regulator_head constraint array.
-    append!(con(wm, n, :on_off_regulator_head, a), [c_1, c_2, c_3, c_4, c_5, c_6, c_7])
 end
 
 
