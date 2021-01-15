@@ -122,11 +122,13 @@ function variable_flow(wm::AbstractNCDModel; nw::Int=wm.cnw, bounded::Bool=true,
         # Create directed flow (`qp` and `qn`) variables for each component.
         _variable_component_flow(wm, name; nw=nw, bounded=bounded, report=report)
 
-        # Create directed head difference (`dhp` and `dhn`) variables for each component.
-        _variable_component_head_difference(wm, name; nw=nw, bounded=bounded, report=report)
-
         # Create directed flow binary direction variables (`y`) for each component.
         _variable_component_direction(wm, name; nw=nw, report=report)
+    end
+
+    for name in ["des_pipe", "pipe", "pump", "regulator", "valve"]
+        # Create directed head difference (`dhp` and `dhn`) variables for each component.
+        _variable_component_head_difference(wm, name; nw=nw, bounded=bounded, report=report)
     end
 end
 
@@ -432,26 +434,6 @@ function constraint_short_pipe_flow(wm::AbstractNCDModel, n::Int, a::Int, q_max_
 
     # Append the :short_pipe_flow constraint array.
     append!(con(wm, n, :short_pipe_flow, a), [c_1, c_2, c_3, c_4])
-end
-
-
-function constraint_short_pipe_head(wm::AbstractNCDModel, n::Int, a::Int, node_fr::Int, node_to::Int)
-    # Get short pipe direction variable.
-    y = var(wm, n, :y_short_pipe, a)
-
-    # Get head variables for from and to nodes.
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-    dhp, dhn = var(wm, n, :dhp_short_pipe, a), var(wm, n, :dhn_short_pipe, a)
-
-    # For short pipes, head differences must satisfy lower and upper bounds.
-    dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
-    c_1 = JuMP.@constraint(wm.model, h_i - h_j == 0.0)
-    c_2 = JuMP.@constraint(wm.model, dhp <= dhp_ub * y)
-    c_3 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - y))
-    c_4 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
-
-    # Append the :short_pipe_head constraint array.
-    append!(con(wm, n, :short_pipe_head, a), [c_1, c_2, c_3, c_4])
 end
 
 
