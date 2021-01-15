@@ -1,3 +1,28 @@
+function aggregate_pipes(subnetworks::Array{Dict{String, Any}, 1})
+    return _aggregate_pipes(subnetworks, "pipe")
+end
+
+
+function aggregate_des_pipes(subnetworks::Array{Dict{String, Any}, 1})
+    return _aggregate_pipes(subnetworks, "des_pipe")
+end
+
+
+function _aggregate_pipes(subnetworks::Array{Dict{String, Any}, 1}, pipe_type::String)
+    pipes = deepcopy(subnetworks[1][pipe_type])
+
+    for (i, x) in pipes
+        x["flow_min"] = sum_subnetwork_values(subnetworks, pipe_type, i, "flow_min")
+        x["flow_max"] = sum_subnetwork_values(subnetworks, pipe_type, i, "flow_max")
+        x["flow_min_forward"] = sum_subnetwork_values(subnetworks, pipe_type, i, "flow_min_forward")
+        x["flow_max_reverse"] = sum_subnetwork_values(subnetworks, pipe_type, i, "flow_max_reverse")
+        x["status"] = any_subnetwork_values(subnetworks, pipe_type, i, "status")
+    end
+
+    return pipes
+end
+
+
 function correct_pipes!(data::Dict{String, <:Any})
     head_loss_form, visc = data["head_loss"], data["viscosity"]
     capacity = _calc_capacity_max(data)

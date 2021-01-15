@@ -1,3 +1,18 @@
+function aggregate_demands(subnetworks::Array{Dict{String, Any}, 1})
+    demands = deepcopy(subnetworks[1]["demand"])
+
+    for (i, x) in demands
+        x["flow_min"] = sum_subnetwork_values(subnetworks, "demand", i, "flow_min")
+        x["flow_max"] = sum_subnetwork_values(subnetworks, "demand", i, "flow_max")
+        x["flow_nominal"] = sum_subnetwork_values(subnetworks, "demand", i, "flow_nominal")
+        x["dispatchable"] = all_subnetwork_values(subnetworks, "demand", i, "dispatchable")
+        x["status"] = any_subnetwork_values(subnetworks, "demand", i, "status")
+    end
+
+    return demands
+end
+
+
 function _relax_demand!(demand::Dict{String,<:Any})
     if haskey(demand, "flow_min") && haskey(demand, "flow_max")
         demand["dispatchable"] = demand["flow_min"] != demand["flow_max"]

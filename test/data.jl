@@ -1,4 +1,14 @@
 @testset "src/core/data.jl" begin
+    @testset "make_temporally_aggregated_multinetwork" begin
+        network = WaterModels.parse_file("../test/data/epanet/multinetwork/owf-hw-lps.inp")
+        network_mn = WaterModels.make_multinetwork(network)
+        network_agg = make_temporally_aggregated_multinetwork(network_mn, [["1", "2"], ["3"]])
+
+        @test network_mn["duration"] == network_agg["duration"]
+        demand_old = network_mn["nw"]["1"]["demand"]["2"]["flow_nominal"] 
+        @test demand_old < network_agg["nw"]["1"]["demand"]["2"]["flow_nominal"]
+    end
+
     @testset "set_start! (single network)" begin
         data = WaterModels.parse_file("../test/data/epanet/snapshot/pipe-hw-lps.inp")
         data["pipe"]["1"]["q"] = 1.0 # Set the flow along the pipe.

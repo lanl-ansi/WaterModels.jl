@@ -1,3 +1,8 @@
+function aggregate_short_pipes(subnetworks::Array{Dict{String, Any}, 1})
+    return _aggregate_pipes(subnetworks, "short_pipe")
+end
+
+
 function correct_short_pipes!(data::Dict{String, <:Any})
     capacity = _calc_capacity_max(data)
 

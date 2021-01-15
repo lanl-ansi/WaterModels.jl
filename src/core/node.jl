@@ -1,3 +1,18 @@
+function aggregate_nodes(subnetworks::Array{Dict{String, Any}, 1})
+    nodes = deepcopy(subnetworks[1]["node"])
+
+    for (i, x) in nodes
+        x["elevation"] = min_subnetwork_values(subnetworks, "node", i, "elevation")
+        x["head_min"] = min_subnetwork_values(subnetworks, "node", i, "head_min")
+        x["head_max"] = max_subnetwork_values(subnetworks, "node", i, "head_max")
+        x["head_nominal"] = max_subnetwork_values(subnetworks, "node", i, "head_nominal")
+        x["status"] = any_subnetwork_values(subnetworks, "node", i, "status")
+    end
+
+    return nodes
+end
+
+
 function _relax_nodes!(data::Dict{String,<:Any})
     if !_IM.ismultinetwork(data)
         if haskey(data, "time_series") && haskey(data["time_series"], "node")

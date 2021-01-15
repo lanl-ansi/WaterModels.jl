@@ -1,3 +1,19 @@
+function aggregate_tanks(subnetworks::Array{Dict{String, Any}, 1})
+    tanks = deepcopy(subnetworks[1]["tank"])
+
+    for (i, x) in tanks
+        x["min_level"] = max_subnetwork_values(subnetworks, "tank", i, "min_level")
+        x["max_level"] = min_subnetwork_values(subnetworks, "tank", i, "max_level")
+        x["min_vol"] = max_subnetwork_values(subnetworks, "tank", i, "min_vol")
+        x["init_level"] = min_subnetwork_values(subnetworks, "tank", i, "init_level")
+        x["dispatchable"] = all_subnetwork_values(subnetworks, "tank", i, "dispatchable")
+        x["status"] = any_subnetwork_values(subnetworks, "tank", i, "status")
+    end
+
+    return tanks
+end
+
+
 function _relax_tanks!(data::Dict{String,<:Any})
     if _IM.ismultinetwork(data)
         tanks = vcat([vcat(values(nw["tank"])...) for (n, nw) in data["nw"]]...)

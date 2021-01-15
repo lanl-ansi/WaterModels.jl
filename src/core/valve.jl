@@ -1,3 +1,8 @@
+function aggregate_valves(subnetworks::Array{Dict{String, Any}, 1})
+    return _aggregate_pipes(subnetworks, "valve")
+end
+
+
 function correct_valves!(data::Dict{String, <:Any})
     capacity = _calc_capacity_max(data)
 

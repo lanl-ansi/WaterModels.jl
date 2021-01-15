@@ -1,3 +1,18 @@
+function aggregate_regulators(subnetworks::Array{Dict{String, Any}, 1})
+    regulators = deepcopy(subnetworks[1]["regulator"])
+
+    for (i, x) in regulators
+        x["flow_min"] = sum_subnetwork_values(subnetworks, "regulator", i, "flow_min")
+        x["flow_max"] = sum_subnetwork_values(subnetworks, "regulator", i, "flow_max")
+        x["flow_min_forward"] = sum_subnetwork_values(subnetworks, "regulator", i, "flow_min_forward")
+        x["setting"] = min_subnetwork_values(subnetworks, "regulator", i, "setting")
+        x["status"] = any_subnetwork_values(subnetworks, "regulator", i, "status")
+    end
+
+    return regulators
+end
+
+
 function correct_regulators!(data::Dict{String, <:Any})
     capacity = _calc_capacity_max(data)
 
