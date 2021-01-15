@@ -19,7 +19,7 @@
     end
 
     @testset "make_multinetwork shamir" begin
-        network_data = WaterModels.parse_file("../test/data/epanet/shamir-ts.inp")
+        network_data = WaterModels.parse_file("../test/data/epanet/multinetwork/shamir-ts.inp")
 
         @test !_IM.ismultinetwork(network_data)
         @test haskey(network_data, "time_series")
