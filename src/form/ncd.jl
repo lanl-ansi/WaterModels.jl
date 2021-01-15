@@ -283,29 +283,6 @@ function constraint_on_off_pump_flow(wm::AbstractNCDModel, n::Int, a::Int, q_min
 end
 
 
-#function constraint_on_off_pump_head(wm::AbstractNCDModel, n::Int, a::Int, node_fr::Int, node_to::Int)
-#    # Get head difference variables for the pump.
-#    dhp, dhn = var(wm, n, :dhp_pump, a), var(wm, n, :dhn_pump, a)
-#
-#    # Get pump head gain and status variable.
-#    g, z = var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
-#
-#    # If the pump is off, decouple the head difference relationship.
-#    dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
-#    c_1 = JuMP.@constraint(wm.model, dhp <= dhp_ub * (1.0 - z))
-#    c_2 = JuMP.@constraint(wm.model, dhn <= g + dhn_ub * (1.0 - z))
-#    c_3 = JuMP.@constraint(wm.model, g <= dhn_ub * z)
-#    c_4 = JuMP.@constraint(wm.model, g <= dhn)
-#
-#    # Equate head difference variables with heads.
-#    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-#    c_5 = JuMP.@constraint(wm.model, dhp - dhn == h_i - h_j)
-#
-#    # Append the constraint array.
-#    append!(con(wm, n, :on_off_pump_head, a), [c_1, c_2, c_3, c_4, c_5])
-#end
-
-
 function constraint_on_off_pump_head_gain(wm::AbstractNCDModel, n::Int, a::Int, node_fr::Int, node_to::Int, q_min_forward::Float64)
     # Gather pump flow, head gain, and status variables.
     qp, g, z = var(wm, n, :qp_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
