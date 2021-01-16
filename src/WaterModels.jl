@@ -8,6 +8,7 @@ import Interpolations
 import JSON
 import JuMP
 import Memento
+import Statistics
 
 import MathOptInterface
 const _MOI = MathOptInterface

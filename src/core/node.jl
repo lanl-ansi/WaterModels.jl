@@ -98,3 +98,21 @@ function _calc_node_head_max(
         return min(head_max, head_max_base)
     end
 end
+
+
+function _calc_node_head_midpoint(node::Dict{String,Any})
+    return node["head_min"] + 0.5 * (node["head_max"] - node["head_min"])
+end
+
+
+function _calc_node_head_median_midpoint(data::Dict{String,Any})
+    if _IM.ismultinetwork(data)
+        for (n, nw) in data["nw"]
+            head_midpoints = [_calc_node_head_midpoint(x) for (i, x) in nw["node"]]
+            return Statistics.median(head_midpoints) # Calculate median midpoint.
+        end
+    else
+        head_midpoints = [_calc_node_head_midpoint(x) for (i, x) in data["node"]]
+        return Statistics.median(head_midpoints) # Calculate median midpoint.
+    end
+end
