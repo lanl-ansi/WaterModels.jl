@@ -38,6 +38,10 @@ Test for Hazen-Williams Head Gain Along a Pump
  1               0.0            100.0
  1               120.0          90.0
  1               150.0          83.0
+ eff             0.0            80.0
+ eff             50.0           75.0
+ eff             100.0          70.0
+ eff             150.0          65.0
 
 [CONTROLS]
 
@@ -47,6 +51,7 @@ Test for Hazen-Williams Head Gain Along a Pump
  Global Efficiency  	    85
  Global Price       	    1.0
  Demand Charge      	    0.0
+ Pump  1                    Efficiency   eff
 
 [EMITTERS]
 ;Junction         Coefficient

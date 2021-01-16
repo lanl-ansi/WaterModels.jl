@@ -46,7 +46,7 @@
     @testset "_get_bound_problem_candidate! (maximization, no solution)" begin
         wm = instantiate_model(mn_data, LRDWaterModel, build_mn_wf)
         JuMP.set_optimizer(wm.model, cbc) # Explicitly set an optimizer.
-        vid_1 = WaterModels._VariableIndex(1, :pipe, :y_pipe, 1)
+        vid_1 = WaterModels._VariableIndex(1, :pipe, :y_pipe, 2)
         vid_2 = WaterModels._VariableIndex(1, :pump, :z_pump, 1)
         problem = WaterModels._PairwiseProblem(_MOI.MAX_SENSE, vid_1, vid_2, 1.0)
         @test WaterModels._get_bound_problem_candidate(wm, problem) == 1.0

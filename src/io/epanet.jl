@@ -1,81 +1,57 @@
-using JSON
-
-_INP_SECTIONS = [
-    "[OPTIONS]",
-    "[TITLE]",
-    "[JUNCTIONS]",
-    "[RESERVOIRS]",
-    "[TANKS]",
-    "[PIPES]",
-    "[PUMPS]",
-    "[VALVES]",
-    "[EMITTERS]",
-    "[CURVES]",
-    "[PATTERNS]",
-    "[ENERGY]",
-    "[STATUS]",
-    "[CONTROLS]",
-    "[RULES]",
-    "[DEMANDS]",
-    "[QUALITY]",
-    "[REACTIONS]",
-    "[SOURCES]",
-    "[MIXING]",
-    "[TIMES]",
-    "[REPORT]",
-    "[COORDINATES]",
-    "[VERTICES]",
-    "[LABELS]",
-    "[BACKDROP]",
-    "[TAGS]",
-]
+function _initialize_epanet_dictionary()
+    data = Dict{String,Any}("time_series" => Dict{String,Any}(), "top_comments" => [])
+    data["section"] = Dict{String,Array}(x => [] for x in _INP_SECTIONS)
+    return data # Return an empty dictionary of the sectional data.
+end
 
 
-function _read_sections(filename::String)
-    data = _initialize_data()
+function _read_epanet_sections(file_path::String)
+    # Initialize the dictionary that stores raw EPANET data.
+    data = _initialize_epanet_dictionary()
 
-    section = nothing
-    line_number = 0
-    file_contents = read(open(filename), String)
+    # Instantiate metadata used in parsing EPANET sections.
+    section, line_number = nothing, 0
 
-    for line in split(file_contents, "\n")
-        line_number += 1
-        line = strip(line)
-        num_words = length(split(line))
+    # Populate sections in the EPANET dictionary.
+    for line in eachline(file_path)
+        # Update important data associated with the line.
+        line, line_number = strip(line), line_number + 1
 
-        if length(line) == 0 || num_words == 0
+        if length(line) == 0
+            # If the line is empty, continue to the next line.
             continue
         elseif startswith(line, "[")
-            values = split(line, limit = 1)
+            # If the line starts with "[", it must be a section.
+            values = split(line; limit = 1)
             section_tmp = uppercase(values[1])
 
             if section_tmp in _INP_SECTIONS
+                # If the section title is valid, store it as the current.
                 section = section_tmp
                 continue
             elseif section_tmp == "[END]"
-                section = nothing
+                # If the section title is "[END]", parsing is complete.
                 break
             else
-                Memento.error(
-                    _LOGGER,
-                    "$(filename): $(line_number): Invalid section \"$(section)\"",
-                )
+                # If the section title is not valid, throw an error.
+                msg = "File \"$(file_path)\", line $(line_number) has invalid section \"$(section_tmp)\"."
+                Memento.error(_LOGGER, msg)
             end
-        elseif section == nothing && startswith(line, ";")
+        elseif section === nothing && startswith(line, ";")
+            # If there is no current section and the section is a comment, store it.
             data["top_comments"] = vcat(data["top_comments"], line[2:end])
             continue
-        elseif section == nothing
-            Memento.warn(_LOGGER, "$(filename): Found confusing line: $(line_number)")
-            Memento.error(
-                _LOGGER,
-                "$(filename): $(line_number): Non-comment outside of valid section",
-            )
+        elseif section === nothing && !startswith(line, ";")
+            # If there is no current section and the line is not a comment, throw an error.
+            msg = "File \"$(file_path)\", line $(line_number) has invalid syntax."
+            Memento.error(_LOGGER, msg)
         end
 
-        data["section"][section] = vcat(data["section"][section], (line_number, line))
+        # Append a tuple of the line number and the line string to the dictionary.
+        push!(data["section"][section], (line_number, line))
     end
 
-    return data
+    return data # Return the "raw" EPANET data dictionary.
 end
 
 
@@ -90,96 +66,109 @@ a thorough description of the EPANET format and its components.
 """
 function parse_epanet(filename::String)
     # Read in raw sectional EPANET data.
-    data = _read_sections(filename)
+    epanet_data = _read_epanet_sections(filename)
 
     # Parse [OPTIONS] section.
-    _read_option!(data)
+    _parse_epanet_options(epanet_data)
 
     # Parse [TIMES] section.
-    _read_time!(data)
+    _read_time!(epanet_data)
 
     # Parse [CURVES] section.
-    _read_curve!(data)
+    _read_curve!(epanet_data)
 
     # Parse [PATTERNS] section.
-    _read_pattern!(data)
+    _read_pattern!(epanet_data)
 
     # Parse [JUNCTIONS] section.
-    _read_demand!(data)
+    _read_demand!(epanet_data)
 
     # Parse [RESERVOIRS] section.
-    _read_reservoir!(data)
+    _read_reservoir!(epanet_data)
 
     # Parse [TANKS] section.
-    _read_tank!(data)
+    _read_tank!(epanet_data)
 
     # Add nodes for components with nodal properties.
-    _add_nodes!(data)
+    _add_nodes!(epanet_data)
 
     # Add a data structure mapping names to node indices.
-    _add_node_map!(data)
-
-    # Update time series information for demands.
-    _update_demand_ts!(data)
+    _add_node_map!(epanet_data)
 
     # Update time series information for reservoirs.
-    _update_reservoir_ts!(data)
+    _update_reservoir_ts!(epanet_data)
 
     # Parse [PIPES] section.
-    _read_pipe!(data)
+    _read_pipe!(epanet_data)
 
     # Set up a dictionary containing valve objects.
-    data["valve"] = Dict{String,Any}()
+    epanet_data["valve"] = Dict{String,Any}()
 
     # Set up a dictionary containing short pipe objects.
-    data["short_pipe"] = Dict{String,Any}()
+    epanet_data["short_pipe"] = Dict{String,Any}()
+
+    # Set up a dictionary containing design pipe objects.
+    epanet_data["des_pipe"] = Dict{String,Any}()
 
     # Parse [PUMPS] section.
-    _read_pump!(data)
+    _read_pump!(epanet_data)
 
     # Parse [VALVES] section.
-    _read_regulator!(data)
+    _read_regulator!(epanet_data)
 
     # Parse [ENERGY] section.
-    _read_energy!(data)
+    _read_energy!(epanet_data)
 
     # Parse [STATUS] section.
-    _read_status!(data)
+    _read_status!(epanet_data)
 
     # Parse [CONTROLS] section.
-    _read_controls!(data)
+    _read_controls!(epanet_data)
 
     # Update pump data using data from the [ENERGY] section.
-    _update_pump_energy!(data)
+    _update_pump_energy!(epanet_data)
 
     # Parse [COORDINATES] section.
-    _read_coordinate!(data)
+    _read_coordinate!(epanet_data)
 
     # Parse [TITLE] section.
-    _read_title!(data)
+    _read_title!(epanet_data)
 
     # Add or remove time series information.
-    _update_time_series!(data)
+    _update_time_series!(epanet_data)
 
     # Delete redundant data that may have been parsed or added to the dictionary.
-    for key in ["section", "node_map", "curve", "pattern", "hydraulic_time_step",
-                "pattern_time_step", "demand_multiplier", "flow_units", "duration",
-                "top_comments", "default_pattern", "energy_price", "energy_pattern",
-                "energy_efficiency", "duration", "start_time", "demand_charge"]
-        key in keys(data) && delete!(data, key)
+    for key in [
+        "section",
+        "node_map",
+        "curve",
+        "pattern",
+        "hydraulic_time_step",
+        "pattern_time_step",
+        "demand_multiplier",
+        "flow_units",
+        "duration",
+        "top_comments",
+        "default_pattern",
+        "energy_price",
+        "energy_pattern",
+        "energy_efficiency",
+        "duration",
+        "start_time",
+        "demand_charge",
+    ]
+        key in keys(epanet_data) && delete!(epanet_data, key)
     end
 
     # Add other data required by InfrastructureModels.
-    data["per_unit"] = false
+    epanet_data["per_unit"] = false
 
     # Remove all keys that have values of nothing.
-    _clean_nothing!(data)
+    _clean_nothing!(epanet_data)
 
     # Return the dictionary.
-    return data
+    return epanet_data
 end
-
-
 
 
 function _update_time_series!(data::Dict{String,<:Any})
@@ -206,10 +195,9 @@ function _update_time_series!(data::Dict{String,<:Any})
     end
 end
 
-
 "Standardize component indices to be integers instead of strings."
 function _transform_component_indices(components::Dict{String,<:Any})
-    if all([tryparse(Int64, x["name"]) != nothing for (i, x) in components])
+    if all([tryparse(Int64, x["name"]) !== nothing for (i, x) in components])
         for (name, component) in components
             component["index"] = parse(Int, component["name"])
         end
@@ -222,6 +210,11 @@ function _transform_component_indices(components::Dict{String,<:Any})
     return Dict{String,Any}(string(x["index"]) => x for (i, x) in components)
 end
 
+"Standardize component time series indices to match primary indices."
+function _transform_time_series_indices(components::Dict{String,<:Any}, time_series::Dict{String,<:Any})
+    name_to_index = Dict{String,String}(x["name"] => i for (i, x) in components)
+    return Dict{String,Any}(name_to_index[i] => x for (i, x) in time_series)
+end
 
 function _update_demand_ts!(data::Dict{String,<:Any})
     # Create a temporary dictionary representing the demand time series.
@@ -234,9 +227,8 @@ function _update_demand_ts!(data::Dict{String,<:Any})
     end
 
     # Update the demand entry in the time series dictionary.
-    data["time_series"]["demand"] = demand_ts
+    return data["time_series"]["demand"] = demand_ts
 end
-
 
 function _update_reservoir_ts!(data::Dict{String,<:Any})
     # Create a temporary dictionary representing the reservoir time series.
@@ -251,9 +243,8 @@ function _update_reservoir_ts!(data::Dict{String,<:Any})
 
     # Update the reservoir entry in the time series dictionary.
     data["time_series"]["node"] = node_ts
-    delete!(data["time_series"], "reservoir")
+    return delete!(data["time_series"], "reservoir")
 end
-
 
 function _add_nodes!(data::Dict{String,<:Any})
     # Define EPANET nodal types that should be attached to nodes.
@@ -278,7 +269,13 @@ function _add_nodes!(data::Dict{String,<:Any})
 
             # Save common data from the component within the node entry.
             node["status"], node["elevation"] = comp["status"], pop!(comp, "elevation")
-            node["head"] = "head" in keys(comp) ? pop!(comp, "head") : node["elevation"]
+
+            if haskey(node, "head_nominal")
+                node["head_nominal"] = pop!(comp, "head_nominal")
+            else node["elevation"]
+                node["head_nominal"] = node["elevation"]
+            end
+
             node["source_id"] = comp["source_id"]
 
             # Append the node to the node dictionary.
@@ -292,7 +289,7 @@ end
 
 
 function _split_line(line::AbstractString)
-    _vc = split(line, ",", limit = 1)
+    _vc = split(line, ","; limit = 1)
     _values = nothing
     _comment = nothing
 
@@ -308,21 +305,6 @@ function _split_line(line::AbstractString)
     end
 
     return _values, _comment
-end
-
-
-function _initialize_data()
-    data = Dict{String,Any}()
-
-    data["top_comments"] = []
-    data["section"] = Dict{String,Array}()
-    data["time_series"] = Dict{String,Any}()
-
-    for section in _INP_SECTIONS
-        data["section"][section] = []
-    end
-
-    return data
 end
 
 
@@ -349,7 +331,7 @@ function _clock_time_to_seconds(s::AbstractString, am_pm::AbstractString)
 
     time_tuple = match(r"^(\d+):(\d+):(\d+)$", s)
 
-    if time_tuple != nothing
+    if time_tuple !== nothing
         seconds_1 = parse(Int64, time_tuple[1]) * 3600
         seconds_2 = parse(Int64, time_tuple[2]) * 60
         seconds_3 = convert(Int64, round(parse(Float64, time_tuple[3])))
@@ -371,7 +353,7 @@ function _clock_time_to_seconds(s::AbstractString, am_pm::AbstractString)
     else
         time_tuple = match(r"^(\d+):(\d+)$", s)
 
-        if time_tuple != nothing
+        if time_tuple !== nothing
             seconds_1 = parse(Int64, time_tuple[1]) * 3600
             seconds_2 = parse(Int64, time_tuple[2]) * 60
 
@@ -394,7 +376,7 @@ function _clock_time_to_seconds(s::AbstractString, am_pm::AbstractString)
         else
             time_tuple = match(r"^(\d+)$", s)
 
-            if time_tuple != nothing
+            if time_tuple !== nothing
                 time_seconds = parse(Int64, time_tuple[1]) * 3600
 
                 if startswith(s, "12")
@@ -420,7 +402,6 @@ function _clock_time_to_seconds(s::AbstractString, am_pm::AbstractString)
     end
 end
 
-
 """
 Converts EPANET time format to seconds.
 Parameters
@@ -434,7 +415,7 @@ Returns
 function _string_time_to_seconds(s::AbstractString)
     time_tuple = match(r"^(\d+):(\d+):(\d+)$", s)
 
-    if time_tuple != nothing
+    if time_tuple !== nothing
         seconds_1 = parse(Int64, time_tuple[1]) * 3600
         seconds_2 = parse(Int64, time_tuple[2]) * 60
         seconds_3 = convert(Int64, round(parse(Float64, time_tuple[3])))
@@ -442,14 +423,14 @@ function _string_time_to_seconds(s::AbstractString)
     else
         time_tuple = match(r"^(\d+):(\d+)$", s)
 
-        if time_tuple != nothing
+        if time_tuple !== nothing
             seconds_1 = parse(Int64, time_tuple[1]) * 3600
             seconds_2 = parse(Int64, time_tuple[2]) * 60
             return seconds_1 + seconds_2
         else
             time_tuple = match(r"^(\d+)$", s)
 
-            if time_tuple != nothing
+            if time_tuple !== nothing
                 return parse(Int64, time_tuple[1]) * 3600
             else
                 Memento.error(_LOGGER, "Time format in INP file not recognized")
@@ -458,17 +439,15 @@ function _string_time_to_seconds(s::AbstractString)
     end
 end
 
-
 function _clean_nothing!(data)
     for (key, value) in data
         if isa(value, Dict)
             value = _clean_nothing!(value)
-        elseif value == nothing
+        elseif value === nothing
             delete!(data, key)
         end
     end
 end
-
 
 function _read_coordinate!(data::Dict{String,<:Any})
     for (line_number, line) in data["section"]["[COORDINATES]"]
@@ -481,7 +460,6 @@ function _read_coordinate!(data::Dict{String,<:Any})
         data["node"][string(node_id)]["coordinates"] = (x, y)
     end
 end
-
 
 function _read_curve!(data::Dict{String,<:Any})
     # Initialize dictionary associated with curves.
@@ -503,7 +481,6 @@ function _read_curve!(data::Dict{String,<:Any})
         data["curve"][curve_name] = vcat(data["curve"][curve_name], (x, y))
     end
 end
-
 
 function _read_energy!(data::Dict{String,<:Any})
     # Loop over all lines in the [ENERGY] section and parse each.
@@ -555,7 +532,7 @@ function _read_energy!(data::Dict{String,<:Any})
                     Memento.error(_LOGGER, "Could not find a valid \"units\" option type.")
                 end
 
-                for k in 1:length(y)
+                for k = 1:length(y)
                     y[k] = x[k] > 0.0 && y[k] > 1.0e-2 ? y[k] : 1.0e-2
                 end
 
@@ -569,7 +546,6 @@ function _read_energy!(data::Dict{String,<:Any})
         end
     end
 end
-
 
 function _read_status!(data::Dict{String,<:Any})
     # Loop over all lines in the [STATUS] section and parse each.
@@ -585,7 +561,6 @@ function _read_status!(data::Dict{String,<:Any})
     end
 end
 
-
 function _read_controls!(data::Dict{String,<:Any})
     # Loop over all lines in the [CONTROLS] section and parse each.
     for (line_number, line) in data["section"]["[CONTROLS]"]
@@ -599,7 +574,6 @@ function _read_controls!(data::Dict{String,<:Any})
     end
 end
 
-
 function _update_pump_energy!(data::Dict{String,<:Any})
     # Use data previously parsed to infer missing pump data.
     for (pump_id, pump) in data["pump"]
@@ -609,7 +583,10 @@ function _update_pump_energy!(data::Dict{String,<:Any})
             pump["efficiency"] = data["energy_efficiency"]
         elseif !("efficiency_curve" in keys(pump))
             # Otherwise, assume the pump is perfectly efficient.
-            Memento.warn(_LOGGER, "Efficiency for pump \"$(pump["name"])\" could not be found.")
+            Memento.warn(
+                _LOGGER,
+                "Efficiency for pump \"$(pump["name"])\" could not be found.",
+            )
             pump["efficiency"] = 1.0
         end
 
@@ -644,7 +621,6 @@ function _update_pump_energy!(data::Dict{String,<:Any})
     end
 end
 
-
 "Parse and store demand data from an EPANET-formatted data dictionary."
 function _read_demand!(data::Dict{String,<:Any})
     # Initialize dictionaries associated with demands.
@@ -652,7 +628,7 @@ function _read_demand!(data::Dict{String,<:Any})
     data["time_series"]["demand"] = Dict{String,Any}()
 
     # Initialize a temporary index to be updated while parsing.
-    index::Int64 = 0
+    index::Int64 = 0 # This will track the order that demands appear.
 
     # Loop over all lines in the [JUNCTIONS] section and parse each.
     for (line_number, line) in data["section"]["[JUNCTIONS]"]
@@ -683,29 +659,36 @@ function _read_demand!(data::Dict{String,<:Any})
             # Convert the unscaled demand to cubic meters per second.
             if data["flow_units"] == "LPS" # If liters per second...
                 # Convert from liters per second to cubic meters per second.
-                demand["flow_rate"] = 1.0e-3 * demand_unscaled
+                demand["flow_nominal"] = 1.0e-3 * demand_unscaled
             elseif data["flow_units"] == "CMH" # If cubic meters per hour...
                 # Convert from cubic meters per hour to cubic meters per second.
-                demand["flow_rate"] = inv(3600.0) * demand_unscaled
+                demand["flow_nominal"] = inv(3600.0) * demand_unscaled
             elseif data["flow_units"] == "GPM" # If gallons per minute...
                 # Convert from gallons per minute to cubic meters per second.
-                demand["flow_rate"] = 6.30902e-5 * demand_unscaled
+                demand["flow_nominal"] = 6.30902e-5 * demand_unscaled
             end
         else # No value for demand exists in the line.
             demand["status"] = 0 # Set the status of the demand to zero.
-            demand["flow_rate"] = 0.0 # Initialize demand to zero.
+            demand["flow_nominal"] = 0.0 # Initialize demand to zero.
         end
+
+        demand["flow_min"] = demand["flow_nominal"]
+        demand["flow_max"] = demand["flow_nominal"]
 
         # Parse the name of the pattern used to scale demand at the demand.
         pattern = length(current) > 3 ? current[4] : data["default_pattern"]
 
         # Scale the parsed demand by the specified pattern, if it exists.
-        if pattern != nothing && length(data["pattern"][pattern]) > 1
-            flow_rate = demand["flow_rate"] .* data["pattern"][pattern]
-            entry = Dict{String,Array{Float64}}("flow_rate" => flow_rate)
+        if pattern !== nothing && length(data["pattern"][pattern]) > 1
+            flow_rate = demand["flow_nominal"] .* data["pattern"][pattern]
+            entry = Dict{String,Array{Float64}}("flow_nominal" => flow_rate)
+            entry["flow_min"] = entry["flow_nominal"]
+            entry["flow_max"] = entry["flow_nominal"]
             data["time_series"]["demand"][current[1]] = entry
-        elseif pattern != nothing && pattern != "1"
-            demand["flow_rate"] *= data["pattern"][pattern][1]
+        elseif pattern !== nothing && pattern != "1"
+            demand["flow_nominal"] *= data["pattern"][pattern][1]
+            demand["flow_min"] = demand["flow_nominal"]
+            demand["flow_max"] = demand["flow_nominal"]
         end
 
         # Add a temporary index to be used in the data dictionary.
@@ -714,11 +697,12 @@ function _read_demand!(data::Dict{String,<:Any})
         # Append the demand entry to the data dictionary.
         data["demand"][current[1]] = demand
     end
-   
-    # Replace with a new dictionary that uses integer component indices.
-    data["demand"] = _transform_component_indices(data["demand"])
-end
 
+    # Replace with new dictionaries that use integer component indices.
+    data["demand"] = _transform_component_indices(data["demand"])
+    data["time_series"]["demand"] = _transform_time_series_indices(
+        data["demand"], data["time_series"]["demand"])
+end
 
 function _add_node_map!(data::Dict{String,<:Any})
     # Initialize the dictionary mapping component names to node indices.
@@ -739,13 +723,12 @@ function _add_node_map!(data::Dict{String,<:Any})
     end
 end
 
-
-function _read_option!(data::Dict{String,<:Any})
+function _parse_epanet_options(data::Dict{String,<:Any})
     # Loop over all lines in the [OPTIONS] section and parse each.
     for (line_number, line) in data["section"]["[OPTIONS]"]
         words, comments = _split_line(line)
 
-        if words != nothing && length(words) > 0
+        if words !== nothing && length(words) > 0
             if length(words) < 2
                 Memento.error(_LOGGER, "No value provided for option $(words[1])")
             end
@@ -769,8 +752,10 @@ function _read_option!(data::Dict{String,<:Any})
             end
         end
     end
-end
 
+    # Ensure that required data fields have been populated.
+    @assert all(haskey.(Ref(data), ["flow_units", "head_loss", "viscosity"]))
+end
 
 function _read_pattern!(data::Dict{String,<:Any})
     # Initialize dictionary associated with patterns.
@@ -802,7 +787,7 @@ function _read_pattern!(data::Dict{String,<:Any})
 
             # For all patterns, ensure they match the hydraulic periods.
             for (pattern_name, pattern) in data["pattern"]
-                pattern = [pattern[div(i, factor)+1] for i = 0:factor*length(pattern)-1]
+                pattern = [pattern[div(i, factor)+1] for i = 0:(factor*length(pattern)-1)]
                 data["pattern"][pattern_name] = pattern
             end
         end
@@ -826,14 +811,13 @@ function _read_pattern!(data::Dict{String,<:Any})
         # Sanity check: if the default pattern does not exist and it is not "1", then balk.
         # If default is "1" but it does not exist, then it is constant.
         # Any other default that does not exist is an error.
-        if data["default_pattern"] != nothing && data["default_pattern"] != "1"
+        if data["default_pattern"] !== nothing && data["default_pattern"] != "1"
             Memento.error("Default pattern \"$(data["default_pattern"])\" is undefined.")
         end
 
         data["default_pattern"] = nothing
     end
 end
-
 
 function _read_pipe!(data::Dict{String,<:Any})
     # Initialize dictionary associated with pipes.
@@ -900,10 +884,9 @@ function _read_pipe!(data::Dict{String,<:Any})
         data["pipe"][current[1]] = pipe
     end
 
-    # Replace with a new dictionary that uses integer component indices.
+    # Replace with new dictionaries that use integer component indices.
     data["pipe"] = _transform_component_indices(data["pipe"])
 end
-
 
 function _read_pump!(data::Dict{String,<:Any})
     # Initialize dictionaries associated with pumps.
@@ -925,8 +908,10 @@ function _read_pump!(data::Dict{String,<:Any})
         pump["node_to"] = data["node_map"][current[3]]
 
         # Loop over remaining entries and store remaining properties.
-        for i in range(4, stop = length(current), step = 2)
-            if uppercase(current[i]) != "HEAD"
+        for i in range(4; stop = length(current), step = 2)
+            if uppercase(current[i]) == "POWER"
+                Memento.error(_LOGGER, "Constant power pumps are not supported.")
+            elseif uppercase(current[i]) != "HEAD"
                 Memento.error(_LOGGER, "Pump keyword in INP file not recognized.")
             end
 
@@ -964,10 +949,11 @@ function _read_pump!(data::Dict{String,<:Any})
         data["pump"][current[1]] = pump
     end
 
-    # Replace with a new dictionary that uses integer component indices.
+    # Replace with new dictionaries that use integer component indices.
     data["pump"] = _transform_component_indices(data["pump"])
+    data["time_series"]["pump"] = _transform_time_series_indices(
+        data["pump"], data["time_series"]["pump"])
 end
-
 
 function _read_reservoir!(data::Dict{String,<:Any})
     # Initialize dictionaries associated with reservoirs.
@@ -990,10 +976,10 @@ function _read_reservoir!(data::Dict{String,<:Any})
         # Parse the head of the reservoir (in meters).
         if data["flow_units"] == "LPS" || data["flow_units"] == "CMH"
             # Retain the original value (in meters).
-            reservoir["head"] = parse(Float64, current[2])
+            reservoir["head_nominal"] = parse(Float64, current[2])
         elseif data["flow_units"] == "GPM" # If gallons per minute...
             # Convert head from feet to meters.
-            reservoir["head"] = 0.3048 * parse(Float64, current[2])
+            reservoir["head_nominal"] = 0.3048 * parse(Float64, current[2])
         else
             Memento.error(_LOGGER, "Could not find a valid \"units\" option type.")
         end
@@ -1003,16 +989,20 @@ function _read_reservoir!(data::Dict{String,<:Any})
 
         # Scale the parsed head by the specified pattern, if it exists. Also, assume the
         # reservoir's elevation is equal to the minimum value of head presented in the data.
-        if pattern != nothing && length(data["pattern"][pattern]) > 1
-            head = reservoir["head"] .* data["pattern"][pattern]
-            entry = Dict{String,Array{Float64}}("head" => head)
+        if pattern !== nothing && length(data["pattern"][pattern]) > 1
+            head = reservoir["head_nominal"] .* data["pattern"][pattern]
+            entry = Dict{String,Array{Float64}}("head_nominal" => head)
+            entry["head_min"] = entry["head_nominal"]
+            entry["head_max"] = entry["head_nominal"]
             data["time_series"]["reservoir"][current[1]] = entry
             reservoir["elevation"] = minimum(head)
-        elseif pattern != nothing && pattern != "1"
-            reservoir["head"] *= data["pattern"][pattern][1]
-            reservoir["elevation"] = reservoir["head"]
+        elseif pattern !== nothing && pattern != "1"
+            reservoir["head_nominal"] *= data["pattern"][pattern][1]
+            reservoir["head_min"] = reservoir["head_nominal"]
+            reservoir["head_max"] = reservoir["head_nominal"]
+            reservoir["elevation"] = reservoir["head_nominal"]
         else
-            reservoir["elevation"] = reservoir["head"]
+            reservoir["elevation"] = reservoir["head_nominal"]
         end
 
         # Add a temporary index to be used in the data dictionary.
@@ -1022,10 +1012,11 @@ function _read_reservoir!(data::Dict{String,<:Any})
         data["reservoir"][current[1]] = reservoir
     end
 
-    # Replace with a new dictionary that uses integer component indices.
+    # Replace with new dictionaries that use integer component indices.
     data["reservoir"] = _transform_component_indices(data["reservoir"])
+    #data["time_series"]["reservoir"] = _transform_time_series_indices(
+    #    data["reservoir"], data["time_series"]["reservoir"])
 end
-
 
 function _read_tank!(data::Dict{String,<:Any})
     # Initialize dictionaries associated with tanks.
@@ -1076,10 +1067,9 @@ function _read_tank!(data::Dict{String,<:Any})
         data["tank"][current[1]] = tank
     end
 
-    # Replace with a new dictionary that uses integer component indices.
+    # Replace with new dictionaries that use integer component indices.
     data["tank"] = _transform_component_indices(data["tank"])
 end
-
 
 function _read_time!(data::Dict{String,<:Any})
     # Loop over all lines in the [TIMES] section and parse each.
@@ -1100,7 +1090,6 @@ function _read_time!(data::Dict{String,<:Any})
     end
 end
 
-
 function _read_title!(data::Dict{String,<:Any})
     lines = Array{String}[]
 
@@ -1115,9 +1104,8 @@ function _read_title!(data::Dict{String,<:Any})
         end
     end
 
-    data["name"] = join(lines, " ")
+    return data["name"] = join(lines, " ")
 end
-
 
 function _read_regulator!(data::Dict{String,<:Any})
     # Initialize dictionaries associated with valves.
@@ -1139,6 +1127,7 @@ function _read_regulator!(data::Dict{String,<:Any})
         # Parse the valve type and throw an error if not supported.
         if uppercase(current[5]) == "PRV"
             valve["source_id"] = ["regulator", current[1]]
+            valve["flow_direction"] = POSITIVE
         elseif uppercase(current[5]) == "TCV"
             valve["source_id"] = ["throttle_control_valve", current[1]]
             Memento.error(_LOGGER, "Valves of type $(current[5]) are not supported.")
@@ -1177,7 +1166,6 @@ function _read_regulator!(data::Dict{String,<:Any})
     data["regulator"] = _transform_component_indices(data["regulator"])
 end
 
-
 """
     epanet_to_watermodels!(epanet_data; import_all=false)
 
@@ -1187,7 +1175,7 @@ internal WaterModels use. Imports all data from the EPANET file if `import_all` 
 function epanet_to_watermodels!(data::Dict{String,<:Any}; import_all::Bool = false)
     _drop_zero_demands!(data) # Drop demands of zero from nodes.
     _convert_short_pipes!(data) # Convert pipes that are short to short pipes and valves.
-    _add_valves_to_tanks!(data) # Ensure that shutoff valves are connected to tanks.
+    #_add_valves_to_tanks!(data) # Ensure that shutoff valves are connected to tanks.
     _add_valves_from_pipes!(data) # Convert pipes with valves to pipes *and* valves.
     _drop_pipe_flags!(data) # Drop irrelevant pipe attributes.
 end
@@ -1210,36 +1198,46 @@ end
 
 
 function _convert_short_pipes!(data::Dict{String,<:Any})
-    res = calc_resistances(data["pipe"], data["viscosity"], data["head_loss"])
-    res = Dict{String,Any}(a => res[a] .* x["length"] for (a, x) in data["pipe"])
-    pipe_indices = [a for (a, r) in res if all(r .<= 0.01)] # Pipes with small resistances.
+    exponent = uppercase(data["head_loss"]) == "H-W" ? 1.852 : 2.0
+    max_flow_exp = abs(_calc_capacity_max(data))^exponent
 
-    for a in pipe_indices
-        pipe = deepcopy(data["pipe"][a])
+    for (a, pipe) in data["pipe"]
+        r = _calc_pipe_resistance(pipe, data["head_loss"], data["viscosity"])
+        dh_max = r * pipe["length"] * max_flow_exp
 
-        # Delete unnecessary fields.
-        delete!(pipe, "diameter")
-        delete!(pipe, "length")
-        delete!(pipe, "roughness")
+        if dh_max <= 0.1
+            # Delete unnecessary fields.
+            delete!(pipe, "diameter")
+            delete!(pipe, "length")
+            delete!(pipe, "roughness")
 
-        if pipe["has_valve"]
-            # Transform the pipe into a valve.
-            delete!(pipe, "has_valve")
-            data["valve"][a] = pipe
-        else
-            # Transform the pipe into a short pipe.
-            delete!(pipe, "has_valve")
-            data["short_pipe"][a] = pipe
+            if pipe["has_valve"]
+                # Transform the pipe into a valve.
+                delete!(pipe, "has_valve")
+                data["valve"][a] = deepcopy(pipe)
+            else
+                # Transform the pipe into a short pipe.
+                delete!(pipe, "has_valve")
+                data["short_pipe"][a] = deepcopy(pipe)
+            end
+
+            # Delete the original pipe component.
+            delete!(data["pipe"], a)
         end
-
-        # Delete the original pipe component.
-        delete!(data["pipe"], a)
     end
 end
 
 
+function _has_zero_demand(demand::Dict{String, <:Any})
+    zero_flow_min = demand["flow_min"] == 0.0
+    zero_flow_max = demand["flow_max"] == 0.0
+    return zero_flow_min && zero_flow_max
+end
+
+
+
 function _drop_zero_demands!(data::Dict{String,<:Any})
-    for (i, demand) in filter(x -> x.second["flow_rate"] == 0.0, data["demand"])
+    for (i, demand) in filter(x -> _has_zero_demand(x.second), data["demand"])
         delete!(data["demand"], i)
         haskey(data, "time_series") && delete!(data["time_series"]["demand"], i)
     end
@@ -1272,13 +1270,12 @@ function _add_valves_to_tanks!(data::Dict{String,<:Any})
         valve = Dict{String,Any}("name" => string(v_id), "status" => 1, "index" => v_id)
         valve["source_id"] = AbstractString["valve", string(v_id)]
         valve["node_fr"], valve["node_to"] = original_tank_node, dummy_node_id
-        valve["flow_direction"] = UNKNOWN
+        valve["flow_direction"], valve["minor_loss"] = UNKNOWN, 0.0
 
         # Add the valve to the data object.
         data["valve"][string(v_id)] = valve
     end
 end
-
 
 function _add_valves_from_pipes!(data::Dict{String,<:Any})
     # Add valves to parsed pipes that have the attribute "has_valve" equal to true.
@@ -1292,6 +1289,7 @@ function _add_valves_from_pipes!(data::Dict{String,<:Any})
         valve = Dict{String,Any}("index" => pipe["index"], "name" => pipe["name"])
         valve["source_id"], valve["status"] = pipe["source_id"], 1
         valve["flow_direction"] = pipe["flow_direction"]
+        valve["minor_loss"] = pipe["minor_loss"]
 
         # Modify the start and ends nodes of the valve and pipe.
         valve["node_fr"], valve["node_to"] = pipe["node_fr"], dummy_node_id
@@ -1301,3 +1299,34 @@ function _add_valves_from_pipes!(data::Dict{String,<:Any})
         data["valve"][a], data["node"][string(dummy_node_id)] = valve, dummy_node
     end
 end
+
+
+_INP_SECTIONS = [
+    "[OPTIONS]",
+    "[TITLE]",
+    "[JUNCTIONS]",
+    "[RESERVOIRS]",
+    "[TANKS]",
+    "[PIPES]",
+    "[PUMPS]",
+    "[VALVES]",
+    "[EMITTERS]",
+    "[CURVES]",
+    "[PATTERNS]",
+    "[ENERGY]",
+    "[STATUS]",
+    "[CONTROLS]",
+    "[RULES]",
+    "[DEMANDS]",
+    "[QUALITY]",
+    "[REACTIONS]",
+    "[SOURCES]",
+    "[MIXING]",
+    "[TIMES]",
+    "[REPORT]",
+    "[COORDINATES]",
+    "[VERTICES]",
+    "[LABELS]",
+    "[BACKDROP]",
+    "[TAGS]",
+]

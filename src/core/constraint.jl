@@ -20,7 +20,7 @@ function constraint_flow_conservation(
     reservoirs::Array{Int64,1}, tanks::Array{Int64,1}, dispatchable_demands::Array{Int64,1},
     fixed_demand::Float64)
     # Collect flow variable references per component.
-    q_pipe, q_des_pipe = var(wm, n, :q_pipe), var(wm, n, :q_des_pipe_sum)
+    q_pipe, q_des_pipe = var(wm, n, :q_pipe), var(wm, n, :q_des_pipe)
     q_pump, q_regulator = var(wm, n, :q_pump), var(wm, n, :q_regulator)
     q_short_pipe, q_valve = var(wm, n, :q_short_pipe), var(wm, n, :q_valve)
     q_reservoir, q_tank = var(wm, n, :q_reservoir), var(wm, n, :q_tank)
@@ -55,6 +55,13 @@ function constraint_tank_volume_fixed(wm::AbstractWaterModel, n::Int, i::Int, V_
 end
 
 
+function constraint_des_pipe_selection(wm::AbstractWaterModel, n::Int, k::Int, node_fr::Int, node_to::Int, des_pipes::Array{Int64,1})
+    z_des_pipe = var(wm, n, :z_des_pipe)
+    c = JuMP.@constraint(wm.model, sum(z_des_pipe[a] for a in des_pipes) == 1.0)
+    append!(con(wm, n, :des_pipe_selection)[k], [c])
+end
+
+
 """
     constraint_tank_volume(wm, n_1, n_2, i, time_step)
 
@@ -64,9 +71,9 @@ index of another subnetwork forward in time, relative to `n_1`, i is the index o
 and time_step is the time step (in seconds) of the interval from network `n_1` to `n_2`.
 """
 function constraint_tank_volume(wm::AbstractWaterModel, n_1::Int, n_2::Int, i::Int, time_step::Float64)
-    qt = var(wm, n_1, :q_tank, i) # Tank outflow.
+    q_tank = var(wm, n_1, :q_tank, i) # Tank outflow.
     V_1, V_2 = var(wm, n_1, :V, i), var(wm, n_2, :V, i)
-    c = JuMP.@constraint(wm.model, V_1 - time_step * qt == V_2)
+    c = JuMP.@constraint(wm.model, V_1 - time_step * q_tank == V_2)
     con(wm, n_2, :tank_volume)[i] = c
 end
 
@@ -80,10 +87,27 @@ greater than or equal to the volume of the tank at the beginning of the time hor
 multinetwork, `n_f` is the index of the final subnetwork, and i is the index of the tank.
 """
 function constraint_tank_volume_recovery(wm::AbstractWaterModel, i::Int, n_1::Int, n_f::Int)
-    if !ref(wm, n_f, :tank, i)["dispatchable"]
-        _initialize_con_dict(wm, :tank_volume_recovery, nw=n_f)
-        V_1, V_f = var(wm, n_1, :V, i), var(wm, n_f, :V, i)
-        c = JuMP.@constraint(wm.model, V_f >= V_1)
-        con(wm, n_f, :tank_volume_recovery)[i] = c
-    end
+    _initialize_con_dict(wm, :tank_volume_recovery, nw = n_f)
+    V_1, V_f = var(wm, n_1, :V, i), var(wm, n_f, :V, i)
+    c = JuMP.@constraint(wm.model, V_1 <= V_f)
+    con(wm, n_f, :tank_volume_recovery)[i] = c
+end
+
+
+function constraint_on_off_pump_power_best_efficiency(wm::AbstractWaterModel, n::Int, a::Int, q_min_forward::Float64)
+    # Gather pump flow, power, and status variables.
+    q, P, z = var(wm, n, :q_pump, a), var(wm, n, :P_pump, a), var(wm, n, :z_pump, a)
+
+    # Get pump best efficiency data required for construction.
+    flow_bep = _calc_pump_best_efficiency_flow(ref(wm, n, :pump, a))
+    power_bep = _calc_pump_best_efficiency_power(ref(wm, n, :pump, a))
+
+    # Compute the linear expression used to calculate power.
+    P_expr = power_bep * (inv(3.0) * q * inv(flow_bep) + z * 2.0 * inv(3.0))
+
+    # Add constraint equating power with respect to the power curve.
+    c = JuMP.@constraint(wm.model, P_expr == P)
+
+    # Append the :on_off_pump_power constraint array.
+    append!(con(wm, n, :on_off_pump_power)[a], [c])
 end

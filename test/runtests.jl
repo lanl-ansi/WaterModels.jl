@@ -20,13 +20,17 @@ Logging.disable_logging(Logging.Info)
 
 using Test
 
-# Default MIP and NLP optimizers.
+# Default MIP optimizer
 cbc = JuMP.optimizer_with_attributes(Cbc.Optimizer, "logLevel" => 0)
-ipopt = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 0, "sb" => "yes")
+
+# Default NLP optimizer.
+ipopt = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "tol" => 1.0e-6, "print_level" => 0, "sb" => "yes")
 
 include("common.jl")
 
 @testset "WaterModels" begin
+
+    include("epanet.jl")
 
     include("base.jl")
 
@@ -59,8 +63,6 @@ include("common.jl")
     include("variable_index.jl")
 
     include("pairwise_cuts.jl")
-
-    include("pump_volume_cuts.jl")
 
     include("obbt.jl")
 

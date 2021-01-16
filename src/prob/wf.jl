@@ -11,8 +11,10 @@ function build_wf(wm::AbstractWaterModel)
     variable_head(wm)
     variable_flow(wm)
     variable_pump_head_gain(wm)
+    variable_pump_power(wm)
 
     # Indicator (status) variables.
+    variable_des_pipe_indicator(wm)
     variable_pump_indicator(wm)
     variable_regulator_indicator(wm)
     variable_valve_indicator(wm)
@@ -35,11 +37,26 @@ function build_wf(wm::AbstractWaterModel)
         constraint_pipe_flow(wm, a)
     end
 
+    # Selection of design pipes along unique arcs.
+    for (k, arc) in ref(wm, :des_pipe_arc)
+        constraint_des_pipe_flow(wm, k, arc[1], arc[2])
+        constraint_des_pipe_head(wm, k, arc[1], arc[2])
+        constraint_des_pipe_selection(wm, k, arc[1], arc[2])
+    end
+
+    # Constraints on design pipe flows, heads, and physics.
+    for (a, des_pipe) in ref(wm, :des_pipe)
+        constraint_on_off_des_pipe_head(wm, a)
+        constraint_on_off_des_pipe_head_loss(wm, a)
+        constraint_on_off_des_pipe_flow(wm, a)
+    end
+
     # Constraints on pump flows, heads, and physics.
     for (a, pump) in ref(wm, :pump)
         constraint_on_off_pump_head(wm, a)
         constraint_on_off_pump_head_gain(wm, a)
         constraint_on_off_pump_flow(wm, a)
+        constraint_on_off_pump_power(wm, a)
     end
 
     # Constraints on short pipe flows and heads.
@@ -85,8 +102,10 @@ function build_mn_wf(wm::AbstractWaterModel)
         variable_head(wm; nw=n)
         variable_flow(wm; nw=n)
         variable_pump_head_gain(wm; nw=n)
+        variable_pump_power(wm; nw=n)
 
         # Indicator (status) variables.
+        variable_des_pipe_indicator(wm; nw=n)
         variable_pump_indicator(wm; nw=n)
         variable_regulator_indicator(wm; nw=n)
         variable_valve_indicator(wm; nw=n)
@@ -104,9 +123,23 @@ function build_mn_wf(wm::AbstractWaterModel)
 
         # Constraints on pipe flows, heads, and physics.
         for (a, pipe) in ref(wm, :pipe; nw=n)
+            constraint_pipe_flow(wm, a; nw=n)
             constraint_pipe_head(wm, a; nw=n)
             constraint_pipe_head_loss(wm, a; nw=n)
-            constraint_pipe_flow(wm, a; nw=n)
+        end
+
+        # Constraints on design pipe flows, heads, and physics.
+        for (a, des_pipe) in ref(wm, :des_pipe; nw=n)
+            constraint_on_off_des_pipe_flow(wm, a; nw=n)
+            constraint_on_off_des_pipe_head(wm, a; nw=n)
+            constraint_on_off_des_pipe_head_loss(wm, a; nw=n)
+        end
+
+        # Selection of design pipes along unique arcs.
+        for (k, arc) in ref(wm, :des_pipe_arc; nw=n)
+            constraint_des_pipe_flow(wm, k, arc[1], arc[2]; nw=n)
+            constraint_des_pipe_head(wm, k, arc[1], arc[2]; nw=n)
+            constraint_des_pipe_selection(wm, k, arc[1], arc[2]; nw=n)
         end
 
         # Constraints on pump flows, heads, and physics.
@@ -114,6 +147,7 @@ function build_mn_wf(wm::AbstractWaterModel)
             constraint_on_off_pump_head(wm, a; nw=n)
             constraint_on_off_pump_head_gain(wm, a; nw=n)
             constraint_on_off_pump_flow(wm, a; nw=n)
+            constraint_on_off_pump_power(wm, a; nw=n)
         end
 
         # Constraints on short pipe flows and heads.
@@ -142,15 +176,15 @@ function build_mn_wf(wm::AbstractWaterModel)
     n_1 = network_ids[1]
 
     # Constraints on tank volumes.
-    for (i, tank) in ref(wm, :tank; nw=n_1)
+    for (i, tank) in ref(wm, :tank; nw = n_1)
         # Set initial conditions of tanks.
-        constraint_tank_volume(wm, i; nw=n_1)
+        constraint_tank_volume(wm, i; nw = n_1)
     end
 
     # Constraints on tank volumes.
     for n_2 in network_ids[2:end]
         # Constrain tank volumes after the initial time step.
-        for (i, tank) in ref(wm, :tank; nw=n_2)
+        for (i, tank) in ref(wm, :tank; nw = n_2)
             constraint_tank_volume(wm, i, n_1, n_2)
         end
 

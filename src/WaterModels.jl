@@ -7,7 +7,6 @@ const _IM = InfrastructureModels
 import Interpolations
 import JSON
 import JuMP
-import LsqFit
 import Memento
 
 import MathOptInterface
@@ -36,7 +35,7 @@ function logger_config!(level)
     Memento.config!(Memento.getlogger("WaterModels"), level)
 end
 
-const _wm_global_keys = Set(["time_series", "per_unit"])
+const _wm_global_keys = Set(["time_series", "per_unit", "head_loss", "viscosity"])
 
 include("io/common.jl")
 include("io/epanet.jl")
@@ -51,9 +50,11 @@ include("core/tank.jl")
 
 include("core/pipe.jl")
 include("core/pump.jl")
+include("core/regulator.jl")
+include("core/short_pipe.jl")
+include("core/valve.jl")
 
 include("core/data.jl")
-include("core/ref.jl")
 include("core/types.jl")
 include("core/function.jl")
 include("core/variable.jl")
@@ -62,14 +63,12 @@ include("core/constraint.jl")
 include("core/constraint_template.jl")
 include("core/objective.jl")
 
-include("form/directed_flow.jl")
-include("form/undirected_flow.jl")
+include("form/nc.jl")
+include("form/ncd.jl")
 include("form/crd.jl")
 include("form/la.jl")
+include("form/pwlrd.jl")
 include("form/lrd.jl")
-include("form/nc.jl")
-include("form/qrd.jl")
-include("form/cqrd.jl")
 
 include("prob/wf.jl")
 include("prob/owf.jl")
@@ -78,7 +77,6 @@ include("prob/des.jl")
 include("util/relax.jl")
 include("util/variable_index.jl")
 include("util/pairwise_cuts.jl")
-include("util/pump_volume_cuts.jl")
 include("util/obbt.jl")
 
 include("core/export.jl")

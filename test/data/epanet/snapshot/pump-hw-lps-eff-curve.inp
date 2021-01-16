@@ -7,15 +7,13 @@ Test for Hazen-Williams Head Gain Along a Pump
 
 [RESERVOIRS]
 ;ID              Head            Pattern
- 1               10.0                   ;
+ 1               10.0                                   ;
 
 [TANKS]
-;ID              Elevation       InitLevel      MinLevel         MaxLevel         Diameter         MinVol           VolCurve
- 3               10.0            50.0           0.0              100.0            10.0             0                        ;
+;ID              Elevation       InitLevel       MinLevel         MaxLevel         Diameter         MinVol           VolCurve
 
 [PIPES]
 ;ID              Node1          Node2           Length           Diameter         Roughness        MinorLoss        Status
- 2               2              3               1000.0           1000.0           100.0            0.0              Open  ;
 
 [PUMPS]
 ;ID              Node1          Node2           Parameters
@@ -73,7 +71,7 @@ Test for Hazen-Williams Head Gain Along a Pump
 ;Tank             Model
 
 [TIMES]
- Duration               3:00
+ Duration               0:00
  Hydraulic Timestep     1:00 
  Quality Timestep       0:05 
  Pattern Timestep       1:00

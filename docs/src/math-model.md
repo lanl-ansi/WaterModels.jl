@@ -31,6 +31,8 @@ In summary, the following sets are commonly used when defining a WaterModels pro
 
 #### Pipes
 
+#### Design Pipes
+
 #### Pumps
 
 #### Regulators
