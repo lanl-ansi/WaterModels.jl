@@ -1202,7 +1202,7 @@ function _convert_short_pipes!(data::Dict{String,<:Any})
     max_flow_exp = abs(_calc_capacity_max(data))^exponent
 
     for (a, pipe) in data["pipe"]
-        r = _calc_pipe_resistance(pipe, data["head_loss"], data["viscosity"])
+        r = _calc_pipe_resistance(pipe, data["head_loss"], data["viscosity"], 1.0, 1.0)
         dh_max = r * pipe["length"] * max_flow_exp
 
         if dh_max <= 0.1

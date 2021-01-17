@@ -159,7 +159,10 @@ end
 function constraint_pipe_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     node_fr, node_to = ref(wm, nw, :pipe, a)["node_fr"], ref(wm, nw, :pipe, a)["node_to"]
     exponent, L = ref(wm, nw, :alpha), ref(wm, nw, :pipe, a)["length"]
-    r = _calc_pipe_resistance(ref(wm, nw, :pipe, a), wm.data["head_loss"], wm.data["viscosity"])
+    base_length = get(wm.data, "base_length", 1.0)
+    base_time = get(wm.data, "base_time", 1.0)
+
+    r = _calc_pipe_resistance(ref(wm, nw, :pipe, a), wm.data["head_loss"], wm.data["viscosity"], base_length, base_time)
     q_max_reverse = min(get(ref(wm, nw, :pipe, a), "flow_max_reverse", 0.0), 0.0)
     q_min_forward = max(get(ref(wm, nw, :pipe, a), "flow_min_forward", 0.0), 0.0)
 
@@ -236,7 +239,10 @@ function constraint_on_off_des_pipe_head_loss(wm::AbstractWaterModel, a::Int; nw
 
     # Compute metadata associated with the design pipe.
     exponent = _get_exponent_from_head_loss_form(wm.ref[:head_loss])
-    res = _calc_pipe_resistance(des_pipe, wm.ref[:head_loss], wm.ref[:viscosity])
+    base_length = get(wm.data, "base_length", 1.0)
+    base_time = get(wm.data, "base_time", 1.0)
+
+    res = _calc_pipe_resistance(des_pipe, wm.ref[:head_loss], wm.ref[:viscosity], base_length, base_time)
     q_max_reverse = min(get(des_pipe, "flow_max_reverse", 0.0), 0.0)
     q_min_forward = max(get(des_pipe, "flow_min_forward", 0.0), 0.0)
 

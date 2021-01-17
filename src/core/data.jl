@@ -1,7 +1,7 @@
 # Functions for working with WaterModels data elements.
 
 
-"Transform head values SI units to per-unit units."
+"Transform length values in SI units to per-unit units."
 function _calc_length_per_unit_transform(data::Dict{String,<:Any})
     median_midpoint = _calc_node_head_median_midpoint(data)
 
@@ -10,21 +10,23 @@ function _calc_length_per_unit_transform(data::Dict{String,<:Any})
 end
 
 
-"Transform head values SI units to per-unit units."
+"Transform length values in SI units to per-unit units."
 function _calc_head_per_unit_transform(data::Dict{String,<:Any})
     median_midpoint = _calc_node_head_median_midpoint(data)
-    return x -> (x - median_midpoint) / median_midpoint
+
+    # Translation: convert number of meters to WaterModels-length.
+    return x -> x / median_midpoint
 end
 
 
-"Transform head values from per-unit units to SI units."
+"Transform head values in per-unit units to SI units."
 function _calc_head_per_unit_untransform(data::Dict{String,<:Any})
     median_midpoint = _calc_node_head_median_midpoint(data)
     return x -> x * median_midpoint + median_midpoint
 end
 
 
-"Transform head values SI units to per-unit units."
+"Transform time values in SI units to per-unit units."
 function _calc_time_per_unit_transform(data::Dict{String,<:Any})
     # Translation: number of meters per WaterModels-length
     head_midpoint = _calc_node_head_median_midpoint(data)
@@ -34,15 +36,22 @@ function _calc_time_per_unit_transform(data::Dict{String,<:Any})
     return x -> x / (head_midpoint^3 / flow_midpoint)
 end
 
-
+"Transform flow values in SI units to per-unit units."
 function _calc_flow_per_unit_transform(data::Dict{String,<:Any})
     length_transform = _calc_length_per_unit_transform(data)
     time_transform = _calc_time_per_unit_transform(data)
-    cubic_meters_per_wm_vol = length_transform(1.0)^3
-    seconds_per_wm_time = time_transform(1.0)
+    wm_vol_per_cubic_meter = length_transform(1.0)^3
+    wm_time_per_second = time_transform(1.0)
 
     # Translation: convert cubic meters per second to WaterModels-flow.
-    return x -> x * (seconds_per_wm_time / cubic_meters_per_wm_vol)
+    return x -> x * (wm_vol_per_cubic_meter / wm_time_per_second)
+end
+
+
+"Transform mass values in SI units to per-unit units."
+function _calc_mass_per_unit_transform(data::Dict{String,<:Any})
+    # Translation: convert kilograms to WaterModels-mass.
+    return x -> x
 end
 
 
@@ -62,13 +71,13 @@ end
 
 
 function _calc_abs_flow_midpoint(comp::Dict{String,Any})
-    if comp["flow_direction"] == UNKNOWN
+    if comp["flow_direction"] in [0, UNKNOWN]
         qp_ub_mid = 0.5 * max(0.0, comp["flow_max"])
         qn_ub_mid = 0.5 * max(0.0, -comp["flow_min"])
         return max(qp_ub_mid, qn_ub_mid)
-    elseif comp["flow_direction"] == POSITIVE
+    elseif comp["flow_direction"] in [1, POSITIVE]
         return 0.5 * max(0.0, comp["flow_max"])
-    elseif comp["flow_direction"] == NEGATIVE
+    elseif comp["flow_direction"] in [-1, NEGATIVE]
         return 0.5 * max(0.0, -comp["flow_min"])
     end
 end
@@ -395,7 +404,7 @@ end
 function _make_per_unit_demands!(data::Dict{String,<:Any}, transform_flow::Function)
     for (i, demand) in data["demand"]
         demand["flow_min"] = transform_flow(demand["flow_min"])
-        demand["flow_max"] = transform_flow(demand["flow_min"])
+        demand["flow_max"] = transform_flow(demand["flow_max"])
         demand["flow_nominal"] = transform_flow(demand["flow_nominal"])
     end
 end
@@ -452,9 +461,15 @@ function _make_per_unit_pumps!(data::Dict{String,<:Any}, transform_flow::Functio
 end
 
 
+function _calc_scaled_gravity(base_length::Float64, base_time::Float64)
+    return _GRAVITY * base_length / (base_time)^2
+end
+
+
 function make_per_unit!(data::Dict{String,<:Any})
     if data["per_unit"] == false
         # Precompute per-unit transformation functions.
+        mass_transform = _calc_mass_per_unit_transform(data)
         length_transform = _calc_length_per_unit_transform(data)
         head_transform = _calc_head_per_unit_transform(data)
         flow_transform = _calc_flow_per_unit_transform(data)
@@ -471,6 +486,14 @@ function make_per_unit!(data::Dict{String,<:Any})
         _make_per_unit_demands!(data, flow_transform)
         _make_per_unit_tanks!(data, length_transform)
         _make_per_unit_reservoir!(data, head_transform)
+
+        # Convert viscosity to per-unit units.
+        data["viscosity"] *= mass_transform(1.0) /
+            (length_transform(1.0) * time_transform(1.0))
+
+        # Store important base values for later conversions.
+        data["base_length"] = length_transform(1.0)
+        data["base_time"] = time_transform(1.0)
 
         # Set the per-unit flag.
         data["time_step"] = time_transform(data["time_step"])
