@@ -1,5 +1,5 @@
-function run_owf(network, model_constructor, optimizer; kwargs...)
-    return run_model(network, model_constructor, optimizer, build_owf; kwargs...)
+function solve_owf(network, model_constructor, optimizer; kwargs...)
+    return solve_model(network, model_constructor, optimizer, build_owf; kwargs...)
 end
 
 
@@ -12,8 +12,8 @@ function build_owf(wm::AbstractWaterModel)
 end
 
 
-function run_mn_owf(file, model_constructor, optimizer; kwargs...)
-    return run_model(file, model_constructor, optimizer, build_mn_owf; multinetwork=true, kwargs...)
+function solve_mn_owf(file, model_constructor, optimizer; kwargs...)
+    return solve_model(file, model_constructor, optimizer, build_mn_owf; multinetwork=true, kwargs...)
 end
 
 

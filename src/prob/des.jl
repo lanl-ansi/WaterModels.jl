@@ -1,5 +1,5 @@
-function run_des(network, model_constructor, optimizer; kwargs...)
-    return run_model(network, model_constructor, optimizer, build_des; kwargs...)
+function solve_des(network, model_constructor, optimizer; kwargs...)
+    return solve_model(network, model_constructor, optimizer, build_des; kwargs...)
 end
 
 

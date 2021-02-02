@@ -1,5 +1,5 @@
-function run_wf(network, model_constructor, optimizer; kwargs...)
-    return run_model(network, model_constructor, optimizer, build_wf; kwargs...)
+function solve_wf(network, model_constructor, optimizer; kwargs...)
+    return solve_model(network, model_constructor, optimizer, build_wf; kwargs...)
 end
 
 
@@ -88,8 +88,8 @@ function build_wf(wm::AbstractWaterModel)
 end
 
 
-function run_mn_wf(file, model_constructor, optimizer; kwargs...)
-    return run_model(file, model_constructor, optimizer, build_mn_wf; multinetwork=true, kwargs...)
+function solve_mn_wf(file, model_constructor, optimizer; kwargs...)
+    return solve_model(file, model_constructor, optimizer, build_mn_wf; multinetwork=true, kwargs...)
 end
 
 

@@ -63,16 +63,16 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
 end
 
 
-@testset "run_owf" begin
+@testset "solve_owf" begin
     network = WaterModels.parse_file("../test/data/epanet/snapshot/pump-hw-lps.inp")
-    result = WaterModels.run_owf(network, LRDWaterModel, cbc)
+    result = WaterModels.solve_owf(network, LRDWaterModel, cbc)
     @test result["termination_status"] == OPTIMAL
 end
 
 
-@testset "run_mn_owf" begin
+@testset "solve_mn_owf" begin
     network = WaterModels.parse_file("../test/data/epanet/multinetwork/owf-hw-lps.inp")
     network_mn = WaterModels.make_multinetwork(network)
-    result = WaterModels.run_mn_owf(network_mn, LRDWaterModel, cbc)
+    result = WaterModels.solve_mn_owf(network_mn, LRDWaterModel, cbc)
     @test result["termination_status"] == OPTIMAL
 end

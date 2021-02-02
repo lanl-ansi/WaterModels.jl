@@ -9,7 +9,7 @@ end
 
 
 """
-    run_model(file::String, model_type::Type, optimizer::Any, build_method::Function; kwargs...)::Dict{String,<:Any}
+    solve_model(file::String, model_type::Type, optimizer::Any, build_method::Function; kwargs...)::Dict{String,<:Any}
 
 Instantiates and solves the modeling object from input file with file path `file`. Here,
 `model_type` is the model formulation type (e.g., NCWaterModel), `optimizer` is the
@@ -17,19 +17,19 @@ optimization solver used to solve the problem (e.g., Gurobi.Optimizer), and
 `build_method` is the function used for building the problem specification being
 considered (e.g., build_mn_owf). Returns a dictionary of optimization results.
 """
-function run_model(
+function solve_model(
     file::String,
     model_type::Type,
     optimizer::Any,
     build_method::Function;
     kwargs...,
 )::Dict{String,<:Any}
-    return run_model(parse_file(file), model_type, optimizer, build_method; kwargs...)
+    return solve_model(parse_file(file), model_type, optimizer, build_method; kwargs...)
 end
 
 
 """
-    run_model(data::Dict{String,<:Any}, model_type::Type, optimizer::Any,
+    solve_model(data::Dict{String,<:Any}, model_type::Type, optimizer::Any,
               build_method::Function; ref_extensions::Vector{<:Function}=Vector{Function}([]),
               solution_processors::Vector{<:Function}=Vector{Function}([]),
               multinetwork::Bool=false, kwargs...)::Dict{String,<:Any}
@@ -43,7 +43,7 @@ modify `ref`, `solution_processors` is a vector of functions that post-process m
 solutions, and `multinetwork` is a Boolean indicating whether or not the model being
 solved is a multinetwork model. Returns a dictionary of optimization results.
 """
-function run_model(
+function solve_model(
     data::Dict{String,<:Any},
     model_type::Type,
     optimizer::Any,

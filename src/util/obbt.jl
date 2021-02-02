@@ -14,7 +14,7 @@ The function can be invoked as follows:
 
 ```
 ipopt = JuMP.optimizer_with_attributes(Ipopt.Optimizer)
-run_obbt_owf!("examples/data/epanet/van_zyl.inp", ipopt)
+solve_obbt_owf!("examples/data/epanet/van_zyl.inp", ipopt)
 ```
 
 # Keyword Arguments
@@ -30,9 +30,9 @@ run_obbt_owf!("examples/data/epanet/van_zyl.inp", ipopt)
 * `use_relaxed_network`: boolean option that specifies whether or not to use a relaxed,
    snapshot, dispatchable version of the origin multinetwork problem for bound tightening.
 """
-function run_obbt_owf!(file::String, optimizer; kwargs...)
+function solve_obbt_owf!(file::String, optimizer; kwargs...)
     data = WaterModels.parse_file(file)
-    return run_obbt_owf!(data, optimizer; kwargs...)
+    return solve_obbt_owf!(data, optimizer; kwargs...)
 end
 
 
@@ -360,7 +360,7 @@ function _clean_bound_problems!(problems::Array{BoundProblem, 1}, vals::Array{Fl
 end
 
 
-function run_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_relaxed_network::Bool = true,
+function solve_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_relaxed_network::Bool = true,
     model_type::Type = PWLRDWaterModel, time_limit::Float64 = 3600.0, upper_bound::Float64 =
     Inf, upper_bound_constraint::Bool = false, max_iter::Int = 100, improvement_tol::Float64
     = 1.0e-6, solve_relaxed::Bool = true, precision = 1.0e-3, min_width::Float64 = 1.0e-2,

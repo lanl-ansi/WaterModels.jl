@@ -42,18 +42,18 @@
         @test length(ref(wm, :pipe)) == 1
     end
 
-    @testset "run_model (with non-matching multinetwork)" begin
+    @testset "solve_model (with non-matching multinetwork)" begin
         data, type = parse_file(network_path), LAWaterModel
-        @test_throws ErrorException run_model(data, type, cbc, build_wf; multinetwork=true)
+        @test_throws ErrorException solve_model(data, type, cbc, build_wf; multinetwork=true)
     end
 
-    @testset "run_model (with file path input)" begin
-        result = run_model(network_path, LAWaterModel, cbc, build_wf)
+    @testset "solve_model (with file path input)" begin
+        result = solve_model(network_path, LAWaterModel, cbc, build_wf)
         @test result["termination_status"] == OPTIMAL
     end
 
-    @testset "run_model (with network dictionary input)" begin
-        result = run_model(parse_file(network_path), LAWaterModel, cbc, build_wf)
+    @testset "solve_model (with network dictionary input)" begin
+        result = solve_model(parse_file(network_path), LAWaterModel, cbc, build_wf)
         @test result["termination_status"] == OPTIMAL
     end
 end
