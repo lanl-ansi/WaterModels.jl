@@ -1,7 +1,7 @@
 module WaterModels
+
 import InfrastructureModels
-import InfrastructureModels:
-    ids, ref, var, con, sol, nw_ids, nws, optimize_model!, @im_fields
+import InfrastructureModels: optimize_model!, @im_fields, ismultinetwork
 const _IM = InfrastructureModels
 
 import Interpolations
@@ -37,6 +37,9 @@ function logger_config!(level)
 end
 
 const _wm_global_keys = Set(["time_series", "per_unit", "head_loss", "viscosity"])
+
+const wm_it_name = "wm"
+const wm_it_sym = Symbol(wm_it_name)
 
 include("io/common.jl")
 include("io/epanet.jl")

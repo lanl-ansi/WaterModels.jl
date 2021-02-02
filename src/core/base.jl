@@ -107,13 +107,7 @@ function instantiate_model(
     kwargs...,
 )::AbstractWaterModel
     return _IM.instantiate_model(
-        data,
-        model_type,
-        build_method,
-        ref_add_core!,
-        _wm_global_keys;
-        kwargs...,
-    )
+        data, model_type, build_method, ref_add_core!, _wm_global_keys, wm_it_sym; kwargs...)
 end
 
 
@@ -129,6 +123,7 @@ function build_ref(
         data,
         ref_add_core!,
         _wm_global_keys,
+        wm_it_name,
         ref_extensions=ref_extensions,
     )
 end
@@ -153,7 +148,7 @@ important keys of this dictionary describe common network components, including:
 * `:tank` -- the set of tanks
 """
 function ref_add_core!(ref::Dict{Symbol,<:Any})
-    _ref_add_core!(ref[:nw], ref[:head_loss])
+    _ref_add_core!(ref[:it][wm_it_sym][:nw], ref[:it][wm_it_sym][:head_loss])
 end
 
 
@@ -214,3 +209,45 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any}, head_loss::String)
         ref[:alpha] = uppercase(head_loss) == "H-W" ? 1.852 : 2.0
     end
 end
+
+
+# Helper functions for multinetwork AbstractWaterModel objects.
+ismultinetwork(wm::AbstractWaterModel) = _IM.ismultinetwork(wm, wm_it_sym)
+nw_ids(wm::AbstractWaterModel) = _IM.nw_ids(wm, wm_it_sym)
+nws(wm::AbstractWaterModel) = _IM.nws(wm, wm_it_sym)
+
+
+# Helper functions for AbstractWaterModel component indices.
+ids(wm::AbstractWaterModel, nw::Int, key::Symbol) = _IM.ids(wm, wm_it_sym, nw, key)
+ids(wm::AbstractWaterModel, key::Symbol; nw::Int=wm.cnw) = _IM.ids(wm, wm_it_sym, key; nw=nw)
+
+
+# Helper functions for AbstractWaterModel `ref` access.
+ref(wm::AbstractWaterModel, nw::Int=wm.cnw) = _IM.ref(wm, wm_it_sym, nw)
+ref(wm::AbstractWaterModel, nw::Int, key::Symbol) = _IM.ref(wm, wm_it_sym, nw, key)
+ref(wm::AbstractWaterModel, nw::Int, key::Symbol, idx) = _IM.ref(wm, wm_it_sym, nw, key, idx)
+ref(wm::AbstractWaterModel, nw::Int, key::Symbol, idx, param::String) = _IM.ref(wm, wm_it_sym, nw, key, idx, param)
+ref(wm::AbstractWaterModel, key::Symbol; nw::Int=wm.cnw) = _IM.ref(wm, wm_it_sym, key; nw=nw)
+ref(wm::AbstractWaterModel, key::Symbol, idx; nw::Int=wm.cnw) = _IM.ref(wm, wm_it_sym, key, idx; nw=nw)
+ref(wm::AbstractWaterModel, key::Symbol, idx, param::String; nw::Int=wm.cnw) = _IM.ref(wm, wm_it_sym, key, idx, param; nw=nw)
+
+
+# Helper functions for AbstractWaterModel `var` access.
+var(wm::AbstractWaterModel, nw::Int=wm.cnw) = _IM.var(wm, wm_it_sym, nw)
+var(wm::AbstractWaterModel, nw::Int, key::Symbol) = _IM.var(wm, wm_it_sym, nw, key)
+var(wm::AbstractWaterModel, nw::Int, key::Symbol, idx) = _IM.var(wm, wm_it_sym, nw, key, idx)
+var(wm::AbstractWaterModel, key::Symbol; nw::Int=wm.cnw) = _IM.var(wm, wm_it_sym, key; nw=nw)
+var(wm::AbstractWaterModel, key::Symbol, idx; nw::Int=wm.cnw) = _IM.var(wm, wm_it_sym, key, idx; nw=nw)
+
+
+# Helper functions for AbstractWaterModel `con` access.
+con(wm::AbstractWaterModel, nw::Int=wm.cnw) = _IM.con(wm, wm_it_sym; nw=nw)
+con(wm::AbstractWaterModel, nw::Int, key::Symbol) = _IM.con(wm, wm_it_sym, nw, key)
+con(wm::AbstractWaterModel, nw::Int, key::Symbol, idx) = _IM.con(wm, wm_it_sym, nw, key, idx)
+con(wm::AbstractWaterModel, key::Symbol; nw::Int=wm.cnw) = _IM.con(wm, wm_it_sym, key; nw=nw)
+con(wm::AbstractWaterModel, key::Symbol, idx; nw::Int=wm.cnw) = _IM.con(wm, wm_it_sym, key, idx; nw=nw)
+
+
+# Helper functions for AbstractWaterModel `sol` access.
+sol(wm::AbstractWaterModel, nw::Int, args...) = _IM.sol(wm, wm_it_sym, nw, args...)
+sol(wm::AbstractWaterModel, args...; nw::Int=wm.cnw) = _IM.sol(wm, wm_it_sym, args...; nw=nw)

@@ -7,8 +7,11 @@
 
 function _initialize_con_dict(wm::AbstractWaterModel, key::Symbol; nw::Int=wm.cnw, is_array::Bool=false)
     if !haskey(con(wm, nw), key)
-        con(wm, nw)[key] = is_array ? Dict{Any, Array{JuMP.ConstraintRef}}() :
-            Dict{Any, JuMP.ConstraintRef}()
+        if is_array
+            con(wm, nw)[key] = Dict{Any, Array{JuMP.ConstraintRef}}()
+        else
+            con(wm, nw)[key] = Dict{Any, JuMP.ConstraintRef}()
+        end
     end
 end
 
@@ -159,7 +162,11 @@ end
 function constraint_pipe_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
     node_fr, node_to = ref(wm, nw, :pipe, a)["node_fr"], ref(wm, nw, :pipe, a)["node_to"]
     exponent, L = ref(wm, nw, :alpha), ref(wm, nw, :pipe, a)["length"]
-    r = _calc_pipe_resistance(ref(wm, nw, :pipe, a), wm.data["head_loss"], wm.data["viscosity"])
+
+    r = _calc_pipe_resistance(
+        ref(wm, nw, :pipe, a), wm.ref[:it][wm_it_sym][:head_loss],
+        wm.ref[:it][wm_it_sym][:viscosity])
+
     q_max_reverse = min(get(ref(wm, nw, :pipe, a), "flow_max_reverse", 0.0), 0.0)
     q_min_forward = max(get(ref(wm, nw, :pipe, a), "flow_min_forward", 0.0), 0.0)
 
@@ -235,8 +242,8 @@ function constraint_on_off_des_pipe_head_loss(wm::AbstractWaterModel, a::Int; nw
     des_pipe = ref(wm, nw, :des_pipe, a)
 
     # Compute metadata associated with the design pipe.
-    exponent = _get_exponent_from_head_loss_form(wm.ref[:head_loss])
-    res = _calc_pipe_resistance(des_pipe, wm.ref[:head_loss], wm.ref[:viscosity])
+    exponent = _get_exponent_from_head_loss_form(wm.ref[:it][wm_it_sym][:head_loss])
+    r = _calc_pipe_resistance(des_pipe, wm.ref[:it][wm_it_sym][:head_loss], wm.ref[:it][wm_it_sym][:viscosity])
     q_max_reverse = min(get(des_pipe, "flow_max_reverse", 0.0), 0.0)
     q_min_forward = max(get(des_pipe, "flow_min_forward", 0.0), 0.0)
 
@@ -247,7 +254,7 @@ function constraint_on_off_des_pipe_head_loss(wm::AbstractWaterModel, a::Int; nw
     # Apply the :on_off_des_pipe_head_loss constraints.
     constraint_on_off_des_pipe_head_loss(
         wm, nw, a, des_pipe["node_fr"], des_pipe["node_to"], exponent,
-        des_pipe["length"], res, q_max_reverse, q_min_forward)
+        des_pipe["length"], r, q_max_reverse, q_min_forward)
 end
 
 

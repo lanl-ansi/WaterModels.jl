@@ -221,7 +221,7 @@ function variable_valve_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, relax:
         _fix_indicator_variable(z_valve[a], valve, "z")
     end
 
-    report && _IM.sol_component_value(wm, nw, :valve, :status, ids(wm, nw, :valve), z_valve)
+    report && sol_component_value(wm, nw, :valve, :status, ids(wm, nw, :valve), z_valve)
 end
 
 
