@@ -176,6 +176,7 @@ end
 @testset "solve_wf" begin
     network = WaterModels.parse_file("../test/data/epanet/snapshot/pipe-hw-lps.inp")
     result = WaterModels.solve_wf(network, LRDWaterModel, cbc)
+    result = WaterModels.run_wf(network, LRDWaterModel, cbc)
     @test _is_valid_status(result["termination_status"])
 end
 
@@ -184,5 +185,6 @@ end
     network = WaterModels.parse_file("../test/data/epanet/multinetwork/pipe-hw-lps.inp")
     network_mn = WaterModels.make_multinetwork(network)
     result = WaterModels.solve_mn_wf(network_mn, LRDWaterModel, cbc)
+    result = WaterModels.run_mn_wf(network_mn, LRDWaterModel, cbc)
     @test _is_valid_status(result["termination_status"])
 end

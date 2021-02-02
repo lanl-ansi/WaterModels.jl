@@ -3,6 +3,12 @@ function solve_des(network, model_constructor, optimizer; kwargs...)
 end
 
 
+function run_des(network, model_constructor, optimizer; kwargs...)
+    Memento.warn(_LOGGER, "\"run_\" methods should be renamed \"solve_\" and will be deprecated in future versions.")
+    return solve_des(network, model_constructor, optimizer; kwargs...)
+end
+
+
 function build_des(wm::AbstractWaterModel)
     # Build the water flow problem.
     build_wf(wm)
