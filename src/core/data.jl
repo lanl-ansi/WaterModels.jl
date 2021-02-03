@@ -144,7 +144,7 @@ end
 
 "Turns a single network with a `time_series` data block into a multinetwork."
 function make_multinetwork(data::Dict{String, <:Any}; global_keys::Set{String} = Set{String}())
-    return InfrastructureModels.make_multinetwork(data, wm_it_name, union(global_keys, _wm_global_keys))
+    return _IM.make_multinetwork(data, wm_it_name, union(global_keys, _wm_global_keys))
 end
 
 
