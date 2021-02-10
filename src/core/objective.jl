@@ -42,9 +42,19 @@ function objective_owf(wm::AbstractWaterModel)
     objective = JuMP.AffExpr(0.0)
 
     for (n, nw_ref) in nws(wm)
+        for (i, reservoir) in ref(wm, n, :reservoir)
+            # Add reservoir flow extraction and treatment costs to the objective.
+            @assert haskey(reservoir, "flow_cost") # Ensure a flow cost exists.
+            coeff = reservoir["flow_cost"] * ref(wm, n, :time_step)
+            JuMP.add_to_expression!(objective, coeff * var(wm, n, :q_reservoir, i))
+        end
+    end
+
+    for (n, nw_ref) in nws(wm)
         for (a, pump) in ref(wm, n, :pump)
+            # Add pump energy costs to the objective.
             @assert haskey(pump, "energy_price") # Ensure a price exists.
-            coeff = ref(wm, n, :time_step) * pump["energy_price"] # * _DENSITY * _GRAVITY
+            coeff = ref(wm, n, :time_step) * pump["energy_price"] * _DENSITY * _GRAVITY
             JuMP.add_to_expression!(objective, coeff * var(wm, n, :Ps_pump, a))
         end
     end

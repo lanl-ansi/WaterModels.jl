@@ -220,7 +220,7 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any}, head_loss::String)
 end
 
 
-    # Helper functions for multinetwork AbstractWaterModel objects.
+# Helper functions for multinetwork AbstractWaterModel objects.
 ismultinetwork(wm::AbstractWaterModel) = _IM.ismultinetwork(wm, wm_it_sym)
 nw_ids(wm::AbstractWaterModel) = _IM.nw_ids(wm, wm_it_sym)
 nws(wm::AbstractWaterModel) = _IM.nws(wm, wm_it_sym)

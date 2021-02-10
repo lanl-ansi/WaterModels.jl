@@ -1008,6 +1008,10 @@ function _read_reservoir!(data::Dict{String,<:Any})
         # Add a temporary index to be used in the data dictionary.
         reservoir["index"] = string(index += 1)
 
+        # Set the unit cost for extraction and treatment for outgoing flow from a reservoir
+        # (in units of currency per cubic meter per second). (The default cost is zero.)
+        reservoir["flow_cost"] = 0.0 # EPANET does not provide this data.
+
         # Append the reservoir entry to the data dictionary.
         data["reservoir"][current[1]] = reservoir
     end
