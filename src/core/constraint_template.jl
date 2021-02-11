@@ -302,6 +302,17 @@ function constraint_on_off_pump_power(wm::AbstractWaterModel, a::Int; nw::Int=wm
         constraint_on_off_pump_power(wm, nw, a, q_min_forward)
     elseif ref(wm, nw, :pump, a)["head_curve_form"] == BEST_EFFICIENCY_POINT
         constraint_on_off_pump_power_best_efficiency(wm, nw, a, q_min_forward)
+    elseif ref(wm, nw, :pump, a)["head_curve_form"] == CUSTOM
+        # Ensure that the required keys for modeling pump power exist.
+        @assert haskey(ref(wm, nw, :pump, a), "power_fixed")
+        @assert haskey(ref(wm, nw, :pump, a), "power_per_unit_flow")
+
+        # Obtain the required data for modeling pump power linearly.
+        power_fixed = ref(wm, nw, :pump, a)["power_fixed"]
+        power_variable = ref(wm, nw, :pump, a)["power_per_unit_flow"]
+
+        # Add the custom (linear) pump power constraint using the above.
+        constraint_on_off_pump_power_custom(wm, nw, a, power_fixed, power_variable)
     end
 end
 
