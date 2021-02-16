@@ -33,6 +33,7 @@ function correct_pipes!(data::Dict{String, <:Any})
         node_to = data["node"][string(pipe["node_to"])]
 
         # Correct various pipe properties. The sequence is important, here.
+        _correct_flow_direction!(pipe)
         _correct_pipe_flow_bounds!(pipe, node_fr, node_to, head_loss_form, visc, capacity)
     end
 end
@@ -48,6 +49,7 @@ function correct_des_pipes!(data::Dict{String, <:Any})
         node_to = data["node"][string(des_pipe["node_to"])]
 
         # Correct various pipe properties. The sequence is important, here.
+        _correct_flow_direction!(des_pipe)
         _correct_pipe_flow_bounds!(des_pipe, node_fr, node_to, head_loss_form, visc, capacity)
     end
 end

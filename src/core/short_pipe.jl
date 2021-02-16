@@ -7,6 +7,7 @@ function correct_short_pipes!(data::Dict{String, <:Any})
     capacity = _calc_capacity_max(data)
 
     for (idx, short_pipe) in data["short_pipe"]
+        _correct_flow_direction!(short_pipe)
         _correct_short_pipe_flow_bounds!(short_pipe, capacity)
     end
 end

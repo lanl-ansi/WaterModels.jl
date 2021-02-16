@@ -10,6 +10,13 @@ function _calc_length_per_unit_transform(data::Dict{String,<:Any})
 end
 
 
+function _correct_flow_direction!(comp::Dict{String, <:Any})
+    if !isa(comp["flow_direction"], FLOW_DIRECTION)
+        comp["flow_direction"] = FLOW_DIRECTION(comp["flow_direction"])
+    end
+end
+
+
 "Transform head values SI units to per-unit units."
 function _calc_head_per_unit_transform(data::Dict{String,<:Any})
     median_midpoint = _calc_node_head_median_midpoint(data)
