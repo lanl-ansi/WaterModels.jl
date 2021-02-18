@@ -1,7 +1,7 @@
 module WaterModels
 
 import InfrastructureModels
-import InfrastructureModels: optimize_model!, @im_fields, ismultinetwork
+import InfrastructureModels: optimize_model!, @im_fields, ismultinetwork, nw_id_default
 const _IM = InfrastructureModels
 
 import Interpolations
