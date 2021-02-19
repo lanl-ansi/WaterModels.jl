@@ -56,4 +56,60 @@
         result = solve_model(parse_file(network_path), LAWaterModel, cbc, build_wf)
         @test result["termination_status"] == OPTIMAL
     end
+
+    @testset "ismultinetwork helper function" begin
+        wm = instantiate_model(network_path, LAWaterModel, build_wf)
+        @test WaterModels.ismultinetwork(wm) == false
+    end
+
+    @testset "nw_ids helper function" begin
+        wm = instantiate_model(network_path, LAWaterModel, build_wf)
+        @test Array{Int64,1}(collect(nw_ids(wm))) == Array{Int64,1}([_IM.nw_id_default])
+    end
+
+    @testset "nws helper function" begin
+        wm = instantiate_model(network_path, LAWaterModel, build_wf)
+        @test Array{Int64,1}(collect(keys(nws(wm)))) == Array{Int64,1}([_IM.nw_id_default])
+    end
+
+    @testset "ids helper functions" begin
+        wm = instantiate_model(network_path, LAWaterModel, build_wf)
+        @test Array{Int64,1}(collect(ids(wm, _IM.nw_id_default, :pipe))) == Array{Int64,1}([1])
+        @test Array{Int64,1}(collect(ids(wm, :pipe))) == Array{Int64,1}([1])
+    end
+
+    @testset "ref helper functions" begin
+        wm = instantiate_model(network_path, LAWaterModel, build_wf)
+        @test haskey(ref(wm, _IM.nw_id_default)[:pipe], 1)
+        @test haskey(ref(wm, _IM.nw_id_default, :pipe), 1)
+        @test haskey(ref(wm, _IM.nw_id_default, :pipe, 1), "diameter")
+        @test isa(ref(wm, _IM.nw_id_default, :pipe, 1, "diameter"), Float64)
+        @test haskey(ref(wm, :pipe), 1)
+        @test haskey(ref(wm, :pipe, 1), "diameter")
+        @test isa(ref(wm, :pipe, 1, "diameter"), Float64)
+    end
+
+    @testset "var helper functions" begin
+        wm = instantiate_model(network_path, LAWaterModel, build_wf)
+        @test JuMP.is_valid(wm.model, var(wm, _IM.nw_id_default)[:q_pipe][1])
+        @test JuMP.is_valid(wm.model, var(wm, _IM.nw_id_default, :q_pipe)[1])
+        @test JuMP.is_valid(wm.model, var(wm, _IM.nw_id_default, :q_pipe, 1))
+        @test JuMP.is_valid(wm.model, var(wm, :q_pipe)[1])
+        @test JuMP.is_valid(wm.model, var(wm, :q_pipe, 1))
+    end
+
+    @testset "con helper functions" begin
+        wm = instantiate_model(network_path, LAWaterModel, build_wf)
+        @test JuMP.is_valid(wm.model, con(wm, _IM.nw_id_default)[:flow_conservation][1])
+        @test JuMP.is_valid(wm.model, con(wm, _IM.nw_id_default, :flow_conservation)[1])
+        @test JuMP.is_valid(wm.model, con(wm, _IM.nw_id_default, :flow_conservation, 1))
+        @test JuMP.is_valid(wm.model, con(wm, :flow_conservation)[1])
+        @test JuMP.is_valid(wm.model, con(wm, :flow_conservation, 1))
+    end
+
+    @testset "sol helper functions" begin
+        wm = instantiate_model(network_path, LAWaterModel, build_wf)
+        @test haskey(sol(wm, _IM.nw_id_default)[:pipe], 1)
+        @test haskey(sol(wm)[:pipe], 1)
+    end
 end
