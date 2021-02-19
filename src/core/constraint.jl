@@ -111,3 +111,15 @@ function constraint_on_off_pump_power_best_efficiency(wm::AbstractWaterModel, n:
     # Append the :on_off_pump_power constraint array.
     append!(con(wm, n, :on_off_pump_power)[a], [c])
 end
+
+
+function constraint_on_off_pump_power_custom(wm::AbstractWaterModel, n::Int, a::Int, power_fixed::Float64, power_variable::Float64)
+    # Gather pump flow, power, and status variables.
+    q, P, z = var(wm, n, :q_pump, a), var(wm, n, :P_pump, a), var(wm, n, :z_pump, a)
+
+    # Add constraint equating power with respect to the linear power curve.
+    c = JuMP.@constraint(wm.model, power_fixed * z + power_variable * q == P)
+
+    # Append the :on_off_pump_power constraint array.
+    append!(con(wm, n, :on_off_pump_power)[a], [c])
+end

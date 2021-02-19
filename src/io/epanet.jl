@@ -1008,6 +1008,10 @@ function _read_reservoir!(data::Dict{String,<:Any})
         # Add a temporary index to be used in the data dictionary.
         reservoir["index"] = string(index += 1)
 
+        # Set the unit cost for extraction and treatment for outgoing flow from a reservoir
+        # (in units of currency per cubic meter per second). (The default cost is zero.)
+        reservoir["flow_cost"] = 0.0 # EPANET does not provide this data.
+
         # Append the reservoir entry to the data dictionary.
         data["reservoir"][current[1]] = reservoir
     end
@@ -1202,7 +1206,7 @@ function _convert_short_pipes!(data::Dict{String,<:Any})
     max_flow_exp = abs(_calc_capacity_max(data))^exponent
 
     for (a, pipe) in data["pipe"]
-        r = _calc_pipe_resistance(pipe, data["head_loss"], data["viscosity"])
+        r = _calc_pipe_resistance(pipe, data["head_loss"], data["viscosity"], 1.0, 1.0)
         dh_max = r * pipe["length"] * max_flow_exp
 
         if dh_max <= 0.1

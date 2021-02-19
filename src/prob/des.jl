@@ -1,5 +1,11 @@
+function solve_des(network, model_constructor, optimizer; kwargs...)
+    return solve_model(network, model_constructor, optimizer, build_des; kwargs...)
+end
+
+
 function run_des(network, model_constructor, optimizer; kwargs...)
-    return run_model(network, model_constructor, optimizer, build_des; kwargs...)
+    Memento.warn(_LOGGER, "\"run_\" methods should be renamed \"solve_\" and will be deprecated in future versions.")
+    return solve_des(network, model_constructor, optimizer; kwargs...)
 end
 
 

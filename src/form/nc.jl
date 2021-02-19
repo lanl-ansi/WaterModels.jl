@@ -12,7 +12,7 @@
 
 
 "Create flow-related variables common to all directed flow models for edge-type components."
-function variable_flow(wm::AbstractNCModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_flow(wm::AbstractNCModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     for name in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
         # Create undirected flow variables for each component.
         _variable_component_flow(wm, name; nw=nw, bounded=bounded, report=report)
@@ -22,7 +22,7 @@ end
 
 "Create flow variables that are common to all directed flow models for a component."
 function _variable_component_flow(
-    wm::AbstractNCModel, component_name::String; nw::Int=wm.cnw,
+    wm::AbstractNCModel, component_name::String; nw::Int=nw_id_default,
     bounded::Bool=true, report::Bool=true)
     # Store the corresponding component symbol.
     comp_sym = Symbol(component_name)

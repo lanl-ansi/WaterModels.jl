@@ -41,7 +41,7 @@ Then, as one example, a piecewise-linear, relaxation-based convexification of th
 ```julia
 using WaterModels, Cbc
 ext = Dict(:pipe_breakpoints=>10) # Defines additional parameters used in model construction.
-result = run_wf("examples/data/epanet/shamir.inp", PWLRDWaterModel, Cbc.Optimizer; ext=ext)
+result = solve_wf("examples/data/epanet/shamir.inp", PWLRDWaterModel, Cbc.Optimizer; ext=ext)
 ```
 
 After solving the problem, its results can then be analyzed, e.g.,

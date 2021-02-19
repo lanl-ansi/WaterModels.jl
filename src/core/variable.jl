@@ -27,7 +27,7 @@ end
 ### Variables related to nodal components. ###
 "Creates bounded (by default) or unbounded total hydraulic head (or head)
 variables for all nodes in the network, i.e., `h[i]` for `i` in `node`."
-function variable_head(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_head(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     # Initialize variables for total hydraulic head.
     h = var(wm, nw)[:h] = JuMP.@variable(wm.model,
         [i in ids(wm, nw, :node)], base_name = "$(nw)_h",
@@ -37,7 +37,7 @@ function variable_head(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=tru
     dh_des_pipe = var(wm, nw)[:dh_des_pipe] = JuMP.@variable(wm.model,
         [a in ids(wm, nw, :des_pipe)], base_name = "$(nw)_dh",
         start = comp_start_value(ref(wm, nw, :des_pipe, a), "dh_start"))
-       
+
     if bounded
         for (i, node) in ref(wm, nw, :node)
             # Set the lower and upper bounds for each head.
@@ -82,7 +82,7 @@ function variable_head(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=tru
 end
 
 
-function variable_pump_head_gain(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_pump_head_gain(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     # Initialize variables for total hydraulic head gain from a pump.
     g = var(wm, nw)[:g_pump] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
         base_name="$(nw)_g_pump", lower_bound=0.0, # Pump gain is nonnegative.
@@ -110,7 +110,7 @@ function variable_pump_head_gain(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded
 end
 
 
-function variable_pump_power(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_pump_power(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     # Initialize variables for the power utilization of a pump.
     Ps = var(wm, nw)[:Ps_pump] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
         base_name="$(nw)_Ps_pump", lower_bound=0.0, # Pump power is nonnegative.
@@ -159,10 +159,39 @@ end
 "Instantiates outgoing flow variables for all reservoirs in the network, i.e.,
 `q_reservoir[i]` for `i` in `reservoir`. Note that these variables are always nonnegative,
 since for each reservoir, there will never be incoming flow."
-function variable_reservoir_flow(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
+function variable_reservoir_flow(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     q_reservoir = var(wm, nw)[:q_reservoir] = JuMP.@variable(wm.model,
         [i in ids(wm, nw, :reservoir)], lower_bound=0.0, base_name="$(nw)_q_reservoir",
         start=comp_start_value(ref(wm, nw, :reservoir, i), "q_reservoir_start"))
+
+    if bounded
+        for (i, reservoir) in ref(wm, nw, :reservoir)
+            flow_min, flow_max = 0.0, 0.0
+
+            for name in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
+                edges_fr = ref(wm, nw, Symbol(name * "_fr"), reservoir["node"])
+                edges_to = ref(wm, nw, Symbol(name * "_to"), reservoir["node"])
+
+                if length(edges_fr) > 0
+                    flow_min += sum(ref(wm, nw, Symbol(name), a)["flow_min"] for a in edges_fr)
+                    flow_max += sum(ref(wm, nw, Symbol(name), a)["flow_max"] for a in edges_fr)
+                end
+
+                if length(edges_to) > 0
+                    flow_min -= sum(ref(wm, nw, Symbol(name), a)["flow_max"] for a in edges_to)
+                    flow_max -= sum(ref(wm, nw, Symbol(name), a)["flow_min"] for a in edges_to)
+                end
+            end
+
+            flow_min = max(0.0, flow_min)
+            JuMP.set_lower_bound(q_reservoir[i], flow_min)
+            JuMP.set_upper_bound(q_reservoir[i], flow_max)
+
+            flow_mid = flow_min + 0.5 * (flow_max - flow_min)
+            q_start = comp_start_value(reservoir, "q_reservoir_start", flow_mid)
+            JuMP.set_start_value(q_reservoir[i], q_start)
+        end
+    end
 
     report && sol_component_value(wm, nw, :reservoir, :q, ids(wm, nw, :reservoir), q_reservoir)
 end
@@ -170,19 +199,38 @@ end
 
 "Instantiates demand flow variables for all dispatchable demands in the network, i.e.,
 `demand[i]` for `i` in `dispatchable_demand`."
-function variable_demand_flow(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_demand_flow(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     q_demand = var(wm, nw)[:q_demand] = JuMP.@variable(wm.model,
         [i in ids(wm, nw, :dispatchable_demand)], base_name="$(nw)_q_demand",
         start=comp_start_value(ref(wm, nw, :dispatchable_demand, i), "q_demand_start"))
 
     if bounded
         for (i, demand) in ref(wm, nw, :dispatchable_demand)
-            JuMP.set_lower_bound(q_demand[i], demand["flow_min"])
-            JuMP.set_upper_bound(q_demand[i], demand["flow_max"])
+            flow_min, flow_max = 0.0, 0.0
 
-            # Set potentially better start value based on demand bounds.
-            q_mid = demand["flow_min"] + 0.5 * (demand["flow_max"] - demand["flow_min"])
-            q_start = comp_start_value(demand, "q_demand_start", q_mid)
+            for name in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
+                edges_fr = ref(wm, nw, Symbol(name * "_fr"), demand["node"])
+                edges_to = ref(wm, nw, Symbol(name * "_to"), demand["node"])
+
+                if length(edges_fr) > 0
+                    flow_min += sum(ref(wm, nw, Symbol(name), a)["flow_min"] for a in edges_fr)
+                    flow_max += sum(ref(wm, nw, Symbol(name), a)["flow_max"] for a in edges_fr)
+                end
+
+                if length(edges_to) > 0
+                    flow_min -= sum(ref(wm, nw, Symbol(name), a)["flow_max"] for a in edges_to)
+                    flow_max -= sum(ref(wm, nw, Symbol(name), a)["flow_min"] for a in edges_to)
+                end
+            end
+
+            flow_min = max(flow_min, demand["flow_min"])
+            flow_max = min(flow_max, demand["flow_max"])
+
+            JuMP.set_lower_bound(q_demand[i], flow_min)
+            JuMP.set_upper_bound(q_demand[i], flow_max)
+
+            flow_mid = flow_min + 0.5 * (flow_max - flow_min)
+            q_start = comp_start_value(demand, "q_demand_start", flow_mid)
             JuMP.set_start_value(q_demand[i], q_start)
         end
     end
@@ -193,10 +241,38 @@ end
 
 "Creates outgoing flow variables for all tanks in the network, i.e., `q_tank[i]`
 for `i` in `tank`. Note that, unlike reservoirs, tanks can have inflow."
-function variable_tank_flow(wm::AbstractWaterModel; nw::Int=wm.cnw, report::Bool=true)
+function variable_tank_flow(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     q_tank = var(wm, nw)[:q_tank] = JuMP.@variable(wm.model,
         [i in ids(wm, nw, :tank)], base_name="$(nw)_q_tank",
         start=comp_start_value(ref(wm, nw, :tank, i), "q_tank_start"))
+
+    if bounded
+        for (i, tank) in ref(wm, nw, :tank)
+            flow_min, flow_max = 0.0, 0.0
+
+            for name in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
+                edges_fr = ref(wm, nw, Symbol(name * "_fr"), tank["node"])
+                edges_to = ref(wm, nw, Symbol(name * "_to"), tank["node"])
+
+                if length(edges_fr) > 0
+                    flow_min += sum(ref(wm, nw, Symbol(name), a)["flow_min"] for a in edges_fr)
+                    flow_max += sum(ref(wm, nw, Symbol(name), a)["flow_max"] for a in edges_fr)
+                end
+
+                if length(edges_to) > 0
+                    flow_min -= sum(ref(wm, nw, Symbol(name), a)["flow_max"] for a in edges_to)
+                    flow_max -= sum(ref(wm, nw, Symbol(name), a)["flow_min"] for a in edges_to)
+                end
+            end
+
+            JuMP.set_lower_bound(q_tank[i], flow_min)
+            JuMP.set_upper_bound(q_tank[i], flow_max)
+
+            flow_mid = flow_min + 0.5 * (flow_max - flow_min)
+            q_start = comp_start_value(tank, "q_tank_start", flow_mid)
+            JuMP.set_start_value(q_tank[i], q_start)
+        end
+    end
 
     report && sol_component_value(wm, nw, :tank, :q, ids(wm, nw, :tank), q_tank)
 end
@@ -205,7 +281,7 @@ end
 ### Link variables. ###
 "Creates binary variables for valves in the network, i.e., `z_valve[a]` for `a` in `valve`,
 where one denotes that the valve is open and zero denotes that the valve is closed."
-function variable_valve_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, relax::Bool=false, report::Bool=true)
+function variable_valve_indicator(wm::AbstractWaterModel; nw::Int=nw_id_default, relax::Bool=false, report::Bool=true)
     if !relax
         z_valve = var(wm, nw)[:z_valve] = JuMP.@variable(wm.model,
             [a in ids(wm, nw, :valve)], base_name = "$(nw)_z_valve", binary = true,
@@ -221,13 +297,13 @@ function variable_valve_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, relax:
         _fix_indicator_variable(z_valve[a], valve, "z")
     end
 
-    report && _IM.sol_component_value(wm, nw, :valve, :status, ids(wm, nw, :valve), z_valve)
+    report && sol_component_value(wm, nw, :valve, :status, ids(wm, nw, :valve), z_valve)
 end
 
 
 "Creates binary variables for all regulators in the network, i.e., `z_regulator[a]` for `a` in
 `regulator`, where one denotes that the pressure reducing is currently open and zero otherwise."
-function variable_regulator_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, relax::Bool=false, report::Bool=true)
+function variable_regulator_indicator(wm::AbstractWaterModel; nw::Int=nw_id_default, relax::Bool=false, report::Bool=true)
     if !relax
         z_regulator = var(wm, nw)[:z_regulator] = JuMP.@variable(wm.model,
             [a in ids(wm, nw, :regulator)], base_name = "$(nw)_z_regulator", binary = true,
@@ -250,7 +326,7 @@ end
 "Creates binary variables for all pumps in the network, i.e., `z_pump[a]` for
 `a` in `pump`, where one denotes that the pump is currently operating (i.e.,
 on), and zero indicates that the pump is not operating (i.e., off)."
-function variable_pump_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, relax::Bool=false, report::Bool=true)
+function variable_pump_indicator(wm::AbstractWaterModel; nw::Int=nw_id_default, relax::Bool=false, report::Bool=true)
     if !relax
         z_pump = var(wm, nw)[:z_pump] = JuMP.@variable(wm.model,
             [a in ids(wm, nw, :pump)], base_name = "$(nw)_z_pump",
@@ -274,7 +350,7 @@ end
 "Creates binary variables for all design pipes in the network, i.e.,
 `z_des_pipe[a]` for `a` in `des_pipe`, where one denotes that the pipe is
 selected within the design, and zero denotes that the pipe is not selected."
-function variable_des_pipe_indicator(wm::AbstractWaterModel; nw::Int=wm.cnw, relax::Bool=false, report::Bool=true)
+function variable_des_pipe_indicator(wm::AbstractWaterModel; nw::Int=nw_id_default, relax::Bool=false, report::Bool=true)
     if !relax
         z_des_pipe = var(wm, nw)[:z_des_pipe] = JuMP.@variable(wm.model,
             [a in ids(wm, nw, :des_pipe)], base_name = "$(nw)_z_des_pipe",

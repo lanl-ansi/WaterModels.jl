@@ -5,16 +5,19 @@
 # the water network optimization constraints. Here, constraint templates should always be
 # defined over the type `AbstractWaterModel` and should never refer to model variables.
 
-function _initialize_con_dict(wm::AbstractWaterModel, key::Symbol; nw::Int=wm.cnw, is_array::Bool=false)
+function _initialize_con_dict(wm::AbstractWaterModel, key::Symbol; nw::Int=nw_id_default, is_array::Bool=false)
     if !haskey(con(wm, nw), key)
-        con(wm, nw)[key] = is_array ? Dict{Any, Array{JuMP.ConstraintRef}}() :
-            Dict{Any, JuMP.ConstraintRef}()
+        if is_array
+            con(wm, nw)[key] = Dict{Any, Array{JuMP.ConstraintRef}}()
+        else
+            con(wm, nw)[key] = Dict{Any, JuMP.ConstraintRef}()
+        end
     end
 end
 
 
 ### Nodal Constraints ###
-function constraint_flow_conservation(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
+function constraint_flow_conservation(wm::AbstractWaterModel, i::Int; nw::Int=nw_id_default)
     # Collect various indices for edge-type components connected to node `i`.
     pipe_fr, pipe_to = ref(wm, nw, :pipe_fr, i), ref(wm, nw, :pipe_to, i)
     des_pipe_fr, des_pipe_to = ref(wm, nw, :des_pipe_fr, i), ref(wm, nw, :des_pipe_to, i)
@@ -47,7 +50,7 @@ function constraint_flow_conservation(wm::AbstractWaterModel, i::Int; nw::Int=wm
 end
 
 
-function constraint_node_directionality(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
+function constraint_node_directionality(wm::AbstractWaterModel, i::Int; nw::Int=nw_id_default)
     # Collect various indices for edge-type components connected to node `i`.
     pipe_fr, pipe_to = ref(wm, nw, :pipe_fr, i), ref(wm, nw, :pipe_to, i)
     des_pipe_fr, des_pipe_to = ref(wm, nw, :des_pipe_fr, i), ref(wm, nw, :des_pipe_to, i)
@@ -106,7 +109,7 @@ end
 
 
 ### Tank Constraints ###
-function constraint_tank_volume(wm::AbstractWaterModel, i::Int; nw::Int=wm.cnw)
+function constraint_tank_volume(wm::AbstractWaterModel, i::Int; nw::Int=nw_id_default)
     # Only set the tank state if the tank is nondispatchable.
     if !ref(wm, nw, :tank, i)["dispatchable"]
         tank = ref(wm, nw, :tank, i)
@@ -138,7 +141,7 @@ end
 
 
 ### Pipe Constraints ###
-function constraint_pipe_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_pipe_flow(wm::AbstractWaterModel, a::Int; nw::Int=nw_id_default, kwargs...)
     q_max_reverse = min(get(ref(wm, nw, :pipe, a), "flow_max_reverse", 0.0), 0.0)
     q_min_forward = max(get(ref(wm, nw, :pipe, a), "flow_min_forward", 0.0), 0.0)
 
@@ -148,7 +151,7 @@ function constraint_pipe_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kw
 end
 
 
-function constraint_pipe_head(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_pipe_head(wm::AbstractWaterModel, a::Int; nw::Int=nw_id_default, kwargs...)
     node_fr, node_to = ref(wm, nw, :pipe, a)["node_fr"], ref(wm, nw, :pipe, a)["node_to"]
     _initialize_con_dict(wm, :pipe_head, nw=nw, is_array=true)
     con(wm, nw, :pipe_head)[a] = Array{JuMP.ConstraintRef}([])
@@ -156,10 +159,13 @@ function constraint_pipe_head(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kw
 end
 
 
-function constraint_pipe_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_pipe_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=nw_id_default, kwargs...)
     node_fr, node_to = ref(wm, nw, :pipe, a)["node_fr"], ref(wm, nw, :pipe, a)["node_to"]
     exponent, L = ref(wm, nw, :alpha), ref(wm, nw, :pipe, a)["length"]
-    r = _calc_pipe_resistance(ref(wm, nw, :pipe, a), wm.data["head_loss"], wm.data["viscosity"])
+    base_length = get(wm.data, "base_length", 1.0)
+    base_time = get(wm.data, "base_time", 1.0)
+
+    r = _calc_pipe_resistance(ref(wm, nw, :pipe, a), wm.data["head_loss"], wm.data["viscosity"], base_length, base_time)
     q_max_reverse = min(get(ref(wm, nw, :pipe, a), "flow_max_reverse", 0.0), 0.0)
     q_min_forward = max(get(ref(wm, nw, :pipe, a), "flow_min_forward", 0.0), 0.0)
 
@@ -170,7 +176,7 @@ end
 
 
 ### Design Pipe Constraints ###
-function constraint_des_pipe_flow(wm::AbstractWaterModel, k::Int, node_fr::Int, node_to::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_des_pipe_flow(wm::AbstractWaterModel, k::Int, node_fr::Int, node_to::Int; nw::Int=nw_id_default, kwargs...)
     des_pipes = collect(keys(filter(x -> x.second["node_fr"] == node_fr &&
         x.second["node_to"] == node_to, ref(wm, nw, :des_pipe))))
 
@@ -180,7 +186,7 @@ function constraint_des_pipe_flow(wm::AbstractWaterModel, k::Int, node_fr::Int, 
 end
 
 
-function constraint_des_pipe_head(wm::AbstractWaterModel, k::Int, node_fr::Int, node_to::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_des_pipe_head(wm::AbstractWaterModel, k::Int, node_fr::Int, node_to::Int; nw::Int=nw_id_default, kwargs...)
     des_pipes = collect(keys(filter(x -> x.second["node_fr"] == node_fr &&
         x.second["node_to"] == node_to, ref(wm, nw, :des_pipe))))
 
@@ -190,7 +196,7 @@ function constraint_des_pipe_head(wm::AbstractWaterModel, k::Int, node_fr::Int, 
 end
 
 
-function constraint_des_pipe_selection(wm::AbstractWaterModel, k::Int, node_fr::Int, node_to::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_des_pipe_selection(wm::AbstractWaterModel, k::Int, node_fr::Int, node_to::Int; nw::Int=nw_id_default, kwargs...)
     des_pipes = collect(keys(filter(x -> x.second["node_fr"] == node_fr &&
         x.second["node_to"] == node_to, ref(wm, nw, :des_pipe))))
 
@@ -200,7 +206,7 @@ function constraint_des_pipe_selection(wm::AbstractWaterModel, k::Int, node_fr::
 end
 
 
-function constraint_on_off_des_pipe_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_on_off_des_pipe_flow(wm::AbstractWaterModel, a::Int; nw::Int=nw_id_default, kwargs...)
     # Get the design pipe from the specified index.
     des_pipe = ref(wm, nw, :des_pipe, a)
 
@@ -217,7 +223,7 @@ function constraint_on_off_des_pipe_flow(wm::AbstractWaterModel, a::Int; nw::Int
 end
 
 
-function constraint_on_off_des_pipe_head(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_on_off_des_pipe_head(wm::AbstractWaterModel, a::Int; nw::Int=nw_id_default, kwargs...)
     # Get the design pipe from the specified index.
     des_pipe = ref(wm, nw, :des_pipe, a)
 
@@ -230,13 +236,19 @@ function constraint_on_off_des_pipe_head(wm::AbstractWaterModel, a::Int; nw::Int
 end
 
 
-function constraint_on_off_des_pipe_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_on_off_des_pipe_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=nw_id_default, kwargs...)
     # Get the design pipe from the specified index.
     des_pipe = ref(wm, nw, :des_pipe, a)
 
     # Compute metadata associated with the design pipe.
-    exponent = _get_exponent_from_head_loss_form(wm.ref[:head_loss])
-    res = _calc_pipe_resistance(des_pipe, wm.ref[:head_loss], wm.ref[:viscosity])
+    head_loss = wm.ref[:it][wm_it_sym][:head_loss]
+    viscosity = wm.ref[:it][wm_it_sym][:viscosity]
+
+    exponent = _get_exponent_from_head_loss_form(head_loss)
+    base_length = get(wm.data, "base_length", 1.0)
+    base_time = get(wm.data, "base_time", 1.0)
+
+    r = _calc_pipe_resistance(des_pipe, head_loss, viscosity, base_length, base_time)
     q_max_reverse = min(get(des_pipe, "flow_max_reverse", 0.0), 0.0)
     q_min_forward = max(get(des_pipe, "flow_min_forward", 0.0), 0.0)
 
@@ -247,12 +259,12 @@ function constraint_on_off_des_pipe_head_loss(wm::AbstractWaterModel, a::Int; nw
     # Apply the :on_off_des_pipe_head_loss constraints.
     constraint_on_off_des_pipe_head_loss(
         wm, nw, a, des_pipe["node_fr"], des_pipe["node_to"], exponent,
-        des_pipe["length"], res, q_max_reverse, q_min_forward)
+        des_pipe["length"], r, q_max_reverse, q_min_forward)
 end
 
 
 ### Pump Constraints ###
-function constraint_on_off_pump_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_on_off_pump_flow(wm::AbstractWaterModel, a::Int; nw::Int=nw_id_default, kwargs...)
     node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
     q_min_forward = max(get(ref(wm, nw, :pump, a), "flow_min_forward", _FLOW_MIN), _FLOW_MIN)
 
@@ -262,7 +274,7 @@ function constraint_on_off_pump_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.
 end
 
 
-function constraint_on_off_pump_head(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_on_off_pump_head(wm::AbstractWaterModel, a::Int; nw::Int=nw_id_default, kwargs...)
     node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
 
     _initialize_con_dict(wm, :on_off_pump_head, nw=nw, is_array=true)
@@ -271,7 +283,7 @@ function constraint_on_off_pump_head(wm::AbstractWaterModel, a::Int; nw::Int=wm.
 end
 
 
-function constraint_on_off_pump_head_gain(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_on_off_pump_head_gain(wm::AbstractWaterModel, a::Int; nw::Int=nw_id_default, kwargs...)
     node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
     q_min_forward = max(get(ref(wm, nw, :pump, a), "flow_min_forward", _FLOW_MIN), _FLOW_MIN)
 
@@ -286,7 +298,7 @@ function constraint_on_off_pump_head_gain(wm::AbstractWaterModel, a::Int; nw::In
 end
 
 
-function constraint_on_off_pump_power(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_on_off_pump_power(wm::AbstractWaterModel, a::Int; nw::Int=nw_id_default, kwargs...)
     q_min_forward = max(get(ref(wm, nw, :pump, a), "flow_min_forward", _FLOW_MIN), _FLOW_MIN)
     _initialize_con_dict(wm, :on_off_pump_power, nw=nw, is_array=true)
     con(wm, nw, :on_off_pump_power)[a] = Array{JuMP.ConstraintRef}([])
@@ -295,12 +307,23 @@ function constraint_on_off_pump_power(wm::AbstractWaterModel, a::Int; nw::Int=wm
         constraint_on_off_pump_power(wm, nw, a, q_min_forward)
     elseif ref(wm, nw, :pump, a)["head_curve_form"] == BEST_EFFICIENCY_POINT
         constraint_on_off_pump_power_best_efficiency(wm, nw, a, q_min_forward)
+    elseif ref(wm, nw, :pump, a)["head_curve_form"] == LINEAR_POWER
+        # Ensure that the required keys for modeling pump power exist.
+        @assert haskey(ref(wm, nw, :pump, a), "power_fixed")
+        @assert haskey(ref(wm, nw, :pump, a), "power_per_unit_flow")
+
+        # Obtain the required data for modeling pump power linearly.
+        power_fixed = ref(wm, nw, :pump, a)["power_fixed"]
+        power_variable = ref(wm, nw, :pump, a)["power_per_unit_flow"]
+
+        # Add the custom (linear) pump power constraint using the above.
+        constraint_on_off_pump_power_custom(wm, nw, a, power_fixed, power_variable)
     end
 end
 
 
 ### Short Pipe Constraints ###
-function constraint_short_pipe_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_short_pipe_flow(wm::AbstractWaterModel, a::Int; nw::Int=nw_id_default, kwargs...)
     q_max_reverse = min(get(ref(wm, nw, :short_pipe, a), "flow_max_reverse", 0.0), 0.0)
     q_min_forward = max(get(ref(wm, nw, :short_pipe, a), "flow_min_forward", 0.0), 0.0)
 
@@ -310,7 +333,7 @@ function constraint_short_pipe_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.c
 end
 
 
-function constraint_short_pipe_head(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_short_pipe_head(wm::AbstractWaterModel, a::Int; nw::Int=nw_id_default, kwargs...)
     node_fr = ref(wm, nw, :short_pipe, a)["node_fr"]
     node_to = ref(wm, nw, :short_pipe, a)["node_to"]
 
@@ -321,7 +344,7 @@ end
 
 
 ### Valve Constraints ###
-function constraint_on_off_valve_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_on_off_valve_flow(wm::AbstractWaterModel, a::Int; nw::Int=nw_id_default, kwargs...)
     node_fr, node_to = ref(wm, nw, :valve, a)["node_fr"], ref(wm, nw, :valve, a)["node_to"]
     q_max_reverse = min(get(ref(wm, nw, :valve, a), "flow_max_reverse", 0.0), 0.0)
     q_min_forward = max(get(ref(wm, nw, :valve, a), "flow_min_forward", 0.0), 0.0)
@@ -332,7 +355,7 @@ function constraint_on_off_valve_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm
 end
 
 
-function constraint_on_off_valve_head(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_on_off_valve_head(wm::AbstractWaterModel, a::Int; nw::Int=nw_id_default, kwargs...)
     node_fr, node_to = ref(wm, nw, :valve, a)["node_fr"], ref(wm, nw, :valve, a)["node_to"]
 
     _initialize_con_dict(wm, :on_off_valve_head, nw=nw, is_array=true)
@@ -342,7 +365,7 @@ end
 
 
 ### Regulator Constraints ###
-function constraint_on_off_regulator_flow(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_on_off_regulator_flow(wm::AbstractWaterModel, a::Int; nw::Int=nw_id_default, kwargs...)
     q_min_forward = get(ref(wm, nw, :regulator, a), "flow_min_forward", _FLOW_MIN)
 
     _initialize_con_dict(wm, :on_off_regulator_flow, nw=nw, is_array=true)
@@ -351,7 +374,7 @@ function constraint_on_off_regulator_flow(wm::AbstractWaterModel, a::Int; nw::In
 end
 
 
-function constraint_on_off_regulator_head(wm::AbstractWaterModel, a::Int; nw::Int=wm.cnw, kwargs...)
+function constraint_on_off_regulator_head(wm::AbstractWaterModel, a::Int; nw::Int=nw_id_default, kwargs...)
     node_fr = ref(wm, nw, :regulator, a)["node_fr"]
     node_to = ref(wm, nw, :regulator, a)["node_to"]
     elevation = ref(wm, nw, :node, node_to)["elevation"]
