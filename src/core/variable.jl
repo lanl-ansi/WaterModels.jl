@@ -204,36 +204,36 @@ function variable_demand_flow(wm::AbstractWaterModel; nw::Int=nw_id_default, bou
         [i in ids(wm, nw, :dispatchable_demand)], base_name="$(nw)_q_demand",
         start=comp_start_value(ref(wm, nw, :dispatchable_demand, i), "q_demand_start"))
 
-    if bounded
-        for (i, demand) in ref(wm, nw, :dispatchable_demand)
-            flow_min, flow_max = 0.0, 0.0
+    # if bounded
+    #     for (i, demand) in ref(wm, nw, :dispatchable_demand)
+    #         flow_min, flow_max = 0.0, 0.0
 
-            for name in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
-                edges_fr = ref(wm, nw, Symbol(name * "_fr"), demand["node"])
-                edges_to = ref(wm, nw, Symbol(name * "_to"), demand["node"])
+    #         for name in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
+    #             edges_fr = ref(wm, nw, Symbol(name * "_fr"), demand["node"])
+    #             edges_to = ref(wm, nw, Symbol(name * "_to"), demand["node"])
 
-                if length(edges_fr) > 0
-                    flow_min += sum(ref(wm, nw, Symbol(name), a)["flow_min"] for a in edges_fr)
-                    flow_max += sum(ref(wm, nw, Symbol(name), a)["flow_max"] for a in edges_fr)
-                end
+    #             if length(edges_fr) > 0
+    #                 flow_min -= sum(ref(wm, nw, Symbol(name), a)["flow_min"] for a in edges_fr)
+    #                 flow_max -= sum(ref(wm, nw, Symbol(name), a)["flow_max"] for a in edges_fr)
+    #             end
 
-                if length(edges_to) > 0
-                    flow_min -= sum(ref(wm, nw, Symbol(name), a)["flow_max"] for a in edges_to)
-                    flow_max -= sum(ref(wm, nw, Symbol(name), a)["flow_min"] for a in edges_to)
-                end
-            end
+    #             if length(edges_to) > 0
+    #                 flow_min -= sum(ref(wm, nw, Symbol(name), a)["flow_max"] for a in edges_to)
+    #                 flow_max -= sum(ref(wm, nw, Symbol(name), a)["flow_min"] for a in edges_to)
+    #             end
+    #         end
 
-            flow_min = max(flow_min, demand["flow_min"])
-            flow_max = min(flow_max, demand["flow_max"])
+    #         flow_min = max(flow_min, demand["flow_min"])
+    #         flow_max = min(flow_max, demand["flow_max"])
 
-            JuMP.set_lower_bound(q_demand[i], flow_min)
-            JuMP.set_upper_bound(q_demand[i], flow_max)
+    #         JuMP.set_lower_bound(q_demand[i], flow_min)
+    #         JuMP.set_upper_bound(q_demand[i], flow_max)
 
-            flow_mid = flow_min + 0.5 * (flow_max - flow_min)
-            q_start = comp_start_value(demand, "q_demand_start", flow_mid)
-            JuMP.set_start_value(q_demand[i], q_start)
-        end
-    end
+    #         flow_mid = flow_min + 0.5 * (flow_max - flow_min)
+    #         q_start = comp_start_value(demand, "q_demand_start", flow_mid)
+    #         JuMP.set_start_value(q_demand[i], q_start)
+    #     end
+    # end
 
     report && sol_component_value(wm, nw, :demand, :q, ids(wm, nw, :dispatchable_demand), q_demand)
 end

@@ -193,6 +193,19 @@ function set_start!(data::Dict{String,<:Any}, component_type::String, var_name::
 end
 
 
+function set_direction_start_from_flow!(data::Dict{String,<:Any}, component_type::String, var_name::String, start_name::String)
+    if _IM.ismultinetwork(data)
+        for (n, nw) in data["nw"]
+            comps = values(nw[component_type])
+            map(x -> x[start_name] = x[var_name] > 0.0 ? 1 : 0, comps)
+        end
+    else
+        comps = values(data[component_type])
+        map(x -> x[start_name] = x[var_name] > 0.0 ? 1 : 0, comps)
+    end
+end
+
+
 function set_flow_start!(data::Dict{String,<:Any})
     set_start!(data, "pipe", "q", "q_pipe_start")
     set_start!(data, "pump", "q", "q_pump_start")
@@ -201,6 +214,15 @@ function set_flow_start!(data::Dict{String,<:Any})
     set_start!(data, "valve", "q", "q_valve_start")
     set_start!(data, "reservoir", "q", "q_reservoir_start")
     set_start!(data, "tank", "q", "q_tank_start")
+end
+
+
+function set_flow_direction_start!(data::Dict{String,<:Any})
+    set_direction_start_from_flow!(data, "pipe", "q", "y_pipe_start")
+    set_direction_start_from_flow!(data, "pump", "q", "y_pump_start")
+    set_direction_start_from_flow!(data, "regulator", "q", "y_regulator_start")
+    set_direction_start_from_flow!(data, "short_pipe", "q", "y_short_pipe_start")
+    set_direction_start_from_flow!(data, "valve", "q", "y_valve_start")
 end
 
 
@@ -221,6 +243,7 @@ function set_start_all!(data::Dict{String,<:Any})
     set_flow_start!(data)
     set_head_start!(data)
     set_indicator_start!(data)
+    set_flow_direction_start!(data)
 end
 
 
@@ -278,6 +301,31 @@ function _fix_indicator!(component::Dict{String,<:Any})
         component["z_min"] = component["status"] > 0.5 ? 1.0 : 0.0
         component["z_max"] = component["status"] > 0.5 ? 1.0 : 0.0
     end
+end
+
+
+function turn_on_all_components!(data::Dict{String,<:Any})
+    turn_on_components!(data, "pump")
+    turn_on_components!(data, "regulator")
+    turn_on_components!(data, "valve")
+end
+
+
+function turn_on_components!(data::Dict{String,<:Any}, component_type::String)
+    if _IM.ismultinetwork(data)
+        for (n, nw) in data["nw"]
+            comps = values(nw[component_type])
+            _turn_on_component!.(comps)
+        end
+    else
+        comps = values(data[component_type])
+        _turn_on_component!.(comps)
+    end
+end
+
+
+function _turn_on_component!(component::Dict{String,<:Any})
+    component["status"] = 1
 end
 
 
