@@ -287,8 +287,8 @@ function constraint_on_off_pump_head_gain(wm::AbstractWaterModel, a::Int; nw::In
     node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
     q_min_forward = max(get(ref(wm, nw, :pump, a), "flow_min_forward", _FLOW_MIN), _FLOW_MIN)
 
-    if ref(wm, nw, :pump, a)["head_curve_form"] == EPANET && isa(wm, AbstractNonlinearModel)
-        message = "EPANET head curves are not currently supported for nonlinear models."
+    if ref(wm, nw, :pump, a)["head_curve_form"] == PUMP_EPANET && isa(wm, AbstractNonlinearModel)
+        message = "PUMP_EPANET head curves are not currently supported for nonlinear models."
         Memento.error(_LOGGER, message)
     end
 
@@ -303,11 +303,11 @@ function constraint_on_off_pump_power(wm::AbstractWaterModel, a::Int; nw::Int=nw
     _initialize_con_dict(wm, :on_off_pump_power, nw=nw, is_array=true)
     con(wm, nw, :on_off_pump_power)[a] = Array{JuMP.ConstraintRef}([])
 
-    if ref(wm, nw, :pump, a)["head_curve_form"] in [QUADRATIC, EPANET]
+    if ref(wm, nw, :pump, a)["head_curve_form"] in [PUMP_QUADRATIC, PUMP_EPANET]
         constraint_on_off_pump_power(wm, nw, a, q_min_forward)
-    elseif ref(wm, nw, :pump, a)["head_curve_form"] == BEST_EFFICIENCY_POINT
+    elseif ref(wm, nw, :pump, a)["head_curve_form"] == PUMP_BEST_EFFICIENCY_POINT
         constraint_on_off_pump_power_best_efficiency(wm, nw, a, q_min_forward)
-    elseif ref(wm, nw, :pump, a)["head_curve_form"] == LINEAR_POWER
+    elseif ref(wm, nw, :pump, a)["head_curve_form"] == PUMP_LINEAR_POWER
         # Ensure that the required keys for modeling pump power exist.
         @assert haskey(ref(wm, nw, :pump, a), "power_fixed")
         @assert haskey(ref(wm, nw, :pump, a), "power_per_unit_flow")

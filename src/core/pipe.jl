@@ -112,7 +112,7 @@ function _calc_pipe_flow_min_hw(
     resistance = _calc_pipe_resistance_hw(pipe["diameter"], pipe["roughness"], base_length, base_time)
     loss = get(node_fr, "head_min", -Inf) - get(node_to, "head_max", Inf)
     flow_min_loss = sign(loss) * (abs(loss) * inv(pipe["length"] * resistance))^inv(1.852)
-    flow_min_dir = pipe["flow_direction"] == POSITIVE ? 0.0 : -Inf
+    flow_min_dir = pipe["flow_direction"] == FLOW_DIRECTION_POSITIVE ? 0.0 : -Inf
     return max(-capacity, flow_min_loss, flow_min_dir, get(pipe, "flow_min", -Inf))
 end
 
@@ -125,7 +125,7 @@ function _calc_pipe_flow_min_dw(
     resistance = _calc_pipe_resistance_dw(diameter, roughness, viscosity, speed, _DENSITY)
     loss = get(node_fr, "head_min", -Inf) - get(node_to, "head_max", Inf)
     flow_min_loss = sign(loss) * (abs(loss) * inv(pipe["length"] * resistance))^inv(2.0)
-    flow_min_dir = pipe["flow_direction"] == POSITIVE ? 0.0 : -Inf
+    flow_min_dir = pipe["flow_direction"] == FLOW_DIRECTION_POSITIVE ? 0.0 : -Inf
     return max(-capacity, flow_min_loss, flow_min_dir, get(pipe, "flow_min", -Inf))
 end
 
@@ -137,7 +137,7 @@ function _calc_pipe_flow_max_hw(
     resistance = _calc_pipe_resistance_hw(pipe["diameter"], pipe["roughness"], base_length, base_time)
     loss = get(node_fr, "head_max", Inf) - get(node_to, "head_min", -Inf)
     flow_max_loss = sign(loss) * (abs(loss) * inv(pipe["length"] * resistance))^inv(1.852)
-    flow_max_dir = pipe["flow_direction"] == NEGATIVE ? 0.0 : Inf
+    flow_max_dir = pipe["flow_direction"] == FLOW_DIRECTION_NEGATIVE ? 0.0 : Inf
     return min(capacity, flow_max_loss, flow_max_dir, get(pipe, "flow_max", Inf))
 end
 
@@ -150,7 +150,7 @@ function _calc_pipe_flow_max_dw(
     resistance = _calc_pipe_resistance_dw(diameter, roughness, viscosity, speed, _DENSITY)
     loss = get(node_fr, "head_max", Inf) - get(node_to, "head_min", -Inf)
     flow_max_loss = sign(loss) * (abs(loss) * inv(pipe["length"] * resistance))^inv(2.0)
-    flow_max_dir = pipe["flow_direction"] == NEGATIVE ? 0.0 : Inf
+    flow_max_dir = pipe["flow_direction"] == FLOW_DIRECTION_NEGATIVE ? 0.0 : Inf
     return min(capacity, flow_max_loss, flow_max_dir, get(pipe, "flow_max", Inf))
 end
 

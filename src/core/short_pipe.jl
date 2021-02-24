@@ -23,12 +23,12 @@ end
 
 
 function _calc_short_pipe_flow_min(short_pipe::Dict{String, <:Any}, capacity::Float64)
-    flow_min_dir = short_pipe["flow_direction"] == POSITIVE ? 0.0 : -Inf
+    flow_min_dir = short_pipe["flow_direction"] == FLOW_DIRECTION_POSITIVE ? 0.0 : -Inf
     return max(-capacity, flow_min_dir, get(short_pipe, "flow_min", -Inf))
 end
 
 
 function _calc_short_pipe_flow_max(short_pipe::Dict{String, <:Any}, capacity::Float64)
-    flow_max_dir = short_pipe["flow_direction"] == NEGATIVE ? 0.0 : Inf
+    flow_max_dir = short_pipe["flow_direction"] == FLOW_DIRECTION_NEGATIVE ? 0.0 : Inf
     return min(capacity, flow_max_dir, get(short_pipe, "flow_max", Inf))
 end

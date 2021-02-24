@@ -875,7 +875,7 @@ function _read_pipe!(data::Dict{String,<:Any})
 
         # Derive important metadata from existing data.
         pipe["has_valve"] = uppercase(current[8]) in ["CV", "CLOSED"]
-        pipe["flow_direction"] = uppercase(current[8]) == "CV" ? POSITIVE : UNKNOWN
+        pipe["flow_direction"] = uppercase(current[8]) == "CV" ? FLOW_DIRECTION_POSITIVE : FLOW_DIRECTION_UNKNOWN
 
         # Add a temporary index to be used in the data dictionary.
         pipe["index"] = string(index += 1)
@@ -940,7 +940,7 @@ function _read_pump!(data::Dict{String,<:Any})
         end
 
         # Flow is always in the positive direction for pumps.
-        pump["flow_direction"] = POSITIVE
+        pump["flow_direction"] = FLOW_DIRECTION_POSITIVE
 
         # Add a temporary index to be used in the data dictionary.
         pump["index"] = string(index += 1)
@@ -1131,7 +1131,7 @@ function _read_regulator!(data::Dict{String,<:Any})
         # Parse the valve type and throw an error if not supported.
         if uppercase(current[5]) == "PRV"
             valve["source_id"] = ["regulator", current[1]]
-            valve["flow_direction"] = POSITIVE
+            valve["flow_direction"] = FLOW_DIRECTION_POSITIVE
         elseif uppercase(current[5]) == "TCV"
             valve["source_id"] = ["throttle_control_valve", current[1]]
             Memento.error(_LOGGER, "Valves of type $(current[5]) are not supported.")
@@ -1274,7 +1274,7 @@ function _add_valves_to_tanks!(data::Dict{String,<:Any})
         valve = Dict{String,Any}("name" => string(v_id), "status" => 1, "index" => v_id)
         valve["source_id"] = AbstractString["valve", string(v_id)]
         valve["node_fr"], valve["node_to"] = original_tank_node, dummy_node_id
-        valve["flow_direction"], valve["minor_loss"] = UNKNOWN, 0.0
+        valve["flow_direction"], valve["minor_loss"] = FLOW_DIRECTION_UNKNOWN, 0.0
 
         # Add the valve to the data object.
         data["valve"][string(v_id)] = valve

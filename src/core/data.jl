@@ -12,8 +12,12 @@ end
 
 "Correct flow direction attribute of edge-type components."
 function _correct_flow_direction!(comp::Dict{String, <:Any})
-    if !isa(comp["flow_direction"], FLOW_DIRECTION)
-        comp["flow_direction"] = FLOW_DIRECTION(comp["flow_direction"])
+    flow_direction = get(comp, "flow_direction", FLOW_DIRECTION_UNKNOWN)
+
+    if isa(flow_direction, FLOW_DIRECTION)
+        comp["flow_direction"] = flow_direction
+    else
+        comp["flow_direction"] = FLOW_DIRECTION(flow_direction)
     end
 end
 
@@ -79,13 +83,13 @@ end
 
 
 function _calc_abs_flow_midpoint(comp::Dict{String,Any})
-    if comp["flow_direction"] in [0, UNKNOWN]
+    if comp["flow_direction"] in [0, FLOW_DIRECTION_UNKNOWN]
         qp_ub_mid = 0.5 * max(0.0, comp["flow_max"])
         qn_ub_mid = 0.5 * max(0.0, -comp["flow_min"])
         return max(qp_ub_mid, qn_ub_mid)
-    elseif comp["flow_direction"] in [1, POSITIVE]
+    elseif comp["flow_direction"] in [1, FLOW_DIRECTION_POSITIVE]
         return 0.5 * max(0.0, comp["flow_max"])
-    elseif comp["flow_direction"] in [-1, NEGATIVE]
+    elseif comp["flow_direction"] in [-1, FLOW_DIRECTION_NEGATIVE]
         return 0.5 * max(0.0, -comp["flow_min"])
     end
 end
