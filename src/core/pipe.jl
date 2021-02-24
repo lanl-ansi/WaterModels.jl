@@ -35,6 +35,7 @@ function correct_pipes!(data::Dict{String, <:Any})
         node_to = data["node"][string(pipe["node_to"])]
 
         # Correct various pipe properties. The sequence is important, here.
+        _correct_status!(pipe)
         _correct_flow_direction!(pipe)
         _correct_pipe_flow_bounds!(pipe, node_fr, node_to, head_loss_form, visc, capacity, base_length, base_time)
     end

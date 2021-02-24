@@ -22,6 +22,18 @@ function _correct_flow_direction!(comp::Dict{String, <:Any})
 end
 
 
+"Correct status attribute of a component."
+function _correct_status!(comp::Dict{String, <:Any})
+    status = get(comp, "status", STATUS_UNKNOWN)
+
+    if isa(status, STATUS)
+        comp["status"] = status
+    else
+        comp["status"] = STATUS(status)
+    end
+end
+
+
 "Transform length values SI units to per-unit units."
 function _calc_head_per_unit_transform(data::Dict{String,<:Any})
     median_midpoint = _calc_node_head_median_midpoint(data)
@@ -329,7 +341,7 @@ end
 
 
 function _turn_on_component!(component::Dict{String,<:Any})
-    component["status"] = 1
+    component["status"] = STATUS_ACTIVE
 end
 
 

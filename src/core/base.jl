@@ -162,7 +162,7 @@ end
 
 
 function _filter_active_components(components::Dict{Int,<:Any})::Dict{Int,<:Any}
-    return filter(x -> x.second["status"] != 0, components)
+    return filter(x -> x.second["status"] !== STATUS_INACTIVE, components)
 end
 
 

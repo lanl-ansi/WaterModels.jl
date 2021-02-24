@@ -20,6 +20,7 @@ function correct_pumps!(data::Dict{String, <:Any})
         node_to = data["node"][string(pump["node_to"])]
 
         # Correct various pump properties. The sequence is important, here.
+        _correct_status!(pump)
         _correct_flow_direction!(pump)
         _correct_pump_head_curve_form!(pump)
         _correct_pump_flow_bounds!(pump, node_fr, node_to)

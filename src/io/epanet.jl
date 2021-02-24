@@ -636,7 +636,7 @@ function _read_demand!(data::Dict{String,<:Any})
         length(current) == 0 && continue # Skip.
 
         # Initialize the demand entry to be added.
-        demand = Dict{String,Any}("name" => current[1], "status" => 1)
+        demand = Dict{String,Any}("name" => current[1], "status" => STATUS_ACTIVE)
         demand["source_id"] = ["demand", current[1]]
         demand["dispatchable"] = false
 
@@ -668,7 +668,7 @@ function _read_demand!(data::Dict{String,<:Any})
                 demand["flow_nominal"] = 6.30902e-5 * demand_unscaled
             end
         else # No value for demand exists in the line.
-            demand["status"] = 0 # Set the status of the demand to zero.
+            demand["status"] = STATUS_INACTIVE # Set the status of the demand to zero.
             demand["flow_nominal"] = 0.0 # Initialize demand to zero.
         end
 
@@ -832,7 +832,7 @@ function _read_pipe!(data::Dict{String,<:Any})
         length(current) == 0 && continue # Skip.
 
         # Initialize the pipe entry to be added.
-        pipe = Dict{String,Any}("name" => current[1], "status" => 1)
+        pipe = Dict{String,Any}("name" => current[1], "status" => STATUS_ACTIVE)
         pipe["source_id"] = ["pipe", current[1]]
         pipe["node_fr"] = data["node_map"][current[2]]
         pipe["node_to"] = data["node_map"][current[3]]
@@ -902,7 +902,7 @@ function _read_pump!(data::Dict{String,<:Any})
         length(current) == 0 && continue # Skip.
 
         # Initialize the pipe entry to be added.
-        pump = Dict{String,Any}("name" => current[1], "status" => 1)
+        pump = Dict{String,Any}("name" => current[1], "status" => STATUS_UNKNOWN)
         pump["source_id"] = ["pump", current[1]]
         pump["node_fr"] = data["node_map"][current[2]]
         pump["node_to"] = data["node_map"][current[3]]
@@ -969,7 +969,7 @@ function _read_reservoir!(data::Dict{String,<:Any})
         length(current) == 0 && continue # Skip.
 
         # Initialize the reservoir entry to be added.
-        reservoir = Dict{String,Any}("name" => current[1], "status" => 1)
+        reservoir = Dict{String,Any}("name" => current[1], "status" => STATUS_ACTIVE)
         reservoir["source_id"] = ["reservoir", current[1]]
         reservoir["dispatchable"] = false
 
@@ -1035,7 +1035,7 @@ function _read_tank!(data::Dict{String,<:Any})
         length(current) == 0 && continue # Skip.
 
         # Initialize the tank entry to be added.
-        tank = Dict{String,Any}("name" => current[1], "status" => 1)
+        tank = Dict{String,Any}("name" => current[1], "status" => STATUS_ACTIVE)
         tank["source_id"] = ["tank", current[1]]
         tank["dispatchable"] = false
 
@@ -1124,7 +1124,7 @@ function _read_regulator!(data::Dict{String,<:Any})
         length(current) == 0 && continue # Skip.
 
         # Initialize the valve entry to be added.
-        valve = Dict{String,Any}("name" => current[1], "status" => 1)
+        valve = Dict{String,Any}("name" => current[1], "status" => STATUS_UNKNOWN)
         valve["node_fr"] = data["node_map"][current[2]]
         valve["node_to"] = data["node_map"][current[3]]
 
@@ -1271,7 +1271,7 @@ function _add_valves_to_tanks!(data::Dict{String,<:Any})
 
         # Add a valve that connects the dummy (tank) node to the original node.
         v_id = _get_max_comp_id(data, "valve") + 1
-        valve = Dict{String,Any}("name" => string(v_id), "status" => 1, "index" => v_id)
+        valve = Dict{String,Any}("name" => string(v_id), "status" => STATUS_ACTIVE, "index" => v_id)
         valve["source_id"] = AbstractString["valve", string(v_id)]
         valve["node_fr"], valve["node_to"] = original_tank_node, dummy_node_id
         valve["flow_direction"], valve["minor_loss"] = FLOW_DIRECTION_UNKNOWN, 0.0
@@ -1291,7 +1291,7 @@ function _add_valves_from_pipes!(data::Dict{String,<:Any})
 
         # Create the valve that will connect to the dummy node.
         valve = Dict{String,Any}("index" => pipe["index"], "name" => pipe["name"])
-        valve["source_id"], valve["status"] = pipe["source_id"], 1
+        valve["source_id"], valve["status"] = pipe["source_id"], STATUS_UNKNOWN
         valve["flow_direction"] = pipe["flow_direction"]
         valve["minor_loss"] = pipe["minor_loss"]
 
