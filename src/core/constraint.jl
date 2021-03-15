@@ -77,6 +77,24 @@ function constraint_tank_volume(wm::AbstractWaterModel, n_1::Int, n_2::Int, i::I
     con(wm, n_2, :tank_volume)[i] = c
 end
 
+function constraint_tank_volume_with_slack_start(wm::AbstractWaterModel, n_1::Int, n_2::Int, i::Int, time_step::Float64)
+    q_tank = var(wm, n_1, :q_tank, i) # Tank outflow.
+    V_1, V_2 = var(wm, n_1, :V, i), var(wm, n_2, :V, i)
+    t_s_plus_1 = var(wm, n_1, :t_s_plus, i)
+    t_s_minus_1 = var(wm, n_1, :t_s_minus, i)
+    c = JuMP.@constraint(wm.model, (t_s_plus_1 - t_s_minus_1) + V_1 - time_step * q_tank == V_2  )
+    con(wm, n_2, :tank_volume_slack_start)[i] = c
+end
+
+function constraint_tank_volume_with_slack_end(wm::AbstractWaterModel, n_1::Int, n_2::Int, i::Int, time_step::Float64)
+    q_tank = var(wm, n_1, :q_tank, i) # Tank outflow.
+    V_1, V_2 = var(wm, n_1, :V, i), var(wm, n_2, :V, i)
+    t_s_plus_2 = var(wm, n_2, :t_s_plus, i)
+    t_s_minus_2 =  var(wm, n_2, :t_s_minus, i)
+    c = JuMP.@constraint(wm.model, V_1 - time_step * q_tank == V_2 + (t_s_plus_2 - t_s_minus_2)  )
+    con(wm, n_2, :tank_volume_slack_end)[i] = c
+end
+
 
 """
     constraint_tank_volume_recovery(wm, i, n_1, n_f)

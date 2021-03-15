@@ -27,6 +27,24 @@ end
 ### Variables related to nodal components. ###
 "Creates bounded (by default) or unbounded total hydraulic head (or head)
 variables for all nodes in the network, i.e., `h[i]` for `i` in `node`."
+
+function variable_tank_slack(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+    # Initialize variables for total hydraulic head.
+    s_t_plus = var(wm, nw)[:t_s_plus] = JuMP.@variable(wm.model,
+        [i in ids(wm, nw, :tank)], base_name = "$(nw)_t_s_plus")
+    s_t_minus = var(wm, nw)[:t_s_minus] = JuMP.@variable(wm.model,
+        [i in ids(wm, nw, :tank)], base_name = "$(nw)_t_s_minus")
+
+    for (i, tank) in ref(wm, nw, :tank)
+
+        JuMP.set_lower_bound(s_t_plus[i], 0.0)
+        JuMP.set_lower_bound(s_t_minus[i], 0.0)
+    end
+end    
+
+
+
+
 function variable_head(wm::AbstractWaterModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
     # Initialize variables for total hydraulic head.
     h = var(wm, nw)[:h] = JuMP.@variable(wm.model,

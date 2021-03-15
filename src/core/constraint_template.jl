@@ -135,6 +135,37 @@ function constraint_tank_volume(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2:
         end
     end
 end
+##########################
+function constraint_tank_volume_with_slack_start(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2::Int)
+    # Only apply the constraint if the tank exists in both subnetworks.
+    if haskey(ref(wm, nw_1, :tank), i) && haskey(ref(wm, nw_2, :tank), i)
+        # Get the tank reference within each of the subnetworks.
+        tank_nw_1, tank_nw_2 = ref(wm, nw_1, :tank, i), ref(wm, nw_2, :tank, i)
+
+        # Only set the tank state if the tank is nondispatchable.
+        if !tank_nw_1["dispatchable"] && !tank_nw_2["dispatchable"]
+            # Apply the tank volume integration constraint between the two time steps.
+            _initialize_con_dict(wm, :tank_volume_slack_start, nw = nw_2)
+            constraint_tank_volume_with_slack_start(wm, nw_1, nw_2, i, float(ref(wm, nw_1, :time_step)))
+        end
+    end
+end
+
+function constraint_tank_volume_with_slack_end(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2::Int)
+    # Only apply the constraint if the tank exists in both subnetworks.
+    if haskey(ref(wm, nw_1, :tank), i) && haskey(ref(wm, nw_2, :tank), i)
+        # Get the tank reference within each of the subnetworks.
+        tank_nw_1, tank_nw_2 = ref(wm, nw_1, :tank, i),ref(wm, nw_2, :tank, i)
+
+        # Only set the tank state if the tank is nondispatchable.
+        if !tank_nw_1["dispatchable"] && !tank_nw_2["dispatchable"]
+            # Apply the tank volume integration constraint between the two time steps.
+            _initialize_con_dict(wm, :tank_volume_slack_end, nw = nw_2)
+            constraint_tank_volume_with_slack_end(wm, nw_1, nw_2, i, float(ref(wm, nw_1, :time_step)))
+        end
+    end
+end
+##########################
 
 
 ### Pipe Constraints ###

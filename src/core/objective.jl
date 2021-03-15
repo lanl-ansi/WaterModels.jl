@@ -52,3 +52,20 @@ function objective_owf(wm::AbstractWaterModel)
     # Minimize the cost (in units of currency) required to operate pumps.
     return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
 end
+
+function objective_owf_decomp(wm::AbstractWaterModel)
+    objective = JuMP.AffExpr(0.0)
+
+    # for (n, nw_ref) in nws(wm)
+    network_ids = sort(collect(nw_ids(wm)))
+    for n in network_ids[2:end]
+        for (a, pump) in ref(wm, n, :pump)
+            @assert haskey(pump, "energy_price") # Ensure a price exists.
+            coeff = ref(wm, n, :time_step) * pump["energy_price"] # * _DENSITY * _GRAVITY
+            JuMP.add_to_expression!(objective, coeff * var(wm, n, :Ps_pump, a))
+        end
+    end
+
+    # Minimize the cost (in units of currency) required to operate pumps.
+    return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
+end
