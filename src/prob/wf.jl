@@ -1,5 +1,22 @@
+function solve_wf(network, model_constructor, optimizer; kwargs...)
+    return solve_model(network, model_constructor, optimizer, build_wf; kwargs...)
+end
+
+
 function run_wf(network, model_constructor, optimizer; kwargs...)
-    return run_model(network, model_constructor, optimizer, build_wf; kwargs...)
+    Memento.warn(_LOGGER, "\"run_\" methods should be renamed \"solve_\" and will be deprecated in future versions.")
+    return solve_wf(network, model_constructor, optimizer; kwargs...)
+end
+
+
+function solve_mn_wf(file, model_constructor, optimizer; kwargs...)
+    return solve_model(file, model_constructor, optimizer, build_mn_wf; multinetwork=true, kwargs...)
+end
+
+
+function run_mn_wf(network, model_constructor, optimizer; kwargs...)
+    Memento.warn(_LOGGER, "\"run_\" methods should be renamed \"solve_\" and will be deprecated in future versions.")
+    return solve_mn_wf(network, model_constructor, optimizer; kwargs...)
 end
 
 
@@ -85,11 +102,6 @@ function build_wf(wm::AbstractWaterModel)
 
     # Add the objective.
     objective_wf(wm)
-end
-
-
-function run_mn_wf(file, model_constructor, optimizer; kwargs...)
-    return run_model(file, model_constructor, optimizer, build_mn_wf; multinetwork=true, kwargs...)
 end
 
 

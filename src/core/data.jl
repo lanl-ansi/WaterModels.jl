@@ -1,6 +1,96 @@
 # Functions for working with WaterModels data elements.
 
 
+"Transform length values in SI units to per-unit units."
+function _calc_length_per_unit_transform(data::Dict{String,<:Any})
+    median_midpoint = _calc_node_head_median_midpoint(data)
+
+    # Translation: convert number of meters to WaterModels-length.
+    return x -> x / median_midpoint
+end
+
+
+"Correct flow direction attribute of edge-type components."
+function _correct_flow_direction!(comp::Dict{String, <:Any})
+    if !isa(comp["flow_direction"], FLOW_DIRECTION)
+        comp["flow_direction"] = FLOW_DIRECTION(comp["flow_direction"])
+    end
+end
+
+
+"Transform length values SI units to per-unit units."
+function _calc_head_per_unit_transform(data::Dict{String,<:Any})
+    median_midpoint = _calc_node_head_median_midpoint(data)
+
+    # Translation: convert number of meters to WaterModels-length.
+    return x -> x / median_midpoint
+end
+
+
+"Transform head values in per-unit units to SI units."
+function _calc_head_per_unit_untransform(data::Dict{String,<:Any})
+    median_midpoint = _calc_node_head_median_midpoint(data)
+    return x -> x * median_midpoint + median_midpoint
+end
+
+
+"Transform time values in SI units to per-unit units."
+function _calc_time_per_unit_transform(data::Dict{String,<:Any})
+    # Translation: number of meters per WaterModels-length
+    head_midpoint = _calc_node_head_median_midpoint(data)
+    flow_midpoint = _calc_median_abs_flow_midpoint(data)
+
+    # Translation: convert number of seconds to WaterModels-time.
+    return x -> x / (head_midpoint^3 / flow_midpoint)
+end
+
+"Transform flow values in SI units to per-unit units."
+function _calc_flow_per_unit_transform(data::Dict{String,<:Any})
+    length_transform = _calc_length_per_unit_transform(data)
+    time_transform = _calc_time_per_unit_transform(data)
+    wm_vol_per_cubic_meter = length_transform(1.0)^3
+    wm_time_per_second = time_transform(1.0)
+
+    # Translation: convert cubic meters per second to WaterModels-flow.
+    return x -> x * (wm_vol_per_cubic_meter / wm_time_per_second)
+end
+
+
+"Transform mass values in SI units to per-unit units."
+function _calc_mass_per_unit_transform(data::Dict{String,<:Any})
+    # Translation: convert kilograms to WaterModels-mass.
+    return x -> x
+end
+
+
+function _calc_median_abs_flow_midpoint(data::Dict{String,<:Any})
+    # Compute flow midpoints for all possible node-connecting components.
+    q_des_pipe = [_calc_abs_flow_midpoint(x) for (i, x) in data["des_pipe"]]
+    q_pipe = [_calc_abs_flow_midpoint(x) for (i, x) in data["pipe"]]
+    q_pump = [_calc_abs_flow_midpoint(x) for (i, x) in data["pump"]]
+    q_regulator = [_calc_abs_flow_midpoint(x) for (i, x) in data["regulator"]]
+    q_short_pipe = [_calc_abs_flow_midpoint(x) for (i, x) in data["short_pipe"]]
+    q_valve = [_calc_abs_flow_midpoint(x) for (i, x) in data["valve"]]
+    q = vcat(q_des_pipe, q_pipe, q_pump, q_regulator, q_short_pipe, q_valve)
+
+    # Return the median of all values computed above.
+    return Statistics.median(q)
+end
+
+
+function _calc_abs_flow_midpoint(comp::Dict{String,Any})
+    if comp["flow_direction"] in [0, UNKNOWN]
+        qp_ub_mid = 0.5 * max(0.0, comp["flow_max"])
+        qn_ub_mid = 0.5 * max(0.0, -comp["flow_min"])
+        return max(qp_ub_mid, qn_ub_mid)
+    elseif comp["flow_direction"] in [1, POSITIVE]
+        return 0.5 * max(0.0, comp["flow_max"])
+    elseif comp["flow_direction"] in [-1, NEGATIVE]
+        return 0.5 * max(0.0, -comp["flow_min"])
+    end
+end
+
+
 """
 Turns given single network data into multinetwork data with `count` replicates of the given
 network. Note that this function performs a deepcopy of the network data. Significant
@@ -14,7 +104,7 @@ end
 
 function _remove_last_networks!(data::Dict{String, <:Any}; last_num_steps::Int = length(nw_ids(wm)))
     @assert _IM.ismultinetwork(data) # Ensure the data being operated on is multinetwork.
-    network_ids = sort([parse(Int, x) for x in keys(data["nw"])]; rev = true)
+    network_ids = reverse(sort([parse(Int, x) for x in keys(data["nw"])]))
     network_ids_exclude = network_ids[1:min(length(network_ids), last_num_steps)]
     network_ids_exclude_str = [string(x) for x in network_ids_exclude]
     data["nw"] = filter(x -> !(x.first in network_ids_exclude_str), data["nw"])
@@ -71,7 +161,7 @@ end
 
 "Turns a single network with a `time_series` data block into a multinetwork."
 function make_multinetwork(data::Dict{String, <:Any}; global_keys::Set{String} = Set{String}())
-    return InfrastructureModels.make_multinetwork(data, union(global_keys, _wm_global_keys))
+    return _IM.make_multinetwork(data, wm_it_name, union(global_keys, _wm_global_keys))
 end
 
 
@@ -285,4 +375,136 @@ function make_temporally_aggregated_multinetwork(data::Dict{String, <:Any}, nw_i
 
     # Return the temporally aggregated multinetwork.
     return data_agg
+end
+
+
+function _transform_flow_key!(comp::Dict{String,<:Any}, key::String, transform_flow::Function)
+    haskey(comp, key) && (comp[key] = transform_flow(comp[key]))
+end
+
+
+function _transform_flows!(comp::Dict{String,<:Any}, transform_flow::Function)
+    _transform_flow_key!(comp, "flow_min", transform_flow)
+    _transform_flow_key!(comp, "flow_max", transform_flow)
+    _transform_flow_key!(comp, "flow_min_forward", transform_flow)
+    _transform_flow_key!(comp, "flow_max_reverse", transform_flow)
+    _transform_flow_key!(comp, "minor_loss", transform_flow)
+end
+
+
+function _make_per_unit_nodes!(data::Dict{String,<:Any}, transform_head::Function)
+    for (i, node) in data["node"]
+        node["elevation"] = transform_head(node["elevation"])
+        node["head_min"] = transform_head(node["head_min"])
+        node["head_max"] = transform_head(node["head_max"])
+        node["head_nominal"] = transform_head(node["head_nominal"])
+    end
+end
+
+
+function _make_per_unit_reservoir!(data::Dict{String,<:Any}, transform_head::Function)
+    for (i, reservoir) in data["reservoir"]
+        reservoir["head_nominal"] = transform_head(reservoir["head_nominal"])
+    end
+end
+
+
+function _make_per_unit_demands!(data::Dict{String,<:Any}, transform_flow::Function)
+    for (i, demand) in data["demand"]
+        demand["flow_min"] = transform_flow(demand["flow_min"])
+        demand["flow_max"] = transform_flow(demand["flow_max"])
+        demand["flow_nominal"] = transform_flow(demand["flow_nominal"])
+    end
+end
+
+
+function _make_per_unit_tanks!(data::Dict{String,<:Any}, transform_length::Function)
+    for (i, tank) in data["tank"]
+        tank["min_level"] = transform_length(tank["min_level"])
+        tank["max_level"] = transform_length(tank["max_level"])
+        tank["init_level"] = transform_length(tank["init_level"])
+        tank["diameter"] = transform_length(tank["diameter"])
+        tank["min_vol"] = transform_length(tank["min_vol"])^3
+    end
+end
+
+
+function _make_per_unit_heads!(data::Dict{String,<:Any}, transform_head::Function)
+    _make_per_unit_nodes!(data, transform_head)
+end
+
+
+function _make_per_unit_flows!(data::Dict{String,<:Any}, transform_flow::Function)
+    for type in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
+        map(x -> _transform_flows!(x, transform_flow), values(data[type]))
+    end
+end
+
+
+function _make_per_unit_pipes!(data::Dict{String,<:Any}, transform_length::Function)
+    for (i, pipe) in data["pipe"]
+        pipe["length"] = transform_length(pipe["length"])
+        pipe["diameter"] = transform_length(pipe["diameter"])
+    end
+end
+
+
+function _make_per_unit_des_pipes!(data::Dict{String,<:Any}, transform_length::Function)
+    for (i, des_pipe) in data["des_pipe"]
+        des_pipe["length"] = transform_length(des_pipe["length"])
+        des_pipe["diameter"] = transform_length(des_pipe["diameter"])
+    end
+end
+
+
+function _make_per_unit_pumps!(data::Dict{String,<:Any}, transform_flow::Function, transform_length::Function)
+    for (i, pump) in data["pump"]
+        pump["head_curve"] = [(transform_flow(x[1]), x[2]) for x in pump["head_curve"]]
+        pump["head_curve"] = [(x[1], transform_length(x[2])) for x in pump["head_curve"]]
+
+        if haskey(pump, "efficiency_curve")
+            pump["efficiency_curve"] = [(transform_flow(x[1]), x[2]) for x in pump["efficiency_curve"]]
+        end
+    end
+end
+
+
+function _calc_scaled_gravity(base_length::Float64, base_time::Float64)
+    return _GRAVITY * base_length / (base_time)^2
+end
+
+
+function make_per_unit!(data::Dict{String,<:Any})
+    if data["per_unit"] == false
+        # Precompute per-unit transformation functions.
+        mass_transform = _calc_mass_per_unit_transform(data)
+        length_transform = _calc_length_per_unit_transform(data)
+        head_transform = _calc_head_per_unit_transform(data)
+        flow_transform = _calc_flow_per_unit_transform(data)
+        time_transform = _calc_time_per_unit_transform(data)
+
+        # Apply per-unit transformations to node-connecting components.
+        _make_per_unit_flows!(data, flow_transform)
+        _make_per_unit_pipes!(data, length_transform)
+        _make_per_unit_des_pipes!(data, length_transform)
+        _make_per_unit_pumps!(data, flow_transform, length_transform)
+
+        # Apply per-unit transformations to nodal components.
+        _make_per_unit_nodes!(data, head_transform)
+        _make_per_unit_demands!(data, flow_transform)
+        _make_per_unit_tanks!(data, length_transform)
+        _make_per_unit_reservoir!(data, head_transform)
+
+        # Convert viscosity to per-unit units.
+        data["viscosity"] *= mass_transform(1.0) /
+            (length_transform(1.0) * time_transform(1.0))
+
+        # Store important base values for later conversions.
+        data["base_length"] = length_transform(1.0)
+        data["base_time"] = time_transform(1.0)
+
+        # Set the per-unit flag.
+        data["time_step"] = time_transform(data["time_step"])
+        data["per_unit"] = true
+    end
 end

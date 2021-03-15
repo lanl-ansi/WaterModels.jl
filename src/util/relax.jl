@@ -40,7 +40,7 @@ end
 
 function _relax_last_indicator_variables!(wm::AbstractWaterModel; last_num_steps::Int = length(nw_ids(wm)))
     var_symbols = [:z_pump, :z_regulator, :z_valve]
-    network_ids = sort(collect(nw_ids(wm)); rev = true) # Descending indices.
+    network_ids = reverse(sort(collect(nw_ids(wm)))) # Descending indices.
 
     for nw in network_ids[1:min(length(network_ids), last_num_steps)]
         vars = vcat([vcat(var(wm, nw, s)[:]...) for s in var_symbols]...)

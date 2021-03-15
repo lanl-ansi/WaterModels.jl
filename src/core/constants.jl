@@ -5,7 +5,7 @@
 JSON.lower(x::FLOW_DIRECTION) = Int(x)
 
 "Enumerated type specifying the form of the pump head curve."
-@enum HEAD_CURVE_FORM QUADRATIC=0 BEST_EFFICIENCY_POINT=1 EPANET=2
+@enum HEAD_CURVE_FORM QUADRATIC=0 BEST_EFFICIENCY_POINT=1 EPANET=2 LINEAR_POWER=3
 
 "Ensures that JSON serialization of `HEAD_CURVE_FORM` returns an integer."
 JSON.lower(x::HEAD_CURVE_FORM) = Int(x)

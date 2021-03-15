@@ -1,10 +1,14 @@
 @testset "src/core/pump.jl" begin
-    for head_curve_form in [QUADRATIC, BEST_EFFICIENCY_POINT, EPANET]
+    for head_curve_form in [QUADRATIC, BEST_EFFICIENCY_POINT, EPANET, LINEAR_POWER]
         @testset "pump with efficiency curve: $(head_curve_form)" begin
             # Read in the initial network data and ensure an efficiency curve exists.
             network_path = "../test/data/epanet/snapshot/pump-hw-lps-eff-curve.inp"
             network = WaterModels.parse_file(network_path)
             @test haskey(network["pump"]["1"], "efficiency_curve")
+
+            # Add LINEAR_POWER pump attributes here, even if they aren't used.
+            map(x -> x["power_fixed"] = 0.0, values(network["pump"]))
+            map(x -> x["power_per_unit_flow"] = 100.0, values(network["pump"]))
 
             # Change the head curve form and recompute network bounds.
             map(x -> x["head_curve_form"] = head_curve_form, values(network["pump"]))

@@ -1,6 +1,6 @@
 # Define LA (linear approximation-based) implementations of water models.
 
-function variable_flow_piecewise_weights(wm::AbstractLAModel; nw::Int=wm.cnw, report::Bool=false)
+function variable_flow_piecewise_weights(wm::AbstractLAModel; nw::Int=nw_id_default, report::Bool=false)
     # Get the number of breakpoints for the pipe.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 2)
 
@@ -27,7 +27,7 @@ function variable_flow_piecewise_weights(wm::AbstractLAModel; nw::Int=wm.cnw, re
 end
 
 
-function variable_flow_piecewise_adjacency(wm::AbstractLAModel; nw::Int=wm.cnw, report::Bool=false)
+function variable_flow_piecewise_adjacency(wm::AbstractLAModel; nw::Int=nw_id_default, report::Bool=false)
     # Get the number of breakpoints for the pipe.
     pipe_breakpoints = get(wm.ext, :pipe_breakpoints, 2)
 
@@ -52,7 +52,7 @@ end
 
 
 "Creates flow variables for `LA` formulations (`q`, `lambda`, `x_pw`)."
-function variable_flow(wm::AbstractLAModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_flow(wm::AbstractLAModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     for name in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
         # Create flow variables for each node-connecting component.
         _variable_component_flow(wm, name; nw=nw, bounded=bounded, report=report)

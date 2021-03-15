@@ -37,7 +37,7 @@ function _get_upper_bound_from_index(wm::AbstractWaterModel, index::_VariableInd
 end
 
 
-function _get_indicator_variable_indices(wm::AbstractWaterModel; nw::Int=wm.cnw)
+function _get_indicator_variable_indices(wm::AbstractWaterModel; nw::Int=nw_id_default)
     vars = Array{_VariableIndex, 1}()
 
     for comp_type in [:pump, :regulator, :valve]
@@ -51,7 +51,7 @@ function _get_indicator_variable_indices(wm::AbstractWaterModel; nw::Int=wm.cnw)
 end
 
 
-function _get_flow_variable_indices(wm::AbstractWaterModel; nw::Int=wm.cnw)
+function _get_flow_variable_indices(wm::AbstractWaterModel; nw::Int=nw_id_default)
     vars = Array{_VariableIndex, 1}()
 
     for comp_type in [:pipe, :pump, :regulator, :short_pipe, :valve]
@@ -65,7 +65,7 @@ function _get_flow_variable_indices(wm::AbstractWaterModel; nw::Int=wm.cnw)
 end
 
 
-function _get_head_variable_indices(wm::AbstractWaterModel; nw::Int=wm.cnw)
+function _get_head_variable_indices(wm::AbstractWaterModel; nw::Int=nw_id_default)
     vars = Array{_VariableIndex, 1}()
 
     for i in ids(wm, nw, :node)
@@ -76,7 +76,7 @@ function _get_head_variable_indices(wm::AbstractWaterModel; nw::Int=wm.cnw)
 end 
 
 
-function _get_direction_variable_indices(wm::AbstractNCDModel; nw::Int=wm.cnw)
+function _get_direction_variable_indices(wm::AbstractNCDModel; nw::Int=nw_id_default)
     vars = Array{_VariableIndex, 1}()
 
     for comp_type in [:pipe, :pump, :regulator, :short_pipe, :valve]
@@ -90,12 +90,12 @@ function _get_direction_variable_indices(wm::AbstractNCDModel; nw::Int=wm.cnw)
 end
 
 
-function _get_binary_variable_indices(wm::AbstractWaterModel; nw::Int=wm.cnw)
+function _get_binary_variable_indices(wm::AbstractWaterModel; nw::Int=nw_id_default)
     return _get_indicator_variable_indices(wm; nw=nw)
 end
 
 
-function _get_binary_variable_indices(wm::AbstractNCDModel; nw::Int=wm.cnw)
+function _get_binary_variable_indices(wm::AbstractNCDModel; nw::Int=nw_id_default)
     indicator_vars = _get_indicator_variable_indices(wm; nw=nw)
     direction_vars = _get_direction_variable_indices(wm; nw=nw)
     return vcat(indicator_vars, direction_vars)

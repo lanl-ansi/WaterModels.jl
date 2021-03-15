@@ -7,6 +7,7 @@ function correct_valves!(data::Dict{String, <:Any})
     capacity = _calc_capacity_max(data)
 
     for (idx, valve) in data["valve"]
+        _correct_flow_direction!(valve)
         _correct_valve_flow_bounds!(valve, capacity)
     end
 end

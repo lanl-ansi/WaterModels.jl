@@ -9,7 +9,7 @@
 "Initialize variables associated with flow direction. If this variable is equal to one, the
 flow direction is from i to j. If it is equal to zero, the flow direction is from j to i."
 function _variable_component_direction(
-    wm::AbstractNCDModel, component_name::String; nw::Int=wm.cnw, report::Bool=true)
+    wm::AbstractNCDModel, component_name::String; nw::Int=nw_id_default, report::Bool=true)
     # Store the corresponding component symbol.
     comp_sym = Symbol(component_name)
 
@@ -29,7 +29,7 @@ end
 
 "Create head differences variables common to all directed flow models for a component."
 function _variable_component_head_difference(
-    wm::AbstractNCDModel, component_name::String; nw::Int=wm.cnw, bounded::Bool=true,
+    wm::AbstractNCDModel, component_name::String; nw::Int=nw_id_default, bounded::Bool=true,
     report::Bool=true)
     # Store the corresponding component symbol.
     comp_sym = Symbol(component_name)
@@ -72,7 +72,7 @@ end
 
 "Create flow variables that are common to all directed flow models for a component."
 function _variable_component_flow(
-    wm::AbstractNCDModel, component_name::String; nw::Int=wm.cnw,
+    wm::AbstractNCDModel, component_name::String; nw::Int=nw_id_default,
     bounded::Bool=true, report::Bool=true)
     # Store the corresponding component symbol.
     comp_sym = Symbol(component_name)
@@ -117,7 +117,7 @@ end
 
 
 "Create flow-related variables common to all directed flow models for node-connecting components."
-function variable_flow(wm::AbstractNCDModel; nw::Int=wm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_flow(wm::AbstractNCDModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     for name in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
         # Create directed flow (`qp` and `qn`) variables for each component.
         _variable_component_flow(wm, name; nw=nw, bounded=bounded, report=report)

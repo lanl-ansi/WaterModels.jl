@@ -95,7 +95,7 @@ function _get_pairwise_problem_set(variable_index_1::_VariableIndex, variable_in
 end
 
 
-function _get_pairwise_problem_sets(wm::AbstractWaterModel; nw::Int = wm.cnw)
+function _get_pairwise_problem_sets(wm::AbstractWaterModel; nw::Int = nw_id_default)
     problem_sets = Array{_PairwiseProblemSet, 1}()
     binary_variable_indices = _get_binary_variable_indices(wm; nw = nw)
 
@@ -183,7 +183,7 @@ function _add_pairwise_cuts!(wm::AbstractWaterModel, cuts::Array{_PairwiseCut, 1
 end
 
 
-function _add_pairwise_cuts!(wm::AbstractWaterModel; nw::Int = wm.cnw)
+function _add_pairwise_cuts!(wm::AbstractWaterModel; nw::Int = nw_id_default)
     problem_sets = _get_pairwise_problem_sets(wm; nw=nw)
     cuts = _compute_pairwise_cuts!(wm, problem_sets)
     _add_pairwise_cuts!(wm, cuts)

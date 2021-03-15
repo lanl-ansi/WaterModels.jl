@@ -1,4 +1,10 @@
 @testset "src/core/data.jl" begin
+    @testset "make_per_unit!" begin
+        data = WaterModels.parse_file("../examples/data/json/shamir.json")
+        make_per_unit!(data) # This function is currently experimental.
+        @test data["per_unit"] == true
+    end
+
     @testset "make_temporally_aggregated_multinetwork" begin
         network = WaterModels.parse_file("../test/data/epanet/multinetwork/owf-hw-lps.inp")
         network_mn = WaterModels.make_multinetwork(network)
