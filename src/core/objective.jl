@@ -63,5 +63,5 @@ function objective_owf(wm::AbstractWaterModel)
     objective_scaled = (1.0 / minimum_scalar) * objective
 
     # Minimize the (numerically scaled) cost required to operate pumps.
-    return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
+    return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective_scaled)
 end
