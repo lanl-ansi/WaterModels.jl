@@ -45,7 +45,7 @@ function variable_head(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::B
             JuMP.set_upper_bound(h[i], node["head_max"])
 
             # Set start value for the head variable with possibly better data.
-            h_mid = node["head_min"] + 0.5 * (node["head_max"] - node["head_min"])
+            h_mid = 0.5 * (node["head_max"] + node["head_min"])
             h_start = comp_start_value(node, "h_start", h_mid)
             JuMP.set_start_value(h[i], h_start)
         end
@@ -66,7 +66,8 @@ function variable_head(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::B
 
     # Create expressions that calculate pressures from head.
     p = var(wm, nw)[:p] = JuMP.@expression(wm.model,
-        [i in ids(wm, nw, :node)], var(wm, nw, :h, i) - ref(wm, nw, :node, i)["elevation"])
+        [i in ids(wm, nw, :node)], var(wm, nw, :h, i) -
+        ref(wm, nw, :node, i)["elevation"])
 
     # Initialize an entry to the solution component dictionary for pressures.
     report && sol_component_value(wm, nw, :node, :p, ids(wm, nw, :node), p)
@@ -187,7 +188,7 @@ function variable_reservoir_flow(wm::AbstractWaterModel; nw::Int=nw_id_default, 
             JuMP.set_lower_bound(q_reservoir[i], flow_min)
             JuMP.set_upper_bound(q_reservoir[i], flow_max)
 
-            flow_mid = flow_min + 0.5 * (flow_max - flow_min)
+            flow_mid = 0.5 * (flow_max + flow_min)
             q_start = comp_start_value(reservoir, "q_reservoir_start", flow_mid)
             JuMP.set_start_value(q_reservoir[i], q_start)
         end
@@ -268,7 +269,7 @@ function variable_tank_flow(wm::AbstractWaterModel; nw::Int=nw_id_default, bound
             JuMP.set_lower_bound(q_tank[i], flow_min)
             JuMP.set_upper_bound(q_tank[i], flow_max)
 
-            flow_mid = flow_min + 0.5 * (flow_max - flow_min)
+            flow_mid = 0.5 * (flow_max + flow_min)
             q_start = comp_start_value(tank, "q_tank_start", flow_mid)
             JuMP.set_start_value(q_tank[i], q_start)
         end

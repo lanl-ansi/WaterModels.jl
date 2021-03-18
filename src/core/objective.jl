@@ -53,9 +53,7 @@ function objective_owf(wm::AbstractWaterModel)
     for (n, nw_ref) in nws(wm)
         for (a, pump) in ref(wm, n, :pump)
             # Add pump energy costs to the objective.
-            @assert haskey(pump, "energy_price") # Ensure a price exists.
-            coeff = ref(wm, n, :time_step) * pump["energy_price"]
-            JuMP.add_to_expression!(objective, coeff * var(wm, n, :P_pump, a))
+            JuMP.add_to_expression!(objective, var(wm, n, :c_pump, a))
         end
     end
 
@@ -65,5 +63,5 @@ function objective_owf(wm::AbstractWaterModel)
     objective_scaled = (1.0 / minimum_scalar) * objective
 
     # Minimize the (numerically scaled) cost required to operate pumps.
-    return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective_scaled)
+    return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
 end

@@ -102,7 +102,7 @@ end
 
 
 function _calc_node_head_midpoint(node::Dict{String,Any})
-    return node["head_min"] + 0.5 * (node["head_max"] - node["head_min"])
+    return 0.5 * (node["head_max"] + node["head_min"])
 end
 
 

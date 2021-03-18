@@ -200,7 +200,8 @@ function build_mn_wf(wm::AbstractWaterModel)
             constraint_tank_volume(wm, i, n_1, n_2)
         end
 
-        n_1 = n_2 # Update the first network used for integration.
+        # Update the first network used for integration.
+        n_1 = n_2
     end
 
     # Add the objective.
