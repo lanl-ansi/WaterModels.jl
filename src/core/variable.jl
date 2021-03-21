@@ -75,8 +75,8 @@ function variable_head(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::B
     # Create an expression that maps total hydraulic head to volume for tanks.
     V = var(wm, nw)[:V] = JuMP.@expression(wm.model, [i in ids(wm, nw, :tank)],
         (var(wm, nw, :h, ref(wm, nw, :tank, i)["node"]) -
-         ref(wm, nw, :node, ref(wm, nw, :tank, i)["node"])["elevation"])
-         * 0.25 * pi * ref(wm, nw, :tank, i)["diameter"]^2)
+         ref(wm, nw, :node, ref(wm, nw, :tank, i)["node"])["elevation"]) *
+         0.25 * pi * ref(wm, nw, :tank, i)["diameter"]^2)
 
     # Initialize an entry to the solution component dictionary for volumes.
     report && sol_component_value(wm, nw, :tank, :V, ids(wm, nw, :tank), V)

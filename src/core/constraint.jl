@@ -48,10 +48,11 @@ Adds a constraint that ensures the volume of a tank at some time step is fixed. 
 is the WaterModels object, `n` is the index of a subnetwork within a multinetwork, `i` is
 the index of the tank, and `V_0` is the fixed volume of the tank that is desired.
 """
-function constraint_tank_volume_fixed(wm::AbstractWaterModel, n::Int, i::Int, V_0::Float64)
-    V = var(wm, n, :V, i)
-    c = JuMP.@constraint(wm.model, V == V_0)
-    con(wm, n, :tank_volume)[i] = c
+function constraint_tank_volume_fixed(wm::AbstractWaterModel, n::Int, i::Int, V_0::Float64, time_step::Float64, min_vol::Float64)
+    V, q = var(wm, n, :V, i), var(wm, n, :q_tank, i)
+    c_1 = JuMP.@constraint(wm.model, V == V_0)
+    c_2 = JuMP.@constraint(wm.model, min_vol <= V_0 - q * time_step)
+    append!(con(wm, n, :tank_volume)[i], [c_1, c_2])
 end
 
 
@@ -73,8 +74,8 @@ and time_step is the time step (in seconds) of the interval from network `n_1` t
 function constraint_tank_volume(wm::AbstractWaterModel, n_1::Int, n_2::Int, i::Int, time_step::Float64)
     q_tank = var(wm, n_1, :q_tank, i) # Tank outflow.
     V_1, V_2 = var(wm, n_1, :V, i), var(wm, n_2, :V, i)
-    c = JuMP.@constraint(wm.model, V_1 - time_step * q_tank == V_2)
-    con(wm, n_2, :tank_volume)[i] = c
+    c = JuMP.@constraint(wm.model, V_1 - V_2 == q_tank * time_step)
+    append!(con(wm, n_2, :tank_volume)[i], [c])
 end
 
 
