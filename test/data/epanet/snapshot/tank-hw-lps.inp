@@ -3,7 +3,7 @@ Test for Hazen-Williams Head Loss with a Tank
 
 [JUNCTIONS]
 ;ID              Elev            Demand          Pattern
- 2               0.0             1000.0                 ;
+ 2               0.0             100.0                  ;
 
 [RESERVOIRS]
 ;ID              Head            Pattern
@@ -60,13 +60,13 @@ Test for Hazen-Williams Head Loss with a Tank
 ;Tank             Model
 
 [TIMES]
- Duration               0:00
- Hydraulic Timestep     1:00 
- Quality Timestep       0:05 
+ Duration               1:00
+ Hydraulic Timestep     1:00
+ Quality Timestep       1:00
  Pattern Timestep       1:00
- Pattern Start          0:00 
- Report Timestep        1:00 
- Report Start           0:00 
+ Pattern Start          0:00
+ Report Timestep        1:00
+ Report Start           0:00
  Start ClockTime        12 am
  Statistic              NONE
 
