@@ -330,8 +330,7 @@ on), and zero indicates that the pump is not operating (i.e., off)."
 function variable_pump_indicator(wm::AbstractWaterModel; nw::Int=nw_id_default, relax::Bool=false, report::Bool=true)
     if !relax
         z_pump = var(wm, nw)[:z_pump] = JuMP.@variable(wm.model,
-            [a in ids(wm, nw, :pump)], base_name = "$(nw)_z_pump",
-            binary = true,
+            [a in ids(wm, nw, :pump)], base_name = "$(nw)_z_pump", binary = true,
             start = comp_start_value(ref(wm, nw, :pump, a), "z_pump_start", 1.0))
     else
         z_pump = var(wm, nw)[:z_pump] = JuMP.@variable(wm.model,
@@ -354,8 +353,7 @@ selected within the design, and zero denotes that the pipe is not selected."
 function variable_des_pipe_indicator(wm::AbstractWaterModel; nw::Int=nw_id_default, relax::Bool=false, report::Bool=true)
     if !relax
         z_des_pipe = var(wm, nw)[:z_des_pipe] = JuMP.@variable(wm.model,
-            [a in ids(wm, nw, :des_pipe)], base_name = "$(nw)_z_des_pipe",
-            binary = true,
+            [a in ids(wm, nw, :des_pipe)], base_name = "$(nw)_z_des_pipe", binary = true,
             start = comp_start_value(ref(wm, nw, :des_pipe, a), "z_des_pipe_start", 1.0))
     else
         z_des_pipe = var(wm, nw)[:z_des_pipe] = JuMP.@variable(wm.model,

@@ -378,15 +378,22 @@ function solve_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_relaxed_networ
     _check_obbt_options(upper_bound, upper_bound_constraint)
 
     # Instantiate the bound tightening model and relax integrality, if requested.
-    wm = instantiate_model(data, model_type, build_type; ext=ext)
-    upper_bound_constraint && _constraint_obj_bound(wm, upper_bound)
-    solve_relaxed && relax_all_binary_variables!(wm)
+    wms = [instantiate_model(data, model_type, build_type; ext = ext) for i in 1:Threads.nthreads()]
+
+    if upper_bound_constraint
+        map(x -> _constraint_obj_bound(x, upper_bound), wms)
+    end
+
+    if solve_relaxed
+        # Relax the binary variables if requested.
+        map(x -> relax_all_binary_variables!(x), wms)
+    end
 
     # Set the optimizer for the bound tightening model.
-    JuMP.set_optimizer(wm.model, optimizer)
+    map(x -> JuMP.set_optimizer(x.model, optimizer), wms)
 
     # Collect all problems.
-    bound_problems = _create_bound_problems(wm)
+    bound_problems = _create_bound_problems(wms[1])
     _update_data_bounds!(data, bound_problems) # Populate data with bounds.
 
     # Log widths.
@@ -402,12 +409,12 @@ function solve_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_relaxed_networ
         # Obtain new candidate bounds, update bounds, and update the data.
         vals = zeros(length(bound_problems))
 
-        for (i, bound_problem) in enumerate(bound_problems)
-            time_elapsed += @elapsed vals[i] = _solve_bound_problem!(wm, bound_problem)
-            _set_new_bound!(bound_problem, vals[i])
-            time_elapsed > time_limit && ((terminate = true) && break)
+        time_elapsed += @elapsed Threads.@threads for i in 1:length(bound_problems)
+            vals[i] = _solve_bound_problem!(wms[Threads.threadid()], bound_problems[i])
+            _set_new_bound!(bound_problems[i], vals[i])
         end
 
+        time_elapsed > time_limit && ((terminate = true) && break)
         _update_data_bounds!(data, bound_problems)
         !terminate && _clean_bound_problems!(bound_problems, vals)
 
@@ -419,10 +426,19 @@ function solve_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_relaxed_networ
         current_iteration += 1
 
         # Set up the next optimization problem using the new bounds.
-        wm = instantiate_model(data, model_type, build_type; ext = ext)
-        upper_bound_constraint && _constraint_obj_bound(wm, upper_bound)
-        solve_relaxed && relax_all_binary_variables!(wm)
-        JuMP.set_optimizer(wm.model, optimizer)
+        wms = [instantiate_model(data, model_type, build_type; ext = ext) for i in 1:Threads.nthreads()]
+
+        if upper_bound_constraint
+            map(x -> _constraint_obj_bound(x, upper_bound), wms)
+        end
+
+        if solve_relaxed
+            # Relax the binary variables if requested.
+            map(x -> relax_all_binary_variables!(x), wms)
+        end
+
+        # Set the optimizer for the bound tightening model.
+        map(x -> JuMP.set_optimizer(x.model, optimizer), wms)
 
         # Set the termination variable if max iterations is exceeded.
         current_iteration >= max_iter && (terminate = true)
