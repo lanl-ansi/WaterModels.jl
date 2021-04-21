@@ -81,7 +81,7 @@ function constraint_node_directionality(wm::AbstractWaterModel, i::Int; nw::Int=
         length(regulator_fr) + length(short_pipe_fr) + length(valve_fr)
 
     # Initialize the directionality constraint dictionary entry.
-    _initialize_con_dict(wm, :node_directionality, nw=nw)
+    _initialize_con_dict(wm, :node_directionality, nw = nw)
 
     # Check if node directionality constraints should be added.
     if num_components == 0 && in_length + out_length == 2
@@ -167,14 +167,15 @@ end
 function constraint_pipe_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=nw_id_default, kwargs...)
     node_fr, node_to = ref(wm, nw, :pipe, a)["node_fr"], ref(wm, nw, :pipe, a)["node_to"]
     exponent, L = ref(wm, nw, :alpha), ref(wm, nw, :pipe, a)["length"]
+    head_loss, viscosity = wm.data["head_loss"], wm.data["viscosity"]
     base_length = get(wm.data, "base_length", 1.0)
     base_time = get(wm.data, "base_time", 1.0)
 
-    r = _calc_pipe_resistance(ref(wm, nw, :pipe, a), wm.data["head_loss"], wm.data["viscosity"], base_length, base_time)
+    r = _calc_pipe_resistance(ref(wm, nw, :pipe, a), head_loss, viscosity, base_length, base_time)
     q_max_reverse = min(get(ref(wm, nw, :pipe, a), "flow_max_reverse", 0.0), 0.0)
     q_min_forward = max(get(ref(wm, nw, :pipe, a), "flow_min_forward", 0.0), 0.0)
 
-    _initialize_con_dict(wm, :pipe_head_loss, nw=nw, is_array=true)
+    _initialize_con_dict(wm, :pipe_head_loss, nw = nw, is_array = true)
     con(wm, nw, :pipe_head_loss)[a] = Array{JuMP.ConstraintRef}([])
     constraint_pipe_head_loss(wm, nw, a, node_fr, node_to, exponent, L, r, q_max_reverse, q_min_forward)
 end
@@ -324,6 +325,14 @@ function constraint_on_off_pump_power(wm::AbstractWaterModel, a::Int; nw::Int=nw
         # Add the custom (linear) pump power constraint using the above.
         constraint_on_off_pump_power_custom(wm, nw, a, power_fixed, power_variable)
     end
+end
+
+
+function constraint_on_off_pump_group(wm::AbstractWaterModel, k::Int; nw::Int=nw_id_default, kwargs...)
+    pump_indices = ref(wm, nw, :pump_group, k, "pump_indices")
+    _initialize_con_dict(wm, :on_off_pump_group, nw=nw, is_array=true)
+    con(wm, nw, :on_off_pump_group)[k] = Array{JuMP.ConstraintRef}([])
+    constraint_on_off_pump_group(wm, nw, k, pump_indices)
 end
 
 

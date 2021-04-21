@@ -23,7 +23,7 @@ function constraint_pipe_head_loss(
         lhs = _calc_head_loss_oa(qp, y, pt, exponent)
 
         # Add outer-approximation of the head loss constraint.
-        c = JuMP.@constraint(wm.model, r * lhs - inv(L) * dhp <= 0.0)
+        c = JuMP.@constraint(wm.model, r * lhs <= dhp / L)
 
         # Append the :pipe_head_loss constraint array.
         append!(con(wm, n, :pipe_head_loss)[a], [c])
@@ -51,7 +51,7 @@ function constraint_pipe_head_loss(
         lhs = _calc_head_loss_oa(qn, 1.0 - y, pt, exponent)
 
         # Add outer-approximation of the head loss constraint.
-        c = JuMP.@constraint(wm.model, r * lhs - inv(L) * dhn <= 0.0)
+        c = JuMP.@constraint(wm.model, r * lhs <= dhn / L)
 
         # Append the :pipe_head_loss constraint array.
         append!(con(wm, n, :pipe_head_loss)[a], [c])
@@ -63,7 +63,7 @@ function constraint_pipe_head_loss(
         dhn_lb_line = dhn_slope * (qn - qn_min_forward * (1.0 - y)) + dhn_1 * (1.0 - y)
 
         # Add upper-bounding line of the head loss constraint.
-        c = JuMP.@constraint(wm.model, inv(L) * dhn - dhn_lb_line <= 0.0)
+        c = JuMP.@constraint(wm.model, dhn / L - dhn_lb_line <= 0.0)
 
         # Append the :pipe_head_loss constraint array.
         append!(con(wm, n, :pipe_head_loss)[a], [c])

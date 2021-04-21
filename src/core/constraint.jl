@@ -28,16 +28,16 @@ function constraint_flow_conservation(
 
     # Add the flow conservation constraint.
     con(wm, n, :flow_conservation)[i] = JuMP.@constraint(wm.model, -
-         sum(q_pipe[a] for a in pipe_fr) + sum(q_pipe[a] for a in pipe_to) -
-         sum(q_des_pipe[a] for a in des_pipe_fr) + sum(q_des_pipe[a] for a in des_pipe_to) -
-         sum(q_pump[a] for a in pump_fr) + sum(q_pump[a] for a in pump_to) -
-         sum(q_regulator[a] for a in regulator_fr) +
-         sum(q_regulator[a] for a in regulator_to) -
-         sum(q_short_pipe[a] for a in short_pipe_fr) +
-         sum(q_short_pipe[a] for a in short_pipe_to) -
-         sum(q_valve[a] for a in valve_fr) + sum(q_valve[a] for a in valve_to) == -
-         sum(q_reservoir[k] for k in reservoirs) - sum(q_tank[k] for k in tanks) +
-         sum(q_demand[k] for k in dispatchable_demands) + fixed_demand)
+        sum(q_pipe[a] for a in pipe_fr) + sum(q_pipe[a] for a in pipe_to) -
+        sum(q_des_pipe[a] for a in des_pipe_fr) + sum(q_des_pipe[a] for a in des_pipe_to) -
+        sum(q_pump[a] for a in pump_fr) + sum(q_pump[a] for a in pump_to) -
+        sum(q_regulator[a] for a in regulator_fr) +
+        sum(q_regulator[a] for a in regulator_to) -
+        sum(q_short_pipe[a] for a in short_pipe_fr) +
+        sum(q_short_pipe[a] for a in short_pipe_to) -
+        sum(q_valve[a] for a in valve_fr) + sum(q_valve[a] for a in valve_to) == -
+        sum(q_reservoir[k] for k in reservoirs) - sum(q_tank[k] for k in tanks) +
+        sum(q_demand[k] for k in dispatchable_demands) + fixed_demand)
 end
 
 
@@ -74,9 +74,9 @@ and time_step is the time step (in seconds) of the interval from network `n_1` t
 function constraint_tank_volume(wm::AbstractWaterModel, n_1::Int, n_2::Int, i::Int, time_step::Float64)
     q_tank = var(wm, n_1, :q_tank, i) # Tank outflow.
     V_1, V_2 = var(wm, n_1, :V, i), var(wm, n_2, :V, i)
-    c = JuMP.@constraint(wm.model, V_1 - V_2 == q_tank * time_step)
+     c = JuMP.@constraint(wm.model, V_1 - V_2 == q_tank * time_step)
     append!(con(wm, n_2, :tank_volume)[i], [c])
-end
+ end
 
 
 """
@@ -117,10 +117,22 @@ end
 function constraint_on_off_pump_power_custom(wm::AbstractWaterModel, n::Int, a::Int, power_fixed::Float64, power_variable::Float64)
     # Gather pump flow, power, and status variables.
     q, P, z = var(wm, n, :q_pump, a), var(wm, n, :P_pump, a), var(wm, n, :z_pump, a)
-
+    
     # Add constraint equating power with respect to the linear power curve.
     c = JuMP.@constraint(wm.model, power_fixed * z + power_variable * q == P)
 
     # Append the :on_off_pump_power constraint array.
     append!(con(wm, n, :on_off_pump_power)[a], [c])
+end
+
+
+function constraint_on_off_pump_group(wm::AbstractWaterModel, n::Int, k::Int, pump_indices::Set{Int64})
+    pump_indices_sorted = sort(collect(pump_indices))
+
+    for i in 1:length(pump_indices_sorted[1:end-1])
+        z_pump_1 = var(wm, n, :z_pump, pump_indices_sorted[i])
+        z_pump_2 = var(wm, n, :z_pump, pump_indices_sorted[i+1])
+        c = JuMP.@constraint(wm.model, z_pump_1 >= z_pump_2)
+        append!(con(wm, n, :on_off_pump_group)[k], [c])
+    end
 end

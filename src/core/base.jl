@@ -179,6 +179,40 @@ function _build_node_map(nodes::Dict{Int,<:Any}, components::Dict{Int,<:Any})
 end
 
 
+function _pumps_match(pump_1::Dict{String, <:Any}, pump_2::Dict{String, <:Any})
+    if sort(collect(keys(pump_1))) != sort(collect(keys(pump_2)))
+        return false
+    else
+        for key in filter(x -> !(x in ["name", "source_id", "index"]), keys(pump_1))
+            if pump_1[key] != pump_2[key]
+                return false
+            end
+        end
+    end
+
+    return true
+end
+
+
+function _build_pump_groups(pumps::Dict{Int, <:Any})
+    pump_group_indices = Set([])
+
+    for (i, pump) in pumps
+        other_pumps = filter(x -> x.first != i, pumps)
+        matching_pumps = filter(x -> _pumps_match(pump, x.second), other_pumps)
+
+        if length(matching_pumps) > 0
+            pump_indices = sort(collect(vcat(i, keys(matching_pumps)...)))
+            push!(pump_group_indices, Set(pump_indices))
+        end
+    end
+
+    pump_group_indices = collect(pump_group_indices)
+    return Dict{Int, Any}(i => Dict{String, Any}("pump_indices" =>
+        pump_group_indices[i]) for i in 1:length(pump_group_indices))
+end
+
+
 function _ref_add_core!(nw_refs::Dict{Int,<:Any}, head_loss::String)
     for (nw, ref) in nw_refs
         # Remove inactive nodes from the ref data dictionary.
@@ -194,6 +228,7 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any}, head_loss::String)
         # Collect common arcs (i.e., node pairs) of design pipes in the network
         des_arcs = collect(Set((x["node_fr"], x["node_to"]) for (i, x) in ref[:des_pipe]))
         ref[:des_pipe_arc] = Dict{Int,Any}(i => des_arcs[i] for i in 1:length(des_arcs))
+        ref[:pump_group] = _build_pump_groups(ref[:pump])
         
         # Set up dictionaries mapping node indices to attached component indices.
         for name in ["demand", "reservoir", "tank"]

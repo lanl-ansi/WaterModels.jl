@@ -39,9 +39,13 @@ end
 Sets the objective function for optimal water flow (owf) problem specifications.
 """
 function objective_owf(wm::AbstractWaterModel)
+    # Get all network IDs in the multinetwork.
+    network_ids = sort(collect(nw_ids(wm)))
+
+    # Initialize the objective expression to zero.
     objective = JuMP.AffExpr(0.0)
 
-    for (n, nw_ref) in nws(wm)
+    for n in network_ids[1:end-1]
         for (i, reservoir) in ref(wm, n, :reservoir)
             # Add reservoir flow extraction and treatment costs to the objective.
             @assert haskey(reservoir, "flow_cost") # Ensure a flow cost exists.
@@ -50,7 +54,7 @@ function objective_owf(wm::AbstractWaterModel)
         end
     end
 
-    for (n, nw_ref) in nws(wm)
+    for n in network_ids[1:end-1]
         for (a, pump) in ref(wm, n, :pump)
             # Add pump energy costs to the objective.
             JuMP.add_to_expression!(objective, var(wm, n, :c_pump, a))
@@ -63,5 +67,5 @@ function objective_owf(wm::AbstractWaterModel)
     objective_scaled = (1.0 / minimum_scalar) * objective
 
     # Minimize the (numerically scaled) cost required to operate pumps.
-    return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective_scaled)
+    return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
 end

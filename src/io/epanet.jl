@@ -173,7 +173,7 @@ end
 
 function _update_time_series!(data::Dict{String,<:Any})
     duration, time_step = data["duration"], data["hydraulic_time_step"]
-    num_steps = convert(Int64, floor(duration * inv(time_step)))
+    num_steps = convert(Int64, floor(duration * inv(time_step))) + 1
     data["time_step"] = convert(Float64, time_step)
 
     if num_steps >= 1 && keys(data["pattern"]) != ["1"]
@@ -186,7 +186,7 @@ function _update_time_series!(data::Dict{String,<:Any})
         data["time_series"]["num_steps"] = num_steps
 
         for pattern in keys(data["pattern"])
-            if !(length(data["pattern"][pattern]) in [1, num_steps])
+            if !(length(data["pattern"][pattern]) in [1, num_steps - 1])
                 Memento.error(_LOGGER, "Pattern \"$(pattern)\" is of the wrong length.")
             end
         end
@@ -210,11 +210,13 @@ function _transform_component_indices(components::Dict{String,<:Any})
     return Dict{String,Any}(string(x["index"]) => x for (i, x) in components)
 end
 
+
 "Standardize component time series indices to match primary indices."
 function _transform_time_series_indices(components::Dict{String,<:Any}, time_series::Dict{String,<:Any})
     name_to_index = Dict{String,String}(x["name"] => i for (i, x) in components)
     return Dict{String,Any}(name_to_index[i] => x for (i, x) in time_series)
 end
+
 
 function _update_demand_ts!(data::Dict{String,<:Any})
     # Create a temporary dictionary representing the demand time series.
@@ -491,7 +493,7 @@ function _read_energy!(data::Dict{String,<:Any})
         if uppercase(current[1]) == "GLOBAL"
             # Read global energy data (e.g., price, default pump efficiency).
             if uppercase(current[2]) == "PRICE"
-                data["energy_price"] = 2.778e-7 * parse(Float64, current[3])
+                data["energy_price"] = inv(3.6e6) * parse(Float64, current[3])
             elseif uppercase(current[2]) == "PATTERN"
                 data["energy_pattern"] = current[3]
             elseif uppercase(current[2]) in ["EFFIC", "EFFICIENCY"]
@@ -510,7 +512,7 @@ function _read_energy!(data::Dict{String,<:Any})
             if uppercase(current[3]) == "PRICE"
                 # Parse the cost of pump operation.
                 price = parse(Float64, current[4]) # Price per kilowatt hour.
-                pump["energy_price"] = price * 2.778e-7 # Price per Joule.
+                pump["energy_price"] = price * inv(3.6e6) # Price per Joule.
             elseif uppercase(current[3]) == "PATTERN"
                 # Read in the pattern for scaling the pump's energy price.
                 pump["energy_pattern"] = current[4]
@@ -610,6 +612,7 @@ function _update_pump_energy!(data::Dict{String,<:Any})
             # Build the pattern of prices using existing data.
             pattern_name = pump["energy_pattern"]
             price_pattern = pump["energy_price"] .* data["pattern"][pattern_name]
+            push!(price_pattern, minimum(price_pattern))
 
             # Add the varying price data to the pump time series entry.
             entry = Dict{String,Array{Float64}}("energy_price" => price_pattern)
@@ -681,6 +684,8 @@ function _read_demand!(data::Dict{String,<:Any})
         # Scale the parsed demand by the specified pattern, if it exists.
         if pattern !== nothing && length(data["pattern"][pattern]) > 1
             flow_rate = demand["flow_nominal"] .* data["pattern"][pattern]
+            push!(flow_rate, minimum(flow_rate))
+
             entry = Dict{String,Array{Float64}}("flow_nominal" => flow_rate)
             entry["flow_min"] = entry["flow_nominal"]
             entry["flow_max"] = entry["flow_nominal"]
@@ -991,6 +996,8 @@ function _read_reservoir!(data::Dict{String,<:Any})
         # reservoir's elevation is equal to the minimum value of head presented in the data.
         if pattern !== nothing && length(data["pattern"][pattern]) > 1
             head = reservoir["head_nominal"] .* data["pattern"][pattern]
+            push!(head, maximum(head))
+
             entry = Dict{String,Array{Float64}}("head_nominal" => head)
             entry["head_min"] = entry["head_nominal"]
             entry["head_max"] = entry["head_nominal"]
@@ -1179,7 +1186,7 @@ internal WaterModels use. Imports all data from the EPANET file if `import_all` 
 function epanet_to_watermodels!(data::Dict{String,<:Any}; import_all::Bool = false)
     _drop_zero_demands!(data) # Drop demands of zero from nodes.
     _convert_short_pipes!(data) # Convert pipes that are short to short pipes and valves.
-    #_add_valves_to_tanks!(data) # Ensure that shutoff valves are connected to tanks.
+    # _add_valves_to_tanks!(data) # Ensure that shutoff valves are connected to tanks.
     _add_valves_from_pipes!(data) # Convert pipes with valves to pipes *and* valves.
     _drop_pipe_flags!(data) # Drop irrelevant pipe attributes.
 end
@@ -1202,12 +1209,12 @@ end
 
 
 function _convert_short_pipes!(data::Dict{String,<:Any})
-    exponent = uppercase(data["head_loss"]) == "H-W" ? 1.852 : 2.0
+    exponent = _get_exponent_from_head_loss_form(data["head_loss"])
     max_flow_exp = abs(_calc_capacity_max(data))^exponent
 
     for (a, pipe) in data["pipe"]
         r = _calc_pipe_resistance(pipe, data["head_loss"], data["viscosity"], 1.0, 1.0)
-        dh_max = r * pipe["length"] * max_flow_exp
+        dh_max = pipe["length"] * r * max_flow_exp
 
         if dh_max <= 0.1
             # Delete unnecessary fields.
