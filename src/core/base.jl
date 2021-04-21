@@ -183,7 +183,8 @@ function _pumps_match(pump_1::Dict{String, <:Any}, pump_2::Dict{String, <:Any})
     if sort(collect(keys(pump_1))) != sort(collect(keys(pump_2)))
         return false
     else
-        for key in filter(x -> !(x in ["name", "source_id", "index"]), keys(pump_1))
+        # TODO: We should be more careful here.
+        for key in ["node_fr", "node_to"]
             if pump_1[key] != pump_2[key]
                 return false
             end
