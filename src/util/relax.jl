@@ -15,7 +15,7 @@ end
 
 
 function _relax_variables_with_symbol!(wm::AbstractWaterModel, symbol::Symbol)
-    for nw in nw_ids(wm) # Loop over all multinetwork subnetworks.
+    for nw in sort(collect(nw_ids(wm)))[1:end-1]
         vars = filter(v -> JuMP.is_binary(v), vcat(var(wm, nw, symbol)...))
         _relax_binary_variable!.(vars)
     end
