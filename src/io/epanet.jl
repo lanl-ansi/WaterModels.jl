@@ -1250,7 +1250,10 @@ end
 function _drop_zero_demands!(data::Dict{String,<:Any})
     for (i, demand) in filter(x -> _has_zero_demand(x.second), data["demand"])
         delete!(data["demand"], i)
-        haskey(data, "time_series") && delete!(data["time_series"]["demand"], i)
+
+        if haskey(data, "time_series") && haskey(data["time_series"], "demand")
+            delete!(data["time_series"]["demand"], i)
+        end
     end
 end
 
