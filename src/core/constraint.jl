@@ -130,6 +130,7 @@ function constraint_on_off_pump_group(wm::AbstractWaterModel, n::Int, k::Int, pu
     pump_indices_sorted = sort(collect(pump_indices))
 
     for i in 1:length(pump_indices_sorted[1:end-1])
+        # Add lexicographic constraint for pump statuses.
         z_pump_1 = var(wm, n, :z_pump, pump_indices_sorted[i])
         z_pump_2 = var(wm, n, :z_pump, pump_indices_sorted[i+1])
         c = JuMP.@constraint(wm.model, z_pump_1 >= z_pump_2)
