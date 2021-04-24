@@ -229,7 +229,6 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any}, head_loss::String)
         # Collect common arcs (i.e., node pairs) of design pipes in the network
         des_arcs = collect(Set((x["node_fr"], x["node_to"]) for (i, x) in ref[:des_pipe]))
         ref[:des_pipe_arc] = Dict{Int,Any}(i => des_arcs[i] for i in 1:length(des_arcs))
-        ref[:pump_group] = _build_pump_groups(ref[:pump])
         
         # Set up dictionaries mapping node indices to attached component indices.
         for name in ["demand", "reservoir", "tank"]
@@ -249,6 +248,7 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any}, head_loss::String)
         # Collect dispatchable and nondispatchable demands in the network.
         ref[:dispatchable_demand] = filter(x -> x.second["dispatchable"], ref[:demand])
         ref[:nondispatchable_demand] = filter(x -> !x.second["dispatchable"], ref[:demand])
+        ref[:pump_group] = _build_pump_groups(ref[:pump])
 
         # Store the exponent used within head loss relationships.
         ref[:alpha] = uppercase(head_loss) == "H-W" ? 1.852 : 2.0

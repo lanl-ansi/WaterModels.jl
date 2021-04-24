@@ -54,16 +54,13 @@ end
 
 
 function correct_network_data!(data::Dict{String, <:Any})
-    # Correct edge-type component data.
-    correct_pipes!(data)
-    correct_des_pipes!(data)
-    correct_pumps!(data)
-    correct_regulators!(data)
-    correct_short_pipes!(data)
-    correct_valves!(data)
-
-    # Correct nodal component data.
-    correct_nodes!(data)
+    InfrastructureModels.apply!(correct_pipes!, data, wm_it_name)
+    InfrastructureModels.apply!(correct_des_pipes!, data, wm_it_name)
+    InfrastructureModels.apply!(correct_pumps!, data, wm_it_name)
+    InfrastructureModels.apply!(correct_regulators!, data, wm_it_name)
+    InfrastructureModels.apply!(correct_short_pipes!, data, wm_it_name)
+    InfrastructureModels.apply!(correct_valves!, data, wm_it_name)
+    InfrastructureModels.apply!(correct_nodes!, data, wm_it_name)
 
     # Make data per-unit if necessary.
     # make_per_unit!(data)

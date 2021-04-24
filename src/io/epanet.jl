@@ -690,6 +690,9 @@ function _read_demand!(data::Dict{String,<:Any})
             entry["flow_min"] = entry["flow_nominal"]
             entry["flow_max"] = entry["flow_nominal"]
             data["time_series"]["demand"][current[1]] = entry
+
+            demand["flow_min"] = minimum(entry["flow_min"])
+            demand["flow_max"] = maximum(entry["flow_max"])
         elseif pattern !== nothing && pattern != "1"
             demand["flow_nominal"] *= data["pattern"][pattern][1]
             demand["flow_min"] = demand["flow_nominal"]
@@ -1002,6 +1005,9 @@ function _read_reservoir!(data::Dict{String,<:Any})
             entry["head_min"] = entry["head_nominal"]
             entry["head_max"] = entry["head_nominal"]
             data["time_series"]["reservoir"][current[1]] = entry
+
+            reservoir["head_min"] = minimum(entry["head_min"])
+            reservoir["head_max"] = maximum(entry["head_max"])
             reservoir["elevation"] = minimum(head)
         elseif pattern !== nothing && pattern != "1"
             reservoir["head_nominal"] *= data["pattern"][pattern][1]
