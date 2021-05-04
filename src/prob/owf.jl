@@ -64,6 +64,32 @@ function build_mn_owf_part_start(wm::AbstractWaterModel)
     objective_owf(wm)
 end
 
+function build_mn_owf_part_middle_v2(wm::AbstractWaterModel)
+    # Build the water flow problem.
+    build_mn_wf_decomp_v2(wm)
+
+    # Add the optimal water flow objective.
+    #objective_owf(wm)
+    objective_owf_decomp_v2(wm)
+end
+
+function build_mn_owf_part_start_v2(wm::AbstractWaterModel)
+    # Build the water flow problem.
+    build_mn_wf_decomp_start_v2(wm)
+
+    # Add the optimal water flow objective.
+    objective_owf_decomp_v2(wm)
+end
+
+function build_mn_owf_part_end_v2(wm::AbstractWaterModel)
+    # Build the water flow problem.
+    build_mn_wf_decomp_end_v2(wm)
+
+    # Add the optimal water flow objective.
+    objective_owf(wm)
+end
+
+
 function build_mn_owf_part_int(wm::AbstractWaterModel)
     # Build the water flow problem.
     build_mn_wf_decomp(wm)

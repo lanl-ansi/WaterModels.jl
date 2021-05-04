@@ -133,7 +133,7 @@ function constraint_tank_volume(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2:
         # Only set the tank state if the tank is nondispatchable.
         if !tank_nw_1["dispatchable"] && !tank_nw_2["dispatchable"]
             # Apply the tank volume integration constraint between the two time steps.
-            _initialize_con_dict(wm, :tank_volume, nw = nw_2)
+            _initialize_con_dict(wm, :tank_volume_integration, nw = nw_2)
             constraint_tank_volume(wm, nw_1, nw_2, i, ref(wm, nw_1, :time_step))
         end
     end
