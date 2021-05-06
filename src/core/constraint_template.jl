@@ -120,6 +120,11 @@ function constraint_tank_volume(wm::AbstractWaterModel, i::Int; nw::Int=nw_id_de
         time_step = ref(wm, nw, :time_step)
         V_min = max(tank["min_vol"], surface_area * tank["min_level"])
 
+        # Update the nodal elevation data.
+        node = ref(wm, nw, :node, tank["node"])
+        head = node["elevation"] + initial_level
+        node["head_nominal"] = node["head_min"] = node["head_max"] = head
+        
         # Apply the tank volume constraint at the specified time step.
         _initialize_con_dict(wm, :tank_volume; nw=nw, is_array=true)
         con(wm, nw, :tank_volume)[i] = Array{JuMP.ConstraintRef, 1}([])
