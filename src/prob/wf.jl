@@ -516,10 +516,10 @@ function build_mn_wf_decomp_end_v2(wm::AbstractWaterModel)
   
 
     #Constraints on tank volumes.
-    # for (i, tank) in ref(wm, :tank; nw = n_f)
-    #     # Set initial conditions of tanks.
-    #     constraint_tank_volume(wm, i; nw = n_f)
-    # end
+    for (i, tank) in ref(wm, :tank; nw = n_f)
+        # Set initial conditions of tanks.
+        constraint_tank_volume_last(wm, i; nw = n_f)
+    end
 
     # Constraints on tank volumes.
     for n_2 in network_ids[2:end]

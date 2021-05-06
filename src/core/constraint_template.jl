@@ -123,6 +123,20 @@ function constraint_tank_volume(wm::AbstractWaterModel, i::Int; nw::Int=nw_id_de
     end
 end
 
+function constraint_tank_volume_last(wm::AbstractWaterModel, i::Int; nw::Int=nw_id_default)
+    # Only set the tank state if the tank is nondispatchable.
+    if !ref(wm, nw, :tank, i)["dispatchable"]
+        tank = ref(wm, nw, :tank, i)
+        initial_level = tank["init_level"]
+        surface_area = 0.25 * pi * tank["diameter"]^2
+        V_initial = surface_area * initial_level
+
+        # Apply the tank volume constraint at the specified time step.
+        _initialize_con_dict(wm, :tank_volume_last, nw = nw)
+        constraint_tank_volume_fixed_last(wm, nw, i, V_initial)
+    end
+end
+
 
 function constraint_tank_volume(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2::Int)
     # Only apply the constraint if the tank exists in both subnetworks.
