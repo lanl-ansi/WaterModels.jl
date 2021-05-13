@@ -8,7 +8,6 @@ a WaterModels data structure (a dictionary of data).
 function parse_file(path::String; skip_correct::Bool = false)
     if endswith(path, ".inp")
         network_data = WaterModels.parse_epanet(path)
-        epanet_to_watermodels!(network_data; import_all = false)
     elseif endswith(path, ".json")
         network_data = WaterModels.parse_json(path)
     else
@@ -54,6 +53,7 @@ end
 
 
 function correct_network_data!(data::Dict{String, <:Any})
+    epanet_to_watermodels!(data; import_all = false)
     InfrastructureModels.apply!(correct_pipes!, data, wm_it_name)
     InfrastructureModels.apply!(correct_des_pipes!, data, wm_it_name)
     InfrastructureModels.apply!(correct_pumps!, data, wm_it_name)

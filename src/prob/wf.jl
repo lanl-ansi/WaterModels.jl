@@ -169,6 +169,7 @@ function build_mn_wf(wm::AbstractWaterModel)
             constraint_on_off_pump_power(wm, a; nw=n)
         end
 
+        # Constraints on groups of parallel pumps.
         for (k, pump_group) in ref(wm, :pump_group; nw=n)
             constraint_on_off_pump_group(wm, k; nw=n)
         end
@@ -190,6 +191,25 @@ function build_mn_wf(wm::AbstractWaterModel)
             constraint_on_off_valve_head(wm, a; nw=n)
             constraint_on_off_valve_flow(wm, a; nw=n)
         end
+    end
+
+    n_1 = network_ids[1]
+
+    for n_2 in network_ids[2:end-1]
+        variable_pump_switch_on(wm; nw = n_2)
+        variable_pump_switch_off(wm; nw = n_2)
+
+        for (a, pump) in ref(wm, :pump, nw = n_2)
+            constraint_pump_switch_on(wm, a, n_1, n_2)
+            constraint_pump_switch_off(wm, a, n_1, n_2)
+        end
+
+        n_1 = n_2
+    end
+
+    # Constraints on the total number of pump switches.
+    for (a, pump) in ref(wm, :pump; nw = network_ids[1])
+        constraint_on_off_pump_switch(wm, a, network_ids[2:end-1])
     end
 
     # Initialize head variables for the final time index.

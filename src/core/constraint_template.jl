@@ -335,9 +335,41 @@ end
 
 function constraint_on_off_pump_group(wm::AbstractWaterModel, k::Int; nw::Int=nw_id_default, kwargs...)
     pump_indices = ref(wm, nw, :pump_group, k, "pump_indices")
-    _initialize_con_dict(wm, :on_off_pump_group, nw=nw, is_array=true)
+    _initialize_con_dict(wm, :on_off_pump_group, nw = nw, is_array = true)
     con(wm, nw, :on_off_pump_group)[k] = Array{JuMP.ConstraintRef}([])
     constraint_on_off_pump_group(wm, nw, k, pump_indices)
+end
+
+
+function constraint_on_off_pump_switch(wm::AbstractWaterModel, a::Int, network_ids::Array{Int64, 1}; kwargs...)
+    _initialize_con_dict(wm, :on_off_pump_switch, nw = network_ids[end], is_array = true)
+    con(wm, network_ids[end], :on_off_pump_switch)[a] = Array{JuMP.ConstraintRef}([])
+    max_switches = get(ref(wm, network_ids[end], :pump, a), "max_switches", 18)
+    constraint_on_off_pump_switch(wm, a, network_ids, max_switches)
+end
+
+
+function constraint_pump_switch_on(wm::AbstractWaterModel, a::Int, n_1::Int, n_2::Int; kwargs...)
+    _initialize_con_dict(wm, :pump_switch_on, nw = n_2, is_array = true)
+    con(wm, n_2, :pump_switch_on)[a] = Array{JuMP.ConstraintRef}([])
+
+    network_ids = sort(collect(nw_ids(wm)))
+    min_active_time = get(ref(wm, n_2, :pump, a), "min_active_time", 3600.0)
+    nw_end = n_2 + Int(floor(min_active_time / ref(wm, n_1, :time_step))) - 1
+    nws_active = Vector{Int64}(collect(n_2:1:min(network_ids[end-1], nw_end)))
+    constraint_pump_switch_on(wm, a, n_1, n_2, nws_active)
+end
+
+
+function constraint_pump_switch_off(wm::AbstractWaterModel, a::Int, n_1::Int, n_2::Int; kwargs...)
+    _initialize_con_dict(wm, :pump_switch_off, nw = n_2, is_array = true)
+    con(wm, n_2, :pump_switch_off)[a] = Array{JuMP.ConstraintRef}([])
+
+    network_ids = sort(collect(nw_ids(wm)))
+    min_inactive_time = get(ref(wm, n_2, :pump, a), "min_inactive_time", 1800.0)
+    nw_end = n_2 + Int(floor(min_inactive_time / ref(wm, n_1, :time_step)))
+    nws_inactive = Vector{Int64}(collect(n_2:1:min(network_ids[end-1], nw_end)))
+    constraint_pump_switch_off(wm, a, n_1, n_2, nws_inactive)
 end
 
 

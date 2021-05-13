@@ -102,11 +102,11 @@ function _variable_component_flow(
         end
     end
 
-    # Report positive directed flow values as part of the solution.
-    report && sol_component_value(wm, nw, comp_sym, :qp, ids(wm, nw, comp_sym), qp)
+    # # Report positive directed flow values as part of the solution.
+    # report && sol_component_value(wm, nw, comp_sym, :qp, ids(wm, nw, comp_sym), qp)
 
-    # Report negative directed flow values as part of the solution.
-    report && sol_component_value(wm, nw, comp_sym, :qn, ids(wm, nw, comp_sym), qn)
+    # # Report negative directed flow values as part of the solution.
+    # report && sol_component_value(wm, nw, comp_sym, :qn, ids(wm, nw, comp_sym), qn)
 
     # Create expressions capturing the relationships among q, qp, and qn.
     q = var(wm, nw)[Symbol("q_" * component_name)] = JuMP.@expression(

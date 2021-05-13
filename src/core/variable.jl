@@ -351,6 +351,48 @@ function variable_pump_indicator(wm::AbstractWaterModel; nw::Int=nw_id_default, 
 end
 
 
+""
+function variable_pump_switch_on(wm::AbstractWaterModel; nw::Int=nw_id_default, relax::Bool=false, report::Bool=true)
+    if !relax
+        z_switch_on_pump = var(wm, nw)[:z_switch_on_pump] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :pump)], base_name = "$(nw)_z_switch_on_pump", binary = true,
+            start = comp_start_value(ref(wm, nw, :pump, a), "z_switch_on_pump_start", 1.0))
+    else
+        z_switch_on_pump = var(wm, nw)[:z_switch_on_pump] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :pump)], base_name = "$(nw)_z_switch_on_pump",
+            lower_bound = 0.0, upper_bound = 1.0,
+            start = comp_start_value(ref(wm, nw, :pump, a), "z_switch_on_pump_start", 1.0))
+    end
+
+    for (a, pump) in ref(wm, nw, :pump)
+        _fix_indicator_variable(z_switch_on_pump[a], pump, "z_switch_on")
+    end
+
+    report && sol_component_value(wm, nw, :pump, :switch_on, ids(wm, nw, :pump), z_switch_on_pump)
+end
+
+
+""
+function variable_pump_switch_off(wm::AbstractWaterModel; nw::Int=nw_id_default, relax::Bool=false, report::Bool=true)
+    if !relax
+        z_switch_off_pump = var(wm, nw)[:z_switch_off_pump] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :pump)], base_name = "$(nw)_z_switch_off_pump", binary = true,
+            start = comp_start_value(ref(wm, nw, :pump, a), "z_switch_off_pump_start", 1.0))
+    else
+        z_switch_off_pump = var(wm, nw)[:z_switch_off_pump] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :pump)], base_name = "$(nw)_z_switch_off_pump",
+            lower_bound = 0.0, upper_bound = 1.0,
+            start = comp_start_value(ref(wm, nw, :pump, a), "z_switch_off_pump_start", 1.0))
+    end
+
+    for (a, pump) in ref(wm, nw, :pump)
+        _fix_indicator_variable(z_switch_off_pump[a], pump, "z_switch_off")
+    end
+
+    report && sol_component_value(wm, nw, :pump, :switch_off, ids(wm, nw, :pump), z_switch_off_pump)
+end
+
+
 "Creates binary variables for all design pipes in the network, i.e.,
 `z_des_pipe[a]` for `a` in `des_pipe`, where one denotes that the pipe is
 selected within the design, and zero denotes that the pipe is not selected."
