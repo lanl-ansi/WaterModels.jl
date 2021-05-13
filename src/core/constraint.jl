@@ -173,7 +173,7 @@ function constraint_pump_switch_on(wm::AbstractWaterModel, a::Int, n_1::Int, n_2
 
     for nw_inactive in nws_inactive
         z_nw = var(wm, nw_inactive, :z_pump, a)
-        c_2 = JuMP.@constraint(wm.model, z_switch_off <= 1.0 - z_nw)
+        c_2 = JuMP.@constraint(wm.model, z_nw <= 1.0 - z_switch_off)
         append!(con(wm, n_2, :pump_switch_off)[a], [c_2])
     end
  end

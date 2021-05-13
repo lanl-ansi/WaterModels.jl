@@ -344,7 +344,7 @@ end
 function constraint_on_off_pump_switch(wm::AbstractWaterModel, a::Int, network_ids::Array{Int64, 1}; kwargs...)
     _initialize_con_dict(wm, :on_off_pump_switch, nw = network_ids[end], is_array = true)
     con(wm, network_ids[end], :on_off_pump_switch)[a] = Array{JuMP.ConstraintRef}([])
-    max_switches = get(ref(wm, network_ids[end], :pump, a), "max_switches", 18)
+    max_switches = get(ref(wm, network_ids[end], :pump, a), "max_switches", 6)
     constraint_on_off_pump_switch(wm, a, network_ids, max_switches)
 end
 
@@ -355,7 +355,7 @@ function constraint_pump_switch_on(wm::AbstractWaterModel, a::Int, n_1::Int, n_2
 
     network_ids = sort(collect(nw_ids(wm)))
     min_active_time = get(ref(wm, n_2, :pump, a), "min_active_time", 3600.0)
-    nw_end = n_2 + Int(floor(min_active_time / ref(wm, n_1, :time_step))) - 1
+    nw_end = n_2 + Int(floor(min_active_time / ref(wm, n_1, :time_step)))
     nws_active = Vector{Int64}(collect(n_2:1:min(network_ids[end-1], nw_end)))
     constraint_pump_switch_on(wm, a, n_1, n_2, nws_active)
 end
