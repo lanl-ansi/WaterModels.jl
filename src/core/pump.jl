@@ -70,7 +70,7 @@ function _calc_pump_head_gain_max(pump::Dict{String, <:Any}, node_fr::Dict{Strin
 
     if pump["head_curve_form"] in [PUMP_QUADRATIC, PUMP_BEST_EFFICIENCY_POINT, PUMP_LINEAR_POWER]
         flow_at_max = -c[2] * inv(2.0 * c[1]) > 0.0 ? -c[2] * inv(2.0 * c[1]) : 0.0
-        return max(0.0, c[1]*flow_at_max^2 + c[2]*flow_at_max + c[3])
+        return max(0.0, c[1] * flow_at_max^2 + c[2] * flow_at_max + c[3])
     elseif pump["head_curve_form"] == PUMP_EPANET
         return max(0.0, c[1])
     end

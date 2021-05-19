@@ -248,8 +248,8 @@ end
 for `i` in `tank`. Note that, unlike reservoirs, tanks can have inflow."
 function variable_tank_flow(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     q_tank = var(wm, nw)[:q_tank] = JuMP.@variable(wm.model,
-        [i in ids(wm, nw, :tank)], base_name="$(nw)_q_tank",
-        start=comp_start_value(ref(wm, nw, :tank, i), "q_tank_start"))
+        [i in ids(wm, nw, :tank)], base_name = "$(nw)_q_tank",
+        start = comp_start_value(ref(wm, nw, :tank, i), "q_tank_start"))
 
     if bounded
         for (i, tank) in ref(wm, nw, :tank)
