@@ -8,6 +8,30 @@ function _relax_binary_variable!(v::JuMP.VariableRef)
 end
 
 
+function set_binary_variables!(vars::Array{JuMP.VariableRef, 1})
+    map(x -> JuMP.set_binary(x), vars)
+end
+
+
+function relax_all_binary_variables_at_nw!(wm::AbstractWaterModel, nw::Int)
+    vars_unset = Array{JuMP.VariableRef, 1}([])
+    vars_dict_nw = values(var(wm, nw))
+    
+    for var_entry in vars_dict_nw
+        vars = filter(x -> isa(x, JuMP.VariableRef), vcat(var_entry...))
+        vars_binary = collect(filter(x -> JuMP.is_binary(x), vars))
+
+        if length(vars_binary) > 0
+            append!(vars_unset, vars_binary)
+        end
+    end
+
+    map(x -> JuMP.unset_binary(x), vars_unset)
+    
+    return vars_unset
+end
+
+
 function relax_all_binary_variables!(wm::AbstractWaterModel)
     vars = filter(v -> JuMP.is_binary(v), JuMP.all_variables(wm.model))
     _relax_binary_variable!.(vars) # Relax all binary variables.

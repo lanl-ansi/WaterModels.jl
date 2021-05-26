@@ -193,24 +193,24 @@ function build_mn_wf(wm::AbstractWaterModel)
         end
     end
 
-    n_1 = network_ids[1]
+    # n_1 = network_ids[1]
 
-    for n_2 in network_ids[2:end-1]
-        variable_pump_switch_on(wm; nw = n_2)
-        variable_pump_switch_off(wm; nw = n_2)
+    # for n_2 in network_ids[2:end-1]
+    #     variable_pump_switch_on(wm; nw = n_2)
+    #     variable_pump_switch_off(wm; nw = n_2)
 
-        for (a, pump) in ref(wm, :pump, nw = n_2)
-            constraint_pump_switch_on(wm, a, n_1, n_2)
-            constraint_pump_switch_off(wm, a, n_1, n_2)
-        end
+    #     for (a, pump) in ref(wm, :pump, nw = n_2)
+    #         constraint_pump_switch_on(wm, a, n_1, n_2)
+    #         constraint_pump_switch_off(wm, a, n_1, n_2)
+    #     end
 
-        n_1 = n_2
-    end
+    #     n_1 = n_2
+    # end
 
-    # Constraints on the total number of pump switches.
-    for (a, pump) in ref(wm, :pump; nw = network_ids[1])
-        constraint_on_off_pump_switch(wm, a, network_ids[2:end-1])
-    end
+    # # Constraints on the total number of pump switches.
+    # for (a, pump) in ref(wm, :pump; nw = network_ids[1])
+    #     constraint_on_off_pump_switch(wm, a, network_ids[2:end-1])
+    # end
 
     # Initialize head variables for the final time index.
     variable_head(wm; nw = network_ids[end])

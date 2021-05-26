@@ -214,6 +214,13 @@ function _build_pump_groups(pumps::Dict{Int, <:Any})
 end
 
 
+function _set_ref_pump_head_gain_properties!(pumps::Dict{Int, <:Any})
+    map(x -> x["head_curve_function"] = _calc_head_curve_function(x), values(pumps))
+    map(x -> x["head_curve_derivative"] = _calc_head_curve_derivative(x), values(pumps))
+    map(x -> x["head_curve_coefficients"] = _calc_head_curve_coefficients(x), values(pumps))
+end
+
+
 function _ref_add_core!(nw_refs::Dict{Int,<:Any}, head_loss::String)
     for (nw, ref) in nw_refs
         # Remove inactive nodes from the ref data dictionary.
@@ -249,6 +256,9 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any}, head_loss::String)
         ref[:dispatchable_demand] = filter(x -> x.second["dispatchable"], ref[:demand])
         ref[:nondispatchable_demand] = filter(x -> !x.second["dispatchable"], ref[:demand])
         ref[:pump_group] = _build_pump_groups(ref[:pump])
+
+        # Set pump head gain functions and derivatives.
+        _set_ref_pump_head_gain_properties!(ref[:pump])
 
         # Store the exponent used within head loss relationships.
         ref[:alpha] = uppercase(head_loss) == "H-W" ? 1.852 : 2.0
