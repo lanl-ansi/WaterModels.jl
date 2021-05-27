@@ -13,22 +13,24 @@ function set_binary_variables!(vars::Array{JuMP.VariableRef, 1})
 end
 
 
-function relax_all_binary_variables_at_nw!(wm::AbstractWaterModel, nw::Int)
-    vars_unset = Array{JuMP.VariableRef, 1}([])
-    vars_dict_nw = values(var(wm, nw))
+function get_all_binary_vars_at_nw!(wm::AbstractWaterModel, nw::Int)
+    vars_binary = Array{JuMP.VariableRef, 1}([])
     
-    for var_entry in vars_dict_nw
+    for var_entry in values(var(wm, nw))
         vars = filter(x -> isa(x, JuMP.VariableRef), vcat(var_entry...))
-        vars_binary = collect(filter(x -> JuMP.is_binary(x), vars))
-
-        if length(vars_binary) > 0
-            append!(vars_unset, vars_binary)
-        end
+        vars_binary_inner = collect(filter(x -> JuMP.is_binary(x), vars))
+        append!(vars_binary, vars_binary_inner)
     end
+    # println(vars_binary)
 
-    map(x -> JuMP.unset_binary(x), vars_unset)
-    
-    return vars_unset
+    return vars_binary
+end
+
+
+
+function relax_all_binary_variables_at_nw!(wm::AbstractWaterModel, nw::Int)
+    vars = get_all_binary_vars_at_nw!(wm, nw)
+    map(x -> JuMP.unset_binary(x), vars)
 end
 
 
