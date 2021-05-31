@@ -393,3 +393,39 @@ function _calc_efficiencies(points::Array{Float64}, curve::Array{Tuple{Float64, 
     return Interpolations.LinearInterpolation(q, eff,
         extrapolation_bc=Interpolations.Flat()).(points)
 end
+
+
+function get_pump_flow_lower_breakpoints(pump::Dict{String, <:Any})
+    if haskey(pump, "flow_lower_breakpoints")
+        return pump["flow_lower_breakpoints"]
+    else
+        flow_min, flow_max = pump["flow_min"], pump["flow_max"]
+        return [flow_min, flow_max]
+    end
+end
+
+
+function get_pump_flow_lower_breakpoints_positive(pump::Dict{String, <:Any})
+    lower_breakpoints = get_pump_flow_lower_breakpoints(pump)
+    flows = filter(x -> x >= 0.0, lower_breakpoints)
+    lower_bound = max(0.0, get(pump, "flow_min_forward", 0.0))
+    return lower_bound != minimum(flows) ? vcat(lower_bound, flows) : flows
+end
+
+
+function get_pump_flow_upper_breakpoints(pump::Dict{String, <:Any})
+    if haskey(pump, "flow_upper_breakpoints")
+        return pump["flow_upper_breakpoints"]
+    else
+        flow_min, flow_max = pump["flow_min"], pump["flow_max"]
+        return [flow_min, flow_max]
+    end
+end
+
+
+function get_pump_flow_upper_breakpoints_positive(pump::Dict{String, <:Any})
+    upper_breakpoints = get_pump_flow_upper_breakpoints(pump)
+    flows = filter(x -> x >= 0.0, upper_breakpoints)
+    lower_bound = max(0.0, get(pump, "flow_min_forward", 0.0))
+    return lower_bound != minimum(flows) ? vcat(lower_bound, flows) : flows
+end

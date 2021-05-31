@@ -267,6 +267,23 @@ function _update_data_bounds!(data::Dict{String,<:Any}, bound_problems::Array{Bo
 end
 
 
+function _update_data_breakpoints!(data::Dict{String,<:Any}, num_pipe_breakpoints::Int, num_pump_breakpoints::Int)
+    for pipe in values(data["pipe"])
+        flow_min, flow_max = pipe["flow_min"], pipe["flow_max"]
+        breakpoints = range(flow_min, stop = flow_max, length = num_pipe_breakpoints)
+        pipe["flow_lower_breakpoints"] = breakpoints
+        pipe["flow_upper_breakpoints"] = breakpoints
+    end
+
+    for pump in values(data["pump"])
+        flow_min, flow_max = pump["flow_min"], pump["flow_max"]
+        breakpoints = range(flow_min, stop = flow_max, length = num_pump_breakpoints)
+        pump["flow_lower_breakpoints"] = breakpoints
+        pump["flow_upper_breakpoints"] = breakpoints
+    end
+end
+
+
 function _create_bound_problems(wm::AbstractWaterModel)
     # Create the sets of bound-tightening problems.
     bps_node = _create_node_bound_problems(wm)
@@ -416,6 +433,7 @@ function solve_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_relaxed_networ
 
         time_elapsed > time_limit && ((terminate = true) && break)
         _update_data_bounds!(data, bound_problems)
+        _update_data_breakpoints!(data, 10, 10)
         !terminate && _clean_bound_problems!(bound_problems, vals)
 
         # Log widths.
