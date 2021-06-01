@@ -182,7 +182,8 @@ function constraint_pipe_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=nw_id
 
     _initialize_con_dict(wm, :pipe_head_loss, nw = nw, is_array = true)
     con(wm, nw, :pipe_head_loss)[a] = Array{JuMP.ConstraintRef}([])
-    constraint_pipe_head_loss(wm, nw, a, node_fr, node_to, exponent, L, r, q_max_reverse, q_min_forward)
+    constraint_pipe_head_loss(wm, nw, a, node_fr, node_to,
+        exponent, L, r, q_max_reverse, q_min_forward)
 end
 
 

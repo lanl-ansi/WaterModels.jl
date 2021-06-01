@@ -116,10 +116,10 @@ function constraint_pipe_head_loss(
     # Add a constraint for the flow piecewise approximation.
     lambda_p, x_p = var(wm, n, :lambda_p_pipe), var(wm, n, :x_p_pipe)
     breakpoints_p = get_pipe_flow_upper_breakpoints_positive(pipe)
-    qp_lhs = sum(qp_hat * lambda_p[a, k] for (k, qp_hat) in enumerate(breakpoints_p))
 
     # Add the required SOS constraints.
     c_1 = JuMP.@constraint(wm.model, sum(lambda_p[a, k] for k in 1:length(breakpoints_p)) == y)
+    qp_lhs = sum(qp_hat * lambda_p[a, k] for (k, qp_hat) in enumerate(breakpoints_p))
     c_2 = JuMP.@constraint(wm.model, qp_lhs == qp)
     append!(con(wm, n, :pipe_head_loss, a), [c_1, c_2])
 
@@ -132,8 +132,8 @@ function constraint_pipe_head_loss(
 
     # Add a constraint that upper-bounds the head loss variable.
     f_p = r .* breakpoints_p.^exponent
-    loss_p_ub_expr = sum(f_p[k] * lambda_p[a, k] for (k, qp_hat) in enumerate(breakpoints_p))
-    c_6 = JuMP.@constraint(wm.model, dhp / L <= loss_p_ub_expr)    
+    loss_p_ub_expr = sum(f_p[k] * lambda_p[a, k] for k in 1:length(breakpoints_p))
+    c_6 = JuMP.@constraint(wm.model, dhp / L <= loss_p_ub_expr)
     append!(con(wm, n, :pipe_head_loss, a), [c_6])
 
     for qp_hat in get_pipe_flow_lower_breakpoints_positive(pipe)

@@ -3,9 +3,8 @@
 
 "Transform length values in SI units to per-unit units."
 function _calc_length_per_unit_transform(data::Dict{String,<:Any})
-    median_midpoint = _calc_node_head_median_midpoint(data)
-
     # Translation: convert number of meters to WaterModels-length.
+    median_midpoint = _calc_node_head_median_midpoint(data)
     return x -> x / median_midpoint
 end
 
@@ -446,7 +445,7 @@ end
 
 
 function _transform_flow_key!(comp::Dict{String,<:Any}, key::String, transform_flow::Function)
-    haskey(comp, key) && (comp[key] = transform_flow(comp[key]))
+    haskey(comp, key) && (comp[key] = transform_flow.(comp[key]))
 end
 
 
@@ -466,11 +465,21 @@ function _make_per_unit_nodes!(data::Dict{String,<:Any}, transform_head::Functio
         node["head_max"] = transform_head(node["head_max"])
         node["head_nominal"] = transform_head(node["head_nominal"])
     end
+
+    if haskey(data, "time_series") && haskey(data["time_series"], "node")
+        for node in values(data["time_series"]["node"])
+            node["head_min"] = transform_head.(node["head_min"])
+            node["head_max"] = transform_head.(node["head_max"])
+            node["head_nominal"] = transform_head.(node["head_nominal"])
+        end
+    end
 end
 
 
 function _make_per_unit_reservoir!(data::Dict{String,<:Any}, transform_head::Function)
     for (i, reservoir) in data["reservoir"]
+        reservoir["head_min"] = transform_head(reservoir["head_min"])
+        reservoir["head_max"] = transform_head(reservoir["head_max"])
         reservoir["head_nominal"] = transform_head(reservoir["head_nominal"])
     end
 end
@@ -481,6 +490,12 @@ function _make_per_unit_demands!(data::Dict{String,<:Any}, transform_flow::Funct
         demand["flow_min"] = transform_flow(demand["flow_min"])
         demand["flow_max"] = transform_flow(demand["flow_max"])
         demand["flow_nominal"] = transform_flow(demand["flow_nominal"])
+    end
+
+    if haskey(data, "time_series") && haskey(data["time_series"], "demand")
+        for demand in values(data["time_series"]["demand"])
+            _transform_flows!(demand, transform_flow)
+        end
     end
 end
 
@@ -504,6 +519,10 @@ end
 function _make_per_unit_flows!(data::Dict{String,<:Any}, transform_flow::Function)
     for type in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
         map(x -> _transform_flows!(x, transform_flow), values(data[type]))
+
+        if haskey(data, "time_series") && haskey(data["time_series"], type)
+            _transform_flows!(data["time_series"][type], transform_flow)
+        end
     end
 end
 
@@ -524,7 +543,10 @@ function _make_per_unit_des_pipes!(data::Dict{String,<:Any}, transform_length::F
 end
 
 
-function _make_per_unit_pumps!(data::Dict{String,<:Any}, transform_flow::Function, transform_length::Function)
+function _make_per_unit_pumps!(data::Dict{String,<:Any}, transform_mass::Function, transform_flow::Function, transform_length::Function, transform_time::Function)
+    power_scalar = transform_mass(1.0) * transform_length(1.0)^2 / transform_time(1.0)^3
+    energy_scalar = transform_mass(1.0) * transform_length(1.0)^2 / transform_time(1.0)^2
+
     for (i, pump) in data["pump"]
         pump["head_curve"] = [(transform_flow(x[1]), x[2]) for x in pump["head_curve"]]
         pump["head_curve"] = [(x[1], transform_length(x[2])) for x in pump["head_curve"]]
@@ -532,12 +554,45 @@ function _make_per_unit_pumps!(data::Dict{String,<:Any}, transform_flow::Functio
         if haskey(pump, "efficiency_curve")
             pump["efficiency_curve"] = [(transform_flow(x[1]), x[2]) for x in pump["efficiency_curve"]]
         end
+
+        if haskey(pump, "energy_price")
+            pump["energy_price"] /= energy_scalar
+        end
+
+        if haskey(pump, "power_fixed")
+            pump["power_fixed"] *= power_scalar
+        end
+
+        if haskey(pump, "power_per_unit_flow")
+            pump["power_per_unit_flow"] *= power_scalar / transform_flow(1.0)
+        end
+    end
+
+    if haskey(data, "time_series") && haskey(data["time_series"], "pump")
+        for pump in values(data["time_series"]["pump"])
+            if haskey(pump, "energy_price")
+                pump["energy_price"] /= energy_scalar
+            end
+
+            if haskey(pump, "power_fixed")
+                pump["power_fixed"] *= power_scalar
+            end
+
+            if haskey(pump, "power_per_unit_flow")
+                pump["power_per_unit_flow"] *= power_scalar / transform_flow(1.0)
+            end
+        end
     end
 end
 
 
 function _calc_scaled_gravity(base_length::Float64, base_time::Float64)
     return _GRAVITY * base_length / (base_time)^2
+end
+
+
+function _calc_scaled_density(base_mass::Float64, base_length::Float64)
+    return _DENSITY * base_mass / base_length^3
 end
 
 
@@ -554,7 +609,8 @@ function make_per_unit!(data::Dict{String,<:Any})
         _make_per_unit_flows!(data, flow_transform)
         _make_per_unit_pipes!(data, length_transform)
         _make_per_unit_des_pipes!(data, length_transform)
-        _make_per_unit_pumps!(data, flow_transform, length_transform)
+        _make_per_unit_pumps!(data, mass_transform,
+            flow_transform, length_transform, time_transform)
 
         # Apply per-unit transformations to nodal components.
         _make_per_unit_nodes!(data, head_transform)
@@ -567,8 +623,16 @@ function make_per_unit!(data::Dict{String,<:Any})
             (length_transform(1.0) * time_transform(1.0))
 
         # Store important base values for later conversions.
+        data["base_mass"] = mass_transform(1.0)
         data["base_length"] = length_transform(1.0)
         data["base_time"] = time_transform(1.0)
+
+        if haskey(data, "time_series")
+            time_step = time_transform(data["time_series"]["time_step"])
+            data["time_series"]["time_step"] = time_step
+            duration = time_transform(data["time_series"]["duration"])
+            data["time_series"]["duration"] = duration
+        end
 
         # Set the per-unit flag.
         data["time_step"] = time_transform(data["time_step"])
