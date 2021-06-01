@@ -82,7 +82,8 @@ function get_pipe_flow_upper_breakpoints_positive(pipe::Dict{String, <:Any})
     upper_breakpoints = get_pipe_flow_upper_breakpoints(pipe)
     flows = filter(x -> x >= 0.0, upper_breakpoints)
     lower_bound = max(0.0, get(pipe, "flow_min_forward", 0.0))
-    return lower_bound != minimum(flows) ? vcat(lower_bound, flows) : flows
+    flow_min = length(flows) > 0 ? minimum(flows) : lower_bound
+    return lower_bound != flow_min ? vcat(lower_bound, flows) : flows
 end
 
 
@@ -90,7 +91,8 @@ function get_pipe_flow_upper_breakpoints_negative(pipe::Dict{String, <:Any})
     upper_breakpoints = get_pipe_flow_upper_breakpoints(pipe)
     flows = filter(x -> x <= 0.0, upper_breakpoints)
     upper_bound = min(0.0, get(pipe, "flow_max_reverse", 0.0))
-    return upper_bound != maximum(flows) ? vcat(flows, upper_bound) : flows
+    flow_max = length(flows) > 0 ? maximum(flows) : upper_bound
+    return upper_bound != flow_max ? vcat(flows, upper_bound) : flows
 end
 
 
@@ -100,7 +102,7 @@ function correct_des_pipes!(data::Dict{String, <:Any})
     base_length = get(data, "base_length", 1.0)
     base_time = get(data, "base_time", 1.0)
 
-    for (idx, des_pipe) in data["des_pipe"]
+    for des_pipe in values(data["des_pipe"])
         # Get common connecting node data for later use.
         node_fr = data["node"][string(des_pipe["node_fr"])]
         node_to = data["node"][string(des_pipe["node_to"])]
