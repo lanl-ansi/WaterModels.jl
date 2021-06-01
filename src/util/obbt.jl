@@ -467,6 +467,9 @@ function solve_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_relaxed_networ
         _fix_tanks!(data)
         _fix_reservoirs!(data)
     end
+
+    time_elapsed_rounded = round(time_elapsed; digits = 2)
+    Memento.info(_LOGGER, "[OBBT] Completed in $(time_elapsed_rounded) seconds.")
 end
 
 
