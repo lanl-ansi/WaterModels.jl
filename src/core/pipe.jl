@@ -56,7 +56,7 @@ function get_pipe_flow_lower_breakpoints_positive(pipe::Dict{String, <:Any})
     lower_breakpoints = get_pipe_flow_lower_breakpoints(pipe)
     flows = filter(x -> x >= 0.0, lower_breakpoints)
     lower_bound = max(0.0, get(pipe, "flow_min_forward", 0.0))
-    return lower_bound != minimum(flows) ? vcat(lower_bound, flows) : flows
+    return lower_bound != minimum(flows) ? vcat(lower_bound, flows) : [lower_bound]
 end
 
 
@@ -64,7 +64,7 @@ function get_pipe_flow_lower_breakpoints_negative(pipe::Dict{String, <:Any})
     lower_breakpoints = get_pipe_flow_lower_breakpoints(pipe)
     flows = filter(x -> x <= 0.0, lower_breakpoints)
     upper_bound = min(0.0, get(pipe, "flow_max_reverse", 0.0))
-    return upper_bound != maximum(flows) ? vcat(flows, upper_bound) : flows
+    return upper_bound != maximum(flows) ? vcat(flows, upper_bound) : [upper_bound]
  end
 
 
