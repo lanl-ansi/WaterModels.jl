@@ -123,7 +123,7 @@ function constraint_pipe_head_loss(
 
     # Add the required SOS constraints.
     c_1 = JuMP.@constraint(wm.model, sum(lambda_p[a, k] for k in 1:num_lambda_p) == y)
-    qp_lhs = sum(qp_hat * lambda_p[a, k] for (k, qp_hat) in enumerate(breakpoints_p))
+    qp_lhs = sum(breakpoints_p[k] * lambda_p[a, k] for k in 1:num_lambda_p)
     c_2 = JuMP.@constraint(wm.model, qp_lhs == qp)
     append!(con(wm, n, :pipe_head_loss, a), [c_1, c_2])
 
