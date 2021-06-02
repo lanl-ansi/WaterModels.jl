@@ -408,7 +408,7 @@ end
 
 function get_pump_flow_lower_breakpoints_positive(pump::Dict{String, <:Any})
     lower_breakpoints = get_pump_flow_lower_breakpoints(pump)
-    flows = filter(x -> x >= 0.0, lower_breakpoints)
+    flows = filter(x -> x > 0.0, lower_breakpoints)
     lower_bound = max(0.0, get(pump, "flow_min_forward", 0.0))
     return lower_bound != minimum(flows) ? vcat(lower_bound, flows) : flows
 end
@@ -426,7 +426,7 @@ end
 
 function get_pump_flow_upper_breakpoints_positive(pump::Dict{String, <:Any})
     upper_breakpoints = get_pump_flow_upper_breakpoints(pump)
-    flows = filter(x -> x >= 0.0, upper_breakpoints)
+    flows = filter(x -> x > 0.0, upper_breakpoints)
     lower_bound = max(0.0, get(pump, "flow_min_forward", 0.0))
     return lower_bound != minimum(flows) ? vcat(lower_bound, flows) : flows
 end

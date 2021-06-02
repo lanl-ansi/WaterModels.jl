@@ -444,7 +444,8 @@ function solve_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_relaxed_networ
         current_iteration += 1
 
         # Set up the next optimization problem using the new bounds.
-        wms = [instantiate_model(data, model_type, build_type; ext = ext) for i in 1:Threads.nthreads()]
+        wms = [instantiate_model(data, model_type, build_type;
+            ext = ext) for i in 1:Threads.nthreads()]
 
         if upper_bound_constraint
             map(x -> _constraint_obj_bound(x, upper_bound), wms)
