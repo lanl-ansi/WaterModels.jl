@@ -186,15 +186,23 @@ function split_multinetwork(data::Dict{String, <:Any}, nw_ids::Array{Array{Strin
     @assert _IM.ismultinetwork(data) == true
 
     # Get sub-multinetwork datasets indexed by the "nw" key.
+
     sub_mn = [Dict{String, Any}(i => deepcopy(data["nw"][i])
         for i in ids) for ids in nw_ids]
+# =======
+#     sub_mn = [Dict{String, Any}(i => deepcopy(data["nw"][i]) for i in ids) for ids in nw_ids]
+# >>>>>>> dw
 
     # Get all data not associated with multinetwork components
     g_data = filter(x -> x.first != "nw", data)
 
     # Return the new, split multinetwork data dictionaries.
+
     return [merge(deepcopy(g_data), Dict{String, Any}("nw" =>
         sub_mn[i])) for i in 1:length(nw_ids)]
+# =======
+#     return [merge(deepcopy(g_data), Dict{String, Any}("nw" => sub_mn[i])) for i in 1:length(nw_ids)]
+# >>>>>>> dw
 end
 
 

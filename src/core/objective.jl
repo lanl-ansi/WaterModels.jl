@@ -67,5 +67,74 @@ function objective_owf(wm::AbstractWaterModel)
     objective_scaled = (1.0 / minimum_scalar) * objective
 
     # Minimize the (numerically scaled) cost required to operate pumps.
+
     return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
 end
+
+
+
+function objective_owf_decomp(wm::AbstractWaterModel)
+    objective = JuMP.AffExpr(0.0)
+    network_ids = sort(collect(nw_ids(wm)))
+    
+    for n in network_ids[2:end]
+        for (i, reservoir) in ref(wm, n, :reservoir)
+            # Add reservoir flow extraction and treatment costs to the objective.
+            @assert haskey(reservoir, "flow_cost") # Ensure a flow cost exists.
+            coeff = reservoir["flow_cost"] * ref(wm, n, :time_step)
+            JuMP.add_to_expression!(objective, coeff * var(wm, n, :q_reservoir, i))
+        end
+    end
+
+    for n in network_ids[2:end]
+        for (a, pump) in ref(wm, n, :pump)
+            # Add pump energy costs to the objective.
+            @assert haskey(pump, "energy_price") # Ensure a price exists.
+            coeff = ref(wm, n, :time_step) * pump["energy_price"]
+            JuMP.add_to_expression!(objective, coeff * var(wm, n, :P_pump, a))
+        end
+    end
+
+    # Normalize the objective to be more numerically well-behaved.
+    pos_coeff = filter(x -> x > 0.0, collect(objective.terms.vals))
+    minimum_scalar = length(pos_coeff) > 0 ? minimum(pos_coeff) : 1.0
+    objective_scaled = (1.0 / minimum_scalar) * objective
+
+    # Minimize the (numerically scaled) cost required to operate pumps.
+    return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective_scaled)
+end
+
+function objective_owf_decomp_v2(wm::AbstractWaterModel)
+    objective = JuMP.AffExpr(0.0)
+    network_ids = sort(collect(nw_ids(wm)))
+    
+    for n in network_ids[1:end - 1]
+        for (i, reservoir) in ref(wm, n, :reservoir)
+            # Add reservoir flow extraction and treatment costs to the objective.
+            @assert haskey(reservoir, "flow_cost") # Ensure a flow cost exists.
+            coeff = reservoir["flow_cost"] * ref(wm, n, :time_step)
+            JuMP.add_to_expression!(objective, coeff * var(wm, n, :q_reservoir, i))
+        end
+    end
+
+    for n in network_ids[1:end - 1]
+        for (a, pump) in ref(wm, n, :pump)
+            # Add pump energy costs to the objective.
+            @assert haskey(pump, "energy_price") # Ensure a price exists.
+            coeff = ref(wm, n, :time_step) * pump["energy_price"]
+            JuMP.add_to_expression!(objective, coeff * var(wm, n, :P_pump, a))
+        end
+    end
+
+    # Normalize the objective to be more numerically well-behaved.
+    pos_coeff = filter(x -> x > 0.0, collect(objective.terms.vals))
+    minimum_scalar = length(pos_coeff) > 0 ? minimum(pos_coeff) : 1.0
+    objective_scaled = (1.0 / minimum_scalar) * objective
+
+    # Minimize the (numerically scaled) cost required to operate pumps.
+    #return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective_scaled)
+    return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
+end
+
+
+
