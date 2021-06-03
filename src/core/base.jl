@@ -162,7 +162,7 @@ end
 
 
 function _filter_active_components(components::Dict{Int,<:Any})::Dict{Int,<:Any}
-    return filter(x -> x.second["status"] != 0, components)
+    return filter(x -> x.second["status"] !== STATUS_INACTIVE, components)
 end
 
 
@@ -176,6 +176,48 @@ function _build_node_map(nodes::Dict{Int,<:Any}, components::Dict{Int,<:Any})
     end
 
     return ref_fr, ref_to
+end
+
+
+function _pumps_match(pump_1::Dict{String, <:Any}, pump_2::Dict{String, <:Any})
+    if sort(collect(keys(pump_1))) != sort(collect(keys(pump_2)))
+        return false
+    else
+        # TODO: We should be more careful here.
+        for key in ["node_fr", "node_to"]
+            if pump_1[key] != pump_2[key]
+                return false
+            end
+        end
+    end
+
+    return true
+end
+
+
+function _build_pump_groups(pumps::Dict{Int, <:Any})
+    pump_group_indices = Set([])
+
+    for (i, pump) in pumps
+        other_pumps = filter(x -> x.first != i, pumps)
+        matching_pumps = filter(x -> _pumps_match(pump, x.second), other_pumps)
+
+        if length(matching_pumps) > 0
+            pump_indices = sort(collect(vcat(i, keys(matching_pumps)...)))
+            push!(pump_group_indices, Set(pump_indices))
+        end
+    end
+
+    pump_group_indices = collect(pump_group_indices)
+    return Dict{Int, Any}(i => Dict{String, Any}("pump_indices" =>
+        pump_group_indices[i]) for i in 1:length(pump_group_indices))
+end
+
+
+function _set_ref_pump_head_gain_properties!(pumps::Dict{Int, <:Any})
+    map(x -> x["head_curve_function"] = _calc_head_curve_function(x), values(pumps))
+    map(x -> x["head_curve_derivative"] = _calc_head_curve_derivative(x), values(pumps))
+    map(x -> x["head_curve_coefficients"] = _calc_head_curve_coefficients(x), values(pumps))
 end
 
 
@@ -213,6 +255,10 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any}, head_loss::String)
         # Collect dispatchable and nondispatchable demands in the network.
         ref[:dispatchable_demand] = filter(x -> x.second["dispatchable"], ref[:demand])
         ref[:nondispatchable_demand] = filter(x -> !x.second["dispatchable"], ref[:demand])
+        ref[:pump_group] = _build_pump_groups(ref[:pump])
+
+        # Set pump head gain functions and derivatives.
+        _set_ref_pump_head_gain_properties!(ref[:pump])
 
         # Store the exponent used within head loss relationships.
         ref[:alpha] = uppercase(head_loss) == "H-W" ? 1.852 : 2.0

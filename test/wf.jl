@@ -72,8 +72,8 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
 
             @test _is_valid_status(result["termination_status"])
             @test isapprox(result["solution"]["node"]["1"]["h"], 20.0, rtol = 1.0e-3)
-            @test isapprox(result["solution"]["node"]["2"]["h"], 17.89, rtol = 2.5e-1)
-            @test isapprox(result["solution"]["pipe"]["1"]["q"], 1.0, rtol = 1.0e-3)
+            @test isapprox(result["solution"]["node"]["2"]["h"], 19.97, rtol = 2.5e-1)
+            @test isapprox(result["solution"]["pipe"]["1"]["q"], 0.1, rtol = 1.0e-3)
         end
     end
 

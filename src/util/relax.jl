@@ -8,6 +8,32 @@ function _relax_binary_variable!(v::JuMP.VariableRef)
 end
 
 
+function set_binary_variables!(vars::Array{JuMP.VariableRef, 1})
+    map(x -> JuMP.set_binary(x), vars)
+end
+
+
+function get_all_binary_vars_at_nw!(wm::AbstractWaterModel, nw::Int)
+    vars_binary = Array{JuMP.VariableRef, 1}([])
+    
+    for var_entry in values(var(wm, nw))
+        vars = filter(x -> isa(x, JuMP.VariableRef), vcat(var_entry...))
+        vars_binary_inner = collect(filter(x -> JuMP.is_binary(x), vars))
+        append!(vars_binary, vars_binary_inner)
+    end
+    # println(vars_binary)
+
+    return vars_binary
+end
+
+
+
+function relax_all_binary_variables_at_nw!(wm::AbstractWaterModel, nw::Int)
+    vars = get_all_binary_vars_at_nw!(wm, nw)
+    map(x -> JuMP.unset_binary(x), vars)
+end
+
+
 function relax_all_binary_variables!(wm::AbstractWaterModel)
     vars = filter(v -> JuMP.is_binary(v), JuMP.all_variables(wm.model))
     _relax_binary_variable!.(vars) # Relax all binary variables.
@@ -15,7 +41,7 @@ end
 
 
 function _relax_variables_with_symbol!(wm::AbstractWaterModel, symbol::Symbol)
-    for nw in nw_ids(wm) # Loop over all multinetwork subnetworks.
+    for nw in sort(collect(nw_ids(wm)))[1:end-1]
         vars = filter(v -> JuMP.is_binary(v), vcat(var(wm, nw, symbol)...))
         _relax_binary_variable!.(vars)
     end
@@ -38,12 +64,33 @@ function _relax_all_indicator_variables!(wm::AbstractWaterModel)
 end
 
 
+function relax_every_other_indicator_variable!(wm::AbstractWaterModel, step::Int)
+    var_symbols = Array{Symbol}([:z_pump, :z_regulator, :z_valve])
+
+    for nw in sort(collect(nw_ids(wm)))[2:step:end-1]
+        vars = vcat([vcat(var(wm, nw, s)...) for s in var_symbols]...)
+        _relax_binary_variable!.(vars)
+    end
+end
+
+
 function _relax_last_indicator_variables!(wm::AbstractWaterModel; last_num_steps::Int = length(nw_ids(wm)))
-    var_symbols = [:z_pump, :z_regulator, :z_valve]
-    network_ids = reverse(sort(collect(nw_ids(wm)))) # Descending indices.
+    var_symbols = Array{Symbol}([:z_pump, :z_regulator, :z_valve])
+    network_ids = reverse(sort(collect(nw_ids(wm)))[1:end-1])
 
     for nw in network_ids[1:min(length(network_ids), last_num_steps)]
-        vars = vcat([vcat(var(wm, nw, s)[:]...) for s in var_symbols]...)
+        vars = vcat([vcat(var(wm, nw, s)...) for s in var_symbols]...)
+        _relax_binary_variable!.(vars)
+    end
+end
+
+
+function _relax_last_variables!(wm::AbstractWaterModel; last_num_steps::Int = length(nw_ids(wm)))
+    var_symbols = Array{Symbol}([:z_pump, :z_regulator, :z_valve])
+    network_ids = reverse(sort(collect(nw_ids(wm)))[1:end-1])
+
+    for nw in network_ids[1:min(length(network_ids), last_num_steps)]
+        vars = vcat([vcat(var(wm, nw, s)...) for s in var_symbols]...)
         _relax_binary_variable!.(vars)
     end
 end

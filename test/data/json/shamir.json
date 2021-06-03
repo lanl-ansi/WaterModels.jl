@@ -12,7 +12,7 @@
                 "demand",
                 "2"
             ],
-            "status": 1
+            "status": -1
         },
         "3": {
             "dispatchable": false,
@@ -26,7 +26,7 @@
                 "demand",
                 "3"
             ],
-            "status": 1
+            "status": -1
         },
         "4": {
             "dispatchable": false,
@@ -40,7 +40,7 @@
                 "demand",
                 "4"
             ],
-            "status": 1
+            "status": -1
         },
         "5": {
             "dispatchable": false,
@@ -54,7 +54,7 @@
                 "demand",
                 "5"
             ],
-            "status": 1
+            "status": -1
         },
         "6": {
             "dispatchable": false,
@@ -68,7 +68,7 @@
                 "demand",
                 "6"
             ],
-            "status": 1
+            "status": -1
         },
         "7": {
             "dispatchable": false,
@@ -82,7 +82,7 @@
                 "demand",
                 "7"
             ],
-            "status": 1
+            "status": -1
         }
     },
     "des_pipe": {
@@ -105,7 +105,7 @@
                 "des_pipe",
                 "1"
             ],
-            "status": 1
+            "status": -1
         },
         "10": {
             "cost": 170000.0,
@@ -126,7 +126,7 @@
                 "des_pipe",
                 "10"
             ],
-            "status": 1
+            "status": -1
         },
         "11": {
             "cost": 300000.0,
@@ -147,7 +147,7 @@
                 "des_pipe",
                 "11"
             ],
-            "status": 1
+            "status": -1
         },
         "12": {
             "cost": 550000.0,
@@ -168,7 +168,7 @@
                 "des_pipe",
                 "12"
             ],
-            "status": 1
+            "status": -1
         },
         "13": {
             "cost": 170000.0,
@@ -189,7 +189,7 @@
                 "des_pipe",
                 "13"
             ],
-            "status": 1
+            "status": -1
         },
         "14": {
             "cost": 300000.0,
@@ -210,7 +210,7 @@
                 "des_pipe",
                 "14"
             ],
-            "status": 1
+            "status": -1
         },
         "15": {
             "cost": 550000.0,
@@ -231,7 +231,7 @@
                 "des_pipe",
                 "15"
             ],
-            "status": 1
+            "status": -1
         },
         "16": {
             "cost": 170000.0,
@@ -252,7 +252,7 @@
                 "des_pipe",
                 "16"
             ],
-            "status": 1
+            "status": -1
         },
         "17": {
             "cost": 300000.0,
@@ -273,7 +273,7 @@
                 "des_pipe",
                 "17"
             ],
-            "status": 1
+            "status": -1
         },
         "18": {
             "cost": 550000.0,
@@ -294,7 +294,7 @@
                 "des_pipe",
                 "18"
             ],
-            "status": 1
+            "status": -1
         },
         "19": {
             "cost": 170000.0,
@@ -315,7 +315,7 @@
                 "des_pipe",
                 "19"
             ],
-            "status": 1
+            "status": -1
         },
         "2": {
             "cost": 300000.0,
@@ -336,7 +336,7 @@
                 "des_pipe",
                 "2"
             ],
-            "status": 1
+            "status": -1
         },
         "20": {
             "cost": 300000.0,
@@ -357,7 +357,7 @@
                 "des_pipe",
                 "20"
             ],
-            "status": 1
+            "status": -1
         },
         "21": {
             "cost": 550000.0,
@@ -378,7 +378,7 @@
                 "des_pipe",
                 "21"
             ],
-            "status": 1
+            "status": -1
         },
         "22": {
             "cost": 170000.0,
@@ -399,7 +399,7 @@
                 "des_pipe",
                 "22"
             ],
-            "status": 1
+            "status": -1
         },
         "23": {
             "cost": 300000.0,
@@ -420,7 +420,7 @@
                 "des_pipe",
                 "23"
             ],
-            "status": 1
+            "status": -1
         },
         "24": {
             "cost": 550000.0,
@@ -441,7 +441,7 @@
                 "des_pipe",
                 "24"
             ],
-            "status": 1
+            "status": -1
         },
         "3": {
             "cost": 550000.0,
@@ -462,7 +462,7 @@
                 "des_pipe",
                 "3"
             ],
-            "status": 1
+            "status": -1
         },
         "4": {
             "cost": 170000.0,
@@ -483,7 +483,7 @@
                 "des_pipe",
                 "4"
             ],
-            "status": 1
+            "status": -1
         },
         "5": {
             "cost": 300000.0,
@@ -504,7 +504,7 @@
                 "des_pipe",
                 "5"
             ],
-            "status": 1
+            "status": -1
         },
         "6": {
             "cost": 550000.0,
@@ -525,7 +525,7 @@
                 "des_pipe",
                 "6"
             ],
-            "status": 1
+            "status": -1
         },
         "7": {
             "cost": 170000.0,
@@ -546,7 +546,7 @@
                 "des_pipe",
                 "7"
             ],
-            "status": 1
+            "status": -1
         },
         "8": {
             "cost": 300000.0,
@@ -567,7 +567,7 @@
                 "des_pipe",
                 "8"
             ],
-            "status": 1
+            "status": -1
         },
         "9": {
             "cost": 550000.0,
@@ -588,7 +588,7 @@
                 "des_pipe",
                 "9"
             ],
-            "status": 1
+            "status": -1
         }
     },
     "head_loss": "H-W",
@@ -609,7 +609,7 @@
                 "reservoir",
                 "1"
             ],
-            "status": 1
+            "status": -1
         },
         "2": {
             "coordinates": [
@@ -626,7 +626,7 @@
                 "demand",
                 "2"
             ],
-            "status": 1
+            "status": -1
         },
         "3": {
             "coordinates": [
@@ -643,7 +643,7 @@
                 "demand",
                 "3"
             ],
-            "status": 1
+            "status": -1
         },
         "4": {
             "coordinates": [
@@ -660,7 +660,7 @@
                 "demand",
                 "4"
             ],
-            "status": 1
+            "status": -1
         },
         "5": {
             "coordinates": [
@@ -677,7 +677,7 @@
                 "demand",
                 "5"
             ],
-            "status": 1
+            "status": -1
         },
         "6": {
             "coordinates": [
@@ -694,7 +694,7 @@
                 "demand",
                 "6"
             ],
-            "status": 1
+            "status": -1
         },
         "7": {
             "coordinates": [
@@ -711,7 +711,7 @@
                 "demand",
                 "7"
             ],
-            "status": 1
+            "status": -1
         }
     },
     "per_unit": false,
@@ -729,7 +729,7 @@
                 "reservoir",
                 "1"
             ],
-            "status": 1
+            "status": -1
         }
     },
     "short_pipe": {},

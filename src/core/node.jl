@@ -30,6 +30,7 @@ function correct_nodes!(data::Dict{String, <:Any})
     head_max = _calc_head_max(data)
 
     for (idx, node) in data["node"]
+        _correct_status!(node)
         demands = filter(x -> x.second["node"] == node["index"], data["demand"])
         reservoirs = filter(x -> x.second["node"] == node["index"], data["reservoir"])
         tanks = filter(x -> x.second["node"] == node["index"], data["tank"])
@@ -66,7 +67,7 @@ function _calc_node_head_min(
         # Return the head associated with the minimum level.
         return max(node["elevation"] + min_level_min, head_min_base)
     elseif length(tanks) + length(demands) + length(reservoirs) == 0
-        return max(node["elevation"] - 100.0, head_min_base)
+        return max(node["elevation"] - 5.0, head_min_base)
     else
         return max(node["elevation"], head_min_base)
     end
@@ -101,7 +102,7 @@ end
 
 
 function _calc_node_head_midpoint(node::Dict{String,Any})
-    return node["head_min"] + 0.5 * (node["head_max"] - node["head_min"])
+    return 0.5 * (node["head_max"] + node["head_min"])
 end
 
 

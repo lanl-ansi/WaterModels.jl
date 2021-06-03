@@ -16,7 +16,8 @@ function _variable_component_direction(
     # Initialize variables associated with positive flows.
     y = var(wm, nw)[Symbol("y_" * component_name)] = JuMP.@variable(
         wm.model, [a in ids(wm, nw, comp_sym)], binary=true, base_name="$(nw)_y",
-        start=comp_start_value(ref(wm, nw, comp_sym, a), "y_start", 1.0))
+        start=comp_start_value(ref(wm, nw, comp_sym, a),
+        "y_$(component_name)_start", 1.0))
 
     for (a, comp) in ref(wm, nw, comp_sym)
         _fix_indicator_variable(y[a], comp, "y")
@@ -101,11 +102,11 @@ function _variable_component_flow(
         end
     end
 
-    # Report positive directed flow values as part of the solution.
-    report && sol_component_value(wm, nw, comp_sym, :qp, ids(wm, nw, comp_sym), qp)
+    # # Report positive directed flow values as part of the solution.
+    # report && sol_component_value(wm, nw, comp_sym, :qp, ids(wm, nw, comp_sym), qp)
 
-    # Report negative directed flow values as part of the solution.
-    report && sol_component_value(wm, nw, comp_sym, :qn, ids(wm, nw, comp_sym), qn)
+    # # Report negative directed flow values as part of the solution.
+    # report && sol_component_value(wm, nw, comp_sym, :qn, ids(wm, nw, comp_sym), qn)
 
     # Create expressions capturing the relationships among q, qp, and qn.
     q = var(wm, nw)[Symbol("q_" * component_name)] = JuMP.@expression(

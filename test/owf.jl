@@ -19,7 +19,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
 
     @testset "Optimal Water Flow Problems (Single Network, Best Efficiency Point): $(formulation)" begin
         network = WaterModels.parse_file("../test/data/epanet/snapshot/pump-hw-lps.inp")
-        map(x -> x["head_curve_form"] = WaterModels.BEST_EFFICIENCY_POINT, values(network["pump"]))
+        map(x -> x["head_curve_form"] = WaterModels.PUMP_BEST_EFFICIENCY_POINT, values(network["pump"]))
         WaterModels.recompute_bounds!(network) # Recompute component bounds after the above changes.
         wm = instantiate_model(network, formulation, build_owf; ext = ext)
         result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
@@ -35,7 +35,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
 
     @testset "Optimal Water Flow Problems (Single Network, EPANET Pump Formulation): $(formulation)" begin
         network = WaterModels.parse_file("../test/data/epanet/snapshot/pump-hw-lps.inp")
-        map(x -> x["head_curve_form"] = WaterModels.EPANET, values(network["pump"]))
+        map(x -> x["head_curve_form"] = PUMP_EPANET, values(network["pump"]))
         WaterModels.recompute_bounds!(network) # Recompute component bounds after the above changes.
 
         if !(formulation <: AbstractNonlinearModel)

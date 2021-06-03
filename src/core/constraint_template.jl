@@ -8,7 +8,7 @@
 function _initialize_con_dict(wm::AbstractWaterModel, key::Symbol; nw::Int=nw_id_default, is_array::Bool=false)
     if !haskey(con(wm, nw), key)
         if is_array
-            con(wm, nw)[key] = Dict{Any, Array{JuMP.ConstraintRef}}()
+            con(wm, nw)[key] = Dict{Any, Array{JuMP.ConstraintRef, 1}}()
         else
             con(wm, nw)[key] = Dict{Any, JuMP.ConstraintRef}()
         end
@@ -81,7 +81,7 @@ function constraint_node_directionality(wm::AbstractWaterModel, i::Int; nw::Int=
         length(regulator_fr) + length(short_pipe_fr) + length(valve_fr)
 
     # Initialize the directionality constraint dictionary entry.
-    _initialize_con_dict(wm, :node_directionality, nw=nw)
+    _initialize_con_dict(wm, :node_directionality, nw = nw)
 
     # Check if node directionality constraints should be added.
     if num_components == 0 && in_length + out_length == 2
@@ -115,11 +115,20 @@ function constraint_tank_volume(wm::AbstractWaterModel, i::Int; nw::Int=nw_id_de
         tank = ref(wm, nw, :tank, i)
         initial_level = tank["init_level"]
         surface_area = 0.25 * pi * tank["diameter"]^2
-        V_initial = surface_area * initial_level
 
+        V_initial = surface_area * initial_level
+        time_step = ref(wm, nw, :time_step)
+        V_min = max(tank["min_vol"], surface_area * tank["min_level"])
+
+        # Update the nodal elevation data.
+        node = ref(wm, nw, :node, tank["node"])
+        head = node["elevation"] + initial_level
+        node["head_nominal"] = node["head_min"] = node["head_max"] = head
+        
         # Apply the tank volume constraint at the specified time step.
-        _initialize_con_dict(wm, :tank_volume, nw = nw)
-        constraint_tank_volume_fixed(wm, nw, i, V_initial)
+        _initialize_con_dict(wm, :tank_volume; nw=nw, is_array=true)
+        con(wm, nw, :tank_volume)[i] = Array{JuMP.ConstraintRef, 1}([])
+        constraint_tank_volume_fixed(wm, nw, i, V_initial, time_step, V_min)
     end
 end
 
@@ -147,7 +156,12 @@ function constraint_tank_volume(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2:
         # Only set the tank state if the tank is nondispatchable.
         if !tank_nw_1["dispatchable"] && !tank_nw_2["dispatchable"]
             # Apply the tank volume integration constraint between the two time steps.
-            _initialize_con_dict(wm, :tank_volume_integration, nw = nw_2)
+
+            _initialize_con_dict(wm, :tank_volume_integration; nw=nw_2, is_array=true)
+            con(wm, nw_2, :tank_volume_integration)[i] = Array{JuMP.ConstraintRef, 1}([])
+# =======
+#             _initialize_con_dict(wm, :tank_volume_integration, nw = nw_2)
+# >>>>>>> dw
             constraint_tank_volume(wm, nw_1, nw_2, i, ref(wm, nw_1, :time_step))
         end
     end
@@ -176,14 +190,15 @@ end
 function constraint_pipe_head_loss(wm::AbstractWaterModel, a::Int; nw::Int=nw_id_default, kwargs...)
     node_fr, node_to = ref(wm, nw, :pipe, a)["node_fr"], ref(wm, nw, :pipe, a)["node_to"]
     exponent, L = ref(wm, nw, :alpha), ref(wm, nw, :pipe, a)["length"]
+    head_loss, viscosity = wm.data["head_loss"], wm.data["viscosity"]
     base_length = get(wm.data, "base_length", 1.0)
     base_time = get(wm.data, "base_time", 1.0)
 
-    r = _calc_pipe_resistance(ref(wm, nw, :pipe, a), wm.data["head_loss"], wm.data["viscosity"], base_length, base_time)
+    r = _calc_pipe_resistance(ref(wm, nw, :pipe, a), head_loss, viscosity, base_length, base_time)
     q_max_reverse = min(get(ref(wm, nw, :pipe, a), "flow_max_reverse", 0.0), 0.0)
     q_min_forward = max(get(ref(wm, nw, :pipe, a), "flow_min_forward", 0.0), 0.0)
 
-    _initialize_con_dict(wm, :pipe_head_loss, nw=nw, is_array=true)
+    _initialize_con_dict(wm, :pipe_head_loss, nw = nw, is_array = true)
     con(wm, nw, :pipe_head_loss)[a] = Array{JuMP.ConstraintRef}([])
     constraint_pipe_head_loss(wm, nw, a, node_fr, node_to, exponent, L, r, q_max_reverse, q_min_forward)
 end
@@ -301,8 +316,8 @@ function constraint_on_off_pump_head_gain(wm::AbstractWaterModel, a::Int; nw::In
     node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
     q_min_forward = max(get(ref(wm, nw, :pump, a), "flow_min_forward", _FLOW_MIN), _FLOW_MIN)
 
-    if ref(wm, nw, :pump, a)["head_curve_form"] == EPANET && isa(wm, AbstractNonlinearModel)
-        message = "EPANET head curves are not currently supported for nonlinear models."
+    if ref(wm, nw, :pump, a)["head_curve_form"] == PUMP_EPANET && isa(wm, AbstractNonlinearModel)
+        message = "PUMP_EPANET head curves are not currently supported for nonlinear models."
         Memento.error(_LOGGER, message)
     end
 
@@ -317,11 +332,11 @@ function constraint_on_off_pump_power(wm::AbstractWaterModel, a::Int; nw::Int=nw
     _initialize_con_dict(wm, :on_off_pump_power, nw=nw, is_array=true)
     con(wm, nw, :on_off_pump_power)[a] = Array{JuMP.ConstraintRef}([])
 
-    if ref(wm, nw, :pump, a)["head_curve_form"] in [QUADRATIC, EPANET]
+    if ref(wm, nw, :pump, a)["head_curve_form"] in [PUMP_QUADRATIC, PUMP_EPANET]
         constraint_on_off_pump_power(wm, nw, a, q_min_forward)
-    elseif ref(wm, nw, :pump, a)["head_curve_form"] == BEST_EFFICIENCY_POINT
+    elseif ref(wm, nw, :pump, a)["head_curve_form"] == PUMP_BEST_EFFICIENCY_POINT
         constraint_on_off_pump_power_best_efficiency(wm, nw, a, q_min_forward)
-    elseif ref(wm, nw, :pump, a)["head_curve_form"] == LINEAR_POWER
+    elseif ref(wm, nw, :pump, a)["head_curve_form"] == PUMP_LINEAR_POWER
         # Ensure that the required keys for modeling pump power exist.
         @assert haskey(ref(wm, nw, :pump, a), "power_fixed")
         @assert haskey(ref(wm, nw, :pump, a), "power_per_unit_flow")
@@ -333,6 +348,46 @@ function constraint_on_off_pump_power(wm::AbstractWaterModel, a::Int; nw::Int=nw
         # Add the custom (linear) pump power constraint using the above.
         constraint_on_off_pump_power_custom(wm, nw, a, power_fixed, power_variable)
     end
+end
+
+
+function constraint_on_off_pump_group(wm::AbstractWaterModel, k::Int; nw::Int=nw_id_default, kwargs...)
+    pump_indices = ref(wm, nw, :pump_group, k, "pump_indices")
+    _initialize_con_dict(wm, :on_off_pump_group, nw = nw, is_array = true)
+    con(wm, nw, :on_off_pump_group)[k] = Array{JuMP.ConstraintRef}([])
+    constraint_on_off_pump_group(wm, nw, k, pump_indices)
+end
+
+
+function constraint_on_off_pump_switch(wm::AbstractWaterModel, a::Int, network_ids::Array{Int64, 1}; kwargs...)
+    _initialize_con_dict(wm, :on_off_pump_switch, nw = network_ids[end], is_array = true)
+    con(wm, network_ids[end], :on_off_pump_switch)[a] = Array{JuMP.ConstraintRef}([])
+    max_switches = get(ref(wm, network_ids[end], :pump, a), "max_switches", 6)
+    constraint_on_off_pump_switch(wm, a, network_ids, max_switches)
+end
+
+
+function constraint_pump_switch_on(wm::AbstractWaterModel, a::Int, n_1::Int, n_2::Int; kwargs...)
+    _initialize_con_dict(wm, :pump_switch_on, nw = n_2, is_array = true)
+    con(wm, n_2, :pump_switch_on)[a] = Array{JuMP.ConstraintRef}([])
+
+    network_ids = sort(collect(nw_ids(wm)))
+    min_active_time = get(ref(wm, n_2, :pump, a), "min_active_time", 3600.0)
+    nw_end = n_2 + Int(floor(min_active_time / ref(wm, n_1, :time_step)))
+    nws_active = Vector{Int64}(collect(n_2:1:min(network_ids[end-1], nw_end)))
+    constraint_pump_switch_on(wm, a, n_1, n_2, nws_active)
+end
+
+
+function constraint_pump_switch_off(wm::AbstractWaterModel, a::Int, n_1::Int, n_2::Int; kwargs...)
+    _initialize_con_dict(wm, :pump_switch_off, nw = n_2, is_array = true)
+    con(wm, n_2, :pump_switch_off)[a] = Array{JuMP.ConstraintRef}([])
+
+    network_ids = sort(collect(nw_ids(wm)))
+    min_inactive_time = get(ref(wm, n_2, :pump, a), "min_inactive_time", 1800.0)
+    nw_end = n_2 + Int(floor(min_inactive_time / ref(wm, n_1, :time_step)))
+    nws_inactive = Vector{Int64}(collect(n_2:1:min(network_ids[end-1], nw_end)))
+    constraint_pump_switch_off(wm, a, n_1, n_2, nws_inactive)
 end
 
 

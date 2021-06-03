@@ -76,6 +76,10 @@ function build_wf(wm::AbstractWaterModel)
         constraint_on_off_pump_power(wm, a)
     end
 
+    for (k, pump_group) in ref(wm, :pump_group)
+        constraint_on_off_pump_group(wm, k)
+    end
+
     # Constraints on short pipe flows and heads.
     for (a, regulator) in ref(wm, :regulator)
         constraint_on_off_regulator_head(wm, a)
@@ -109,7 +113,10 @@ function build_mn_wf(wm::AbstractWaterModel)
     # Create head loss functions, if necessary.
     _function_head_loss(wm)
 
-    for (n, network) in nws(wm)
+    # Get all network IDs in the multinetwork.
+    network_ids = sort(collect(nw_ids(wm)))
+
+    for n in network_ids[1:end-1]
         # Physical variables.
         variable_head(wm; nw=n)
         variable_flow(wm; nw=n)
@@ -162,6 +169,11 @@ function build_mn_wf(wm::AbstractWaterModel)
             constraint_on_off_pump_power(wm, a; nw=n)
         end
 
+        # Constraints on groups of parallel pumps.
+        for (k, pump_group) in ref(wm, :pump_group; nw=n)
+            constraint_on_off_pump_group(wm, k; nw=n)
+        end
+
         # Constraints on short pipe flows and heads.
         for (a, regulator) in ref(wm, :regulator; nw=n)
             constraint_on_off_regulator_head(wm, a; nw=n)
@@ -181,8 +193,27 @@ function build_mn_wf(wm::AbstractWaterModel)
         end
     end
 
-    # Get all network IDs in the multinetwork.
-    network_ids = sort(collect(nw_ids(wm)))
+    # n_1 = network_ids[1]
+
+    # for n_2 in network_ids[2:end-1]
+    #     variable_pump_switch_on(wm; nw = n_2)
+    #     variable_pump_switch_off(wm; nw = n_2)
+
+    #     for (a, pump) in ref(wm, :pump, nw = n_2)
+    #         constraint_pump_switch_on(wm, a, n_1, n_2)
+    #         constraint_pump_switch_off(wm, a, n_1, n_2)
+    #     end
+
+    #     n_1 = n_2
+    # end
+
+    # # Constraints on the total number of pump switches.
+    # for (a, pump) in ref(wm, :pump; nw = network_ids[1])
+    #     constraint_on_off_pump_switch(wm, a, network_ids[2:end-1])
+    # end
+
+    # Initialize head variables for the final time index.
+    variable_head(wm; nw = network_ids[end])
 
     # Start with the first network, representing the initial time step.
     n_1 = network_ids[1]
@@ -195,12 +226,13 @@ function build_mn_wf(wm::AbstractWaterModel)
 
     # Constraints on tank volumes.
     for n_2 in network_ids[2:end]
-        # Constrain tank volumes after the initial time step.
+        # Constrain tank volumes after the initial time index.
         for (i, tank) in ref(wm, :tank; nw = n_2)
             constraint_tank_volume(wm, i, n_1, n_2)
         end
 
-        n_1 = n_2 # Update the first network used for integration.
+        # Update the first network used for integration.
+        n_1 = n_2
     end
 
     # Add the objective.
