@@ -82,7 +82,7 @@ function constraint_tank_volume(wm::AbstractWaterModel, n_1::Int, n_2::Int, i::I
     V_1, V_2 = var(wm, n_1, :V, i), var(wm, n_2, :V, i)
 
     c = JuMP.@constraint(wm.model, V_1 - V_2 == q_tank * time_step)
-    append!(con(wm, n_2, :tank_volume)[i], [c])
+    append!(con(wm, n_2, :tank_volume_integration)[i], [c])
  end
 # =======
 #     c = JuMP.@constraint(wm.model, V_1 - time_step * q_tank == V_2)
