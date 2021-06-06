@@ -117,3 +117,17 @@ function _calc_node_head_median_midpoint(data::Dict{String,Any})
         return Statistics.median(head_midpoints) # Calculate median midpoint.
     end
 end
+
+
+function set_node_warm_start!(data::Dict{String, <:Any})
+    InfrastructureModels.apply!(_set_node_warm_start!, data, wm_it_name)
+end
+
+
+function _set_node_warm_start!(data::Dict{String, <:Any})
+    for node in values(data["node"])
+        head_mid = 0.5 * (node["head_min"] + node["head_max"])
+        node["h_start"] = get(node, "h", head_mid)
+        node["p_start"] = get(node, "p", head_mid - node["elevation"])
+    end
+end

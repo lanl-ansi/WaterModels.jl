@@ -33,7 +33,7 @@ function variable_flow_piecewise_adjacency(wm::AbstractLAModel; nw::Int=nw_id_de
 
     # Create binary variables for pipe convex combination constraints.
     x_pw_pipe = var(wm, nw)[:x_pw_pipe] = JuMP.@variable(wm.model,
-        [a in ids(wm, nw, :pipe), k in 1:pipe_breakpoints-1], base_name="$(nw)_x_pw", binary=true,
+        [a in ids(wm, nw, :pipe), k in 1:pipe_breakpoints-1], base_name="$(nw)_x_pw_pipe", binary=true,
         start=comp_start_value(ref(wm, nw, :pipe, a), "x_pw_start"))
 
     # Create binary variables for design pipe convex combination constraints.
@@ -46,7 +46,7 @@ function variable_flow_piecewise_adjacency(wm::AbstractLAModel; nw::Int=nw_id_de
 
     # Create binary variables involved in convex combination constraints for pumps.
     x_pw_pump = var(wm, nw)[:x_pw_pump] = JuMP.@variable(wm.model,
-        [a in ids(wm, nw, :pump), k in 1:pump_breakpoints-1], base_name="$(nw)_x_pw",
+        [a in ids(wm, nw, :pump), k in 1:pump_breakpoints-1], base_name="$(nw)_x_pw_pump",
         binary=true, start=comp_start_value(ref(wm, nw, :pump, a), "x_pw_start"))
 end
 

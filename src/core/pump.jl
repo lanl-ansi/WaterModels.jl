@@ -430,3 +430,25 @@ function get_pump_flow_upper_breakpoints_positive(pump::Dict{String, <:Any})
     lower_bound = max(0.0, get(pump, "flow_min_forward", 0.0))
     return lower_bound != minimum(flows) ? vcat(lower_bound, flows) : flows
 end
+
+
+function set_pump_warm_start!(data::Dict{String, <:Any})
+    InfrastructureModels.apply!(_set_pump_warm_start!, data, wm_it_name)
+end
+
+
+function _set_pump_warm_start!(data::Dict{String, <:Any})
+    for pump in values(data["pump"])
+        flow_mid = 0.5 * (pump["flow_min"] + pump["flow_max"])
+
+        pump["q_start"] = get(pump, "q", flow_mid)
+        pump["qp_start"] = max(0.0, get(pump, "q", flow_mid))
+        pump["qn_start"] = max(0.0, -get(pump, "q", flow_mid))
+
+        pump["g_pump_start"] = get(pump, "g", 0.0)
+        pump["P_pump_start"] = get(pump, "P", 0.0)
+
+        pump["y_pump_start"] = get(pump, "q", 0.0) > 0.0 ? 1.0 : 0.0
+        pump["z_pump_start"] = get(pump, "q", 0.0) > 0.0 ? 1.0 : 0.0
+    end
+end

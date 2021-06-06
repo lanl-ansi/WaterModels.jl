@@ -33,3 +33,22 @@ function _calc_valve_flow_max(valve::Dict{String, <:Any}, capacity::Float64)
     flow_max_dir = valve["flow_direction"] == FLOW_DIRECTION_NEGATIVE ? 0.0 : Inf
     return min(capacity, flow_max_dir, get(valve, "flow_max", Inf))
 end
+
+
+function set_valve_warm_start!(data::Dict{String, <:Any})
+    InfrastructureModels.apply!(_set_valve_warm_start!, data, wm_it_name)
+end
+
+
+function _set_valve_warm_start!(data::Dict{String, <:Any})
+    for valve in values(data["valve"])
+        flow_mid = 0.5 * (valve["flow_min"] + valve["flow_max"])
+
+        valve["q_start"] = get(valve, "q", flow_mid)
+        valve["qp_start"] = max(0.0, get(valve, "q", flow_mid))
+        valve["qn_start"] = max(0.0, -get(valve, "q", flow_mid))
+
+        valve["y_valve_start"] = get(valve, "q", 0.0) > 0.0 ? 1.0 : 0.0
+        valve["z_valve_start"] = get(valve, "q", 0.0) > 0.0 ? 1.0 : 0.0
+    end
+end

@@ -85,7 +85,7 @@ function get_pipe_flow_upper_breakpoints_positive(pipe::Dict{String, <:Any})
     flows = filter(x -> x > 0.0, upper_breakpoints)
     lower_bound = max(0.0, get(pipe, "flow_min_forward", 0.0))
     flow_max = length(flows) > 0 ? maximum(flows) : lower_bound
-    return lower_bound != flow_max ? vcat(lower_bound, flows) : [lower_bound]
+    return lower_bound != flow_max ? sort(vcat(lower_bound, flows)) : [lower_bound]
 end
 
 
@@ -94,7 +94,7 @@ function get_pipe_flow_upper_breakpoints_negative(pipe::Dict{String, <:Any})
     flows = filter(x -> x < 0.0, upper_breakpoints)
     upper_bound = min(0.0, get(pipe, "flow_max_reverse", 0.0))
     flow_min = length(flows) > 0 ? minimum(flows) : upper_bound
-    return upper_bound != flow_min ? vcat(flows, upper_bound) : [upper_bound]
+    return upper_bound != flow_min ? sort(vcat(flows, upper_bound)) : [upper_bound]
 end
 
 
@@ -256,4 +256,30 @@ end
 
 function _calc_head_loss_oa(q::JuMP.VariableRef, z::Union{JuMP.VariableRef, JuMP.GenericAffExpr}, q_hat::Float64, exponent::Float64)
     return q_hat^exponent * z + exponent * q_hat^(exponent - 1.0) * (q - q_hat * z)
+end
+
+
+function set_pipe_warm_start!(data::Dict{String, <:Any})
+    InfrastructureModels.apply!(_set_pipe_warm_start!, data, wm_it_name)
+end
+
+
+function _set_pipe_warm_start!(data::Dict{String, <:Any})
+    for pipe in values(data["pipe"])
+        flow_mid = 0.5 * (pipe["flow_min"] + pipe["flow_max"])
+        
+        pipe["q_start"] = get(pipe, "q", flow_mid)
+        pipe["qp_start"] = max(0.0, get(pipe, "q", flow_mid))
+        pipe["qn_start"] = max(0.0, -get(pipe, "q", flow_mid))
+        pipe["y_pipe_start"] = get(pipe, "q", flow_mid) >= 0.0 ? 1.0 : 0.0
+
+        node_fr = data["node"][string(pipe["node_fr"])]
+        h_fr = get(node_fr, "h", 0.5 * (node_fr["head_min"] + node_fr["head_max"]))
+
+        node_to = data["node"][string(pipe["node_to"])]
+        h_to = get(node_to, "h", 0.5 * (node_to["head_min"] + node_to["head_max"]))
+
+        pipe["dhp_start"] = max(0.0, h_fr - h_to)
+        pipe["dhn_start"] = max(0.0, h_to - h_fr)
+    end
 end
