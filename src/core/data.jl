@@ -459,7 +459,7 @@ end
 
 
 function _make_per_unit_nodes!(data::Dict{String,<:Any}, transform_head::Function)
-    for (i, node) in data["node"]
+    for node in values(data["node"])
         node["elevation"] = transform_head(node["elevation"])
         node["head_min"] = transform_head(node["head_min"])
         node["head_max"] = transform_head(node["head_max"])
@@ -478,9 +478,17 @@ end
 
 function _make_per_unit_reservoir!(data::Dict{String,<:Any}, transform_head::Function)
     for (i, reservoir) in data["reservoir"]
-        reservoir["head_min"] = transform_head(reservoir["head_min"])
-        reservoir["head_max"] = transform_head(reservoir["head_max"])
-        reservoir["head_nominal"] = transform_head(reservoir["head_nominal"])
+        if haskey(reservoir, "head_min")
+            reservoir["head_min"] = transform_head(reservoir["head_min"])
+        end
+
+        if haskey(reservoir, "head_max")
+            reservoir["head_max"] = transform_head(reservoir["head_max"])
+        end
+
+        if haskey(reservoir, "head_nominal")
+            reservoir["head_nominal"] = transform_head(reservoir["head_nominal"])
+        end
     end
 end
 
@@ -501,12 +509,12 @@ end
 
 
 function _make_per_unit_tanks!(data::Dict{String,<:Any}, transform_length::Function)
-    for (i, tank) in data["tank"]
+    for tank in values(data["tank"])
         tank["min_level"] = transform_length(tank["min_level"])
         tank["max_level"] = transform_length(tank["max_level"])
         tank["init_level"] = transform_length(tank["init_level"])
         tank["diameter"] = transform_length(tank["diameter"])
-        tank["min_vol"] = transform_length(tank["min_vol"])^3
+        tank["min_vol"] *= transform_length(1.0)^3
     end
 end
 
@@ -638,4 +646,17 @@ function make_per_unit!(data::Dict{String,<:Any})
         data["time_step"] = time_transform(data["time_step"])
         data["per_unit"] = true
     end
+end
+
+
+function set_warm_start!(data::Dict{String, <:Any})
+    set_node_warm_start!(data)
+    set_demand_warm_start!(data)
+    set_reservoir_warm_start!(data)
+    set_tank_warm_start!(data)
+
+    set_pipe_warm_start!(data)
+    set_pump_warm_start!(data)
+    set_short_pipe_warm_start!(data)
+    set_valve_warm_start!(data)
 end
