@@ -418,6 +418,13 @@ function get_pump_flow_lower_breakpoints_positive(pump::Dict{String, <:Any})
 end
 
 
+function get_pump_head_gain_lower_breakpoints_positive(pump::Dict{String, <:Any})
+    flow_breakpoints = get_pump_flow_lower_breakpoints_positive(pump)
+    head_curve_function = _calc_head_curve_function(pump)
+    return head_curve_function.(flow_breakpoints)
+end
+
+
 function get_pump_flow_upper_breakpoints(pump::Dict{String, <:Any})
     if haskey(pump, "flow_upper_breakpoints")
         return pump["flow_upper_breakpoints"]
@@ -433,6 +440,13 @@ function get_pump_flow_upper_breakpoints_positive(pump::Dict{String, <:Any})
     flows = filter(x -> x > 0.0, upper_breakpoints)
     lower_bound = max(0.0, get(pump, "flow_min_forward", 0.0))
     return lower_bound != minimum(flows) ? vcat(lower_bound, flows) : flows
+end
+
+
+function get_pump_head_gain_upper_breakpoints_positive(pump::Dict{String, <:Any})
+    flow_breakpoints = get_pump_flow_upper_breakpoints_positive(pump)
+    head_curve_function = _calc_head_curve_function(pump)
+    return head_curve_function.(flow_breakpoints)
 end
 
 
