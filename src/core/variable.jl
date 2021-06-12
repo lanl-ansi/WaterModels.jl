@@ -271,6 +271,8 @@ function variable_tank_flow(wm::AbstractWaterModel; nw::Int=nw_id_default, bound
 
             JuMP.set_lower_bound(q_tank[i], flow_min)
             JuMP.set_upper_bound(q_tank[i], flow_max)
+            ref(wm, nw, :tank, i)["flow_min"] = flow_min
+            ref(wm, nw, :tank, i)["flow_max"] = flow_max
 
             flow_mid = 0.5 * (flow_max + flow_min)
             q_start = comp_start_value(tank, "q_tank_start", flow_mid)
