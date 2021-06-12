@@ -80,16 +80,6 @@ function get_pipe_flow_lower_breakpoints_negative(pipe::Dict{String, <:Any})
  end
 
 
- function get_pipe_head_difference_upper_breakpoints_negative(
-    pipe::Dict{String, <:Any}, head_loss::String, viscosity::Float64,
-    base_length::Float64, base_time::Float64)
-    flow_breakpoints = get_pipe_flow_upper_breakpoints_negative(pipe)
-    exponent = _get_exponent_from_head_loss_form(head_loss)
-    resistance = _calc_pipe_resistance(pipe, head_loss, viscosity, base_length, base_time)
-    return (pipe["length"] * resistance) .* abs.(flow_breakpoints).^exponent
-end
-
-
 function get_pipe_head_difference_lower_breakpoints_negative(
     pipe::Dict{String, <:Any}, head_loss::String, viscosity::Float64,
     base_length::Float64, base_time::Float64)
