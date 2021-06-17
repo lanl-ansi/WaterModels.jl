@@ -96,43 +96,43 @@ function variable_flow(wm::AbstractPWLRDModel; nw::Int=nw_id_default, bounded::B
         [a in ids(wm, nw, :des_pipe), k in 1:length(des_pipe_breakpoints_n[a])-1], base_name="$(nw)_x_n",
         binary=true, start=comp_start_value(ref(wm, nw, :des_pipe, a), "x_n_start"))
 
-    for (a, pipe) in ref(wm, nw, :pipe)
-        q_mid = 0.5 * (pipe["flow_min"] + pipe["flow_max"])
-        q_start = get(pipe, "q_start", q_mid)
-        
-        if q_start >= 0.0
-            k_1 = findlast(x -> x <= 0.0, pipe_breakpoints_p[a] .- q_start)
-            k_2 = findfirst(x -> x > 0.0, pipe_breakpoints_p[a] .- q_start)
-        
-            x_p_1 = var(wm, nw, :x_p_pipe)[a, k_1]
-            JuMP.set_start_value(x_p_1, 1.0)
+    # for (a, pipe) in ref(wm, nw, :pipe)
+    #     q_mid = 0.5 * (pipe["flow_min"] + pipe["flow_max"])
+    #     q_start = get(pipe, "q_start", q_mid)
 
-            q_ub, q_lb = pipe_breakpoints_p[a][k_1], pipe_breakpoints_p[a][k_2]
-            lambda_1 = 1.0 - (q_ub - q_start) / (q_ub - q_lb)
-            lambda_2 = (q_ub - q_start) / (q_ub - q_lb)
+    #     if q_start >= 0.0
+    #         k_1 = findlast(x -> x <= 0.0, pipe_breakpoints_p[a] .- q_start)
+    #         k_2 = findfirst(x -> x > 0.0, pipe_breakpoints_p[a] .- q_start)
 
-            lambda_p_1 = var(wm, nw, :lambda_p_pipe)[a, k_1]
-            JuMP.set_start_value(lambda_p_1, lambda_1)
-            lambda_p_2 = var(wm, nw, :lambda_p_pipe)[a, k_2]
-            JuMP.set_start_value(lambda_p_2, lambda_2)
-        else
-            k_1 = findlast(x -> x <= 0.0, pipe_breakpoints_n[a] .- q_start)
-            k_2 = findfirst(x -> x > 0.0, pipe_breakpoints_n[a] .- q_start)
-        
-            x_n_1 = var(wm, nw, :x_n_pipe)[a, k_1]
-            JuMP.set_start_value(x_n_1, 1.0)
+    #         x_p_1 = var(wm, nw, :x_p_pipe)[a, k_1]
+    #         JuMP.set_start_value(x_p_1, 1.0)
 
-            lambda_n_1 = var(wm, nw, :lambda_n_pipe)[a, k_1]
-            lambda_n_2 = var(wm, nw, :lambda_n_pipe)[a, k_2]
+    #         q_ub, q_lb = pipe_breakpoints_p[a][k_1], pipe_breakpoints_p[a][k_2]
+    #         lambda_1 = 1.0 - (q_ub - q_start) / (q_ub - q_lb)
+    #         lambda_2 = (q_ub - q_start) / (q_ub - q_lb)
 
-            q_ub, q_lb = pipe_breakpoints_n[a][k_1], pipe_breakpoints_n[a][k_2]
-            lambda_1 = 1.0 - (q_ub - q_start) / (q_ub - q_lb)
-            lambda_2 = (q_ub - q_start) / (q_ub - q_lb)
+    #         lambda_p_1 = var(wm, nw, :lambda_p_pipe)[a, k_1]
+    #         JuMP.set_start_value(lambda_p_1, lambda_1)
+    #         lambda_p_2 = var(wm, nw, :lambda_p_pipe)[a, k_2]
+    #         JuMP.set_start_value(lambda_p_2, lambda_2)
+    #     else
+    #         k_1 = findlast(x -> x <= 0.0, pipe_breakpoints_n[a] .- q_start)
+    #         k_2 = findfirst(x -> x > 0.0, pipe_breakpoints_n[a] .- q_start)
 
-            JuMP.set_start_value(lambda_n_1, lambda_1)
-            JuMP.set_start_value(lambda_n_2, lambda_2)
-        end
-    end
+    #         x_n_1 = var(wm, nw, :x_n_pipe)[a, k_1]
+    #         JuMP.set_start_value(x_n_1, 1.0)
+
+    #         lambda_n_1 = var(wm, nw, :lambda_n_pipe)[a, k_1]
+    #         lambda_n_2 = var(wm, nw, :lambda_n_pipe)[a, k_2]
+
+    #         q_ub, q_lb = pipe_breakpoints_n[a][k_1], pipe_breakpoints_n[a][k_2]
+    #         lambda_1 = 1.0 - (q_ub - q_start) / (q_ub - q_lb)
+    #         lambda_2 = (q_ub - q_start) / (q_ub - q_lb)
+
+    #         JuMP.set_start_value(lambda_n_1, lambda_1)
+    #         JuMP.set_start_value(lambda_n_2, lambda_2)
+    #     end
+    # end
 end
 
 
