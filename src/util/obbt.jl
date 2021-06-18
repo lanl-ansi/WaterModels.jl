@@ -64,10 +64,19 @@ function _create_node_bound_problems(wm::AbstractWaterModel)
 end
 
 
+function _get_bound_problem_nw_ids(wm::AbstractWaterModel)
+    if ismultinetwork(wm)
+        return sort(collect(nw_ids(wm)))[1:end-1]
+    else
+        return nw_id_default
+    end
+end
+
+
 function _create_pipe_bound_problems(wm::AbstractWaterModel)
     bps = Array{BoundProblem, 1}()
 
-    for nw_id in sort(collect(nw_ids(wm)))[1:end-1]
+    for nw_id in _get_bound_problem_nw_ids(wm)
         for pipe_id in collect(ids(wm, nw_id, :pipe))
             q = _VariableIndex(nw_id, :pipe, :q_pipe, pipe_id)
             y = _VariableIndex(nw_id, :pipe, :y_pipe, pipe_id)
@@ -95,7 +104,7 @@ end
 function _create_pump_bound_problems(wm::AbstractWaterModel)
     bps = Array{BoundProblem, 1}()
 
-    for nw_id in sort(collect(nw_ids(wm)))[1:end-1]
+    for nw_id in _get_bound_problem_nw_ids(wm)
         for pump_id in collect(ids(wm, nw_id, :pump))
             q = _VariableIndex(nw_id, :pump, :q_pump, pump_id)
             y = _VariableIndex(nw_id, :pump, :y_pump, pump_id)
@@ -119,7 +128,7 @@ end
 function _create_regulator_bound_problems(wm::AbstractWaterModel)
     bps = Array{BoundProblem, 1}()
 
-    for nw_id in sort(collect(nw_ids(wm)))[1:end-1]
+    for nw_id in _get_bound_problem_nw_ids(wm)
         for regulator_id in collect(ids(wm, nw_id, :regulator))
             q = _VariableIndex(nw_id, :regulator, :q_regulator, regulator_id)
             y = _VariableIndex(nw_id, :regulator, :y_regulator, regulator_id)
@@ -145,7 +154,7 @@ end
 function _create_short_pipe_bound_problems(wm::AbstractWaterModel)
     bps = Array{BoundProblem, 1}()
 
-    for nw_id in sort(collect(nw_ids(wm)))[1:end-1]
+    for nw_id in _get_bound_problem_nw_ids(wm)
         for short_pipe_id in collect(ids(wm, nw_id, :short_pipe))
             q = _VariableIndex(nw_id, :short_pipe, :q_short_pipe, short_pipe_id)
             y = _VariableIndex(nw_id, :short_pipe, :y_short_pipe, short_pipe_id)
@@ -173,7 +182,7 @@ end
 function _create_valve_bound_problems(wm::AbstractWaterModel)
     bps = Array{BoundProblem, 1}()
 
-    for nw_id in sort(collect(nw_ids(wm)))[1:end-1]
+    for nw_id in _get_bound_problem_nw_ids(wm)
         for valve_id in collect(ids(wm, nw_id, :valve))
             q = _VariableIndex(nw_id, :valve, :q_valve, valve_id)
             y = _VariableIndex(nw_id, :valve, :y_valve, valve_id)
