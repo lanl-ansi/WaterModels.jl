@@ -1,5 +1,44 @@
 # Functions for working with WaterModels data elements.
 
+"WaterModels wrapper for the InfrastructureModels `apply!` function."
+function apply_wm!(func!::Function, data::Dict{String, <:Any}; apply_to_subnetworks::Bool = true)
+    _IM.apply!(func!, data, wm_it_name; apply_to_subnetworks = apply_to_subnetworks)
+end
+
+
+"Convenience function for retrieving the water-only portion of network data."
+function get_wm_data(data::Dict{String, <:Any})
+    return _IM.ismultiinfrastructure(data) ? data["it"][wm_it_name] : data
+end
+
+
+function set_breakpoints!(data::Dict{String, <:Any}, error_tolerance::Float64, length_tolerance::Float64)
+    head_loss, viscosity = data["head_loss"], data["viscosity"]
+    base_length = get(data, "base_length", 1.0)
+    base_time = get(data, "base_time", 1.0)
+
+    func! = x -> _set_breakpoints!(
+        x, error_tolerance, length_tolerance,
+        head_loss, viscosity, base_length, base_time)
+
+    apply_wm!(func!, data; apply_to_subnetworks = true)
+end
+
+
+function _set_breakpoints!(
+    data::Dict{String, <:Any}, error_tolerance::Float64, length_tolerance::Float64,
+    head_loss::String, viscosity::Float64, base_length::Float64, base_time::Float64)
+    for pipe in values(get(data, "pipe", Dict{String, Any}()))
+        set_pipe_breakpoints!(
+            pipe, head_loss, viscosity, base_length,
+            base_time, error_tolerance, length_tolerance)
+    end
+
+    for pump in values(get(data, "pump", Dict{String, Any}()))
+        set_pump_breakpoints!(pump, error_tolerance, length_tolerance)
+    end
+end
+
 
 "Transform length values in SI units to per-unit units."
 function _calc_length_per_unit_transform(data::Dict{String,<:Any})

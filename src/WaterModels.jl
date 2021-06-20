@@ -8,6 +8,7 @@ import Interpolations
 import JSON
 import JuMP
 import Memento
+import PolyhedralRelaxations
 import Statistics
 
 import MathOptInterface

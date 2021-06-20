@@ -27,6 +27,25 @@ function correct_pumps!(data::Dict{String, <:Any})
     end
 end
 
+function set_pump_breakpoints!(
+    pump::Dict{String, <:Any}, error_tolerance::Float64, length_tolerance::Float64)
+    # Compute head gain function and derivative.
+    f = _calc_head_curve_function(pump)
+    f_dash = _calc_head_curve_derivative(pump)
+
+    # Initialize the partitioning of flow breakpoints.
+    partition = Vector{Float64}([pump["flow_min_forward"], pump["flow_max"]])
+
+    # Use PolyhedralRelaxations to determine partitions with desired accuracy.
+    uvf_data = PolyhedralRelaxations.UnivariateFunctionData(
+        f, f_dash, partition, error_tolerance, length_tolerance, 1.0e-6, 9e9, 0)
+    PolyhedralRelaxations._refine_partition!(uvf_data)
+
+    # Set the pipe lower and upper breakpoints using the above.
+    pump["flow_lower_breakpoints"] = uvf_data.partition
+    pump["flow_upper_breakpoints"] = uvf_data.partition
+end 
+
 
 function _correct_pump_head_curve_form!(pump::Dict{String, <:Any})
     head_curve_tmp = get(pump, "head_curve_form", PUMP_QUADRATIC)

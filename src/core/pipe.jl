@@ -37,7 +37,9 @@ function correct_pipes!(data::Dict{String, <:Any})
         # Correct various pipe properties. The sequence is important, here.
         _correct_status!(pipe)
         _correct_flow_direction!(pipe)
-        _correct_pipe_flow_bounds!(pipe, node_fr, node_to, head_loss_form, visc, capacity, base_length, base_time)
+        _correct_pipe_flow_bounds!(
+            pipe, node_fr, node_to, head_loss_form,
+            visc, capacity, base_length, base_time)
     end
 end
 
@@ -153,6 +155,32 @@ function correct_des_pipes!(data::Dict{String, <:Any})
         _correct_flow_direction!(des_pipe)
         _correct_pipe_flow_bounds!(des_pipe, node_fr, node_to, head_loss_form, visc, capacity, base_length, base_time)
     end
+end
+
+
+function set_pipe_breakpoints!(
+    pipe::Dict{String, <:Any}, head_loss::String, viscosity::Float64, base_length::Float64,
+    base_time::Float64, error_tolerance::Float64, length_tolerance::Float64)
+    # Compute the product of pipe length and resistance.
+    L_x_r = pipe["length"] * _calc_pipe_resistance(
+        pipe, head_loss, viscosity, base_length, base_time)
+
+    # Compute head loss function and derivative.
+    exponent = uppercase(head_loss) == "H-W" ? 1.852 : 2.0
+    f = x -> L_x_r * sign(x) * abs(x)^exponent
+    f_dash = x -> exponent * L_x_r * (x * x)^(0.5 * exponent - 0.5)
+
+    # Initialize the partitioning of flow breakpoints.
+    partition = Vector{Float64}([pipe["flow_min"], pipe["flow_max"]])
+
+    # Use PolyhedralRelaxations to determine partitions with desired accuracy.
+    uvf_data = PolyhedralRelaxations.UnivariateFunctionData(
+        f, f_dash, partition, error_tolerance, length_tolerance, 1.0e-6, 9e9, 0)
+    PolyhedralRelaxations._refine_partition!(uvf_data)
+
+    # Set the pipe lower and upper breakpoints using the above.
+    pipe["flow_lower_breakpoints"] = uvf_data.partition
+    pipe["flow_upper_breakpoints"] = uvf_data.partition
 end
 
 
