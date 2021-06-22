@@ -320,7 +320,8 @@ function solve_obbt_owf!(
     data::Dict{String,<:Any}, optimizer; use_relaxed_network::Bool = true,
     model_type::Type = PWLRDWaterModel, time_limit::Float64 = 3600.0,
     upper_bound::Float64 = Inf, upper_bound_constraint::Bool = false,
-    max_iter::Int = 100, solve_relaxed::Bool = true, kwargs...)
+    max_iter::Int = 100, solve_relaxed::Bool = true,
+    limit_problems::Bool = false, kwargs...)
     # Print a message with relevant algorithm limit information.
     message = "[OBBT] Maximum time limit set to default value of $(time_limit) seconds."
     Memento.info(_LOGGER, message)
@@ -350,7 +351,7 @@ function solve_obbt_owf!(
     map(x -> JuMP.set_optimizer(x.model, optimizer), wms)
 
     # Collect all problems.
-    bound_problems = _get_bound_problems(wms[1])
+    bound_problems = _get_bound_problems(wms[1]; limit = limit_problems)
     _update_data_bounds!(data, bound_problems) # Populate data with bounds.
 
     # Log widths.
