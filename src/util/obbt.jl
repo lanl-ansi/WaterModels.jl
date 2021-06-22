@@ -3,25 +3,21 @@
 
 
 """
-Iteratively tighten bounds on head and flow variables.
-
-The function can be invoked on any convex relaxation which explicitly has these variables.
-By default, the function uses the CRD relaxation for performing bound tightening.
+Iteratively tighten bounds on water model variables.
+By default, the function uses the PWLRD relaxation for performing bound tightening.
 
 # Example
 
 The function can be invoked as follows:
 
 ```
-ipopt = JuMP.optimizer_with_attributes(Ipopt.Optimizer)
-solve_obbt_owf!("examples/data/epanet/van_zyl.inp", ipopt)
+gurobi = JuMP.optimizer_with_attributes(Gurobi.Optimizer)
+solve_obbt_owf!("examples/data/epanet/van_zyl.inp", gurobi)
 ```
 
 # Keyword Arguments
 * `model_type`: relaxation to use for performing bound tightening.
 * `max_iter`: maximum number of bound tightening iterations to perform.
-* `min_width`: domain width beyond which bound tightening is not performed.
-* `precision`: decimal precision to round the tightened bounds to.
 * `time_limit`: maximum amount of time (seconds) for the bound tightening algorithm.
 * `upper_bound`: can be used to specify a local feasible solution objective for the problem.
 * `upper_bound_constraint`: boolean option that can be used to add an additional
@@ -33,180 +29,6 @@ solve_obbt_owf!("examples/data/epanet/van_zyl.inp", ipopt)
 function solve_obbt_owf!(file::String, optimizer; kwargs...)
     data = WaterModels.parse_file(file)
     return solve_obbt_owf!(data, optimizer; kwargs...)
-end
-
-
-mutable struct BoundProblem
-    sense::_MOI.OptimizationSense
-    variable_to_tighten::_VariableIndex
-    variables_fix_one::Array{_VariableIndex} # Fix to one.
-    variables_fix_zero::Array{_VariableIndex} # Fix to zero.
-    bound_name::String # e.g., flow_min, flow_max, flow_min_forward
-    bound::Float64
-    precision::Float64
-    changed::Bool
-end
-
-
-function _create_node_bound_problems(wm::AbstractWaterModel)
-    bps = Array{BoundProblem, 1}()
-
-    for nw_id in sort(collect(nw_ids(wm)))
-        for node_id in collect(ids(wm, nw_id, :node))
-            h = _VariableIndex(nw_id, :node, :h, node_id)
-            h_min, h_max = _get_lower_bound_from_index(wm, h), _get_upper_bound_from_index(wm, h)
-            append!(bps, [BoundProblem(_MOI.MIN_SENSE, h, [], [], "head_min", h_min, 1.0e-2, true)])
-            append!(bps, [BoundProblem(_MOI.MAX_SENSE, h, [], [], "head_max", h_max, 1.0e-2, true)])
-        end
-    end
-
-    return bps
-end
-
-
-function _get_bound_problem_nw_ids(wm::AbstractWaterModel)
-    if ismultinetwork(wm)
-        return sort(collect(nw_ids(wm)))[1:end-1]
-    else
-        return nw_id_default
-    end
-end
-
-
-function _create_pipe_bound_problems(wm::AbstractWaterModel)
-    bps = Array{BoundProblem, 1}()
-
-    for nw_id in _get_bound_problem_nw_ids(wm)
-        for pipe_id in collect(ids(wm, nw_id, :pipe))
-            q = _VariableIndex(nw_id, :pipe, :q_pipe, pipe_id)
-            y = _VariableIndex(nw_id, :pipe, :y_pipe, pipe_id)
-
-            flow_min, flow_max = _get_lower_bound_from_index(wm, q),
-                _get_upper_bound_from_index(wm, q)
-            flow_min_forward = get(ref(wm, q.network_index,
-                :pipe)[pipe_id],"flow_min_forward", 0.0)
-            flow_max_reverse = get(ref(wm, q.network_index,
-                :pipe)[pipe_id], "flow_max_reverse", 0.0)
-
-            append!(bps, [BoundProblem(_MOI.MIN_SENSE, q, [], [], "flow_min", flow_min, 1.0e-3, true)])
-            append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [], [], "flow_max", flow_max, 1.0e-3, true)])
-            append!(bps, [BoundProblem(_MOI.MIN_SENSE, q, [y], [], "flow_min_forward", flow_min_forward, 1.0e-3, true)])
-            append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [], [y], "flow_max_reverse", flow_max_reverse, 1.0e-3, true)])
-            append!(bps, [BoundProblem(_MOI.MIN_SENSE, y, [], [], "y_min", 0.0, 1.0e-2, true)])
-            append!(bps, [BoundProblem(_MOI.MAX_SENSE, y, [], [], "y_max", 1.0, 1.0e-2, true)])
-        end
-    end
-
-    return bps
-end
-
-
-function _create_pump_bound_problems(wm::AbstractWaterModel)
-    bps = Array{BoundProblem, 1}()
-
-    for nw_id in _get_bound_problem_nw_ids(wm)
-        for pump_id in collect(ids(wm, nw_id, :pump))
-            q = _VariableIndex(nw_id, :pump, :q_pump, pump_id)
-            y = _VariableIndex(nw_id, :pump, :y_pump, pump_id)
-            z = _VariableIndex(nw_id, :pump, :z_pump, pump_id)
-
-            flow_min_forward = get(ref(wm, q.network_index,
-                :pump)[pump_id], "flow_min_forward", _FLOW_MIN)
-            flow_max = _get_upper_bound_from_index(wm, q)
-
-            append!(bps, [BoundProblem(_MOI.MIN_SENSE, q, [z, y], [], "flow_min_forward", flow_min_forward, 1.0e-3, true)])
-            append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [z, y], [], "flow_max", flow_max, 1.0e-3, true)])
-            append!(bps, [BoundProblem(_MOI.MIN_SENSE, z, [], [], "z_min", 0.0, 1.0e-2, true)])
-            append!(bps, [BoundProblem(_MOI.MAX_SENSE, z, [], [], "z_max", 1.0, 1.0e-2, true)])
-        end
-    end
-
-    return bps
-end
-
-
-function _create_regulator_bound_problems(wm::AbstractWaterModel)
-    bps = Array{BoundProblem, 1}()
-
-    for nw_id in _get_bound_problem_nw_ids(wm)
-        for regulator_id in collect(ids(wm, nw_id, :regulator))
-            q = _VariableIndex(nw_id, :regulator, :q_regulator, regulator_id)
-            y = _VariableIndex(nw_id, :regulator, :y_regulator, regulator_id)
-            z = _VariableIndex(nw_id, :regulator, :z_regulator, regulator_id)
-
-            flow_min_forward = get(ref(wm, q.network_index,
-                :regulator)[regulator_id], "flow_min_forward", _FLOW_MIN)
-            flow_max = _get_upper_bound_from_index(wm, q)
-
-            append!(bps, [BoundProblem(_MOI.MIN_SENSE, q, [z], [], "flow_min_forward", flow_min_forward, 1.0e-3, true)])
-            append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [z], [], "flow_max", flow_max, 1.0e-3, true)])
-            append!(bps, [BoundProblem(_MOI.MIN_SENSE, z, [], [], "z_min", 0.0, 1.0e-2, true)])
-            append!(bps, [BoundProblem(_MOI.MAX_SENSE, z, [], [], "z_max", 1.0, 1.0e-2, true)])
-            append!(bps, [BoundProblem(_MOI.MIN_SENSE, y, [z], [], "y_min", 0.0, 1.0e-2, true)])
-            append!(bps, [BoundProblem(_MOI.MAX_SENSE, y, [z], [], "y_max", 1.0, 1.0e-2, true)])
-        end
-    end
-
-    return bps
-end
-
-
-function _create_short_pipe_bound_problems(wm::AbstractWaterModel)
-    bps = Array{BoundProblem, 1}()
-
-    for nw_id in _get_bound_problem_nw_ids(wm)
-        for short_pipe_id in collect(ids(wm, nw_id, :short_pipe))
-            q = _VariableIndex(nw_id, :short_pipe, :q_short_pipe, short_pipe_id)
-            y = _VariableIndex(nw_id, :short_pipe, :y_short_pipe, short_pipe_id)
-
-            flow_min, flow_max = _get_lower_bound_from_index(wm, q),
-                _get_upper_bound_from_index(wm, q)
-            flow_min_forward = get(ref(wm, q.network_index,
-                :short_pipe)[short_pipe_id], "flow_min_forward", 0.0)
-            flow_max_reverse = get(ref(wm, q.network_index,
-                :short_pipe)[short_pipe_id], "flow_max_reverse", 0.0)
-
-            append!(bps, [BoundProblem(_MOI.MIN_SENSE, q, [], [], "flow_min", flow_min, 1.0e-3, true)])
-            append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [], [], "flow_max", flow_max, 1.0e-3, true)])
-            append!(bps, [BoundProblem(_MOI.MIN_SENSE, q, [y], [], "flow_min_forward", flow_min_forward, 1.0e-3, true)])
-            append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [], [y], "flow_max_reverse", flow_max_reverse, 1.0e-3, true)])
-            append!(bps, [BoundProblem(_MOI.MIN_SENSE, y, [], [], "y_min", 0.0, 1.0e-2, true)])
-            append!(bps, [BoundProblem(_MOI.MAX_SENSE, y, [], [], "y_max", 1.0, 1.0e-2, true)])
-        end
-    end
-
-    return bps
-end
-
-
-function _create_valve_bound_problems(wm::AbstractWaterModel)
-    bps = Array{BoundProblem, 1}()
-
-    for nw_id in _get_bound_problem_nw_ids(wm)
-        for valve_id in collect(ids(wm, nw_id, :valve))
-            q = _VariableIndex(nw_id, :valve, :q_valve, valve_id)
-            y = _VariableIndex(nw_id, :valve, :y_valve, valve_id)
-            z = _VariableIndex(nw_id, :valve, :z_valve, valve_id)
-
-            flow_min, flow_max = _get_lower_bound_from_index(wm, q),
-                _get_upper_bound_from_index(wm, q)
-            flow_min_forward = get(ref(wm, q.network_index,
-                :valve)[valve_id], "flow_min_forward", 0.0)
-            flow_max_reverse = get(ref(wm, q.network_index,
-                :valve)[valve_id], "flow_max_reverse", 0.0)
-
-            append!(bps, [BoundProblem(_MOI.MIN_SENSE, q, [z], [], "flow_min", flow_min, 1.0e-3, true)])
-            append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [z], [], "flow_max", flow_max, 1.0e-3, true)])
-            append!(bps, [BoundProblem(_MOI.MIN_SENSE, q, [z, y], [], "flow_min_forward", flow_min_forward, 1.0e-3, true)])
-            append!(bps, [BoundProblem(_MOI.MAX_SENSE, q, [z], [y], "flow_max_reverse", flow_max_reverse, 1.0e-3, true)])
-            append!(bps, [BoundProblem(_MOI.MIN_SENSE, y, [z], [], "y_min", 0.0, 1.0e-2, true)])
-            append!(bps, [BoundProblem(_MOI.MAX_SENSE, y, [z], [], "y_max", 1.0, 1.0e-2, true)])
-            append!(bps, [BoundProblem(_MOI.MIN_SENSE, z, [], [], "z_min", 0.0, 1.0e-2, true)])
-            append!(bps, [BoundProblem(_MOI.MAX_SENSE, z, [], [], "z_max", 1.0, 1.0e-2, true)])
-        end
-    end
-
-    return bps
 end
 
 
@@ -303,9 +125,12 @@ end
 
 
 function _update_data_bounds!(data::Dict{String,<:Any}, bound_problems::Array{BoundProblem,1})
+    data_wm = get_wm_data(data)
+
     for bound_problem in bound_problems
         vid = bound_problem.variable_to_tighten
-        data_nw = ismultinetwork(data) ? data["nw"][string(vid.network_index)] : data
+        nw = string(vid.network_index)
+        data_nw = ismultinetwork(data_wm) ? data_wm["nw"][nw] : data_wm
         comp = data_nw[string(vid.component_type)][string(vid.component_index)]
         comp[bound_problem.bound_name] = bound_problem.bound
     end
@@ -331,7 +156,7 @@ function _update_data_breakpoints_mn!(data_mn::Dict{String,<:Any}, num_pipe_brea
 end
 
 
-function _update_data_breakpoints!(data::Dict{String,<:Any}, num_pipe_breakpoints::Int, num_pump_breakpoints::Int)
+function _update_obbt_breakpoints!(data::Dict{String,<:Any}, num_pipe_breakpoints::Int, num_pump_breakpoints::Int)
     for pipe in values(data["pipe"])
         flow_min, flow_max = pipe["flow_min"], pipe["flow_max"]
         breakpoints = range(flow_min, stop = flow_max, length = num_pipe_breakpoints)
@@ -345,19 +170,6 @@ function _update_data_breakpoints!(data::Dict{String,<:Any}, num_pipe_breakpoint
         pump["flow_lower_breakpoints"] = breakpoints
         pump["flow_upper_breakpoints"] = breakpoints
     end
-end
-
-
-function _create_bound_problems(wm::AbstractWaterModel)
-    # Create the sets of bound-tightening problems.
-    bps_node = _create_node_bound_problems(wm)
-    bps_pipe = _create_pipe_bound_problems(wm)
-    bps_pump = _create_pump_bound_problems(wm)
-    bps_regulator = _create_regulator_bound_problems(wm)
-    bps_short_pipe = _create_short_pipe_bound_problems(wm)
-    bps_valve = _create_valve_bound_problems(wm)
-
-    return vcat(bps_pump, bps_valve, bps_regulator, bps_pipe, bps_short_pipe, bps_node)
 end
 
 
@@ -463,56 +275,67 @@ function _log_bound_widths(data::Dict{String,<:Any})
 end
 
 
-function _clean_bound_problems!(problems::Array{BoundProblem, 1}, vals::Array{Float64,1})
-    fixed_one_vars = Array{_VariableIndex, 1}([])
-    fixed_zero_vars = Array{_VariableIndex, 1}([])
+"Remove bound problems where a discrete variable has been successfully fixed."
+function _clean_bound_problems!(problems::Vector{BoundProblem}, vals::Vector{Float64})
+    # Initialize vectors for storing fixed binary variables.
+    fixed_one_vars = Vector{_VariableIndex}([])
+    fixed_zero_vars = Vector{_VariableIndex}([])
 
+    # Enumerate over all the problems in the vector.
     for (i, problem) in enumerate(problems)
+        # Get the index of the variable that was tightened.
         vid = problem.variable_to_tighten
 
-        if length(problem.variables_fix_one) > 0 || length(problem.variables_fix_zero) > 0
-            continue
-        end
+        # If the problem fixes other variables, too, don't remove it.
+        has_fixed_ones = length(problem.variables_fix_one) > 0
+        has_fixed_zeros = length(problem.variables_fix_zero) > 0
+        has_fixed_ones || has_fixed_zeros && (continue)
 
-        if any(occursin.(["y_", "z_"], string(vid.variable_symbol)))
+        # If the variable of interest is a model binary variable.
+        if any(occursin.(["x_", "y_", "z_"], string(vid.variable_symbol)))
+            # If the variable can now be fixed to one, append it to the list.
             is_fixed_to_one = vals[i] == 1.0 && problem.sense === _MOI.MIN_SENSE
             is_fixed_to_one && (append!(fixed_one_vars, [vid]))
+
+            # If the variable can now be fixed to zero, append it to the list.
             is_fixed_to_zero = vals[i] == 0.0 && problem.sense === _MOI.MAX_SENSE
             is_fixed_to_zero && (append!(fixed_zero_vars, [vid]))
         end
     end
 
-    for (i, problem) in enumerate(problems)
+    for problem in problems
+        # Check if the problem fixes one of the variables that has now been fixed.
         contains_fixed_one = any([x in problem.variables_fix_one for x in fixed_zero_vars])
         contains_fixed_zero = any([x in problem.variables_fix_zero for x in fixed_one_vars])
 
+        # If the problem fixes variables that we already proved can be fixed, remove it.
         if contains_fixed_one || contains_fixed_zero
-            problems = setdiff!(problems, [problem])
+            problems = Vector{BoundProblem}(setdiff!(problems, [problem]))
         end
     end
 end
 
 
-function solve_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_relaxed_network::Bool = true,
-    model_type::Type = PWLRDWaterModel, time_limit::Float64 = 3600.0, upper_bound::Float64 =
-    Inf, upper_bound_constraint::Bool = false, max_iter::Int = 100, improvement_tol::Float64
-    = 1.0e-6, solve_relaxed::Bool = true, precision = 1.0e-3, min_width::Float64 = 1.0e-2,
-    ext::Dict{Symbol,<:Any} = Dict{Symbol,Any}(:pipe_breakpoints => 3, :pump_breakpoints=>3), kwargs...)
+function solve_obbt_owf!(
+    data::Dict{String,<:Any}, optimizer; use_relaxed_network::Bool = true,
+    model_type::Type = PWLRDWaterModel, time_limit::Float64 = 3600.0,
+    upper_bound::Float64 = Inf, upper_bound_constraint::Bool = false,
+    max_iter::Int = 100, solve_relaxed::Bool = true, kwargs...)
     # Print a message with relevant algorithm limit information.
-    Memento.info(_LOGGER, "[OBBT] Maximum time limit for OBBT set to default value of $(time_limit) seconds.")
+    message = "[OBBT] Maximum time limit set to default value of $(time_limit) seconds."
+    Memento.info(_LOGGER, message)
 
     # Relax the network (e.g., make nodal components dispatchable) if requested.
     use_relaxed_network && _relax_network!(data)
 
     # Set the problem specification that will be used for bound tightening.
-    build_type = _IM.ismultinetwork(data) ? build_mn_wf : build_wf
+    build_type = _IM.ismultinetwork(get_wm_data(data)) ? build_mn_wf : build_wf
 
     # Check for keyword argument inconsistencies.
     _check_obbt_options(upper_bound, upper_bound_constraint)
 
     # Instantiate the bound tightening model and relax integrality, if requested.
-    wms = [instantiate_model(data, model_type, build_type;
-        ext = ext) for i in 1:Threads.nthreads()]
+    wms = [instantiate_model(data, model_type, build_type) for i in 1:Threads.nthreads()]
 
     if upper_bound_constraint
         map(x -> _constraint_obj_bound(x, upper_bound), wms)
@@ -527,7 +350,7 @@ function solve_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_relaxed_networ
     map(x -> JuMP.set_optimizer(x.model, optimizer), wms)
 
     # Collect all problems.
-    bound_problems = _create_bound_problems(wms[1])
+    bound_problems = _get_bound_problems(wms[1])
     _update_data_bounds!(data, bound_problems) # Populate data with bounds.
 
     # Log widths.
@@ -550,25 +373,19 @@ function solve_obbt_owf!(data::Dict{String,<:Any}, optimizer; use_relaxed_networ
 
         time_elapsed > time_limit && ((terminate = true) && break)
         _update_data_bounds!(data, bound_problems)
-
-        if ismultinetwork(data)
-            _update_data_breakpoints_mn!(data, 10, 10)
-        else
-            _update_data_breakpoints!(data, 10, 10)
-        end
-
+        set_breakpoints!(data, 1.0, 1.0e-4)
         !terminate && _clean_bound_problems!(bound_problems, vals)
 
         # Log widths.
         bound_width_msg = _log_bound_widths(data)
-        Memento.info(_LOGGER, "[OBBT] Iteration $(current_iteration) bound widths: $(bound_width_msg).")
+        message = "[OBBT] Iteration $(current_iteration) bound widths: $(bound_width_msg)."
+        Memento.info(_LOGGER, message)
 
         # Update algorithm metadata.
         current_iteration += 1
 
         # Set up the next optimization problem using the new bounds.
-        wms = [instantiate_model(data, model_type, build_type;
-            ext = ext) for i in 1:Threads.nthreads()]
+        wms = [instantiate_model(data, model_type, build_type) for i in 1:Threads.nthreads()]
 
         if upper_bound_constraint
             map(x -> _constraint_obj_bound(x, upper_bound), wms)
@@ -599,6 +416,8 @@ end
 
 function _check_obbt_options(ub::Float64, ub_constraint::Bool)
     if ub_constraint && isinf(ub)
-        Memento.error(_LOGGER, "[OBBT] The option \"upper_bound_constraint\" cannot be set to true without specifying an upper bound.")
+        message = "[OBBT] The option \"upper_bound_constraint\" cannot " *
+            "be set to true without specifying an upper bound."
+        Memento.error(_LOGGER, message)
     end
 end

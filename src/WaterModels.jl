@@ -48,6 +48,7 @@ include("io/epanet.jl")
 
 include("core/base.jl")
 include("core/constants.jl")
+include("core/ref.jl")
 
 include("core/node.jl")
 include("core/demand.jl")
@@ -82,6 +83,7 @@ include("prob/des.jl")
 
 include("util/relax.jl")
 include("util/variable_index.jl")
+include("util/bound_problem.jl")
 include("util/pairwise_cuts.jl")
 include("util/obbt.jl")
 
