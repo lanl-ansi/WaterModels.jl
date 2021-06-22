@@ -24,7 +24,14 @@ end
 
 
 function correct_pipes!(data::Dict{String, <:Any})
-    head_loss_form, visc = data["head_loss"], data["viscosity"]
+    wm_data = get_wm_data(data)
+    head_loss, viscosity = wm_data["head_loss"], wm_data["viscosity"]
+    func! = x -> _correct_pipes!(x, head_loss, viscosity)
+    apply_wm!(func!, data; apply_to_subnetworks = true)
+end
+
+
+function _correct_pipes!(data::Dict{String, <:Any}, head_loss::String, viscosity::Float64)
     capacity = _calc_capacity_max(data)
     base_length = get(data, "base_length", 1.0)
     base_time = get(data, "base_time", 1.0)
@@ -38,8 +45,8 @@ function correct_pipes!(data::Dict{String, <:Any})
         _correct_status!(pipe)
         _correct_flow_direction!(pipe)
         _correct_pipe_flow_bounds!(
-            pipe, node_fr, node_to, head_loss_form,
-            visc, capacity, base_length, base_time)
+            pipe, node_fr, node_to, head_loss,
+            viscosity, capacity, base_length, base_time)
     end
 end
 
@@ -141,7 +148,14 @@ end
 
 
 function correct_des_pipes!(data::Dict{String, <:Any})
-    head_loss_form, visc = data["head_loss"], data["viscosity"]
+    wm_data = get_wm_data(data)
+    head_loss, viscosity = wm_data["head_loss"], wm_data["viscosity"]
+    func! = x -> _correct_des_pipes!(x, head_loss, viscosity)
+    apply_wm!(func!, data; apply_to_subnetworks = true)
+end
+
+
+function _correct_des_pipes!(data::Dict{String, <:Any}, head_loss::String, viscosity::Float64)
     capacity = _calc_capacity_max(data)
     base_length = get(data, "base_length", 1.0)
     base_time = get(data, "base_time", 1.0)
@@ -153,7 +167,8 @@ function correct_des_pipes!(data::Dict{String, <:Any})
 
         # Correct various pipe properties. The sequence is important, here.
         _correct_flow_direction!(des_pipe)
-        _correct_pipe_flow_bounds!(des_pipe, node_fr, node_to, head_loss_form, visc, capacity, base_length, base_time)
+        _correct_pipe_flow_bounds!(des_pipe, node_fr, node_to,
+            head_loss, viscosity, capacity, base_length, base_time)
     end
 end
 

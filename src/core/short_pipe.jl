@@ -4,6 +4,11 @@ end
 
 
 function correct_short_pipes!(data::Dict{String, <:Any})
+    apply_wm!(_correct_short_pipes!, data; apply_to_subnetworks = true)
+end
+
+
+function _correct_short_pipes!(data::Dict{String, <:Any})
     capacity = _calc_capacity_max(data)
 
     for (idx, short_pipe) in data["short_pipe"]

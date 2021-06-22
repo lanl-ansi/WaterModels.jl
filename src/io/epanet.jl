@@ -1190,11 +1190,11 @@ Converts data parsed from an EPANET file, passed by `epanet_data` into a format 
 internal WaterModels use. Imports all data from the EPANET file if `import_all` is true.
 """
 function epanet_to_watermodels!(data::Dict{String,<:Any}; import_all::Bool = false)
-    _drop_zero_demands!(data) # Drop demands of zero from nodes.
-    _convert_short_pipes!(data) # Convert pipes that are short to short pipes and valves.
+    drop_zero_demands!(data) # Drop demands of zero from nodes.
+    convert_short_pipes!(data) # Convert pipes that are short to short pipes and valves.
     # _add_valves_to_tanks!(data) # Ensure that shutoff valves are connected to tanks.
-    _add_valves_from_pipes!(data) # Convert pipes with valves to pipes *and* valves.
-    _drop_pipe_flags!(data) # Drop irrelevant pipe attributes.
+    add_valves_from_pipes!(data) # Convert pipes with valves to pipes *and* valves.
+    drop_pipe_flags!(data) # Drop irrelevant pipe attributes.
 end
 
 
@@ -1214,12 +1214,20 @@ function _get_max_node_id(data::Dict{String,<:Any})
 end
 
 
-function _convert_short_pipes!(data::Dict{String,<:Any})
-    exponent = _get_exponent_from_head_loss_form(data["head_loss"])
+function convert_short_pipes!(data::Dict{String, <:Any})
+    wm_data = get_wm_data(data)
+    head_loss, viscosity = wm_data["head_loss"], wm_data["viscosity"]
+    func! = x -> _convert_short_pipes!(x, head_loss, viscosity)
+    apply_wm!(func!, data; apply_to_subnetworks = true)
+end
+
+
+function _convert_short_pipes!(data::Dict{String,<:Any}, head_loss::String, viscosity::Float64)
+    exponent = _get_exponent_from_head_loss_form(head_loss)
     max_flow_exp = abs(_calc_capacity_max(data))^exponent
 
     for (a, pipe) in data["pipe"]
-        r = _calc_pipe_resistance(pipe, data["head_loss"], data["viscosity"], 1.0, 1.0)
+        r = _calc_pipe_resistance(pipe, head_loss, viscosity, 1.0, 1.0)
         dh_max = pipe["length"] * r * max_flow_exp
 
         if dh_max <= 0.1
@@ -1228,7 +1236,7 @@ function _convert_short_pipes!(data::Dict{String,<:Any})
             delete!(pipe, "length")
             delete!(pipe, "roughness")
 
-            if pipe["has_valve"]
+            if haskey(pipe, "has_valve") && pipe["has_valve"]
                 # Transform the pipe into a valve.
                 delete!(pipe, "has_valve")
                 data["valve"][a] = deepcopy(pipe)
@@ -1252,6 +1260,10 @@ function _has_zero_demand(demand::Dict{String, <:Any})
 end
 
 
+function drop_zero_demands!(data::Dict{String, <:Any})
+    apply_wm!(_drop_zero_demands!, data; apply_to_subnetworks = true)
+end
+
 
 function _drop_zero_demands!(data::Dict{String,<:Any})
     for (i, demand) in filter(x -> _has_zero_demand(x.second), data["demand"])
@@ -1261,6 +1273,11 @@ function _drop_zero_demands!(data::Dict{String,<:Any})
             delete!(data["time_series"]["demand"], i)
         end
     end
+end
+
+
+function drop_pipe_flags!(data::Dict{String, <:Any})
+    apply_wm!(_drop_pipe_flags!, data; apply_to_subnetworks = true)
 end
 
 
@@ -1295,6 +1312,11 @@ function _add_valves_to_tanks!(data::Dict{String,<:Any})
         # Add the valve to the data object.
         data["valve"][string(v_id)] = valve
     end
+end
+
+
+function add_valves_from_pipes!(data::Dict{String, <:Any})
+    apply_wm!(_add_valves_from_pipes!, data; apply_to_subnetworks = true)
 end
 
 function _add_valves_from_pipes!(data::Dict{String,<:Any})

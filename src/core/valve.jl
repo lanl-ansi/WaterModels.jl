@@ -4,6 +4,11 @@ end
 
 
 function correct_valves!(data::Dict{String, <:Any})
+    apply_wm!(_correct_valves!, data; apply_to_subnetworks = true)
+end
+
+
+function _correct_valves!(data::Dict{String, <:Any})
     capacity = _calc_capacity_max(data)
 
     for (idx, valve) in data["valve"]

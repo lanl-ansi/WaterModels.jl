@@ -26,6 +26,11 @@ end
 
 
 function correct_nodes!(data::Dict{String, <:Any})
+    apply_wm!(_correct_nodes!, data; apply_to_subnetworks = true)
+end
+
+
+function _correct_nodes!(data::Dict{String, <:Any})
     # Compute a global estimate for maximum head.
     head_max = _calc_head_max(data)
 

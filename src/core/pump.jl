@@ -14,6 +14,10 @@ end
 
 
 function correct_pumps!(data::Dict{String, <:Any})
+    apply_wm!(_correct_pumps!, data; apply_to_subnetworks = true)
+end
+
+function _correct_pumps!(data::Dict{String, <:Any})
     for (idx, pump) in data["pump"]
         # Get common connecting node data for later use.
         node_fr = data["node"][string(pump["node_fr"])]
