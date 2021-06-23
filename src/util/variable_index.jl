@@ -7,7 +7,12 @@ end
 
 
 function _get_variable_from_index(wm::AbstractWaterModel, index::_VariableIndex)
-    v = var(wm, index.network_index, index.variable_symbol, index.component_index)
+    return var(wm, index.network_index, index.variable_symbol, index.component_index)
+end
+
+
+function _model_has_variable_index(wm::AbstractWaterModel, index::_VariableIndex)
+    return index.component_index in ids(wm, index.network_index, index.component_type)
 end
 
 
