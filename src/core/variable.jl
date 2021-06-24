@@ -113,9 +113,10 @@ end
 
 function variable_pump_power(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     # Compute scaled density and gravity.
-    base_mass = get(wm.data, "base_mass", 1.0)
-    base_length = get(wm.data, "base_length", 1.0)
-    base_time = get(wm.data, "base_time", 1.0)
+    wm_data = get_wm_data(wm.data)
+    base_mass = get(wm_data, "base_mass", 1.0)
+    base_length = get(wm_data, "base_length", 1.0)
+    base_time = get(wm_data, "base_time", 1.0)
 
     rho_s = _calc_scaled_density(base_mass, base_length)
     g_s = _calc_scaled_gravity(base_length, base_time)

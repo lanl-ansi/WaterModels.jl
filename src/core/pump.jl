@@ -121,7 +121,9 @@ function _calc_pump_flow_max(pump::Dict{String,<:Any}, node_fr::Dict{String,Any}
 end
 
 
-function _calc_pump_power_max(pump::Dict{String,<:Any}, node_fr::Dict{String,Any}, node_to::Dict{String,Any}, density_scaled::Float64, gravity_scaled::Float64)
+function _calc_pump_power_max(
+    pump::Dict{String,<:Any}, node_fr::Dict{String,Any}, node_to::Dict{String,Any},
+    density_scaled::Float64, gravity_scaled::Float64)
     flow_max = _calc_pump_flow_max(pump, node_fr, node_to)
     gain_max = _calc_pump_head_gain_max(pump, node_fr, node_to)
 
