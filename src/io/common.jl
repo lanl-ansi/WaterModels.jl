@@ -14,6 +14,10 @@ function parse_file(path::String; skip_correct::Bool = false)
         error("\"$(path)\" is not a valid file type.")
     end
 
+    if !haskey(network_data, "per_unit")
+        network_data["per_unit"] = false
+    end
+
     if !skip_correct
         correct_network_data!(network_data)
     end
@@ -29,13 +33,7 @@ Parses a JavaScript Object Notation (JSON) file from the file path `path` and re
 WaterModels data structure (a dictionary of data).
 """
 function parse_json(path::String)
-    dict = JSON.parsefile(path)
-
-    if !haskey(dict, "per_unit")
-        dict["per_unit"] = false
-    end
-
-    return dict
+    return JSON.parsefile(path)
 end
 
 

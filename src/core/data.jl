@@ -42,9 +42,14 @@ end
 
 "Transform length values in SI units to per-unit units."
 function _calc_length_per_unit_transform(data::Dict{String,<:Any})
-    # Translation: convert number of meters to WaterModels-length.
-    median_midpoint = _calc_node_head_median_midpoint(data)
-    return x -> x / median_midpoint
+    wm_data = get_wm_data(data)
+
+    if haskey(wm_data, "base_length")
+        return x -> x / wm_data["base_length"]
+    else
+        median_midpoint = _calc_node_head_median_midpoint(data)
+        return x -> x / median_midpoint
+    end
 end
 
 
@@ -97,9 +102,9 @@ function _calc_time_per_unit_transform(data::Dict{String,<:Any})
     wm_data = get_wm_data(data)
 
     if haskey(wm_data, "base_time")
-        return x -> x / wm_data["base_time"]
+        return x -> x * wm_data["base_time"]
     else
-        # Translation: number of meters per WaterModels-length
+         # Translation: number of meters per WaterModels-length
         head_midpoint = _calc_node_head_median_midpoint(wm_data)
         flow_midpoint = _calc_median_abs_flow_midpoint(wm_data)
 
@@ -675,10 +680,10 @@ function make_per_unit!(data::Dict{String,<:Any})
     if data["per_unit"] == false
         # Precompute per-unit transformation functions.
         mass_transform = _calc_mass_per_unit_transform(data)
+        time_transform = _calc_time_per_unit_transform(data)
         length_transform = _calc_length_per_unit_transform(data)
         head_transform = _calc_head_per_unit_transform(data)
         flow_transform = _calc_flow_per_unit_transform(data)
-        time_transform = _calc_time_per_unit_transform(data)
 
         # Apply per-unit transformations to node-connecting components.
         _make_per_unit_flows!(data, flow_transform)
