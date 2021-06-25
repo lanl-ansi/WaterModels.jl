@@ -102,7 +102,7 @@ function _calc_time_per_unit_transform(data::Dict{String,<:Any})
     wm_data = get_wm_data(data)
 
     if haskey(wm_data, "base_time")
-        return x -> x * wm_data["base_time"]
+        return x -> x / wm_data["base_time"]
     else
          # Translation: number of meters per WaterModels-length
         head_midpoint = _calc_node_head_median_midpoint(wm_data)
@@ -667,12 +667,12 @@ end
 
 
 function _calc_scaled_gravity(base_length::Float64, base_time::Float64)
-    return _GRAVITY * base_length / (base_time)^2
+    return _GRAVITY * (base_time)^2 / base_length
 end
 
 
 function _calc_scaled_density(base_mass::Float64, base_length::Float64)
-    return _DENSITY * base_mass / base_length^3
+    return _DENSITY * base_length^3 / base_mass
 end
 
 
@@ -703,10 +703,10 @@ function make_per_unit!(data::Dict{String,<:Any})
             (length_transform(1.0) * time_transform(1.0))
 
         # Store important base values for later conversions.
-        data["base_head"] = head_transform(1.0)
-        data["base_mass"] = mass_transform(1.0)
-        data["base_length"] = length_transform(1.0)
-        data["base_time"] = time_transform(1.0)
+        data["base_head"] = 1.0 / head_transform(1.0)
+        data["base_mass"] = 1.0 / mass_transform(1.0)
+        data["base_length"] = 1.0 / length_transform(1.0)
+        data["base_time"] = 1.0 / time_transform(1.0)
 
         if haskey(data, "time_series")
             time_step = time_transform(data["time_series"]["time_step"])

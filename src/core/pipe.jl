@@ -309,7 +309,7 @@ function _calc_pipe_resistance_hw(diameter::Float64, roughness::Float64, base_le
     k_si = 0.849 # This is the Hazen-Williams conversion factor given on Wikipedia.
 
     # Convert the conversion factor above (in SI units) to per-unit units.
-    k = k_si * (((base_length)^3)^1.852 / (base_length)^4.8704)^(1 / 1.852) / base_time
+    k = k_si * (((inv(base_length))^3)^1.852 / (inv(base_length))^4.8704)^(1 / 1.852) / inv(base_time)
 
     # Return the pipe resistance in the per-unit unit system.
     return 7.8828 * inv(k^1.852 * roughness^1.852 * diameter^4.8704)
