@@ -279,7 +279,9 @@ end
 ### Pump Constraints ###
 function constraint_on_off_pump_flow(wm::AbstractWaterModel, a::Int; nw::Int=nw_id_default, kwargs...)
     node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
-    q_min_forward = max(get(ref(wm, nw, :pump, a), "flow_min_forward", _FLOW_MIN), _FLOW_MIN)
+    flow_transform = _calc_flow_per_unit_transform(wm.data)
+    q_min_forward = max(get(ref(wm, nw, :pump, a), "flow_min_forward",
+        flow_transform(_FLOW_MIN)), flow_transform(_FLOW_MIN))
 
     _initialize_con_dict(wm, :on_off_pump_flow, nw=nw, is_array=true)
     con(wm, nw, :on_off_pump_flow)[a] = Array{JuMP.ConstraintRef}([])
@@ -298,7 +300,9 @@ end
 
 function constraint_on_off_pump_head_gain(wm::AbstractWaterModel, a::Int; nw::Int=nw_id_default, kwargs...)
     node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
-    q_min_forward = max(get(ref(wm, nw, :pump, a), "flow_min_forward", _FLOW_MIN), _FLOW_MIN)
+    flow_transform = _calc_flow_per_unit_transform(wm.data)
+    q_min_forward = max(get(ref(wm, nw, :pump, a), "flow_min_forward",
+        flow_transform(_FLOW_MIN)), flow_transform(_FLOW_MIN))
 
     if ref(wm, nw, :pump, a)["head_curve_form"] == PUMP_EPANET && isa(wm, AbstractNonlinearModel)
         message = "PUMP_EPANET head curves are not currently supported for nonlinear models."
@@ -312,7 +316,10 @@ end
 
 
 function constraint_on_off_pump_power(wm::AbstractWaterModel, a::Int; nw::Int=nw_id_default, kwargs...)
-    q_min_forward = max(get(ref(wm, nw, :pump, a), "flow_min_forward", _FLOW_MIN), _FLOW_MIN)
+    flow_transform = _calc_flow_per_unit_transform(wm.data)
+    q_min_forward = max(get(ref(wm, nw, :pump, a), "flow_min_forward",
+        flow_transform(_FLOW_MIN)), flow_transform(_FLOW_MIN))
+
     _initialize_con_dict(wm, :on_off_pump_power, nw=nw, is_array=true)
     con(wm, nw, :on_off_pump_power)[a] = Array{JuMP.ConstraintRef}([])
 
@@ -419,7 +426,9 @@ end
 
 ### Regulator Constraints ###
 function constraint_on_off_regulator_flow(wm::AbstractWaterModel, a::Int; nw::Int=nw_id_default, kwargs...)
-    q_min_forward = get(ref(wm, nw, :regulator, a), "flow_min_forward", _FLOW_MIN)
+    flow_transform = _calc_flow_per_unit_transform(wm.data)
+    q_min_forward = max(get(ref(wm, nw, :regulator, a), "flow_min_forward",
+        flow_transform(_FLOW_MIN)), flow_transform(_FLOW_MIN))
 
     _initialize_con_dict(wm, :on_off_regulator_flow, nw=nw, is_array=true)
     con(wm, nw, :on_off_regulator_flow)[a] = Array{JuMP.ConstraintRef}([])

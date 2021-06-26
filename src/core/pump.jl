@@ -347,7 +347,11 @@ function _calc_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, 
     pump = ref(wm, nw, :pump, pump_id)
     head_curve_function = _calc_head_curve_function(pump)
 
-    q_min, q_max = get(pump, "flow_min_forward", _FLOW_MIN), pump["flow_max"]
+    flow_transform = _calc_flow_per_unit_transform(wm.data)
+    q_min = max(get(ref(wm, nw, :regulator, a), "flow_min_forward",
+        flow_transform(_FLOW_MIN)), flow_transform(_FLOW_MIN))
+
+    q_max = pump["flow_max"]
     q_build = range(q_min, stop = q_max, length = num_points)
     f_build = head_curve_function.(collect(q_build)) .* q_build
 

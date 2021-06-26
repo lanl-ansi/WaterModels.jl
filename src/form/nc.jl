@@ -28,9 +28,12 @@ function _variable_component_flow(
     comp_sym = Symbol(component_name)
 
     # Initialize the variables. (The default start value of _FLOW_MIN is crucial.)
+    flow_transform = _calc_flow_per_unit_transform(wm.data)
+    flow_min_scaled = flow_transform(_FLOW_MIN)
+
     q = var(wm, nw)[Symbol("q_" * component_name)] = JuMP.@variable(wm.model,
         [a in ids(wm, nw, comp_sym)], base_name="$(nw)_q_$(component_name)",
-        start=comp_start_value(ref(wm, nw, comp_sym, a), "q_start", _FLOW_MIN))
+        start=comp_start_value(ref(wm, nw, comp_sym, a), "q_start", flow_min_scaled))
 
     if bounded # If the variables are bounded, apply the bounds.
         for (a, comp) in ref(wm, nw, comp_sym)
@@ -40,7 +43,7 @@ function _variable_component_flow(
             # Set start value for the head variable with possibly better data.
             q_mid = comp["flow_min"] + 0.5 * (comp["flow_max"] - comp["flow_min"])
             q_start_m = comp_start_value(comp, "q_start", q_mid)
-            q_start = isapprox(q_start_m, 0.0; atol = 1.0e-6) ? _FLOW_MIN : q_start_m
+            q_start = isapprox(q_start_m, 0.0; atol = 1.0e-6) ? flow_min_scaled : q_start_m
             JuMP.set_start_value(q[a], q_start)
         end
     end

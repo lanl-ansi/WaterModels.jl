@@ -78,15 +78,18 @@ function _variable_component_flow(
     # Store the corresponding component symbol.
     comp_sym = Symbol(component_name)
 
+    flow_transform = _calc_flow_per_unit_transform(wm.data)
+    flow_min_scaled = flow_transform(_FLOW_MIN)
+
     # Initialize variables associated with positive flows.
     qp = var(wm, nw)[Symbol("qp_" * component_name)] = JuMP.@variable(
         wm.model, [a in ids(wm, nw, comp_sym)], lower_bound=0.0, base_name="$(nw)_qp",
-        start=comp_start_value(ref(wm, nw, comp_sym, a), "qp_start", _FLOW_MIN))
+        start=comp_start_value(ref(wm, nw, comp_sym, a), "qp_start", flow_min_scaled))
 
     # Initialize variables associated with negative flows.
     qn = var(wm, nw)[Symbol("qn_" * component_name)] = JuMP.@variable(
         wm.model, [a in ids(wm, nw, comp_sym)], lower_bound=0.0, base_name="$(nw)_qn",
-        start=comp_start_value(ref(wm, nw, comp_sym, a), "qn_start", _FLOW_MIN))
+        start=comp_start_value(ref(wm, nw, comp_sym, a), "qn_start", flow_min_scaled))
 
     if bounded # Bound flow-related variables if desired.
         for (a, comp) in ref(wm, nw, comp_sym)
