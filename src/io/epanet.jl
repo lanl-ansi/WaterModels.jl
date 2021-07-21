@@ -1191,7 +1191,7 @@ internal WaterModels use. Imports all data from the EPANET file if `import_all` 
 """
 function epanet_to_watermodels!(data::Dict{String,<:Any}; import_all::Bool = false)
     drop_zero_demands!(data) # Drop demands of zero from nodes.
-    convert_short_pipes!(data) # Convert pipes that are short to short pipes and valves.
+    # convert_short_pipes!(data) # Convert pipes that are short to short pipes and valves.
     # _add_valves_to_tanks!(data) # Ensure that shutoff valves are connected to tanks.
     add_valves_from_pipes!(data) # Convert pipes with valves to pipes *and* valves.
     drop_pipe_flags!(data) # Drop irrelevant pipe attributes.
