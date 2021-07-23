@@ -1,6 +1,7 @@
 @testset "src/util/pairwise_cuts.jl" begin
     data = WaterModels.parse_file("../test/data/epanet/multinetwork/owf-hw-lps.inp")
     mn_data = WaterModels.make_multinetwork(data)
+    set_breakpoints!(mn_data, 1.0, 1.0e-4)
 
     @testset "_PairwiseProblem instantiation" begin
         wm = instantiate_model(mn_data, LRDWaterModel, build_mn_wf)
@@ -73,8 +74,7 @@
     end
 
     @testset "_add_pairwise_cuts!(wm; nw = 1)" begin
-        ext = Dict{Symbol, Any}(:pump_breakpoints=>3)
-        wm = instantiate_model(mn_data, LRDWaterModel, build_mn_wf; ext=ext)
+        wm = instantiate_model(mn_data, LRDWaterModel, build_mn_wf)
         JuMP.set_optimizer(wm.model, cbc) # Explicitly set an optimizer.
         WaterModels._add_pairwise_cuts!(wm; nw = 1)
         result = WaterModels.optimize_model!(wm, optimizer=cbc)

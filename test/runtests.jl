@@ -63,10 +63,10 @@ include("common.jl")
 
     include("variable_index.jl")
 
-    # include("pairwise_cuts.jl")
+    include("pairwise_cuts.jl")
 
-    # include("obbt.jl")
+    include("obbt.jl")
 
-    # include("warm_start.jl")
+    include("warm_start.jl")
 
 end
