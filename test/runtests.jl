@@ -59,9 +59,9 @@ include("common.jl")
 
     # include("des.jl")
 
-    # include("relax.jl")
+    include("relax.jl")
 
-    # include("variable_index.jl")
+    include("variable_index.jl")
 
     # include("pairwise_cuts.jl")
 
