@@ -346,7 +346,7 @@ end
 
 function _calc_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, num_points::Int)
     pump = ref(wm, nw, :pump, pump_id)
-    head_curve_function = _calc_head_curve_function(pump)
+    head_curve_function = ref(wm, nw, :pump, pump_id, "head_curve_function")
 
     wm_data = get_wm_data(wm.data)
     flow_transform = _calc_flow_per_unit_transform(wm_data)
