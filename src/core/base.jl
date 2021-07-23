@@ -157,7 +157,7 @@ end
 """
     build_ref(
         data::Dict{String,<:Any},
-        ref_extensions::Vector{<:Function} = Vector{Function}([]))::Dict{String,<:Any}
+        ref_extensions::Vector{<:Function} = Vector{Function}([]))::Dict{Symbol,<:Any}
 
 Builds the ref dictionary from the data dictionary. Additionally, the ref dictionary can
 contain the fields populated by the optional vector of `ref_extensions` functions.
@@ -165,7 +165,7 @@ contain the fields populated by the optional vector of `ref_extensions` function
 function build_ref(
     data::Dict{String,<:Any};
     ref_extensions::Vector{<:Function} = Vector{Function}([]),
-)::Dict{String,<:Any}
+)::Dict{Symbol,<:Any}
     return _IM.build_ref(
         data,
         ref_add_core!,
@@ -291,20 +291,25 @@ end
 
 "Compute groups of symmetric pumps with identical properties."
 function _build_pump_groups(pumps::Dict{Int,<:Any})::Dict{Int,Any}
+    # Initialize vectors of pump indices that can be grouped.
     pump_group_indices = Set([])
 
     for (i, pump) in pumps
+        # Compute the pumps that have matching properties with `pump`.
         other_pumps = filter(x -> x.first != i, pumps)
         matching_pumps = filter(x -> _pumps_match(pump, x.second), other_pumps)
 
         if length(matching_pumps) > 0
+            # If there are matching pumps, identify a pump group.
             pump_indices = sort(collect(vcat(i, keys(matching_pumps)...)))
             push!(pump_group_indices, Set(pump_indices))
         end
     end
 
+    # Collect the vectors that describe all pump groups.
     pump_group_indices = collect(pump_group_indices)
 
+    # Return the `:pump_group` object.
     return Dict{Int,Any}(
         i => Dict{String,Any}("pump_indices" => sort(pump_group_indices[i])) for
         i = 1:length(pump_group_indices)
@@ -314,6 +319,7 @@ end
 
 "Store pump head gain functional properties in each pump object."
 function _set_ref_pump_head_gain_properties!(pumps::Dict{Int,<:Any})
+    # Store head curve functional information within each pump object.
     map(x -> x["head_curve_function"] = _calc_head_curve_function(x), values(pumps))
     map(x -> x["head_curve_derivative"] = _calc_head_curve_derivative(x), values(pumps))
     map(x -> x["head_curve_coefficients"] = _calc_head_curve_coefficients(x), values(pumps))
