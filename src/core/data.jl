@@ -666,12 +666,35 @@ function _make_per_unit_pumps!(
 end
 
 
+function _make_per_unit_regulators!(data::Dict{String,<:Any}, transform_length::Function)
+    for (i, regulator) in data["regulator"]
+        regulator["setting"] = transform_length(regulator["setting"])
+    end
+end
+
+
 function _calc_scaled_gravity(base_length::Float64, base_time::Float64)
     return _GRAVITY * (base_time)^2 / base_length
 end
 
 
+function _calc_scaled_gravity(data::Dict{String, <:Any})
+    wm_data = get_wm_data(data)
+    base_time = 1.0 / _calc_time_per_unit_transform(wm_data)(1.0)
+    base_length = 1.0 / _calc_length_per_unit_transform(wm_data)(1.0) 
+    return _GRAVITY * (base_time)^2 / base_length
+end
+
+
 function _calc_scaled_density(base_mass::Float64, base_length::Float64)
+    return _DENSITY * base_length^3 / base_mass
+end
+
+
+function _calc_scaled_density(data::Dict{String, <:Any})
+    wm_data = get_wm_data(data)
+    base_mass = 1.0 / _calc_mass_per_unit_transform(wm_data)(1.0)
+    base_length = 1.0 / _calc_length_per_unit_transform(wm_data)(1.0)
     return _DENSITY * base_length^3 / base_mass
 end
 
@@ -691,6 +714,7 @@ function make_per_unit!(data::Dict{String,<:Any})
         _make_per_unit_des_pipes!(data, length_transform)
         _make_per_unit_pumps!(data, mass_transform,
             flow_transform, length_transform, time_transform)
+        _make_per_unit_regulators!(data, length_transform)
 
         # Apply per-unit transformations to nodal components.
         _make_per_unit_nodes!(data, head_transform)

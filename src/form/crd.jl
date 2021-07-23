@@ -74,17 +74,17 @@ end
 
 function constraint_on_off_pump_power(wm::AbstractCRDModel, n::Int, a::Int, q_min_forward::Float64)
     # Gather pump flow, power, and status variables.
-    q, Ps, z = var(wm, n, :qp_pump, a), var(wm, n, :Ps_pump, a), var(wm, n, :z_pump, a)
+    q, P, z = var(wm, n, :qp_pump, a), var(wm, n, :P_pump, a), var(wm, n, :z_pump, a)
 
     # Compute pump flow and power breakpoints.
     q_lb, q_ub = q_min_forward, JuMP.upper_bound(q)
     f_ua = _calc_pump_power_ua(wm, n, a, [q_lb, q_ub])
 
-    if f_ua[1] == f_ua[2]
+    if f_ua[1] != f_ua[2]
         # Build a linear under-approximation of the power.
-        slope = (f_ua[2] - f_ua[1]) * inv(q_ub - q_lb)
+        slope = (f_ua[2] - f_ua[1]) / (q_ub - q_lb)
         power_expr = slope * (q - q_lb * z) + f_ua[1] * z
-        c = JuMP.@constraint(wm.model, power_expr / (_DENSITY * _GRAVITY) <= Ps)
+        c = JuMP.@constraint(wm.model, power_expr <= P)
         append!(con(wm, n, :on_off_pump_power)[a], [c])
     end
 end

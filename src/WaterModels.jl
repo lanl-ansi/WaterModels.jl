@@ -37,8 +37,8 @@ function logger_config!(level)
     Memento.config!(Memento.getlogger("WaterModels"), level)
 end
 
-const _wm_global_keys = Set(["base_length", "base_time", "base_mass",
-    "time_series", "per_unit", "head_loss", "viscosity"])
+const _wm_global_keys = Set(["base_head", "base_length", "base_time",
+    "base_mass", "time_series", "per_unit", "head_loss", "viscosity"])
 
 const wm_it_name = "wm"
 const wm_it_sym = Symbol(wm_it_name)

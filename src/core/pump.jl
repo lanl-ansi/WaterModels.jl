@@ -283,7 +283,7 @@ function _calc_pump_best_efficiency_flow(pump::Dict{String, <:Any})
         coeffs = _calc_pump_best_efficiency_curve(pump)
 
         # Return the flow corresponding to the best efficiency point on the curve.
-        return -0.5*coeffs[2] * inv(coeffs[1])
+        return -0.5 * coeffs[2] * inv(coeffs[1])
     else
         # An efficiency curve was not provided. Flow must be determined from the head curve.
         if length(pump["head_curve"]) == 1
@@ -329,11 +329,11 @@ function _calc_pump_best_efficiency_head_gain(pump::Dict{String, <:Any})
 end
 
 
-function _calc_pump_best_efficiency_power(pump::Dict{String, <:Any})
+function _calc_pump_best_efficiency_power(pump::Dict{String, <:Any}, density::Float64, gravity::Float64)
     efficiency = _calc_pump_best_efficiency(pump)
     flow = _calc_pump_best_efficiency_flow(pump)
     head_gain = _calc_pump_best_efficiency_head_gain(pump)
-    return _DENSITY * _GRAVITY * inv(efficiency) * flow * head_gain
+    return density * gravity * inv(efficiency) * flow * head_gain
 end
 
 
@@ -348,11 +348,12 @@ function _calc_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, 
     pump = ref(wm, nw, :pump, pump_id)
     head_curve_function = _calc_head_curve_function(pump)
 
-    flow_transform = _calc_flow_per_unit_transform(wm.data)
-    q_min = max(get(ref(wm, nw, :regulator, a), "flow_min_forward",
+    wm_data = get_wm_data(wm.data)
+    flow_transform = _calc_flow_per_unit_transform(wm_data)
+    q_min = max(get(pump, "flow_min_forward",
         flow_transform(_FLOW_MIN)), flow_transform(_FLOW_MIN))
 
-    q_max = pump["flow_max"]
+    q_max = max(q_min, pump["flow_max"])
     q_build = range(q_min, stop = q_max, length = num_points)
     f_build = head_curve_function.(collect(q_build)) .* q_build
 
@@ -363,7 +364,14 @@ function _calc_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, 
         eff = pump["efficiency"]
     end
 
-    return q_build, max.(0.0, _DENSITY * _GRAVITY * inv.(eff) .* f_build)
+    base_mass = 1.0 / _calc_mass_per_unit_transform(wm_data)(1.0)
+    base_time = 1.0 / _calc_time_per_unit_transform(wm_data)(1.0)
+    base_length = 1.0 / _calc_length_per_unit_transform(wm_data)(1.0)
+    flow_transform = 1.0 / _calc_flow_per_unit_transform(wm_data)(1.0)
+
+    density = _calc_scaled_density(base_mass, base_length)
+    gravity = _calc_scaled_gravity(base_length, base_time)
+    return q_build, max.(0.0, density * gravity * inv.(eff) .* f_build)
 end
 
 
@@ -430,51 +438,17 @@ function _calc_efficiencies(points::Array{Float64}, curve::Array{Tuple{Float64, 
 end
 
 
-function get_pump_flow_lower_breakpoints(pump::Dict{String, <:Any})
-    if haskey(pump, "flow_lower_breakpoints")
-        return pump["flow_lower_breakpoints"]
-    else
-        flow_min, flow_max = pump["flow_min"], pump["flow_max"]
-        return [flow_min, flow_max]
-    end
-end
-
-
-function get_pump_flow_lower_breakpoints_positive(pump::Dict{String, <:Any})
-    lower_breakpoints = get_pump_flow_lower_breakpoints(pump)
-    flows = filter(x -> x > 0.0, lower_breakpoints)
+function get_pump_flow_breakpoints(pump::Dict{String, <:Any})
+    @assert haskey(pump, "flow_breakpoints")
+    flows = filter(x -> x > 0.0, pump["flow_breakpoints"])
     lower_bound = max(0.0, get(pump, "flow_min_forward", 0.0))
-    return lower_bound != minimum(flows) ? vcat(lower_bound, flows) : flows
+    flow_max = length(flows) > 0 ? maximum(flows) : lower_bound
+    return lower_bound != flow_max ? vcat(lower_bound, flows) : [lower_bound]
 end
 
 
-function get_pump_head_gain_lower_breakpoints_positive(pump::Dict{String, <:Any})
-    flow_breakpoints = get_pump_flow_lower_breakpoints_positive(pump)
-    head_curve_function = _calc_head_curve_function(pump)
-    return head_curve_function.(flow_breakpoints)
-end
-
-
-function get_pump_flow_upper_breakpoints(pump::Dict{String, <:Any})
-    if haskey(pump, "flow_upper_breakpoints")
-        return pump["flow_upper_breakpoints"]
-    else
-        flow_min, flow_max = pump["flow_min"], pump["flow_max"]
-        return [flow_min, flow_max]
-    end
-end
-
-
-function get_pump_flow_upper_breakpoints_positive(pump::Dict{String, <:Any})
-    upper_breakpoints = get_pump_flow_upper_breakpoints(pump)
-    flows = filter(x -> x > 0.0, upper_breakpoints)
-    lower_bound = max(0.0, get(pump, "flow_min_forward", 0.0))
-    return lower_bound != minimum(flows) ? vcat(lower_bound, flows) : flows
-end
-
-
-function get_pump_head_gain_upper_breakpoints_positive(pump::Dict{String, <:Any})
-    flow_breakpoints = get_pump_flow_upper_breakpoints_positive(pump)
+function get_pump_head_gain_breakpoints(pump::Dict{String, <:Any})
+    flow_breakpoints = get_pump_flow_breakpoints(pump)
     head_curve_function = _calc_head_curve_function(pump)
     return head_curve_function.(flow_breakpoints)
 end

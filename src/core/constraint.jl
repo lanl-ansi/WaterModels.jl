@@ -101,13 +101,15 @@ function constraint_tank_volume_recovery(wm::AbstractWaterModel, i::Int, n_1::In
 end
 
 
-function constraint_on_off_pump_power_best_efficiency(wm::AbstractWaterModel, n::Int, a::Int, q_min_forward::Float64)
+function constraint_on_off_pump_power_best_efficiency(
+    wm::AbstractWaterModel, n::Int, a::Int,
+    density::Float64, gravity::Float64, q_min_forward::Float64)
     # Gather pump flow, power, and status variables.
     q, P, z = var(wm, n, :q_pump, a), var(wm, n, :P_pump, a), var(wm, n, :z_pump, a)
 
     # Get pump best efficiency data required for construction.
     flow_bep = _calc_pump_best_efficiency_flow(ref(wm, n, :pump, a))
-    power_bep = _calc_pump_best_efficiency_power(ref(wm, n, :pump, a))
+    power_bep = _calc_pump_best_efficiency_power(ref(wm, n, :pump, a), density, gravity)
 
     # Compute the linear expression used to calculate power.
     P_expr = power_bep * (inv(3.0) * q * inv(flow_bep) + z * 2.0 * inv(3.0))

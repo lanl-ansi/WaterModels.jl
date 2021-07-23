@@ -1226,11 +1226,17 @@ function _convert_short_pipes!(data::Dict{String,<:Any}, head_loss::String, visc
     exponent = _get_exponent_from_head_loss_form(head_loss)
     max_flow_exp = abs(_calc_capacity_max(data))^exponent
 
+    wm_data = get_wm_data(data)
+    head_transform = _calc_head_per_unit_transform(wm_data)
+    base_length = 1.0 / _calc_length_per_unit_transform(wm_data)(1.0)
+    base_time = 1.0 / _calc_time_per_unit_transform(wm_data)(1.0)
+
     for (a, pipe) in data["pipe"]
-        r = _calc_pipe_resistance(pipe, head_loss, viscosity, 1.0, 1.0)
+        r = _calc_pipe_resistance(pipe, head_loss, viscosity, base_length, base_time)
         dh_max = pipe["length"] * r * max_flow_exp
 
-        if dh_max <= 0.1
+        # If maximum head loss is less than one centimeter...
+        if dh_max <= head_transform(0.01)
             # Delete unnecessary fields.
             delete!(pipe, "diameter")
             delete!(pipe, "length")

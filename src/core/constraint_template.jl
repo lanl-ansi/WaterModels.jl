@@ -326,7 +326,10 @@ function constraint_on_off_pump_power(wm::AbstractWaterModel, a::Int; nw::Int=nw
     if ref(wm, nw, :pump, a)["head_curve_form"] in [PUMP_QUADRATIC, PUMP_EPANET]
         constraint_on_off_pump_power(wm, nw, a, q_min_forward)
     elseif ref(wm, nw, :pump, a)["head_curve_form"] == PUMP_BEST_EFFICIENCY_POINT
-        constraint_on_off_pump_power_best_efficiency(wm, nw, a, q_min_forward)
+        density = _calc_scaled_density(wm.data)
+        gravity = _calc_scaled_gravity(wm.data)
+        constraint_on_off_pump_power_best_efficiency(
+            wm, nw, a, density, gravity, q_min_forward)
     elseif ref(wm, nw, :pump, a)["head_curve_form"] == PUMP_LINEAR_POWER
         # Ensure that the required keys for modeling pump power exist.
         @assert haskey(ref(wm, nw, :pump, a), "power_fixed")
