@@ -10,7 +10,7 @@
         network_mn = WaterModels.make_multinetwork(network)
         network_agg = make_temporally_aggregated_multinetwork(network_mn, [["1", "2"], ["3"]])
 
-        @test network_mn["duration"] == network_agg["duration"]
+        @test isapprox(network_mn["duration"], network_agg["duration"])
         demand_old = network_mn["nw"]["1"]["demand"]["2"]["flow_nominal"] 
         @test demand_old < network_agg["nw"]["1"]["demand"]["2"]["flow_nominal"]
 

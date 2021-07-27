@@ -227,15 +227,11 @@ function _calc_head_curve_coefficients_quadratic(pump::Dict{String, <:Any})
     # Build a two-dimensional array of the head curve points.
     array = vcat([hcat(x[1], x[2]) for x in pump["head_curve"]]...)
 
-    ## Build another array for fitting the head curve.
-    #fit_array = hcat(array[:, 1].^2, array[:, 1], ones(size(array, 1)))
+    # Build another array for fitting the head curve.
+    fit_array = hcat(array[:, 1].^2, array[:, 1], ones(size(array, 1)))
 
-    ## Perform a fit of the head curve and return the model coefficients.
-    #return fit_array \ array[:, 2]
-
-    fit_array = hcat(array[:, 1].^2, ones(size(array, 1)))
-    coeffs = fit_array \ array[:, 2]
-    return [coeffs[1], 0.0, coeffs[2]]
+    # Perform a fit of the head curve and return the model coefficients.
+    return fit_array \ array[:, 2]
 end
 
 

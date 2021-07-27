@@ -50,7 +50,7 @@ function variable_flow(wm::AbstractPWLRDModel; nw::Int=nw_id_default, bounded::B
         start = comp_start_value(ref(wm, nw, :pipe, a), "x_p_start"))
 
     pipe_breakpoints_n = Dict{Int, Vector{Float64}}(a =>
-        get_pipe_flow_breakpoints_negative(pipe)
+        sort(-get_pipe_flow_breakpoints_negative(pipe))
         for (a, pipe) in ref(wm, nw, :pipe))
 
     var(wm, nw)[:lambda_n_pipe] = JuMP.@variable(wm.model,
@@ -79,7 +79,7 @@ function variable_flow(wm::AbstractPWLRDModel; nw::Int=nw_id_default, bounded::B
         start = comp_start_value(ref(wm, nw, :des_pipe, a), "x_p_start"))
 
     des_pipe_breakpoints_n = Dict{Int, Vector{Float64}}(a =>
-        get_pipe_flow_breakpoints_negative(des_pipe)
+        sort(-get_pipe_flow_breakpoints_negative(des_pipe))
         for (a, des_pipe) in ref(wm, nw, :des_pipe))
 
     var(wm, nw)[:lambda_n_des_pipe] = JuMP.@variable(wm.model,
@@ -154,7 +154,7 @@ function constraint_pipe_head_loss(
     lambda_n, x_n = var(wm, n, :lambda_n_pipe), var(wm, n, :x_n_pipe)
 
     # Get the corresponding set of negative flow breakpoints (negated).
-    breakpoints_n = -get_pipe_flow_breakpoints_negative(ref(wm, n, :pipe, a))
+    breakpoints_n = sort(-get_pipe_flow_breakpoints_negative(ref(wm, n, :pipe, a)))
     bn_range, bn_range_m1 = 1:length(breakpoints_n), 1:length(breakpoints_n)-1
 
     # Add constraints for the negative flow piecewise approximation.
@@ -252,7 +252,7 @@ function constraint_on_off_des_pipe_head_loss(
     lambda_n, x_n = var(wm, n, :lambda_n_des_pipe), var(wm, n, :x_n_des_pipe)
 
     # Get the corresponding set of negative flow breakpoints.
-    breakpoints_n = -get_pipe_flow_breakpoints_negative(ref(wm, n, :des_pipe, a))
+    breakpoints_n = sort(-get_pipe_flow_breakpoints_negative(ref(wm, n, :des_pipe, a)))
     bn_range, bn_range_m1 = 1:length(breakpoints_n), 1:length(breakpoints_n)-1
 
     # Add constraints for the negative flow piecewise approximation.

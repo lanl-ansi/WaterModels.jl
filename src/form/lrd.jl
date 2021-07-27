@@ -57,7 +57,7 @@ function constraint_pipe_head_loss(
     qn, dhn = var(wm, n, :qn_pipe, a), var(wm, n, :dhn_pipe, a)
 
     # Get the corresponding set of negative flow breakpoints (negated).
-    breakpoints_n = -get_pipe_flow_breakpoints_negative(ref(wm, n, :pipe, a))
+    breakpoints_n = sort(-get_pipe_flow_breakpoints_negative(ref(wm, n, :pipe, a)))
 
     # Loop over consequential points (i.e., those that have nonzero head loss).
     for flow_breakpoint in filter(x -> x > 0.0, breakpoints_n)
@@ -146,7 +146,7 @@ function constraint_on_off_des_pipe_head_loss(
     qn, dhn = var(wm, n, :qn_des_pipe, a), var(wm, n, :dhn_des_pipe, a)
 
     # Get the corresponding set of negative flow breakpoints (negated).
-    breakpoints_n = -get_pipe_flow_breakpoints_negative(ref(wm, n, :des_pipe, a))
+    breakpoints_n = sort(-get_pipe_flow_breakpoints_negative(ref(wm, n, :des_pipe, a)))
 
     # Loop over consequential points (i.e., those that have nonzero head loss).
     for flow_breakpoint in filter(x -> x > 0.0, breakpoints_n)
