@@ -1,4 +1,3 @@
-using WaterModels: _calc_flow_per_unit_transform, _calc_head_per_unit_transform
 using WaterModels
 
 import Cbc
