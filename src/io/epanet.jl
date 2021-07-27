@@ -1310,7 +1310,7 @@ function _add_valves_to_tanks!(data::Dict{String,<:Any})
 
         # Add a valve that connects the dummy (tank) node to the original node.
         v_id = _get_max_comp_id(data, "valve") + 1
-        valve = Dict{String,Any}("name" => string(v_id), "status" => STATUS_ACTIVE, "index" => v_id)
+        valve = Dict{String,Any}("name" => string(v_id), "status" => STATUS_UNKNOWN, "index" => v_id)
         valve["source_id"] = AbstractString["valve", string(v_id)]
         valve["node_fr"], valve["node_to"] = original_tank_node, dummy_node_id
         valve["flow_direction"], valve["minor_loss"] = FLOW_DIRECTION_UNKNOWN, 0.0
