@@ -28,12 +28,21 @@ end
 function _set_breakpoints!(
     data::Dict{String, <:Any}, error_tolerance::Float64, length_tolerance::Float64,
     head_loss::String, viscosity::Float64, base_length::Float64, base_time::Float64)
+    # Set breakpoints for all pipes in the network.
     for pipe in values(get(data, "pipe", Dict{String, Any}()))
         set_pipe_breakpoints!(
             pipe, head_loss, viscosity, base_length,
             base_time, error_tolerance, length_tolerance)
     end
 
+    # Set breakpoints for all design pipes in the network.
+    for des_pipe in values(get(data, "des_pipe", Dict{String, Any}()))
+        set_pipe_breakpoints!(
+            des_pipe, head_loss, viscosity, base_length,
+            base_time, error_tolerance, length_tolerance)
+    end
+
+    # Set breakpoints for all pumps in the network.
     for pump in values(get(data, "pump", Dict{String, Any}()))
         set_pump_breakpoints!(pump, error_tolerance, length_tolerance)
     end

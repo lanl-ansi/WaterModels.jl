@@ -13,14 +13,14 @@ function constraint_pipe_head_loss(
     dhp, dhn = var(wm, n, :dhp_pipe, a), var(wm, n, :dhn_pipe, a)
 
     # Add relaxed constraints for head loss in the positive and negative directions.
-    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= inv(L) * dhp)
-    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) <= inv(L) * dhn)
+    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= dhp / L)
+    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) <= dhn / L)
 
     # Add linear upper bounds on the above convex relaxations.
     rhs_p = r * JuMP.upper_bound(qp)^(exponent - 1.0) * qp
-    c_3 = JuMP.@constraint(wm.model, inv(L) * dhp <= rhs_p)
+    c_3 = JuMP.@constraint(wm.model, dhp / L <= rhs_p)
     rhs_n = r * JuMP.upper_bound(qn)^(exponent - 1.0) * qn
-    c_4 = JuMP.@constraint(wm.model, inv(L) * dhn <= rhs_n)
+    c_4 = JuMP.@constraint(wm.model, dhn / L <= rhs_n)
 
     # Append the :pipe_head_loss constraint array.
     append!(con(wm, n, :pipe_head_loss)[a], [c_1, c_2, c_3, c_4])
@@ -35,14 +35,14 @@ function constraint_on_off_des_pipe_head_loss(
     dhp, dhn = var(wm, n, :dhp_des_pipe, a), var(wm, n, :dhn_des_pipe, a)
 
     # Add relaxed constraints for head loss in the positive and negative directions.
-    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= inv(L) * dhp)
-    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) <= inv(L) * dhn)
+    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= dhp / L)
+    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) <= dhn / L)
 
     # Add linear upper bounds on the above convex relaxations.
     rhs_p = r * JuMP.upper_bound(qp)^(exponent - 1.0) * qp
-    c_3 = JuMP.@constraint(wm.model, inv(L) * dhp <= rhs_p)
+    c_3 = JuMP.@constraint(wm.model, dhp / L <= rhs_p)
     rhs_n = r * JuMP.upper_bound(qn)^(exponent - 1.0) * qn
-    c_4 = JuMP.@constraint(wm.model, inv(L) * dhn <= rhs_n)
+    c_4 = JuMP.@constraint(wm.model, dhn / L <= rhs_n)
 
     # Append the :on_off_des_pipe_head_loss constraint array.
     append!(con(wm, n, :on_off_des_pipe_head_loss)[a], [c_1, c_2, c_3, c_4])

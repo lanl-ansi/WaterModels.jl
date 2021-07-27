@@ -12,18 +12,27 @@
 
 
 "Create flow-related variables common to all directed flow models for edge-type components."
-function variable_flow(wm::AbstractNCModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
+function variable_flow(
+    wm::AbstractNCModel;
+    nw::Int = nw_id_default,
+    bounded::Bool = true,
+    report::Bool = true,
+)
     for name in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
         # Create undirected flow variables for each component.
-        _variable_component_flow(wm, name; nw=nw, bounded=bounded, report=report)
+        _variable_component_flow(wm, name; nw = nw, bounded = bounded, report = report)
     end
 end
 
 
 "Create flow variables that are common to all directed flow models for a component."
 function _variable_component_flow(
-    wm::AbstractNCModel, component_name::String; nw::Int=nw_id_default,
-    bounded::Bool=true, report::Bool=true)
+    wm::AbstractNCModel,
+    component_name::String;
+    nw::Int = nw_id_default,
+    bounded::Bool = true,
+    report::Bool = true,
+)
     # Store the corresponding component symbol.
     comp_sym = Symbol(component_name)
 
@@ -31,9 +40,14 @@ function _variable_component_flow(
     flow_transform = _calc_flow_per_unit_transform(wm.data)
     flow_min_scaled = flow_transform(_FLOW_MIN)
 
-    q = var(wm, nw)[Symbol("q_" * component_name)] = JuMP.@variable(wm.model,
-        [a in ids(wm, nw, comp_sym)], base_name="$(nw)_q_$(component_name)",
-        start=comp_start_value(ref(wm, nw, comp_sym, a), "q_start", flow_min_scaled))
+    q =
+        var(wm, nw)[Symbol("q_" * component_name)] = JuMP.@variable(
+            wm.model,
+            [a in ids(wm, nw, comp_sym)],
+            base_name = "$(nw)_q_$(component_name)",
+            start =
+                comp_start_value(ref(wm, nw, comp_sym, a), "q_start", flow_min_scaled)
+        )
 
     if bounded # If the variables are bounded, apply the bounds.
         for (a, comp) in ref(wm, nw, comp_sym)
@@ -53,12 +67,24 @@ function _variable_component_flow(
 end
 
 
-function constraint_pipe_flow(wm::AbstractNCModel, n::Int, a::Int, q_max_reverse::Float64, q_min_forward::Float64)
+function constraint_pipe_flow(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    q_max_reverse::Float64,
+    q_min_forward::Float64,
+)
     # By default, there are no constraints, here.
 end
 
 
-function constraint_pipe_head(wm::AbstractNCModel, n::Int, a::Int, node_fr::Int, node_to::Int)
+function constraint_pipe_head(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+)
     # Get head variables for from and to nodes.
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
@@ -74,8 +100,17 @@ end
 
 "Adds head loss constraint for a pipe in the `NC` formulation."
 function constraint_pipe_head_loss(
-    wm::AbstractNCModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
-    L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    exponent::Float64,
+    L::Float64,
+    r::Float64,
+    q_max_reverse::Float64,
+    q_min_forward::Float64,
+)
     # Gather flow and head variables included in head loss constraints.
     q, h_i, h_j = var(wm, n, :q_pipe, a), var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
@@ -88,7 +123,13 @@ function constraint_pipe_head_loss(
 end
 
 
-function constraint_on_off_des_pipe_flow(wm::AbstractNCModel, n::Int, a::Int, q_max_reverse::Float64, q_min_forward::Float64)
+function constraint_on_off_des_pipe_flow(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    q_max_reverse::Float64,
+    q_min_forward::Float64,
+)
     # Get flow and design status variables.
     q, z = var(wm, n, :q_des_pipe, a), var(wm, n, :z_des_pipe, a)
 
@@ -102,7 +143,13 @@ function constraint_on_off_des_pipe_flow(wm::AbstractNCModel, n::Int, a::Int, q_
 end
 
 
-function constraint_on_off_des_pipe_head(wm::AbstractNCModel, n::Int, a::Int, node_fr::Int, node_to::Int)
+function constraint_on_off_des_pipe_head(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+)
     # Get head difference and status variables for the design pipe.
     dh, z = var(wm, n, :dh_des_pipe, a), var(wm, n, :z_des_pipe, a)
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
@@ -120,11 +167,19 @@ end
 
 "Adds head loss constraint for a design pipe in the `NC` formulation."
 function constraint_on_off_des_pipe_head_loss(
-    wm::AbstractNCModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
-    L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
-    # Get flow, design status, and head difference variables.
-    q, z = var(wm, n, :q_des_pipe, a), var(wm, n, :z_des_pipe, a)
-    dh = var(wm, n, :dh_des_pipe, a) # Zero when design pipe is not selected.
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    exponent::Float64,
+    L::Float64,
+    r::Float64,
+    q_max_reverse::Float64,
+    q_min_forward::Float64,
+)
+    # Get flow and head difference variables.
+    q, dh = var(wm, n, :q_des_pipe, a), var(wm, n, :dh_des_pipe, a)
 
     # Add nonconvex constraint for the head loss relationship.
     c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(q) <= dh / L)
@@ -135,12 +190,26 @@ function constraint_on_off_des_pipe_head_loss(
 end
 
 
-function constraint_des_pipe_flow(wm::AbstractNCModel, n::Int, k::Int, node_fr::Int, node_to::Int, des_pipes::Array{Int64,1})
+function constraint_des_pipe_flow(
+    wm::AbstractNCModel,
+    n::Int,
+    k::Int,
+    node_fr::Int,
+    node_to::Int,
+    des_pipes::Array{Int64,1},
+)
     # For undirected formulations, there are no constraints, here.
 end
 
 
-function constraint_des_pipe_head(wm::AbstractNCModel, n::Int, k::Int, node_fr::Int, node_to::Int, des_pipes::Array{Int64,1})
+function constraint_des_pipe_head(
+    wm::AbstractNCModel,
+    n::Int,
+    k::Int,
+    node_fr::Int,
+    node_to::Int,
+    des_pipes::Array{Int64,1},
+)
     # Get head-related variables for design pipes and arcs.
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
     dh_sum = sum(var(wm, n, :dh_des_pipe, a) for a in des_pipes)
@@ -153,7 +222,12 @@ function constraint_des_pipe_head(wm::AbstractNCModel, n::Int, k::Int, node_fr::
 end
 
 
-function constraint_on_off_pump_flow(wm::AbstractNCModel, n::Int, a::Int, q_min_forward::Float64)
+function constraint_on_off_pump_flow(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    q_min_forward::Float64,
+)
     # Get pump status variable.
     q, z = var(wm, n, :q_pump, a), var(wm, n, :z_pump, a)
 
@@ -167,7 +241,13 @@ function constraint_on_off_pump_flow(wm::AbstractNCModel, n::Int, a::Int, q_min_
 end
 
 
-function constraint_on_off_pump_head(wm::AbstractNCModel, n::Int, a::Int, node_fr::Int, node_to::Int)
+function constraint_on_off_pump_head(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+)
     # Get head variables for from and to nodes.
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
@@ -187,7 +267,14 @@ end
 
 
 "Adds head gain constraints for pumps in `NC` formulations."
-function constraint_on_off_pump_head_gain(wm::AbstractNCModel, n::Int, a::Int, node_fr::Int, node_to::Int, q_min_forward::Float64)
+function constraint_on_off_pump_head_gain(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    q_min_forward::Float64,
+)
     # Gather pump flow, head gain, and status variables.
     q, g, z = var(wm, n, :q_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
 
@@ -201,7 +288,12 @@ function constraint_on_off_pump_head_gain(wm::AbstractNCModel, n::Int, a::Int, n
 end
 
 
-function constraint_on_off_pump_power(wm::AbstractNCModel, n::Int, a::Int, q_min_forward::Float64)
+function constraint_on_off_pump_power(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    q_min_forward::Float64,
+)
     # Gather pump flow, scaled power, and status variables.
     q, P, z = var(wm, n, :q_pump, a), var(wm, n, :P_pump, a), var(wm, n, :z_pump, a)
 
@@ -215,7 +307,12 @@ function constraint_on_off_pump_power(wm::AbstractNCModel, n::Int, a::Int, q_min
 end
 
 
-function constraint_on_off_regulator_flow(wm::AbstractNCModel, n::Int, a::Int, q_min_forward::Float64)
+function constraint_on_off_regulator_flow(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    q_min_forward::Float64,
+)
     # Get flow and regulator status variables.
     q, z = var(wm, n, :q_regulator, a), var(wm, n, :z_regulator, a)
 
@@ -229,7 +326,14 @@ function constraint_on_off_regulator_flow(wm::AbstractNCModel, n::Int, a::Int, q
 end
 
 
-function constraint_on_off_regulator_head(wm::AbstractNCModel, n::Int, a::Int, node_fr::Int, node_to::Int, head_setting::Float64)
+function constraint_on_off_regulator_head(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    head_setting::Float64,
+)
     # Get regulator status variable.
     z = var(wm, n, :z_regulator, a)
 
@@ -252,7 +356,13 @@ function constraint_on_off_regulator_head(wm::AbstractNCModel, n::Int, a::Int, n
 end
 
 
-function constraint_on_off_valve_flow(wm::AbstractNCModel, n::Int, a::Int, q_max_reverse::Float64, q_min_forward::Float64)
+function constraint_on_off_valve_flow(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    q_max_reverse::Float64,
+    q_min_forward::Float64,
+)
     # Get flow and valve status variables.
     q, z = var(wm, n, :q_valve, a), var(wm, n, :z_valve, a)
 
@@ -266,7 +376,13 @@ function constraint_on_off_valve_flow(wm::AbstractNCModel, n::Int, a::Int, q_max
 end
 
 
-function constraint_on_off_valve_head(wm::AbstractNCModel, n::Int, a::Int, node_fr::Int, node_to::Int)
+function constraint_on_off_valve_head(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+)
     # Get flow and valve status variables.
     q, z = var(wm, n, :q_valve, a), var(wm, n, :z_valve, a)
 
@@ -286,12 +402,24 @@ function constraint_on_off_valve_head(wm::AbstractNCModel, n::Int, a::Int, node_
 end
 
 
-function constraint_short_pipe_flow(wm::AbstractNCModel, n::Int, a::Int, q_max_reverse::Float64, q_min_forward::Float64)
+function constraint_short_pipe_flow(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    q_max_reverse::Float64,
+    q_min_forward::Float64,
+)
     # By default, there are no constraints, here.
 end
 
 
-function constraint_short_pipe_head(wm::AbstractNCModel, n::Int, a::Int, node_fr::Int, node_to::Int)
+function constraint_short_pipe_head(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+)
     # Get head variables for from and to nodes.
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
@@ -304,30 +432,63 @@ end
 
 
 function constraint_intermediate_directionality(
-    wm::AbstractNCModel, n::Int, i::Int, pipe_fr::Array{Int64,1},
-    pipe_to::Array{Int64,1}, des_pipe_fr::Array{Int64,1}, des_pipe_to::Array{Int64,1},
-    pump_fr::Array{Int64,1}, pump_to::Array{Int64,1}, regulator_fr::Array{Int64,1},
-    regulator_to::Array{Int64,1}, short_pipe_fr::Array{Int64,1},
-    short_pipe_to::Array{Int64,1}, valve_fr::Array{Int64,1}, valve_to::Array{Int64,1})
+    wm::AbstractNCModel,
+    n::Int,
+    i::Int,
+    pipe_fr::Array{Int64,1},
+    pipe_to::Array{Int64,1},
+    des_pipe_fr::Array{Int64,1},
+    des_pipe_to::Array{Int64,1},
+    pump_fr::Array{Int64,1},
+    pump_to::Array{Int64,1},
+    regulator_fr::Array{Int64,1},
+    regulator_to::Array{Int64,1},
+    short_pipe_fr::Array{Int64,1},
+    short_pipe_to::Array{Int64,1},
+    valve_fr::Array{Int64,1},
+    valve_to::Array{Int64,1},
+)
     # For undirected formulations, there are no constraints, here.
 end
 
 
 function constraint_sink_directionality(
-    wm::AbstractNCModel, n::Int, i::Int, pipe_fr::Array{Int64,1},
-    pipe_to::Array{Int64,1}, des_pipe_fr::Array{Int64,1}, des_pipe_to::Array{Int64,1},
-    pump_fr::Array{Int64,1}, pump_to::Array{Int64,1}, regulator_fr::Array{Int64,1},
-    regulator_to::Array{Int64,1}, short_pipe_fr::Array{Int64,1},
-    short_pipe_to::Array{Int64,1}, valve_fr::Array{Int64,1}, valve_to::Array{Int64,1})
+    wm::AbstractNCModel,
+    n::Int,
+    i::Int,
+    pipe_fr::Array{Int64,1},
+    pipe_to::Array{Int64,1},
+    des_pipe_fr::Array{Int64,1},
+    des_pipe_to::Array{Int64,1},
+    pump_fr::Array{Int64,1},
+    pump_to::Array{Int64,1},
+    regulator_fr::Array{Int64,1},
+    regulator_to::Array{Int64,1},
+    short_pipe_fr::Array{Int64,1},
+    short_pipe_to::Array{Int64,1},
+    valve_fr::Array{Int64,1},
+    valve_to::Array{Int64,1},
+)
     # For undirected formulations, there are no constraints, here.
 end
 
 
 function constraint_source_directionality(
-    wm::AbstractNCModel, n::Int, i::Int, pipe_fr::Array{Int64,1},
-    pipe_to::Array{Int64,1}, des_pipe_fr::Array{Int64,1}, des_pipe_to::Array{Int64,1},
-    pump_fr::Array{Int64,1}, pump_to::Array{Int64,1}, regulator_fr::Array{Int64,1},
-    regulator_to::Array{Int64,1}, short_pipe_fr::Array{Int64,1},
-    short_pipe_to::Array{Int64,1}, valve_fr::Array{Int64,1}, valve_to::Array{Int64,1})
+    wm::AbstractNCModel,
+    n::Int,
+    i::Int,
+    pipe_fr::Array{Int64,1},
+    pipe_to::Array{Int64,1},
+    des_pipe_fr::Array{Int64,1},
+    des_pipe_to::Array{Int64,1},
+    pump_fr::Array{Int64,1},
+    pump_to::Array{Int64,1},
+    regulator_fr::Array{Int64,1},
+    regulator_to::Array{Int64,1},
+    short_pipe_fr::Array{Int64,1},
+    short_pipe_to::Array{Int64,1},
+    valve_fr::Array{Int64,1},
+    valve_to::Array{Int64,1},
+)
     # For undirected formulations, there are no constraints, here.
 end
