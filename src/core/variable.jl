@@ -15,15 +15,6 @@ function comp_start_value(comp::Dict{String,<:Any}, key_1::String, key_2::Int64,
 end
 
 
-"Given a variable that is indexed by component IDs, builds the standard solution structure."
-function sol_component_value(wm::AbstractWaterModel, n::Int, comp_name::Symbol, field_name::Symbol, comp_ids, variables)
-    for i in comp_ids
-        @assert !haskey(sol(wm, n, comp_name, i), field_name)
-        sol(wm, n, comp_name, i)[field_name] = variables[i]
-    end
-end
-
-
 ### Variables related to nodal components. ###
 "Creates bounded (by default) or unbounded total hydraulic head (or head)
 variables for all nodes in the network, i.e., `h[i]` for `i` in `node`."

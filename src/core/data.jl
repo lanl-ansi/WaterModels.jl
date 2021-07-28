@@ -6,6 +6,12 @@ function apply_wm!(func!::Function, data::Dict{String, <:Any}; apply_to_subnetwo
 end
 
 
+"WaterModels wrapper for the InfrastructureModels `get_data` function."
+function get_data_wm(func::Function, data::Dict{String, <:Any}; apply_to_subnetworks::Bool = true)
+    return _IM.get_data(func, data, wm_it_name; apply_to_subnetworks = apply_to_subnetworks)
+end
+
+
 "Convenience function for retrieving the water-only portion of network data."
 function get_wm_data(data::Dict{String, <:Any})
     return _IM.ismultiinfrastructure(data) ? data["it"][wm_it_name] : data
@@ -740,6 +746,7 @@ function make_per_unit!(data::Dict{String,<:Any})
         data["base_mass"] = 1.0 / mass_transform(1.0)
         data["base_length"] = 1.0 / length_transform(1.0)
         data["base_time"] = 1.0 / time_transform(1.0)
+        data["base_flow"] = 1.0 / flow_transform(1.0)
 
         if haskey(data, "time_series")
             time_step = time_transform(data["time_series"]["time_step"])
