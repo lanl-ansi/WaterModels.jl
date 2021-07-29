@@ -34,7 +34,9 @@ end
 function _correct_pipes!(data::Dict{String, <:Any}, head_loss::String, viscosity::Float64)
     capacity = _calc_capacity_max(data)
     base_length = get(data, "base_length", 1.0)
+    base_mass = get(data, "base_mass", 1.0)
     base_time = get(data, "base_time", 1.0)
+    
 
     for pipe in values(data["pipe"])
          # Get common connecting node data for later use.
@@ -46,7 +48,7 @@ function _correct_pipes!(data::Dict{String, <:Any}, head_loss::String, viscosity
         _correct_flow_direction!(pipe)
         _correct_pipe_flow_bounds!(
             pipe, node_fr, node_to, head_loss,
-            viscosity, capacity, base_length, base_time)
+            viscosity, capacity, base_length, base_mass, base_time)
     end
 end
 
@@ -80,6 +82,7 @@ end
 function _correct_des_pipes!(data::Dict{String, <:Any}, head_loss::String, viscosity::Float64)
     capacity = _calc_capacity_max(data)
     base_length = get(data, "base_length", 1.0)
+    base_mass = get(data, "base_mass", 1.0)
     base_time = get(data, "base_time", 1.0)
 
     for des_pipe in values(data["des_pipe"])
@@ -90,17 +93,17 @@ function _correct_des_pipes!(data::Dict{String, <:Any}, head_loss::String, visco
         # Correct various pipe properties. The sequence is important, here.
         _correct_flow_direction!(des_pipe)
         _correct_pipe_flow_bounds!(des_pipe, node_fr, node_to,
-            head_loss, viscosity, capacity, base_length, base_time)
+            head_loss, viscosity, capacity, base_length, base_mass, base_time)
     end
 end
 
 
 function set_pipe_flow_partition!(
     pipe::Dict{String, <:Any}, head_loss::String, viscosity::Float64, base_length::Float64,
-    base_time::Float64, error_tolerance::Float64, length_tolerance::Float64)
+    base_mass::Float64, base_time::Float64, error_tolerance::Float64, length_tolerance::Float64)
     # Compute the product of pipe length and resistance.
     L_x_r = pipe["length"] * _calc_pipe_resistance(
-        pipe, head_loss, viscosity, base_length, base_time)
+        pipe, head_loss, viscosity, base_length, base_mass, base_time)
 
     # Compute the head loss function and its derivative.
     exponent = _get_exponent_from_head_loss_form(head_loss)
@@ -129,10 +132,10 @@ end
 
 function _correct_pipe_flow_bounds!(
     pipe::Dict{String, <:Any}, node_fr::Dict{String, <:Any}, node_to::Dict{String, <:Any},
-    form::String, viscosity::Float64, capacity::Float64, base_length::Float64, base_time::Float64)
+    form::String, viscosity::Float64, capacity::Float64, base_length::Float64, base_mass::Float64, base_time::Float64)
     # Calculate flow bounds, which depend on the head loss formulation.
-    flow_min = _calc_pipe_flow_min(pipe, node_fr, node_to, form, viscosity, capacity, base_length, base_time)
-    flow_max = _calc_pipe_flow_max(pipe, node_fr, node_to, form, viscosity, capacity, base_length, base_time)
+    flow_min = _calc_pipe_flow_min(pipe, node_fr, node_to, form, viscosity, capacity, base_length, base_mass, base_time)
+    flow_max = _calc_pipe_flow_max(pipe, node_fr, node_to, form, viscosity, capacity, base_length, base_mass, base_time)
     pipe["flow_min"], pipe["flow_max"] = flow_min, flow_max
     pipe["flow_min_forward"] = max(flow_min, get(pipe, "flow_min_forward", 0.0))
     pipe["flow_max_reverse"] = min(flow_max, get(pipe, "flow_max_reverse", 0.0))
@@ -141,34 +144,40 @@ end
 
 function _calc_pipe_flow_min(
     pipe::Dict{String, <:Any}, node_fr::Dict{String, <:Any}, node_to::Dict{String, <:Any},
-    form::String, viscosity::Float64, capacity::Float64, base_length::Float64, base_time::Float64)
+    form::String, viscosity::Float64, capacity::Float64, base_length::Float64, base_mass::Float64, base_time::Float64)
     # Calculate minimum flow bound depending on the head loss formulation.
     if uppercase(form) == "H-W"
         return _calc_pipe_flow_min_hw(pipe, node_fr, node_to, capacity, base_length, base_time)
     elseif uppercase(form) == "D-W"
-        return _calc_pipe_flow_min_dw(pipe, node_fr, node_to, viscosity, capacity)
+        return _calc_pipe_flow_min_dw(pipe, node_fr, node_to, viscosity, base_length, base_mass, base_time, capacity)
     end
 end
 
 
 function _calc_pipe_flow_max(
     pipe::Dict{String, <:Any}, node_fr::Dict{String, <:Any}, node_to::Dict{String, <:Any},
-    form::String, viscosity::Float64, capacity::Float64, base_length::Float64, base_time::Float64)
+    form::String, viscosity::Float64, capacity::Float64,
+    base_length::Float64, base_mass::Float64, base_time::Float64)
     # Calculate maximum flow bound depending on the head loss formulation.
     if uppercase(form) == "H-W"
         return _calc_pipe_flow_max_hw(pipe, node_fr, node_to, capacity, base_length, base_time)
     elseif uppercase(form) == "D-W"
-        return _calc_pipe_flow_max_dw(pipe, node_fr, node_to, viscosity, capacity)
+        return _calc_pipe_flow_max_dw(pipe, node_fr, node_to, viscosity, base_length, base_mass, base_time, capacity)
     end
 end
 
 
-function _calc_pipe_resistance(pipe::Dict{String, <:Any}, form::String, viscosity::Float64, base_length::Float64, base_time::Float64)
+function _calc_pipe_resistance(
+    pipe::Dict{String, <:Any}, form::String, viscosity::Float64,
+    base_length::Float64, base_mass::Float64, base_time::Float64)
+    # Calculate pipe resistance depending on the head loss formulation.
     if uppercase(form) == "H-W"
         return _calc_pipe_resistance_hw(pipe["diameter"], pipe["roughness"], base_length, base_time)
     elseif uppercase(form) == "D-W"
-        diameter, roughness, speed = pipe["diameter"], pipe["roughness"], 10.0
-        return _calc_pipe_resistance_dw(diameter, roughness, viscosity, speed, _DENSITY)
+        diameter, roughness = pipe["diameter"], pipe["roughness"]
+        speed = (2.0 / base_length) / (1.0 / base_time) # Assume water speed is 2 m/s.
+        density = _calc_scaled_density(base_mass, base_length)
+        return _calc_pipe_resistance_dw(diameter, roughness, viscosity, speed, density)
     end
 end
 
@@ -187,10 +196,12 @@ end
 
 function _calc_pipe_flow_min_dw(
     pipe::Dict{String, <:Any}, node_fr::Dict{String, <:Any}, node_to::Dict{String, <:Any},
-    viscosity::Float64, capacity::Float64)
+    viscosity::Float64, base_length::Float64, base_mass::Float64, base_time::Float64, capacity::Float64)
     # Calculate minimum flow bound per the Hazen-Williams head loss formulation.
-    diameter, roughness, speed = pipe["diameter"], pipe["roughness"], 10.0
-    resistance = _calc_pipe_resistance_dw(diameter, roughness, viscosity, speed, _DENSITY)
+    diameter, roughness = pipe["diameter"], pipe["roughness"]
+    speed = (2.0 / base_length) / (1.0 / base_time) # Assume water speed is 2 m/s.
+    density = _calc_scaled_density(base_mass, base_length)
+    resistance = _calc_pipe_resistance_dw(diameter, roughness, viscosity, speed, density)
     loss = get(node_fr, "head_min", -Inf) - get(node_to, "head_max", Inf)
     flow_min_loss = sign(loss) * (abs(loss) * inv(pipe["length"] * resistance))^inv(2.0)
     flow_min_dir = pipe["flow_direction"] == FLOW_DIRECTION_POSITIVE ? 0.0 : -Inf
@@ -212,10 +223,12 @@ end
 
 function _calc_pipe_flow_max_dw(
     pipe::Dict{String, <:Any}, node_fr::Dict{String, <:Any}, node_to::Dict{String, <:Any},
-    viscosity::Float64, capacity::Float64)
+    viscosity::Float64, base_length::Float64, base_mass::Float64, base_time::Float64, capacity::Float64)
     # Calculate maximum flow bound per the Hazen-Williams head loss formulation.
-    diameter, roughness, speed = pipe["diameter"], pipe["roughness"], 10.0
-    resistance = _calc_pipe_resistance_dw(diameter, roughness, viscosity, speed, _DENSITY)
+    diameter, roughness = pipe["diameter"], pipe["roughness"]
+    speed = (2.0 / base_length) / (1.0 / base_time) # Assume water speed is 2 m/s.
+    density = _calc_scaled_density(base_mass, base_length)
+    resistance = _calc_pipe_resistance_dw(diameter, roughness, viscosity, speed, density)
     loss = get(node_fr, "head_max", Inf) - get(node_to, "head_min", -Inf)
     flow_max_loss = sign(loss) * (abs(loss) * inv(pipe["length"] * resistance))^inv(2.0)
     flow_max_dir = pipe["flow_direction"] == FLOW_DIRECTION_NEGATIVE ? 0.0 : Inf
@@ -249,7 +262,7 @@ Computes the resistance for a pipe governed by the Darcy-Weisbach relationship.
 """
 function _calc_pipe_resistance_dw(diameter::Float64, roughness::Float64, viscosity::Float64, speed::Float64, density::Float64)
     # Compute the Reynold's number of the fluid.
-    reynolds_number = density * speed * diameter * inv(viscosity)
+    reynolds_number = density * speed * diameter / viscosity
 
     # Use the same Colebrook approximation as in EPANET.
     w = 0.25 * pi * reynolds_number

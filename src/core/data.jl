@@ -21,11 +21,12 @@ end
 function set_flow_partitions!(data::Dict{String, <:Any}, error_tolerance::Float64, length_tolerance::Float64)
     head_loss, viscosity = data["head_loss"], data["viscosity"]
     base_length = get(data, "base_length", 1.0)
+    base_mass = get(data, "base_mass", 1.0)
     base_time = get(data, "base_time", 1.0)
 
     func! = x -> _set_flow_partitions!(
         x, error_tolerance, length_tolerance,
-        head_loss, viscosity, base_length, base_time)
+        head_loss, viscosity, base_length, base_mass, base_time)
 
     apply_wm!(func!, data; apply_to_subnetworks = true)
 end
@@ -33,18 +34,18 @@ end
 
 function _set_flow_partitions!(
     data::Dict{String, <:Any}, error_tolerance::Float64, length_tolerance::Float64,
-    head_loss::String, viscosity::Float64, base_length::Float64, base_time::Float64)
+    head_loss::String, viscosity::Float64, base_length::Float64, base_mass::Float64, base_time::Float64)
     # Set partitions for all pipes in the network.
     for pipe in values(get(data, "pipe", Dict{String, Any}()))
         set_pipe_flow_partition!(
-            pipe, head_loss, viscosity, base_length,
+            pipe, head_loss, viscosity, base_length, base_mass,
             base_time, error_tolerance, length_tolerance)
     end
 
     # Set partitions for all design pipes in the network.
     for des_pipe in values(get(data, "des_pipe", Dict{String, Any}()))
         set_pipe_flow_partition!(
-            des_pipe, head_loss, viscosity, base_length,
+            des_pipe, head_loss, viscosity, base_length, base_mass,
             base_time, error_tolerance, length_tolerance)
     end
 
@@ -615,6 +616,10 @@ function _make_per_unit_pipes!(data::Dict{String,<:Any}, transform_length::Funct
     for (i, pipe) in data["pipe"]
         pipe["length"] = transform_length(pipe["length"])
         pipe["diameter"] = transform_length(pipe["diameter"])
+
+        if uppercase(data["head_loss"]) == "D-W"
+            pipe["roughness"] = transform_length(pipe["roughness"])
+        end
     end
 end
 
@@ -623,6 +628,12 @@ function _make_per_unit_des_pipes!(data::Dict{String,<:Any}, transform_length::F
     for (i, des_pipe) in data["des_pipe"]
         des_pipe["length"] = transform_length(des_pipe["length"])
         des_pipe["diameter"] = transform_length(des_pipe["diameter"])
+    end
+
+    if uppercase(data["head_loss"]) == "D-W"
+        for (i, des_pipe) in data["des_pipe"]
+            des_pipe["roughness"] = transform_length(des_pipe["roughness"])
+        end
     end
 end
 
