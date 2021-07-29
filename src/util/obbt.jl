@@ -137,42 +137,6 @@ function _update_data_bounds!(data::Dict{String,<:Any}, bound_problems::Array{Bo
 end
 
 
-function _update_data_breakpoints_mn!(data_mn::Dict{String,<:Any}, num_pipe_breakpoints::Int, num_pump_breakpoints::Int)
-    for data in values(data_mn["nw"])
-        for pipe in values(data["pipe"])
-            flow_min, flow_max = pipe["flow_min"], pipe["flow_max"]
-            breakpoints = range(flow_min, stop = flow_max, length = num_pipe_breakpoints)
-            pipe["flow_lower_breakpoints"] = breakpoints
-            pipe["flow_upper_breakpoints"] = breakpoints
-        end
-
-        for pump in values(data["pump"])
-            flow_min, flow_max = pump["flow_min"], pump["flow_max"]
-            breakpoints = range(flow_min, stop = flow_max, length = num_pump_breakpoints)
-            pump["flow_lower_breakpoints"] = breakpoints
-            pump["flow_upper_breakpoints"] = breakpoints
-        end
-    end
-end
-
-
-function _update_obbt_breakpoints!(data::Dict{String,<:Any}, num_pipe_breakpoints::Int, num_pump_breakpoints::Int)
-    for pipe in values(data["pipe"])
-        flow_min, flow_max = pipe["flow_min"], pipe["flow_max"]
-        breakpoints = range(flow_min, stop = flow_max, length = num_pipe_breakpoints)
-        pipe["flow_lower_breakpoints"] = breakpoints
-        pipe["flow_upper_breakpoints"] = breakpoints
-    end
-
-    for pump in values(data["pump"])
-        flow_min, flow_max = pump["flow_min"], pump["flow_max"]
-        breakpoints = range(flow_min, stop = flow_max, length = num_pump_breakpoints)
-        pump["flow_lower_breakpoints"] = breakpoints
-        pump["flow_upper_breakpoints"] = breakpoints
-    end
-end
-
-
 function _log_node_bound_width(data::Dict{String,<:Any}, component_type::String)
     if ismultinetwork(data)
         total_width, count = 0.0, 0
@@ -374,7 +338,7 @@ function solve_obbt_owf!(
 
         time_elapsed > time_limit && ((terminate = true) && break)
         _update_data_bounds!(data, bound_problems)
-        set_breakpoints!(data, 1.0, 1.0e-4)
+        set_flow_partitions!(data, 1.0, 1.0e-4)
         !terminate && _clean_bound_problems!(bound_problems, vals)
 
         # Log widths.
