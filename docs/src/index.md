@@ -50,14 +50,12 @@ After solving the problem, its results can then be analyzed, e.g.,
 # The termination status of the optimization solver.
 result["termination_status"]
 
-# The flow along pipe 4 in a per-unit system.
-result["solution"]["pipe"]["4"]["q"]
+# The flow along pipe 4 in cubic meters per second.
+result["solution"]["pipe"]["4"]["q"] * result["solution"]["base_flow"]
 
-# The total hydraulic head at node 2 in a per-unit system.
-result["solution"]["node"]["2"]["h"]
+# The total hydraulic head at node 2 in meters.
+result["solution"]["node"]["2"]["h"] * result["solution"]["base_head"]
 
-# The pressure head at node 2 in a per-unit system.
-result["solution"]["node"]["2"]["p"]
+# The pressure head at node 2 in meters.
+result["solution"]["node"]["2"]["p"] * result["solution"]["base_head"]
 ```
-
-Results can also be transformed back to their metric counterparts via
