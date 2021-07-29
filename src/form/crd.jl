@@ -76,7 +76,7 @@ function constraint_on_off_pump_power(wm::AbstractCRDModel, n::Int, a::Int, q_mi
     # Gather pump flow, power, and status variables.
     q, P, z = var(wm, n, :qp_pump, a), var(wm, n, :P_pump, a), var(wm, n, :z_pump, a)
 
-    # Compute pump flow and power breakpoints.
+    # Compute pump flow and power partitioning.
     q_lb, q_ub = q_min_forward, JuMP.upper_bound(q)
     f_ua = _calc_pump_power_ua(wm, n, a, [q_lb, q_ub])
 

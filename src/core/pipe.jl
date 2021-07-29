@@ -51,18 +51,18 @@ function _correct_pipes!(data::Dict{String, <:Any}, head_loss::String, viscosity
 end
 
 
-function get_pipe_flow_breakpoints_positive(pipe::Dict{String, <:Any})
-    @assert haskey(pipe, "flow_breakpoints")
-    flows = filter(x -> x > 0.0, pipe["flow_breakpoints"])
+function get_pipe_flow_partition_positive(pipe::Dict{String, <:Any})
+    @assert haskey(pipe, "flow_partition")
+    flows = filter(x -> x > 0.0, pipe["flow_partition"])
     lower_bound = max(0.0, get(pipe, "flow_min_forward", 0.0))
     flow_max = length(flows) > 0 ? maximum(flows) : lower_bound
     return lower_bound != flow_max ? vcat(lower_bound, flows) : [lower_bound]
 end
 
 
-function get_pipe_flow_breakpoints_negative(pipe::Dict{String, <:Any})
-    @assert haskey(pipe, "flow_breakpoints")
-    flows = filter(x -> x < 0.0, pipe["flow_breakpoints"])
+function get_pipe_flow_partition_negative(pipe::Dict{String, <:Any})
+    @assert haskey(pipe, "flow_partition")
+    flows = filter(x -> x < 0.0, pipe["flow_partition"])
     upper_bound = min(0.0, get(pipe, "flow_max_reverse", 0.0))
     flow_min = length(flows) > 0 ? minimum(flows) : upper_bound
     return upper_bound != flow_min ? vcat(flows, upper_bound) : [upper_bound]    
@@ -95,7 +95,7 @@ function _correct_des_pipes!(data::Dict{String, <:Any}, head_loss::String, visco
 end
 
 
-function set_pipe_breakpoints!(
+function set_pipe_flow_partition!(
     pipe::Dict{String, <:Any}, head_loss::String, viscosity::Float64, base_length::Float64,
     base_time::Float64, error_tolerance::Float64, length_tolerance::Float64)
     # Compute the product of pipe length and resistance.
@@ -107,7 +107,7 @@ function set_pipe_breakpoints!(
     f = x -> L_x_r * sign(x) * abs(x)^exponent
     f_dash = x -> exponent * L_x_r * (x * x)^(0.5 * exponent - 0.5)
 
-    # Initialize the partitioning of flow breakpoints for the pipe.
+    # Initialize the partitioning of flows for the pipe.
     if -sign(pipe["flow_min"]) == sign(pipe["flow_max"])
         # Zero must be included to capture the inflection point of the function.
         partition = Vector{Float64}([pipe["flow_min"], 0.0, pipe["flow_max"]])
@@ -122,8 +122,8 @@ function set_pipe_breakpoints!(
         length_tolerance, 1.0e-6, 9e9, length(partition))
     PolyhedralRelaxations._refine_partition!(uvf_data)
 
-    # Set pipe breakpoints using the above partitioning.
-    pipe["flow_breakpoints"] = uvf_data.partition
+    # Set pipe flow partition using the above partitioning.
+    pipe["flow_partition"] = uvf_data.partition
 end
 
 

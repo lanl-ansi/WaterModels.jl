@@ -32,13 +32,13 @@ function _correct_pumps!(data::Dict{String, <:Any})
 end
 
 
-function set_pump_breakpoints!(
+function set_pump_flow_partition!(
     pump::Dict{String, <:Any}, error_tolerance::Float64, length_tolerance::Float64)
     # Compute the head gain function and its derivative.
     f = _calc_head_curve_function(pump)
     f_dash = _calc_head_curve_derivative(pump)
 
-    # Initialize the partitioning of flow breakpoints for the pipe.
+    # Initialize the partitioning of flows for the pipe.
     partition = Vector{Float64}([pump["flow_min_forward"], pump["flow_max"]])
 
     # Use PolyhedralRelaxations to determine partitions with desired accuracy.
@@ -47,8 +47,8 @@ function set_pump_breakpoints!(
         length_tolerance, 1.0e-6, 9e9, length(partition))
     PolyhedralRelaxations._refine_partition!(uvf_data)
 
-    # Set pump breakpoints using the above partitioning.
-    pump["flow_breakpoints"] = uvf_data.partition
+    # Set pump flow partition using the above partitioning.
+    pump["flow_partition"] = uvf_data.partition
 end 
 
 
@@ -434,19 +434,19 @@ function _calc_efficiencies(points::Array{Float64}, curve::Array{Tuple{Float64, 
 end
 
 
-function get_pump_flow_breakpoints(pump::Dict{String, <:Any})
-    @assert haskey(pump, "flow_breakpoints")
-    flows = filter(x -> x > 0.0, pump["flow_breakpoints"])
+function get_pump_flow_partition(pump::Dict{String, <:Any})
+    @assert haskey(pump, "flow_partition")
+    flows = filter(x -> x > 0.0, pump["flow_partition"])
     lower_bound = max(0.0, get(pump, "flow_min_forward", 0.0))
     flow_max = length(flows) > 0 ? maximum(flows) : lower_bound
     return lower_bound != flow_max ? vcat(lower_bound, flows) : [lower_bound]
 end
 
 
-function get_pump_head_gain_breakpoints(pump::Dict{String, <:Any})
-    flow_breakpoints = get_pump_flow_breakpoints(pump)
+function get_pump_head_gain_partition(pump::Dict{String, <:Any})
+    flow_partition = get_pump_flow_partition(pump)
     head_curve_function = _calc_head_curve_function(pump)
-    return head_curve_function.(flow_breakpoints)
+    return head_curve_function.(flow_partition)
 end
 
 

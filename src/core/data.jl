@@ -18,12 +18,12 @@ function get_wm_data(data::Dict{String, <:Any})
 end
 
 
-function set_breakpoints!(data::Dict{String, <:Any}, error_tolerance::Float64, length_tolerance::Float64)
+function set_flow_partitions!(data::Dict{String, <:Any}, error_tolerance::Float64, length_tolerance::Float64)
     head_loss, viscosity = data["head_loss"], data["viscosity"]
     base_length = get(data, "base_length", 1.0)
     base_time = get(data, "base_time", 1.0)
 
-    func! = x -> _set_breakpoints!(
+    func! = x -> _set_flow_partitions!(
         x, error_tolerance, length_tolerance,
         head_loss, viscosity, base_length, base_time)
 
@@ -31,26 +31,26 @@ function set_breakpoints!(data::Dict{String, <:Any}, error_tolerance::Float64, l
 end
 
 
-function _set_breakpoints!(
+function _set_flow_partitions!(
     data::Dict{String, <:Any}, error_tolerance::Float64, length_tolerance::Float64,
     head_loss::String, viscosity::Float64, base_length::Float64, base_time::Float64)
-    # Set breakpoints for all pipes in the network.
+    # Set partitions for all pipes in the network.
     for pipe in values(get(data, "pipe", Dict{String, Any}()))
-        set_pipe_breakpoints!(
+        set_pipe_flow_partition!(
             pipe, head_loss, viscosity, base_length,
             base_time, error_tolerance, length_tolerance)
     end
 
-    # Set breakpoints for all design pipes in the network.
+    # Set partitions for all design pipes in the network.
     for des_pipe in values(get(data, "des_pipe", Dict{String, Any}()))
-        set_pipe_breakpoints!(
+        set_pipe_flow_partition!(
             des_pipe, head_loss, viscosity, base_length,
             base_time, error_tolerance, length_tolerance)
     end
 
-    # Set breakpoints for all pumps in the network.
+    # Set partitions for all pumps in the network.
     for pump in values(get(data, "pump", Dict{String, Any}()))
-        set_pump_breakpoints!(pump, error_tolerance, length_tolerance)
+        set_pump_flow_partition!(pump, error_tolerance, length_tolerance)
     end
 end
 
@@ -530,8 +530,7 @@ function _transform_flows!(comp::Dict{String,<:Any}, transform_flow::Function)
     _transform_flow_key!(comp, "flow_nominal", transform_flow)
     _transform_flow_key!(comp, "flow_min_forward", transform_flow)
     _transform_flow_key!(comp, "minor_loss", transform_flow)
-    _transform_flow_key!(comp, "flow_upper_breakpoints", transform_flow)
-    _transform_flow_key!(comp, "flow_lower_breakpoints", transform_flow)
+    _transform_flow_key!(comp, "flow_partition", transform_flow)
 end
 
 

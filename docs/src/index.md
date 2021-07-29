@@ -40,8 +40,15 @@ Then, as one example, a piecewise-linear, relaxation-based convexification of th
 
 ```julia
 using WaterModels, Cbc
+
+# Parse the network data from an EPANET file.
 network = parse_file("examples/data/epanet/shamir.inp")
-set_breakpoints!(network, 1.0, 1.0e-4) # Head loss error tolerance of one meter.
+
+# Set linearization partitioning points that assume a head loss error tolerance of one
+# meter, with widths between flow points no greater than 1.0e-4 cubic meters per second.
+set_flow_partitions!(network, 1.0, 1.0e-4)
+
+# Solve the corresponding relaxation of the water flow problem.
 result = solve_wf(network, PWLRDWaterModel, Cbc.Optimizer)
 ```
 

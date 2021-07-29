@@ -22,13 +22,13 @@ function constraint_pipe_head_loss(
     # Get variables for positive flow and head difference.
     qp, dhp = var(wm, n, :qp_pipe, a), var(wm, n, :dhp_pipe, a)
 
-    # Get the corresponding set of positive flow breakpoints.
-    breakpoints_p = get_pipe_flow_breakpoints_positive(ref(wm, n, :pipe, a))
+    # Get the corresponding positive flow partitioning.
+    partition_p = get_pipe_flow_partition_positive(ref(wm, n, :pipe, a))
 
     # Loop over consequential points (i.e., those that have nonzero head loss).
-    for flow_breakpoint in filter(x -> x > 0.0, breakpoints_p)
-        # Add a linear outer approximation of the convex relaxation at `flow_breakpoint`.
-        lhs = _calc_head_loss_oa(qp, y, flow_breakpoint, exponent)
+    for flow_value in filter(x -> x > 0.0, partition_p)
+        # Add a linear outer approximation of the convex relaxation at `flow_value`.
+        lhs = _calc_head_loss_oa(qp, y, flow_value, exponent)
 
         # Add outer-approximation of the head loss constraint.
         c = JuMP.@constraint(wm.model, r * lhs <= dhp / L)
@@ -38,7 +38,7 @@ function constraint_pipe_head_loss(
     end
 
     # Get the corresponding min/max positive directed flows (when active).
-    qp_min_forward, qp_max = max(0.0, q_min_forward), maximum(breakpoints_p)
+    qp_min_forward, qp_max = max(0.0, q_min_forward), maximum(partition_p)
 
     if qp_min_forward != qp_max
         # Compute scaled version of the head loss overapproximation.
@@ -56,13 +56,13 @@ function constraint_pipe_head_loss(
     # Get variables for negative flow and head difference.
     qn, dhn = var(wm, n, :qn_pipe, a), var(wm, n, :dhn_pipe, a)
 
-    # Get the corresponding set of negative flow breakpoints (negated).
-    breakpoints_n = sort(-get_pipe_flow_breakpoints_negative(ref(wm, n, :pipe, a)))
+    # Get the corresponding negative flow partitioning (negated).
+    partition_n = sort(-get_pipe_flow_partition_negative(ref(wm, n, :pipe, a)))
 
     # Loop over consequential points (i.e., those that have nonzero head loss).
-    for flow_breakpoint in filter(x -> x > 0.0, breakpoints_n)
-        # Add a linear outer approximation of the convex relaxation at `flow_breakpoint`.
-        lhs = _calc_head_loss_oa(qn, 1.0 - y, flow_breakpoint, exponent)
+    for flow_value in filter(x -> x > 0.0, partition_n)
+        # Add a linear outer approximation of the convex relaxation at `flow_value`.
+        lhs = _calc_head_loss_oa(qn, 1.0 - y, flow_value, exponent)
 
         # Add outer-approximation of the head loss constraint.
         c = JuMP.@constraint(wm.model, r * lhs <= dhn / L)
@@ -72,7 +72,7 @@ function constraint_pipe_head_loss(
     end
 
     # Get the corresponding maximum negative directed flow (when active).
-    qn_min_forward, qn_max = max(0.0, -q_max_reverse), maximum(breakpoints_n)
+    qn_min_forward, qn_max = max(0.0, -q_max_reverse), maximum(partition_n)
 
     if qn_min_forward != qn_max
         # Compute scaled version of the head loss overapproximation.
@@ -107,14 +107,14 @@ function constraint_on_off_des_pipe_head_loss(
     # Get variables for positive flow and head difference.
     qp, dhp = var(wm, n, :qp_des_pipe, a), var(wm, n, :dhp_des_pipe, a)
 
-    # Get the corresponding set of positive flow breakpoints.
-    breakpoints_p = get_pipe_flow_breakpoints_positive(ref(wm, n, :des_pipe, a))
+    # Get the corresponding positive flow partitioning.
+    partition_p = get_pipe_flow_partition_positive(ref(wm, n, :des_pipe, a))
 
     # Loop over consequential points (i.e., those that have nonzero head loss).
-    for flow_breakpoint in filter(x -> x > 0.0, breakpoints_p)
-        # Get linear outer approximations of the convex relaxation at `flow_breakpoint`.
-        lhs_1 = _calc_head_loss_oa(qp, z, flow_breakpoint, exponent)
-        lhs_2 = _calc_head_loss_oa(qp, y, flow_breakpoint, exponent)
+    for flow_value in filter(x -> x > 0.0, partition_p)
+        # Get linear outer approximations of the convex relaxation at `flow_value`.
+        lhs_1 = _calc_head_loss_oa(qp, z, flow_value, exponent)
+        lhs_2 = _calc_head_loss_oa(qp, y, flow_value, exponent)
 
         # Add outer approximations of the head loss constraint.
         c_1 = JuMP.@constraint(wm.model, r * lhs_1 <= dhp / L)
@@ -125,7 +125,7 @@ function constraint_on_off_des_pipe_head_loss(
     end
 
     # Get the corresponding min/max positive directed flows (when active).
-    qp_min_forward, qp_max = max(0.0, q_min_forward), maximum(breakpoints_p)
+    qp_min_forward, qp_max = max(0.0, q_min_forward), maximum(partition_p)
 
     if qp_min_forward != qp_max
         # Compute scaled versions of the head loss overapproximations.
@@ -145,14 +145,14 @@ function constraint_on_off_des_pipe_head_loss(
     # Get variables for negative flow and head difference.
     qn, dhn = var(wm, n, :qn_des_pipe, a), var(wm, n, :dhn_des_pipe, a)
 
-    # Get the corresponding set of negative flow breakpoints (negated).
-    breakpoints_n = sort(-get_pipe_flow_breakpoints_negative(ref(wm, n, :des_pipe, a)))
+    # Get the corresponding negative flow partitioning (negated).
+    partition_n = sort(-get_pipe_flow_partition_negative(ref(wm, n, :des_pipe, a)))
 
     # Loop over consequential points (i.e., those that have nonzero head loss).
-    for flow_breakpoint in filter(x -> x > 0.0, breakpoints_n)
-        # Get linear outer approximations of the convex relaxation at `flow_breakpoint`.
-        lhs_1 = _calc_head_loss_oa(qn, z, flow_breakpoint, exponent)
-        lhs_2 = _calc_head_loss_oa(qn, 1.0 - y, flow_breakpoint, exponent)
+    for flow_value in filter(x -> x > 0.0, partition_n)
+        # Get linear outer approximations of the convex relaxation at `flow_value`.
+        lhs_1 = _calc_head_loss_oa(qn, z, flow_value, exponent)
+        lhs_2 = _calc_head_loss_oa(qn, 1.0 - y, flow_value, exponent)
 
         # Add outer approximations of the head loss constraint.
         c_1 = JuMP.@constraint(wm.model, r * lhs_1 <= dhn / L)
@@ -163,7 +163,7 @@ function constraint_on_off_des_pipe_head_loss(
     end
 
     # Get the corresponding maximum negative directed flow (when active).
-    qn_min_forward, qn_max = max(0.0, -q_max_reverse), maximum(breakpoints_n)
+    qn_min_forward, qn_max = max(0.0, -q_max_reverse), maximum(partition_n)
 
     if qn_min_forward != qn_max
         # Compute scaled versions of the head loss overapproximations.
@@ -199,16 +199,16 @@ function constraint_on_off_pump_head_gain(
     # Calculate the head curve function and its derivative.
     head_curve_func = _calc_head_curve_function(ref(wm, n, :pump, a))
     head_curve_deriv = _calc_head_curve_derivative(ref(wm, n, :pump, a))
-    breakpoints = get_pump_flow_breakpoints(ref(wm, n, :pump, a))
-    qp_min, qp_max = minimum(breakpoints), maximum(breakpoints)
+    partition = get_pump_flow_partition(ref(wm, n, :pump, a))
+    qp_min, qp_max = minimum(partition), maximum(partition)
 
-    # Loop over breakpoints strictly between the lower and upper variable bounds.
-    for flow_breakpoint in breakpoints
+    # Loop over partition points strictly between the lower and upper variable bounds.
+    for flow_value in partition
         # Compute head gain and derivative at the point.
-        f, df = head_curve_func(flow_breakpoint), head_curve_deriv(flow_breakpoint)
+        f, df = head_curve_func(flow_value), head_curve_deriv(flow_value)
 
         # Add the outer-approximation constraint for the pump.
-        c_1 = JuMP.@constraint(wm.model, g <= f * z + df * (qp - flow_breakpoint * z))
+        c_1 = JuMP.@constraint(wm.model, g <= f * z + df * (qp - flow_value * z))
 
         # Append the :on_off_pump_head_gain constraint array.
         append!(con(wm, n, :on_off_pump_head_gain)[a], [c_1])

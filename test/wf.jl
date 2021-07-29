@@ -7,7 +7,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
                 network = WaterModels.parse_file("../test/data/epanet/snapshot/$(name)-hw-lps.inp")
                 t_h = WaterModels._calc_head_per_unit_transform(network)
                 t_q = WaterModels._calc_flow_per_unit_transform(network)
-                set_breakpoints!(network, 1.0, 1.0e-4)
+                set_flow_partitions!(network, 1.0, 1.0e-4)
 
                 wm = instantiate_model(network, formulation, build_wf)
                 result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
@@ -23,7 +23,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             network = WaterModels.parse_file("../test/data/epanet/snapshot/negative_demand-hw-lps.inp")
             t_h = WaterModels._calc_head_per_unit_transform(network)
             t_q = WaterModels._calc_flow_per_unit_transform(network)
-            set_breakpoints!(network, 1.0, 1.0e-4)
+            set_flow_partitions!(network, 1.0, 1.0e-4)
 
             wm = instantiate_model(network, formulation, build_wf)
             result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
@@ -39,7 +39,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             network = WaterModels.parse_file("../test/data/epanet/snapshot/prv-hw-lps.inp")
             t_h = WaterModels._calc_head_per_unit_transform(network)
             t_q = WaterModels._calc_flow_per_unit_transform(network)
-            set_breakpoints!(network, 1.0, 1.0e-4)
+            set_flow_partitions!(network, 1.0, 1.0e-4)
 
             wm = instantiate_model(network, formulation, build_wf)
             result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
@@ -57,7 +57,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             WaterModels.convert_short_pipes!(network)
             t_h = WaterModels._calc_head_per_unit_transform(network)
             t_q = WaterModels._calc_flow_per_unit_transform(network)
-            set_breakpoints!(network, 1.0, 1.0e-4)
+            set_flow_partitions!(network, 1.0, 1.0e-4)
 
             wm = instantiate_model(network, formulation, build_wf)
             result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
@@ -72,7 +72,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             network = WaterModels.parse_file("../test/data/epanet/snapshot/pump-hw-lps.inp")
             t_h = WaterModels._calc_head_per_unit_transform(network)
             t_q = WaterModels._calc_flow_per_unit_transform(network)
-            set_breakpoints!(network, 1.0, 1.0e-4)
+            set_flow_partitions!(network, 1.0, 1.0e-4)
 
             wm = instantiate_model(network, formulation, build_wf)
             result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
@@ -87,7 +87,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             network = parse_file("../test/data/epanet/snapshot/tank-hw-lps.inp")
             t_h = WaterModels._calc_head_per_unit_transform(network)
             t_q = WaterModels._calc_flow_per_unit_transform(network)
-            set_breakpoints!(network, 1.0, 1.0e-4)
+            set_flow_partitions!(network, 1.0, 1.0e-4)
 
             wm = instantiate_model(network, formulation, build_wf)
             result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
@@ -107,7 +107,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
                 network = WaterModels.make_multinetwork(network)
                 t_h = WaterModels._calc_head_per_unit_transform(network)
                 t_q = WaterModels._calc_flow_per_unit_transform(network)
-                set_breakpoints!(network, 1.0, 1.0e-4)
+                set_flow_partitions!(network, 1.0, 1.0e-4)
 
                 wm = instantiate_model(network, formulation, build_mn_wf)
                 result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
@@ -128,7 +128,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             network = WaterModels.make_multinetwork(network)
             t_h = WaterModels._calc_head_per_unit_transform(network)
             t_q = WaterModels._calc_flow_per_unit_transform(network)
-            set_breakpoints!(network, 1.0, 1.0e-4)
+            set_flow_partitions!(network, 1.0, 1.0e-4)
 
             wm = instantiate_model(network, formulation, build_mn_wf)
             result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
@@ -145,7 +145,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             network = WaterModels.make_multinetwork(network)
             t_h = WaterModels._calc_head_per_unit_transform(network)
             t_q = WaterModels._calc_flow_per_unit_transform(network)
-            set_breakpoints!(network, 1.0, 1.0e-4)
+            set_flow_partitions!(network, 1.0, 1.0e-4)
 
             wm = instantiate_model(network, formulation, build_mn_wf)
             result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
@@ -169,7 +169,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
 
             t_h = WaterModels._calc_head_per_unit_transform(network)
             t_q = WaterModels._calc_flow_per_unit_transform(network)
-            set_breakpoints!(network, 1.0, 1.0e-4)
+            set_flow_partitions!(network, 1.0, 1.0e-4)
 
             wm = instantiate_model(network, formulation, build_mn_wf)
             result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
@@ -186,7 +186,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             network = WaterModels.make_multinetwork(network)
             t_h = WaterModels._calc_head_per_unit_transform(network)
             t_q = WaterModels._calc_flow_per_unit_transform(network)
-            set_breakpoints!(network, 1.0, 1.0e-4)
+            set_flow_partitions!(network, 1.0, 1.0e-4)
 
             wm = instantiate_model(network, formulation, build_mn_wf)
             result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
@@ -204,7 +204,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             network = WaterModels.make_multinetwork(network)
             t_h = WaterModels._calc_head_per_unit_transform(network)
             t_q = WaterModels._calc_flow_per_unit_transform(network)
-            set_breakpoints!(network, 1.0, 1.0e-4)
+            set_flow_partitions!(network, 1.0, 1.0e-4)
 
             wm = instantiate_model(network, formulation, build_mn_wf)
             result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
@@ -223,7 +223,7 @@ end
 
 @testset "solve_wf" begin
     network = WaterModels.parse_file("../test/data/epanet/snapshot/pipe-hw-lps.inp")
-    set_breakpoints!(network, 1.0, 1.0e-4)
+    set_flow_partitions!(network, 1.0, 1.0e-4)
     
     result = WaterModels.solve_wf(network, LRDWaterModel, cbc)
     result = WaterModels.run_wf(network, LRDWaterModel, cbc)
@@ -234,7 +234,7 @@ end
 @testset "solve_mn_wf" begin
     network = WaterModels.parse_file("../test/data/epanet/multinetwork/pipe-hw-lps.inp")
     network_mn = WaterModels.make_multinetwork(network)
-    set_breakpoints!(network_mn, 1.0, 1.0e-4)
+    set_flow_partitions!(network_mn, 1.0, 1.0e-4)
 
     result = WaterModels.solve_mn_wf(network_mn, LRDWaterModel, cbc)
     result = WaterModels.run_mn_wf(network_mn, LRDWaterModel, cbc)
