@@ -139,7 +139,7 @@ function _calc_flow_per_unit_transform(data::Dict{String,<:Any})
         time_transform = _calc_time_per_unit_transform(wm_data)
         wm_vol_per_cubic_meter = length_transform(1.0)^3
         wm_time_per_second = time_transform(1.0)
-    
+
         # Translation: convert cubic meters per second to WaterModels-flow.
         return x -> x * (wm_vol_per_cubic_meter / wm_time_per_second)
     end
