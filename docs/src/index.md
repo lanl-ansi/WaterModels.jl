@@ -29,7 +29,7 @@ Finally, test that the package works as expected by executing
 ## Usage at a Glance
 At least one optimization solver is required to run WaterModels.
 The solver selected typically depends on the type of problem formulation being employed.
-As an example, to solve a mixed-integer linear programming (MILP) formulation of the feasible water flow (`wf`) problem, the open-source mixed-integer programming solver [CBC](https://github.com/coin-or/Cbc) can be used.
+As an example, to solve a mixed-integer linear programming (MILP) formulation of the feasible water flow (`wf`) problem, the open-source MILP solver [CBC](https://github.com/coin-or/Cbc) can be used.
 Installation of the JuMP interface to CBC can be performed via the Julia package manager, i.e.,
 
 ```julia
@@ -52,7 +52,7 @@ set_flow_partitions!(network, 1.0, 1.0e-4)
 result = solve_wf(network, PWLRDWaterModel, Cbc.Optimizer)
 ```
 
-After solving the problem, its results can then be analyzed, e.g.,
+After solving the problem, results can then be analyzed, e.g.,
 ```julia
 # The termination status of the optimization solver.
 result["termination_status"]
