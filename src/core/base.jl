@@ -307,7 +307,7 @@ function _build_pump_groups(pumps::Dict{Int,<:Any})::Dict{Int,Any}
     end
 
     # Collect the vectors that describe all pump groups.
-    pump_group_indices = collect(pump_group_indices)
+    pump_group_indices = collect([collect(x) for x in pump_group_indices])
 
     # Return the `:pump_group` object.
     return Dict{Int,Any}(
