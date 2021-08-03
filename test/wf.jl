@@ -255,3 +255,14 @@ end
     result = WaterModels.run_mn_wf(network_mn, LRDWaterModel, cbc)
     @test _is_valid_status(result["termination_status"])
 end
+
+
+@testset "solve_mn_wf_switching" begin
+    network = WaterModels.parse_file("../test/data/epanet/multinetwork/pump-hw-lps.inp")
+    network_mn = WaterModels.make_multinetwork(network)
+    set_flow_partitions!(network_mn, 1.0, 1.0e-4)
+
+    result = WaterModels.solve_mn_wf_switching(network_mn, LRDWaterModel, cbc)
+    result = WaterModels.run_mn_wf_switching(network_mn, LRDWaterModel, cbc)
+    @test _is_valid_status(result["termination_status"])
+end
