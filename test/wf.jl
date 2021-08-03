@@ -52,6 +52,21 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             @test isapprox(result["solution"]["pipe"]["1"]["q"], t_q(2.0), rtol = 1.0e-4)
         end
 
+        @testset "Darcy-Weisbach Head Loss: $(formulation)" begin
+            network = WaterModels.parse_file("../test/data/epanet/snapshot/pipe-dw-lps.inp")
+            t_h = WaterModels._calc_head_per_unit_transform(network)
+            t_q = WaterModels._calc_flow_per_unit_transform(network)
+            set_flow_partitions!(network, 1.0, 1.0e-4)
+
+            wm = instantiate_model(network, formulation, build_wf)
+            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
+
+            @test _is_valid_status(result["termination_status"])
+            @test isapprox(result["solution"]["node"]["1"]["h"], t_h(10.0), rtol = 1.0e-4)
+            @test isapprox(result["solution"]["node"]["2"]["p"], t_h(9.07), rtol = 1.0e-1)
+            @test isapprox(result["solution"]["pipe"]["1"]["q"], t_q(1.0), rtol = 1.0e-4)
+        end
+
         @testset "Short Pipe Dynamics: $(formulation)" begin
             network = WaterModels.parse_file("../test/data/epanet/snapshot/short-pipe-lps.inp")
             WaterModels.convert_short_pipes!(network)

@@ -14,7 +14,7 @@ Test for Hazen-Williams Head Loss
 
 [PIPES]
 ;ID               Node1          Node2           Length           Diameter         Roughness        MinorLoss        Status
- 1                1              2               1000.0           1000.0           100.0            0.0              Open  ;
+ 1                1              2               1000.0           1000.0           0.0025           0.0              Open  ;
 
 [PUMPS]
 ;ID               Node1          Node2           Parameters

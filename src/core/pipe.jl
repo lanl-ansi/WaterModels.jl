@@ -174,10 +174,8 @@ function _calc_pipe_resistance(
     if uppercase(form) == "H-W"
         return _calc_pipe_resistance_hw(pipe["diameter"], pipe["roughness"], base_length, base_time)
     elseif uppercase(form) == "D-W"
-        diameter, roughness = pipe["diameter"], pipe["roughness"]
-        speed = (2.0 / base_length) / (1.0 / base_time) # Assume water speed is 2 m/s.
-        density = _calc_scaled_density(base_mass, base_length)
-        return _calc_pipe_resistance_dw(diameter, roughness, viscosity, speed, density)
+        gravity = _calc_scaled_gravity(base_length, base_time)
+        return _calc_pipe_resistance_dw(pipe["diameter"], pipe["roughness"], gravity)
     end
 end
 
@@ -197,11 +195,11 @@ end
 function _calc_pipe_flow_min_dw(
     pipe::Dict{String, <:Any}, node_fr::Dict{String, <:Any}, node_to::Dict{String, <:Any},
     viscosity::Float64, base_length::Float64, base_mass::Float64, base_time::Float64, capacity::Float64)
+    # Calculate the resistance per unit length of the pipe.
+    gravity = _calc_scaled_gravity(base_length, base_time)
+    resistance = _calc_pipe_resistance_dw(pipe["diameter"], pipe["roughness"], gravity)
+
     # Calculate minimum flow bound per the Hazen-Williams head loss formulation.
-    diameter, roughness = pipe["diameter"], pipe["roughness"]
-    speed = (2.0 / base_length) / (1.0 / base_time) # Assume water speed is 2 m/s.
-    density = _calc_scaled_density(base_mass, base_length)
-    resistance = _calc_pipe_resistance_dw(diameter, roughness, viscosity, speed, density)
     loss = get(node_fr, "head_min", -Inf) - get(node_to, "head_max", Inf)
     flow_min_loss = sign(loss) * (abs(loss) * inv(pipe["length"] * resistance))^inv(2.0)
     flow_min_dir = pipe["flow_direction"] == FLOW_DIRECTION_POSITIVE ? 0.0 : -Inf
@@ -224,11 +222,11 @@ end
 function _calc_pipe_flow_max_dw(
     pipe::Dict{String, <:Any}, node_fr::Dict{String, <:Any}, node_to::Dict{String, <:Any},
     viscosity::Float64, base_length::Float64, base_mass::Float64, base_time::Float64, capacity::Float64)
+    # Calculate the resistance per unit length of the pipe.
+    gravity = _calc_scaled_gravity(base_length, base_time)
+    resistance = _calc_pipe_resistance_dw(pipe["diameter"], pipe["roughness"], gravity)
+
     # Calculate maximum flow bound per the Hazen-Williams head loss formulation.
-    diameter, roughness = pipe["diameter"], pipe["roughness"]
-    speed = (2.0 / base_length) / (1.0 / base_time) # Assume water speed is 2 m/s.
-    density = _calc_scaled_density(base_mass, base_length)
-    resistance = _calc_pipe_resistance_dw(diameter, roughness, viscosity, speed, density)
     loss = get(node_fr, "head_max", Inf) - get(node_to, "head_min", -Inf)
     flow_max_loss = sign(loss) * (abs(loss) * inv(pipe["length"] * resistance))^inv(2.0)
     flow_max_dir = pipe["flow_direction"] == FLOW_DIRECTION_NEGATIVE ? 0.0 : Inf
@@ -260,16 +258,10 @@ end
 """
 Computes the resistance for a pipe governed by the Darcy-Weisbach relationship.
 """
-function _calc_pipe_resistance_dw(diameter::Float64, roughness::Float64, viscosity::Float64, speed::Float64, density::Float64)
-    # Compute the Reynold's number of the fluid.
-    reynolds_number = density * speed * diameter / viscosity
-
-    # Use the same Colebrook approximation as in EPANET.
-    w = 0.25 * pi * reynolds_number
-    y_1 = 4.61841319859 * inv(w^0.9)
-    y_2 = (roughness * inv(diameter)) * inv(3.7 * diameter) + y_1
-    y_3 = -8.685889638e-01 * log(y_2)
-    return 0.0826 * inv(diameter^5) * inv(y_3*y_3)
+function _calc_pipe_resistance_dw(diameter::Float64, roughness::Float64, gravity::Float64)
+    # Use a fully-turbulent approximation of the Colebrook-White equation.
+    f = (2.0 * log(3.7 * diameter / roughness))^(-2)
+    return 8.0 * f / (pi^2 * gravity * diameter^5)
 end
 
 
