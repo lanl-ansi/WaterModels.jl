@@ -34,28 +34,33 @@ function _correct_nodes!(data::Dict{String, <:Any})
     # Compute a global estimate for maximum head.
     head_max = _calc_head_max(data)
 
+    # Compute an offset for nodes allowed to have negative pressures.
+    head_offset = _calc_head_offset(data)
+
     for (idx, node) in data["node"]
         _correct_status!(node)
         demands = filter(x -> x.second["node"] == node["index"], data["demand"])
         reservoirs = filter(x -> x.second["node"] == node["index"], data["reservoir"])
         tanks = filter(x -> x.second["node"] == node["index"], data["tank"])
-        _correct_node_head_bounds!(node, demands, reservoirs, tanks, head_max)
+        _correct_node_head_bounds!(node, demands, reservoirs, tanks, head_offset, head_max)
     end
 end
 
 
 function _correct_node_head_bounds!(
     node::Dict{String, <:Any}, demands::Dict{String, <:Any},
-    reservoirs::Dict{String, <:Any}, tanks::Dict{String, <:Any}, head_max::Float64)
+    reservoirs::Dict{String, <:Any}, tanks::Dict{String, <:Any},
+    head_offset::Float64, head_max::Float64)
     # Compute minimum and maximum head bounds for the node.
-    node["head_min"] = _calc_node_head_min(node, demands, reservoirs, tanks)
+    node["head_min"] = _calc_node_head_min(node, demands, reservoirs, tanks, head_offset)
     node["head_max"] = _calc_node_head_max(node, demands, reservoirs, tanks, head_max)
 end
 
 
 function _calc_node_head_min(
     node::Dict{String, <:Any}, demands::Dict{String, <:Any},
-    reservoirs::Dict{String, <:Any}, tanks::Dict{String, <:Any})
+    reservoirs::Dict{String, <:Any}, tanks::Dict{String, <:Any},
+    head_offset::Float64)
     # Get possible stored node head bound data.
     head_nominal = get(node, "head_nominal", -Inf)
     head_max = get(node, "head_max", -Inf)
@@ -72,7 +77,7 @@ function _calc_node_head_min(
         # Return the head associated with the minimum level.
         return max(node["elevation"] + min_level_min, head_min_base)
     elseif length(tanks) + length(demands) + length(reservoirs) == 0
-        return max(node["elevation"] - 5.0, head_min_base)
+        return max(node["elevation"] + head_offset, head_min_base)
     else
         return max(node["elevation"], head_min_base)
     end

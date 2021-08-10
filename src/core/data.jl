@@ -98,9 +98,11 @@ function _calc_head_per_unit_transform(data::Dict{String,<:Any})
     wm_data = get_wm_data(data)
 
     if haskey(wm_data, "base_head")
+        @assert wm_data["base_head"] > 0.0
         return x -> x / wm_data["base_head"]
     else
         median_midpoint = _calc_node_head_median_midpoint(wm_data)
+        @assert median_midpoint > 0.0
         return x -> x / median_midpoint
     end
 end
@@ -118,6 +120,7 @@ function _calc_time_per_unit_transform(data::Dict{String,<:Any})
     wm_data = get_wm_data(data)
 
     if haskey(wm_data, "base_time")
+        @assert wm_data["base_time"] > 0.0
         return x -> x / wm_data["base_time"]
     else
          # Translation: number of meters per WaterModels-length
@@ -199,6 +202,16 @@ function _remove_last_networks!(data::Dict{String, <:Any}; last_num_steps::Int =
     network_ids_exclude = network_ids[1:min(length(network_ids), last_num_steps)]
     network_ids_exclude_str = [string(x) for x in network_ids_exclude]
     data["nw"] = filter(x -> !(x.first in network_ids_exclude_str), data["nw"])
+end
+
+
+function _calc_head_offset(data::Dict{String, <:Any})
+    if data["per_unit"]
+        head_transform = _calc_head_per_unit_transform(data)
+        return head_transform(-100.0) # -100 meters of head, scaled.
+    else
+        return -100.0 # -100 meters of head, unscaled.
+    end
 end
 
 
