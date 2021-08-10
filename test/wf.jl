@@ -266,3 +266,21 @@ end
     result = WaterModels.run_mn_wf_switching(network_mn, LRDWaterModel, cbc)
     @test _is_valid_status(result["termination_status"])
 end
+
+
+@testset "solve_wf (with symmetric pumps)" begin
+    network = parse_file("../test/data/epanet/snapshot/pump-hw-lps-multiple.inp")
+    set_flow_partitions!(network, 1.0, 1.0e-4)
+    result = WaterModels.solve_wf(network, LRDWaterModel, cbc)
+    @test _is_valid_status(result["termination_status"])
+end
+
+
+@testset "solve_mn_wf (with symmetric pumps)" begin
+    network = parse_file("../test/data/epanet/multinetwork/pump-hw-lps-multiple.inp")
+    network_mn = WaterModels.make_multinetwork(network)
+    set_flow_partitions!(network_mn, 1.0, 1.0e-4)
+
+    result = WaterModels.solve_mn_wf(network_mn, LRDWaterModel, cbc)
+    @test _is_valid_status(result["termination_status"])
+end
