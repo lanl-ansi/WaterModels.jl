@@ -451,7 +451,7 @@ end
 
 
 function set_pump_warm_start!(data::Dict{String, <:Any})
-    InfrastructureModels.apply!(_set_pump_warm_start!, data, wm_it_name)
+    apply_wm!(_set_pump_warm_start!, data)
 end
 
 

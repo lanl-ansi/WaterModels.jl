@@ -35,6 +35,13 @@
         WaterModels.set_start!(mn_data, "pipe", "q", "q_pipe_start")
     end
 
+    @testset "set_warm_start! (multinetwork)" begin
+        network = WaterModels.parse_file("../examples/data/epanet/van_zyl.inp")
+        network_mn = WaterModels.make_multinetwork(network)
+        WaterModels.set_warm_start!(network_mn)
+        @test haskey(network_mn["nw"]["1"]["pipe"]["1"], "q_start")
+    end
+
     @testset "replicate" begin
         data = WaterModels.parse_file("../test/data/epanet/snapshot/pipe-hw-lps.inp")
         mn_data = WaterModels.replicate(data, 3)
