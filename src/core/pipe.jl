@@ -126,7 +126,7 @@ function set_pipe_flow_partition!(
     PolyhedralRelaxations._refine_partition!(uvf_data)
 
     # Set pipe flow partition using the above partitioning.
-    pipe["flow_partition"] = uvf_data.partition
+    pipe["flow_partition"] = Vector{Float64}(uvf_data.partition)
 end
 
 

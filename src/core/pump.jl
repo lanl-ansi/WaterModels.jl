@@ -48,7 +48,7 @@ function set_pump_flow_partition!(
     PolyhedralRelaxations._refine_partition!(uvf_data)
 
     # Set pump flow partition using the above partitioning.
-    pump["flow_partition"] = uvf_data.partition
+    pump["flow_partition"] = Vector{Float64}(uvf_data.partition)
 end 
 
 
@@ -377,7 +377,7 @@ function _calc_pump_power(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Arra
 end
 
 
-function _calc_pump_power_ua(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Array{Float64, 1})
+function _calc_pump_power_ua(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Vector{Float64})
     q_true, f_true = _calc_pump_power_points(wm, nw, pump_id, 100)
     f_interp = Interpolations.LinearInterpolation(q_true, f_true).(q)
 
@@ -427,7 +427,7 @@ function _calc_pump_power_quadratic_approximation(wm::AbstractWaterModel, nw::In
 end
 
 
-function _calc_efficiencies(points::Array{Float64}, curve::Array{Tuple{Float64, Float64}})
+function _calc_efficiencies(points::Array{Float64}, curve::Vector{Tuple{Float64, Float64}})
     q, eff = [[x[1] for x in curve], [x[2] for x in curve]]
     return Interpolations.LinearInterpolation(q, eff,
         extrapolation_bc=Interpolations.Flat()).(points)
