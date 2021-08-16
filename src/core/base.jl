@@ -238,7 +238,13 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any}, head_loss::String)
         ref[:nondispatchable_demand] = filter(x -> !x.second["dispatchable"], ref[:demand])
 
         # Identify groups of pumps with identical properties.
-        ref[:pump_group] = _build_pump_groups(ref[:pump])
+        pump_groups_new = _build_pump_groups(ref[:pump])
+
+        if haskey(ref, :pump_group)
+            ref[:pump_group] = merge(ref[:pump_group], pump_groups_new)
+        else
+            ref[:pump_group] = pump_groups_new
+        end
 
         # Set pump head gain functions and derivatives.
         _set_ref_pump_head_gain_properties!(ref[:pump])

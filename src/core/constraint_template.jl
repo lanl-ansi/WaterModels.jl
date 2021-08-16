@@ -594,7 +594,7 @@ function constraint_on_off_pump_group(
     pump_indices = ref(wm, nw, :pump_group, k, "pump_indices")
     _initialize_con_dict(wm, :on_off_pump_group, nw = nw, is_array = true)
     con(wm, nw, :on_off_pump_group)[k] = Array{JuMP.ConstraintRef}([])
-    constraint_on_off_pump_group(wm, nw, k, Set(pump_indices))
+    constraint_on_off_pump_group(wm, nw, k, Set{Int64}(pump_indices))
 end
 
 
