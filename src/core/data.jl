@@ -738,7 +738,7 @@ end
 
 
 function make_per_unit!(data::Dict{String,<:Any})
-    if data["per_unit"] == false
+    if get(data, "per_unit", false) == false
         # Precompute per-unit transformation functions.
         mass_transform = _calc_mass_per_unit_transform(data)
         time_transform = _calc_time_per_unit_transform(data)
