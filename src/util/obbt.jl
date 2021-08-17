@@ -291,7 +291,7 @@ function solve_obbt_owf!(
     Memento.info(_LOGGER, message)
 
     # Relax the network (e.g., make nodal components dispatchable) if requested.
-    use_relaxed_network && _relax_network!(data)
+    use_relaxed_network && relax_network!(data)
 
     # Set the problem specification that will be used for bound tightening.
     build_type = _IM.ismultinetwork(get_wm_data(data)) ? build_mn_wf : build_wf

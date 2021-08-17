@@ -13,6 +13,11 @@ function aggregate_nodes(subnetworks::Array{Dict{String, Any}, 1})
 end
 
 
+function relax_nodes!(data::Dict{String,Any})
+    apply_wm!(_relax_nodes!, data; apply_to_subnetworks = true)
+end
+
+
 function _relax_nodes!(data::Dict{String,<:Any})
     if !_IM.ismultinetwork(data)
         if haskey(data, "time_series") && haskey(data["time_series"], "node")
@@ -113,6 +118,11 @@ end
 
 function _calc_node_head_midpoint(node::Dict{String,Any})
     return 0.5 * (node["head_max"] + node["head_min"])
+end
+
+
+function calc_node_head_median_midpoint(data::Dict{String,Any})
+    apply_wm!(_calc_node_head_median_midpoint, data; apply_to_subnetworks = true)
 end
 
 
