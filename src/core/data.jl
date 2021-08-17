@@ -6,6 +6,42 @@ function apply_wm!(func!::Function, data::Dict{String, <:Any}; apply_to_subnetwo
 end
 
 
+function correct_enums!(data::Dict{String,<:Any})
+    correct_statuses!(data)
+    correct_flow_directions!(data)
+    correct_pump_head_curve_forms!(data)
+end
+
+
+function correct_flow_directions!(data::Dict{String,<:Any})
+    apply_wm!(_correct_flow_directions!, data; apply_to_subnetworks = true)
+end
+
+
+function _correct_flow_directions!(data::Dict{String,<:Any})
+    for component_type in ["pipe", "des_pipe", "short_pipe", "pump", "regulator", "valve"]
+        components = values(get(data, component_type, Dict{String,Any}()))
+        _correct_flow_direction!.(components)
+    end
+end
+
+
+function correct_statuses!(data::Dict{String,<:Any})
+    apply_wm!(_correct_statuses!, data; apply_to_subnetworks = true)
+end
+
+
+function _correct_statuses!(data::Dict{String,<:Any})
+    edge_types = ["pipe", "des_pipe", "short_pipe", "pump", "regulator", "valve"]
+    node_types = ["node", "demand", "reservoir", "tank", "reservoir"]
+
+    for component_type in vcat(edge_types, node_types)
+        components = values(get(data, component_type, Dict{String,Any}()))
+        _correct_status!.(components)
+    end
+end
+
+
 "WaterModels wrapper for the InfrastructureModels `get_data` function."
 function get_data_wm(func::Function, data::Dict{String, <:Any}; apply_to_subnetworks::Bool = true)
     return _IM.get_data(func, data, wm_it_name; apply_to_subnetworks = apply_to_subnetworks)

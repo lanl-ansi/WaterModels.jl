@@ -10,6 +10,7 @@ function parse_file(path::String; skip_correct::Bool = false)
         network_data = WaterModels.parse_epanet(path)
     elseif endswith(path, ".json")
         network_data = WaterModels.parse_json(path)
+        correct_enums!(network_data)
     else
         error("\"$(path)\" is not a valid file type.")
     end

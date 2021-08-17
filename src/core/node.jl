@@ -31,16 +31,14 @@ end
 
 
 function correct_nodes!(data::Dict{String, <:Any})
-    apply_wm!(_correct_nodes!, data; apply_to_subnetworks = true)
+    head_offset = _calc_head_offset(data)
+    apply_wm!(x -> _correct_nodes!(x, head_offset), data; apply_to_subnetworks = true)
 end
 
 
-function _correct_nodes!(data::Dict{String, <:Any})
+function _correct_nodes!(data::Dict{String, <:Any}, head_offset::Float64)
     # Compute a global estimate for maximum head.
-    head_max = _calc_head_max(data)
-
-    # Compute an offset for nodes allowed to have negative pressures.
-    head_offset = _calc_head_offset(data)
+    head_max = _calc_head_max(data)    
 
     for (idx, node) in data["node"]
         _correct_status!(node)

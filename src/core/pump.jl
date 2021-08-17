@@ -49,7 +49,18 @@ function set_pump_flow_partition!(
 
     # Set pump flow partition using the above partitioning.
     pump["flow_partition"] = Vector{Float64}(uvf_data.partition)
-end 
+end
+
+
+function correct_pump_head_curve_forms!(data::Dict{String,<:Any})
+    apply_wm!(_correct_pump_head_curve_forms!, data; apply_to_subnetworks = true)
+end
+
+
+function _correct_pump_head_curve_forms!(data::Dict{String,<:Any})
+    components = values(get(data, "pump", Dict{String,Any}()))
+    _correct_pump_head_curve_form!.(components)
+end
 
 
 function _correct_pump_head_curve_form!(pump::Dict{String, <:Any})
