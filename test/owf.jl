@@ -2,7 +2,7 @@
 for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LRDWaterModel, PWLRDWaterModel]
     @testset "Optimal Water Flow Problems (Single Network): $(formulation)" begin
         network = WaterModels.parse_file("../test/data/epanet/snapshot/pump-hw-lps.inp")
-        set_flow_partitions!(network, 1.0, 1.0e-4)
+        set_flow_partitions_si!(network, 10.0, 1.0e-4)
         t_h = WaterModels._calc_head_per_unit_transform(network)
 
         wm = instantiate_model(network, formulation, build_owf)
@@ -23,7 +23,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
 
         map(x -> x["head_curve_form"] = WaterModels.PUMP_BEST_EFFICIENCY_POINT, values(network["pump"]))
         WaterModels.recompute_bounds!(network) # Recompute component bounds after the above changes.
-        set_flow_partitions!(network, 1.0, 1.0e-4)
+        set_flow_partitions_si!(network, 10.0, 1.0e-4)
 
         wm = instantiate_model(network, formulation, build_owf)
         result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
@@ -43,7 +43,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
 
         map(x -> x["head_curve_form"] = PUMP_EPANET, values(network["pump"]))
         WaterModels.recompute_bounds!(network) # Recompute component bounds after the above changes.
-        set_flow_partitions!(network, 1.0, 1.0e-4)
+        set_flow_partitions_si!(network, 10.0, 1.0e-4)
 
         if !(formulation <: AbstractNonlinearModel)
             wm = instantiate_model(network, formulation, build_owf)
@@ -62,7 +62,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
     @testset "Optimal Water Flow Problems (Multinetwork): $(formulation)" begin
         network = WaterModels.parse_file("../test/data/epanet/multinetwork/owf-hw-lps.inp")
         network_mn = WaterModels.make_multinetwork(network)
-        set_flow_partitions!(network_mn, 1.0, 1.0e-4)
+        set_flow_partitions_si!(network_mn, 10.0, 1.0e-4)
 
         wm = instantiate_model(network_mn, formulation, build_mn_owf)
         result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
@@ -74,7 +74,7 @@ end
 
 @testset "solve_owf" begin
     network = WaterModels.parse_file("../test/data/epanet/snapshot/pump-hw-lps.inp")
-    set_flow_partitions!(network, 1.0, 1.0e-4)
+    set_flow_partitions_si!(network, 10.0, 1.0e-4)
 
     result = WaterModels.solve_owf(network, LRDWaterModel, cbc)
     result = WaterModels.run_owf(network, LRDWaterModel, cbc)
@@ -85,7 +85,7 @@ end
 @testset "solve_mn_owf" begin
     network = WaterModels.parse_file("../test/data/epanet/multinetwork/owf-hw-lps.inp")
     network_mn = WaterModels.make_multinetwork(network)
-    set_flow_partitions!(network_mn, 1.0, 1.0e-4)
+    set_flow_partitions_si!(network_mn, 10.0, 1.0e-4)
 
     result = WaterModels.solve_mn_owf(network_mn, LRDWaterModel, cbc)
     result = WaterModels.run_mn_owf(network_mn, LRDWaterModel, cbc)

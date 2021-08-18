@@ -2,7 +2,7 @@
 for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LRDWaterModel, PWLRDWaterModel]
     @testset "Network Design Problems: $(formulation)" begin
         network = parse_file("../test/data/json/shamir.json")
-        set_flow_partitions!(network, 1.0, 1.0e-4)
+        set_flow_partitions_si!(network, 10.0, 1.0e-4)
 
         @testset "Shamir Network Design (Reduced): $(formulation)" begin
             wm = instantiate_model(network, formulation, build_des)
@@ -15,7 +15,7 @@ end
 
 @testset "solve_des" begin
     network = WaterModels.parse_file("../test/data/json/shamir.json")
-    set_flow_partitions!(network, 1.0, 1.0e-4)
+    set_flow_partitions_si!(network, 10.0, 1.0e-4)
 
     result = WaterModels.solve_des(network, LRDWaterModel, cbc)
     result = WaterModels.run_des(network, LRDWaterModel, cbc)
