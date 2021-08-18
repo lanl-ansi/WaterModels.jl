@@ -34,7 +34,7 @@ data = parse_file("examples/data/json/shamir.json")
 Since we are using a linearization-based formulation of the problem, it is important to specify the partitioning of flows that parameterize the formulation.
 Here, we initialize linearization flow partitions that assume a head loss error tolerance of one meter, with widths between flow points no greater than 1.0e-4 cubic meters per second:
 ```julia
-set_flow_partitions!(data, 1.0, 1.0e-4)
+set_flow_partitions_si!(data, 1.0, 1.0e-4)
 ```
 
 Finally, the PWLRD formulation for the network design specification can be solved using
@@ -50,7 +50,7 @@ data["des_pipe"]["3"]["flow_partition"]
 
 The relaxation can be more finely discretized by using a smaller head loss error tolerance, e.g.,
 ```julia
-set_flow_partitions!(data, 0.05, 1.0e-4)
+set_flow_partitions_si!(data, 0.05, 1.0e-4)
 ```
 
 We can then solve the problem with the updated partitioning scheme via
@@ -67,7 +67,7 @@ Instead of using piecewise-linear envelopes, head loss curves can also be simply
 This formulation employs less strict requirements and avoids the use of binary variables for piecewise approximation, but solutions (e.g., diameters) may not be as close to feasibility with respect to the full (nonconvex) water network physics.
 To solve an LRD formulation of the problem using an even finer flow partitioning scheme, the following can be executed:
 ```julia
-set_flow_partitions!(data, 0.004, 1.0e-4)
+set_flow_partitions_si!(data, 0.004, 1.0e-4)
 solve_des(data, LRDWaterModel, Cbc.Optimizer)
 ```
 
@@ -76,7 +76,7 @@ This relaxation of the problem turns out to converge to the known globally optim
 ## Obtaining Results
 For the rest of this tutorial, we will first assume a coarser relaxation by resetting the flow partitions as
 ```julia
-set_flow_partitions!(data, 1.0, 1.0e-4)
+set_flow_partitions_si!(data, 1.0, 1.0e-4)
 ```
 
 The `run` commands in WaterModels return detailed results data in the form of a Julia `Dict`.

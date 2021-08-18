@@ -46,7 +46,7 @@ network = parse_file("examples/data/epanet/shamir.inp")
 
 # Set linearization partitioning points that assume a head loss error tolerance of one
 # meter, with widths between flow points no greater than 1.0e-4 cubic meters per second.
-set_flow_partitions!(network, 1.0, 1.0e-4)
+set_flow_partitions_si!(network, 1.0, 1.0e-4)
 
 # Solve the corresponding relaxation of the water flow problem.
 result = solve_wf(network, PWLRDWaterModel, Cbc.Optimizer)

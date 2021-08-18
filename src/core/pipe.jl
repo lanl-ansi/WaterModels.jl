@@ -36,7 +36,6 @@ function _correct_pipes!(data::Dict{String, <:Any}, head_loss::String, viscosity
     base_length = get(data, "base_length", 1.0)
     base_mass = get(data, "base_mass", 1.0)
     base_time = get(data, "base_time", 1.0)
-    
 
     for pipe in values(data["pipe"])
          # Get common connecting node data for later use.
@@ -122,7 +121,7 @@ function set_pipe_flow_partition!(
     # Use PolyhedralRelaxations to determine partitions with desired accuracy.
     uvf_data = PolyhedralRelaxations.UnivariateFunctionData(
         f, f_dash, partition, error_tolerance,
-        length_tolerance, 1.0e-6, 9e9, length(partition))
+        length_tolerance, 1.0e-12, 9e9, length(partition))
     PolyhedralRelaxations._refine_partition!(uvf_data)
 
     # Set pipe flow partition using the above partitioning.

@@ -54,21 +54,22 @@ function get_wm_data(data::Dict{String, <:Any})
 end
 
 
-function set_flow_partitions!(data::Dict{String, <:Any}, error_tolerance::Float64, length_tolerance::Float64)
+function set_flow_partitions_si!(data::Dict{String, <:Any}, error_tolerance::Float64, length_tolerance::Float64)
     head_loss, viscosity = data["head_loss"], data["viscosity"]
+    base_flow = get(data, "base_flow", 1.0)
     base_length = get(data, "base_length", 1.0)
     base_mass = get(data, "base_mass", 1.0)
     base_time = get(data, "base_time", 1.0)
 
-    func! = x -> _set_flow_partitions!(
-        x, error_tolerance, length_tolerance,
+    func! = x -> _set_flow_partitions_si!(
+        x, error_tolerance / base_length, length_tolerance / base_flow,
         head_loss, viscosity, base_length, base_mass, base_time)
 
     apply_wm!(func!, data; apply_to_subnetworks = true)
 end
 
 
-function _set_flow_partitions!(
+function _set_flow_partitions_si!(
     data::Dict{String, <:Any}, error_tolerance::Float64, length_tolerance::Float64,
     head_loss::String, viscosity::Float64, base_length::Float64, base_mass::Float64, base_time::Float64)
     # Set partitions for all pipes in the network.
