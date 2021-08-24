@@ -55,17 +55,19 @@ end
 
 
 function set_flow_partitions_si!(data::Dict{String, <:Any}, error_tolerance::Float64, length_tolerance::Float64)
-    head_loss, viscosity = data["head_loss"], data["viscosity"]
-    base_flow = get(data, "base_flow", 1.0)
-    base_length = get(data, "base_length", 1.0)
-    base_mass = get(data, "base_mass", 1.0)
-    base_time = get(data, "base_time", 1.0)
+    wm_data = get_wm_data(data)
+
+    head_loss, viscosity = wm_data["head_loss"], wm_data["viscosity"]
+    base_flow = get(wm_data, "base_flow", 1.0)
+    base_length = get(wm_data, "base_length", 1.0)
+    base_mass = get(wm_data, "base_mass", 1.0)
+    base_time = get(wm_data, "base_time", 1.0)
 
     func! = x -> _set_flow_partitions_si!(
         x, error_tolerance / base_length, length_tolerance / base_flow,
         head_loss, viscosity, base_length, base_mass, base_time)
 
-    apply_wm!(func!, data; apply_to_subnetworks = true)
+    apply_wm!(func!, wm_data; apply_to_subnetworks = true)
 end
 
 
