@@ -226,14 +226,15 @@ end
 
 
 function _log_bound_widths(data::Dict{String,<:Any})
-    message = ""
+    wm_data = get_wm_data(data)
 
-    message *= _log_node_bound_width(data, "node")    
-    message *= _log_flow_bound_width(data, "pipe")
-    message *= _log_flow_bound_width(data, "short_pipe")
-    message *= _log_flow_bound_width(data, "valve")
-    message *= _log_forward_flow_bound_width(data, "pump")
-    message *= _log_forward_flow_bound_width(data, "regulator")
+    message = ""
+    message *= _log_node_bound_width(wm_data, "node")    
+    message *= _log_flow_bound_width(wm_data, "pipe")
+    message *= _log_flow_bound_width(wm_data, "short_pipe")
+    message *= _log_flow_bound_width(wm_data, "valve")
+    message *= _log_forward_flow_bound_width(wm_data, "pump")
+    message *= _log_forward_flow_bound_width(wm_data, "regulator")
 
     return message
 end
