@@ -286,6 +286,7 @@ function solve_obbt_owf!(
     model_type::Type = PWLRDWaterModel, time_limit::Float64 = 3600.0,
     upper_bound::Float64 = Inf, upper_bound_constraint::Bool = false,
     max_iter::Int = 100, solve_relaxed::Bool = true,
+    flow_partition_func::Function = x -> set_flow_partitions_si!(x, 1.0, 1.0e-4),
     limit_problems::Bool = false, kwargs...)
     # Print a message with relevant algorithm limit information.
     message = "[OBBT] Maximum time limit set to default value of $(time_limit) seconds."
@@ -339,7 +340,7 @@ function solve_obbt_owf!(
 
         time_elapsed > time_limit && ((terminate = true) && break)
         _update_data_bounds!(data, bound_problems)
-        set_flow_partitions_si!(data, 1.0, 1.0e-4)
+        flow_partition_func(data)
         !terminate && _clean_bound_problems!(bound_problems, vals)
 
         # Log widths.
