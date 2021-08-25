@@ -37,7 +37,8 @@ function _variable_component_flow(
     comp_sym = Symbol(component_name)
 
     # Initialize the variables. (The default start value of _FLOW_MIN is crucial.)
-    flow_transform = _calc_flow_per_unit_transform(wm.data)
+    wm_data = get_wm_data(wm.data)
+    flow_transform = _calc_flow_per_unit_transform(wm_data)
     flow_min_scaled = flow_transform(_FLOW_MIN)
 
     q =

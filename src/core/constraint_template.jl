@@ -298,10 +298,12 @@ function constraint_pipe_head_loss(
 )
     node_fr, node_to = ref(wm, nw, :pipe, a)["node_fr"], ref(wm, nw, :pipe, a)["node_to"]
     exponent, L = ref(wm, nw, :alpha), ref(wm, nw, :pipe, a)["length"]
-    head_loss, viscosity = wm.data["head_loss"], wm.data["viscosity"]
-    base_length = get(wm.data, "base_length", 1.0)
-    base_mass = get(wm.data, "base_mass", 1.0)
-    base_time = get(wm.data, "base_time", 1.0)
+
+    wm_data = get_wm_data(wm.data)
+    head_loss, viscosity = wm_data["head_loss"], wm_data["viscosity"]
+    base_length = get(wm_data, "base_length", 1.0)
+    base_mass = get(wm_data, "base_mass", 1.0)
+    base_time = get(wm_data, "base_time", 1.0)
 
     r = _calc_pipe_resistance(
         ref(wm, nw, :pipe, a),
@@ -455,9 +457,11 @@ function constraint_on_off_des_pipe_head_loss(
     viscosity = wm.ref[:it][wm_it_sym][:viscosity]
 
     exponent = _get_exponent_from_head_loss_form(head_loss)
-    base_length = get(wm.data, "base_length", 1.0)
-    base_mass = get(wm.data, "base_mass", 1.0)
-    base_time = get(wm.data, "base_time", 1.0)
+
+    wm_data = get_wm_data(wm.data)
+    base_length = get(wm_data, "base_length", 1.0)
+    base_mass = get(wm_data, "base_mass", 1.0)
+    base_time = get(wm_data, "base_time", 1.0)
 
     r = _calc_pipe_resistance(des_pipe, head_loss, viscosity, base_length, base_mass, base_time)
     q_max_reverse = min(get(des_pipe, "flow_max_reverse", 0.0), 0.0)
@@ -491,7 +495,8 @@ function constraint_on_off_pump_flow(
     kwargs...,
 )
     node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
-    flow_transform = _calc_flow_per_unit_transform(wm.data)
+    wm_data = get_wm_data(wm.data)
+    flow_transform = _calc_flow_per_unit_transform(wm_data)
     q_min_forward = max(
         get(ref(wm, nw, :pump, a), "flow_min_forward", flow_transform(_FLOW_MIN)),
         flow_transform(_FLOW_MIN),
@@ -524,7 +529,9 @@ function constraint_on_off_pump_head_gain(
     kwargs...,
 )
     node_fr, node_to = ref(wm, nw, :pump, a)["node_fr"], ref(wm, nw, :pump, a)["node_to"]
-    flow_transform = _calc_flow_per_unit_transform(wm.data)
+
+    wm_data = get_wm_data(wm.data)
+    flow_transform = _calc_flow_per_unit_transform(wm_data)
     q_min_forward = max(
         get(ref(wm, nw, :pump, a), "flow_min_forward", flow_transform(_FLOW_MIN)),
         flow_transform(_FLOW_MIN),
@@ -548,7 +555,8 @@ function constraint_on_off_pump_power(
     nw::Int = nw_id_default,
     kwargs...,
 )
-    flow_transform = _calc_flow_per_unit_transform(wm.data)
+    wm_data = get_wm_data(wm.data)
+    flow_transform = _calc_flow_per_unit_transform(wm_data)
     q_min_forward = max(
         get(ref(wm, nw, :pump, a), "flow_min_forward", flow_transform(_FLOW_MIN)),
         flow_transform(_FLOW_MIN),
@@ -560,8 +568,9 @@ function constraint_on_off_pump_power(
     if ref(wm, nw, :pump, a)["head_curve_form"] in [PUMP_QUADRATIC, PUMP_EPANET]
         constraint_on_off_pump_power(wm, nw, a, q_min_forward)
     elseif ref(wm, nw, :pump, a)["head_curve_form"] == PUMP_BEST_EFFICIENCY_POINT
-        density = _calc_scaled_density(wm.data)
-        gravity = _calc_scaled_gravity(wm.data)
+        wm_data = get_wm_data(wm.data)
+        density = _calc_scaled_density(wm_data)
+        gravity = _calc_scaled_gravity(wm_data)
         constraint_on_off_pump_power_best_efficiency(
             wm,
             nw,
@@ -716,7 +725,8 @@ function constraint_on_off_regulator_flow(
     nw::Int = nw_id_default,
     kwargs...,
 )
-    flow_transform = _calc_flow_per_unit_transform(wm.data)
+    wm_data = get_wm_data(wm.data)
+    flow_transform = _calc_flow_per_unit_transform(wm_data)
     q_min_forward = max(
         get(ref(wm, nw, :regulator, a), "flow_min_forward", flow_transform(_FLOW_MIN)),
         flow_transform(_FLOW_MIN),

@@ -108,7 +108,9 @@ function _variable_component_flow(
     # Store the corresponding component symbol.
     comp_sym = Symbol(component_name)
 
-    flow_transform = _calc_flow_per_unit_transform(wm.data)
+    # Get the transformed minimum flow.
+    wm_data = get_wm_data(wm.data)
+    flow_transform = _calc_flow_per_unit_transform(wm_data)
     flow_min_scaled = flow_transform(_FLOW_MIN)
 
     # Initialize variables associated with positive flows.

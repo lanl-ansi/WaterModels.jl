@@ -54,6 +54,38 @@ function get_wm_data(data::Dict{String, <:Any})
 end
 
 
+function set_flow_partitions_num!(data::Dict{String, <:Any}, num_points::Int)
+    wm_data = get_wm_data(data)
+    func! = x -> _set_flow_partitions_num!(x, num_points)
+    apply_wm!(func!, wm_data; apply_to_subnetworks = true)
+end
+
+
+function _set_flow_partitions_num!(data::Dict{String, <:Any}, num_points::Int)
+    for pipe in values(get(data, "pipe", Dict{String, Any}()))
+        flow_min, flow_max = pipe["flow_min"], pipe["flow_max"]
+
+        if flow_min < flow_max
+            partition = range(flow_min, flow_max; length = num_points)
+            pipe["flow_partition"] = collect(partition)
+        else
+            pipe["flow_partition"] = [flow_min]
+        end
+    end
+
+    for pump in values(get(data, "pump", Dict{String, Any}()))
+        flow_min, flow_max = pump["flow_min_forward"], pump["flow_max"]
+
+        if flow_min < flow_max
+            partition = range(flow_min, flow_max; length = num_points)
+            pump["flow_partition"] = collect(partition)
+        else
+            pump["flow_partition"] = [flow_min]
+        end
+    end
+end
+
+
 function set_flow_partitions_si!(data::Dict{String, <:Any}, error_tolerance::Float64, length_tolerance::Float64)
     wm_data = get_wm_data(data)
 
@@ -302,7 +334,7 @@ function _calc_capacity_max(data::Dict{String, <:Any})
         surface_area = 0.25 * pi * tank["diameter"]^2
         volume_min = max(tank["min_vol"], surface_area * tank["min_level"])
         volume_max = surface_area * tank["max_level"]
-        capacity += (volume_max - volume_min) * inv(wm_data["time_step"])
+        capacity += (volume_max - volume_min) / wm_data["time_step"]
     end
 
     # Return the maximum capacity of the network.

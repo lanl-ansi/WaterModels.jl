@@ -1,6 +1,8 @@
 function _IM.solution_preprocessor(wm::AbstractWaterModel, solution::Dict)
+    wm_data = get_wm_data(wm.data)
     solution["it"][wm_it_name]["per_unit"] =
-        get_data_wm((x -> return x["per_unit"]), wm.data; apply_to_subnetworks = false)
+        get_data_wm((x -> return x["per_unit"]),
+        wm_data; apply_to_subnetworks = false)
 
     solution["it"][wm_it_name]["multinetwork"] = ismultinetwork(wm)
     solution["it"][wm_it_name]["base_flow"] = wm.ref[:it][wm_it_sym][:base_flow]
