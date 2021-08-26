@@ -22,6 +22,13 @@
         @test length(network_agg["nw"]) == 2
     end
 
+    @testset "set_flow_partitions_num!" begin
+        data = WaterModels.parse_file("../examples/data/epanet/van_zyl.inp")
+        WaterModels.set_flow_partitions_num!(data, 5)
+        @test length(data["pipe"]["1"]["flow_partition"]) == 5
+        @test length(data["pump"]["1"]["flow_partition"]) == 5
+    end
+
     @testset "set_start! (single network)" begin
         data = WaterModels.parse_file("../test/data/epanet/snapshot/pipe-hw-lps.inp")
         data["pipe"]["1"]["q"] = 1.0 # Set the flow along the pipe.
