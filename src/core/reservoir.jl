@@ -36,3 +36,15 @@ function _fix_reservoirs!(data::Dict{String, <:Any})
         map(x -> _fix_reservoir!(x), values(data["reservoir"]))
     end
 end
+
+
+function set_reservoir_warm_start!(data::Dict{String, <:Any})
+    apply_wm!(_set_reservoir_warm_start!, data)
+end
+
+
+function _set_reservoir_warm_start!(data::Dict{String, <:Any})
+    for reservoir in values(data["reservoir"])
+        reservoir["q_reservoir_start"] = get(reservoir, "q", 0.0)
+    end
+end

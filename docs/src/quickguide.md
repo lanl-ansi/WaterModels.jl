@@ -1,7 +1,7 @@
 # Quick Start Guide
-The following guide walks through the solution of a water network design (`des`) problem using two mixed-integer linear programming formulations (PWLRD and LRD) of the problem specification.
-This is to enable solution using the readily-available open-source mixed-integer linear programming solver [Cbc](https://github.com/JuliaOpt/Cbc.jl).
-Other formulations rely on the availability of mixed-integer nonlinear programming solvers that support [user-defined nonlinear functions in JuMP](http://www.juliaopt.org/JuMP.jl/dev/nlp/#User-defined-Functions-1).
+The following guide walks through the solution of a water network design (`des`) problem using two mixed-integer linear programming (MILP) formulations (PWLRD and LRD) of the problem specification.
+This is to enable solution using the readily-available open-source MILP solver [Cbc](https://github.com/JuliaOpt/Cbc.jl).
+Other formulations rely on the availability of mixed-integer nonlinear programming (MINLP) solvers that support [user-defined nonlinear functions in JuMP](http://www.juliaopt.org/JuMP.jl/dev/nlp/#User-defined-Functions-1).
 However, these solvers (e.g., [Juniper](https://github.com/lanl-ansi/Juniper.jl), [KNITRO](https://github.com/JuliaOpt/KNITRO.jl)) either require additional effort to register user-defined functions or are proprietary and require a commercial license.
 
 ## Installation
@@ -26,10 +26,15 @@ Here, `shamir.json` is a JSON file specifying the network, as well as possible p
 The file provides the required information to set up a corresponding network design problem, where the goal is to select the most cost-efficient pipe diameters while satisfying all demand in the network.
 
 To read in the data, execute the following:
-
 ```julia
 using WaterModels
 data = parse_file("examples/data/json/shamir.json")
+```
+
+Since we are using a linearization-based formulation of the problem, it is important to specify the partitioning of flows that parameterize the formulation.
+Here, we initialize linearization flow partitions that assume a head loss error tolerance of fifty meters, with widths between flow points no greater than 1.0e-4 cubic meters per second:
+```julia
+set_flow_partitions_si!(data, 50.0, 1.0e-4)
 ```
 
 Finally, the PWLRD formulation for the network design specification can be solved using
@@ -38,33 +43,49 @@ import Cbc
 solve_des(data, PWLRDWaterModel, Cbc.Optimizer)
 ```
 
-By default, two breakpoints are used for the linear approximation of each directed head loss curve.
-These approximations can be more finely discretized by using additional arguments to the `solve_des` function.
-For example, to employ five breakpoints per head loss curve in this formulation, the following can be executed:
+The above flow partitioning, however, is somewhat coarse, and the number of points in each partition is typically three, e.g.,
+```julia
+data["des_pipe"]["3"]["flow_partition"]
+```
+
+The relaxation can be more finely discretized by using a smaller head loss error tolerance, e.g.,
+```julia
+set_flow_partitions_si!(data, 5.0, 1.0e-4)
+```
+
+We can then solve the problem with the updated partitioning scheme via
 ```julia
 import JuMP
 cbc = JuMP.optimizer_with_attributes(Cbc.Optimizer, "seconds" => 30.0)
-solve_des(data, PWLRDWaterModel, cbc, ext=Dict(:pipe_breakpoints=>5))
+solve_des(data, PWLRDWaterModel, cbc)
 ```
+
 Note that this formulation takes much longer to solve to global optimality due to the use of more binary variables.
 However, because of the finer discretization, a better approximation of the physics is attained.
 
 Instead of using piecewise-linear envelopes, head loss curves can also be simply outer-approximated via the LRD formulation.
 This formulation employs less strict requirements and avoids the use of binary variables for piecewise approximation, but solutions (e.g., diameters) may not be as close to feasibility with respect to the full (nonconvex) water network physics.
-To employ five outer approximation points per directed head loss curve in this formulation, the following can be executed:
+To solve an LRD formulation of the problem using an even finer flow partitioning scheme (but without piecewise inner head loss approximations), the following can be executed:
 ```julia
-solve_des(data, LRDWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>5))
+set_flow_partitions_si!(data, 0.5, 1.0e-4)
+solve_des(data, LRDWaterModel, Cbc.Optimizer)
 ```
+
 This relaxation of the problem turns out to converge to the known globally optimal objective value.
 
 ## Obtaining Results
+For the rest of this tutorial, we will first assume a coarser relaxation by resetting the flow partitions as
+```julia
+set_flow_partitions_si!(data, 50.0, 1.0e-4)
+```
+
 The `run` commands in WaterModels return detailed results data in the form of a Julia `Dict`.
 This dictionary can be saved for further processing as follows:
 ```julia
 result = solve_des(data, LRDWaterModel, Cbc.Optimizer)
 ```
 
-For example, the algorithm's runtime and final objective value can be accessed with,
+For example, the algorithm's runtime and final objective value can be accessed with
 ```
 result["solve_time"]
 result["objective"]
@@ -89,9 +110,10 @@ pipes_subset = filter(x -> x.first in keys(pipes_selected), data["des_pipe"])
 For more information about WaterModels result data see the [WaterModels Result Data Format](@ref) section.
 
 ## Accessing Different Formulations
-The MILP formulations discussed above assume access to a mixed-integer programming (MIP) solver.
-Mixed-integer nonconvex formulations can be solved with dedicated solvers, as well.
-For example, the full mixed-integer nonconvex formulation for design (NC) can be solved via
+The MILP formulations discussed above assume access to a MILP solver.
+Mixed-integer nonconvex nonlinear programming (MINCP) formulations can be solved with dedicated solvers, as well.
+For example, the MINCP formulation for design (NC) can be solved via
+
 ```julia
 import KNITRO
 solve_des(data, NCWaterModel, KNITRO.Optimizer)
@@ -100,15 +122,16 @@ solve_des(data, NCWaterModel, KNITRO.Optimizer)
 ## Modifying Network Data
 The following example demonstrates one way to perform multiple WaterModels solves while modifying network data:
 ```julia
-solve_des(data, LRDWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>3))
+solve_des(data, LRDWaterModel, Cbc.Optimizer)
 
 data["demand"]["3"]["flow_min"] *= 0.5
 data["demand"]["3"]["flow_max"] *= 0.5
 data["demand"]["3"]["flow_nominal"] *= 0.5
 
-solve_des(data, LRDWaterModel, Cbc.Optimizer, ext=Dict(:pipe_breakpoints=>3))
+solve_des(data, LRDWaterModel, Cbc.Optimizer)
 ```
-Note that the smaller demands in the second problem result in an overall smaller network cost.
+
+Note that the smaller demands in the second problem result in an overall smaller design cost.
 For additional details about the network data, see the [WaterModels Network Data Format](@ref) section.
 
 ## Alternative Methods for Building and Solving Models
@@ -117,7 +140,7 @@ This allows inspection of the JuMP model created by WaterModels for the problem.
 ```julia
 wm = instantiate_model(data, LRDWaterModel, WaterModels.build_des);
 
-print(wm.model)
+println(wm.model)
 
-result = WaterModels._IM.optimize_model!(wm, optimizer=Cbc.Optimizer)
+result = optimize_model!(wm, optimizer = Cbc.Optimizer)
 ```

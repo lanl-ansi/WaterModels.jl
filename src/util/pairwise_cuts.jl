@@ -175,10 +175,15 @@ end
 
 function _add_pairwise_cuts!(wm::AbstractWaterModel, cuts::Array{_PairwiseCut, 1})
     for cut in cuts
-        v_1 = _get_variable_from_index(wm, cut.variable_index_1)
-        v_2 = _get_variable_from_index(wm, cut.variable_index_2)
-        expr = cut.coefficient_1 * v_1 + cut.coefficient_2 * v_2 + cut.constant
-        c = JuMP.@constraint(wm.model, expr <= 0.0)
+        has_v_1 = _model_has_variable_index(wm, cut.variable_index_1)
+        has_v_2 = _model_has_variable_index(wm, cut.variable_index_2)
+
+        if has_v_1 && has_v_2
+            v_1 = _get_variable_from_index(wm, cut.variable_index_1)
+            v_2 = _get_variable_from_index(wm, cut.variable_index_2)
+            expr = cut.coefficient_1 * v_1 + cut.coefficient_2 * v_2 + cut.constant
+            JuMP.@constraint(wm.model, expr <= 0.0)
+        end
     end
 end
 

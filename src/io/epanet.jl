@@ -173,7 +173,7 @@ end
 
 function _update_time_series!(data::Dict{String,<:Any})
     duration, time_step = data["duration"], data["hydraulic_time_step"]
-    num_steps = convert(Int64, floor(duration * inv(time_step)))
+    num_steps = convert(Int64, floor(duration * inv(time_step))) + 1
     data["time_step"] = convert(Float64, time_step)
 
     if num_steps >= 1 && keys(data["pattern"]) != ["1"]
@@ -186,7 +186,7 @@ function _update_time_series!(data::Dict{String,<:Any})
         data["time_series"]["num_steps"] = num_steps
 
         for pattern in keys(data["pattern"])
-            if !(length(data["pattern"][pattern]) in [1, num_steps])
+            if !(length(data["pattern"][pattern]) in [1, num_steps - 1])
                 Memento.error(_LOGGER, "Pattern \"$(pattern)\" is of the wrong length.")
             end
         end
@@ -210,11 +210,13 @@ function _transform_component_indices(components::Dict{String,<:Any})
     return Dict{String,Any}(string(x["index"]) => x for (i, x) in components)
 end
 
+
 "Standardize component time series indices to match primary indices."
 function _transform_time_series_indices(components::Dict{String,<:Any}, time_series::Dict{String,<:Any})
     name_to_index = Dict{String,String}(x["name"] => i for (i, x) in components)
     return Dict{String,Any}(name_to_index[i] => x for (i, x) in time_series)
 end
+
 
 function _update_demand_ts!(data::Dict{String,<:Any})
     # Create a temporary dictionary representing the demand time series.
@@ -491,7 +493,7 @@ function _read_energy!(data::Dict{String,<:Any})
         if uppercase(current[1]) == "GLOBAL"
             # Read global energy data (e.g., price, default pump efficiency).
             if uppercase(current[2]) == "PRICE"
-                data["energy_price"] = 2.778e-7 * parse(Float64, current[3])
+                data["energy_price"] = inv(3.6e6) * parse(Float64, current[3])
             elseif uppercase(current[2]) == "PATTERN"
                 data["energy_pattern"] = current[3]
             elseif uppercase(current[2]) in ["EFFIC", "EFFICIENCY"]
@@ -510,7 +512,7 @@ function _read_energy!(data::Dict{String,<:Any})
             if uppercase(current[3]) == "PRICE"
                 # Parse the cost of pump operation.
                 price = parse(Float64, current[4]) # Price per kilowatt hour.
-                pump["energy_price"] = price * 2.778e-7 # Price per Joule.
+                pump["energy_price"] = price * inv(3.6e6) # Price per Joule.
             elseif uppercase(current[3]) == "PATTERN"
                 # Read in the pattern for scaling the pump's energy price.
                 pump["energy_pattern"] = current[4]
@@ -610,6 +612,7 @@ function _update_pump_energy!(data::Dict{String,<:Any})
             # Build the pattern of prices using existing data.
             pattern_name = pump["energy_pattern"]
             price_pattern = pump["energy_price"] .* data["pattern"][pattern_name]
+            push!(price_pattern, minimum(price_pattern))
 
             # Add the varying price data to the pump time series entry.
             entry = Dict{String,Array{Float64}}("energy_price" => price_pattern)
@@ -636,7 +639,7 @@ function _read_demand!(data::Dict{String,<:Any})
         length(current) == 0 && continue # Skip.
 
         # Initialize the demand entry to be added.
-        demand = Dict{String,Any}("name" => current[1], "status" => 1)
+        demand = Dict{String,Any}("name" => current[1], "status" => STATUS_ACTIVE)
         demand["source_id"] = ["demand", current[1]]
         demand["dispatchable"] = false
 
@@ -668,7 +671,7 @@ function _read_demand!(data::Dict{String,<:Any})
                 demand["flow_nominal"] = 6.30902e-5 * demand_unscaled
             end
         else # No value for demand exists in the line.
-            demand["status"] = 0 # Set the status of the demand to zero.
+            demand["status"] = STATUS_INACTIVE # Set the status of the demand to zero.
             demand["flow_nominal"] = 0.0 # Initialize demand to zero.
         end
 
@@ -681,10 +684,15 @@ function _read_demand!(data::Dict{String,<:Any})
         # Scale the parsed demand by the specified pattern, if it exists.
         if pattern !== nothing && length(data["pattern"][pattern]) > 1
             flow_rate = demand["flow_nominal"] .* data["pattern"][pattern]
+            push!(flow_rate, minimum(flow_rate))
+
             entry = Dict{String,Array{Float64}}("flow_nominal" => flow_rate)
             entry["flow_min"] = entry["flow_nominal"]
             entry["flow_max"] = entry["flow_nominal"]
             data["time_series"]["demand"][current[1]] = entry
+
+            demand["flow_min"] = minimum(entry["flow_min"])
+            demand["flow_max"] = maximum(entry["flow_max"])
         elseif pattern !== nothing && pattern != "1"
             demand["flow_nominal"] *= data["pattern"][pattern][1]
             demand["flow_min"] = demand["flow_nominal"]
@@ -832,7 +840,7 @@ function _read_pipe!(data::Dict{String,<:Any})
         length(current) == 0 && continue # Skip.
 
         # Initialize the pipe entry to be added.
-        pipe = Dict{String,Any}("name" => current[1], "status" => 1)
+        pipe = Dict{String,Any}("name" => current[1], "status" => STATUS_ACTIVE)
         pipe["source_id"] = ["pipe", current[1]]
         pipe["node_fr"] = data["node_map"][current[2]]
         pipe["node_to"] = data["node_map"][current[3]]
@@ -875,7 +883,7 @@ function _read_pipe!(data::Dict{String,<:Any})
 
         # Derive important metadata from existing data.
         pipe["has_valve"] = uppercase(current[8]) in ["CV", "CLOSED"]
-        pipe["flow_direction"] = uppercase(current[8]) == "CV" ? POSITIVE : UNKNOWN
+        pipe["flow_direction"] = uppercase(current[8]) == "CV" ? FLOW_DIRECTION_POSITIVE : FLOW_DIRECTION_UNKNOWN
 
         # Add a temporary index to be used in the data dictionary.
         pipe["index"] = string(index += 1)
@@ -902,7 +910,7 @@ function _read_pump!(data::Dict{String,<:Any})
         length(current) == 0 && continue # Skip.
 
         # Initialize the pipe entry to be added.
-        pump = Dict{String,Any}("name" => current[1], "status" => 1)
+        pump = Dict{String,Any}("name" => current[1], "status" => STATUS_UNKNOWN)
         pump["source_id"] = ["pump", current[1]]
         pump["node_fr"] = data["node_map"][current[2]]
         pump["node_to"] = data["node_map"][current[3]]
@@ -940,7 +948,7 @@ function _read_pump!(data::Dict{String,<:Any})
         end
 
         # Flow is always in the positive direction for pumps.
-        pump["flow_direction"] = POSITIVE
+        pump["flow_direction"] = FLOW_DIRECTION_POSITIVE
 
         # Add a temporary index to be used in the data dictionary.
         pump["index"] = string(index += 1)
@@ -969,7 +977,7 @@ function _read_reservoir!(data::Dict{String,<:Any})
         length(current) == 0 && continue # Skip.
 
         # Initialize the reservoir entry to be added.
-        reservoir = Dict{String,Any}("name" => current[1], "status" => 1)
+        reservoir = Dict{String,Any}("name" => current[1], "status" => STATUS_ACTIVE)
         reservoir["source_id"] = ["reservoir", current[1]]
         reservoir["dispatchable"] = false
 
@@ -991,10 +999,15 @@ function _read_reservoir!(data::Dict{String,<:Any})
         # reservoir's elevation is equal to the minimum value of head presented in the data.
         if pattern !== nothing && length(data["pattern"][pattern]) > 1
             head = reservoir["head_nominal"] .* data["pattern"][pattern]
+            push!(head, maximum(head))
+
             entry = Dict{String,Array{Float64}}("head_nominal" => head)
             entry["head_min"] = entry["head_nominal"]
             entry["head_max"] = entry["head_nominal"]
             data["time_series"]["reservoir"][current[1]] = entry
+
+            reservoir["head_min"] = minimum(entry["head_min"])
+            reservoir["head_max"] = maximum(entry["head_max"])
             reservoir["elevation"] = minimum(head)
         elseif pattern !== nothing && pattern != "1"
             reservoir["head_nominal"] *= data["pattern"][pattern][1]
@@ -1035,7 +1048,7 @@ function _read_tank!(data::Dict{String,<:Any})
         length(current) == 0 && continue # Skip.
 
         # Initialize the tank entry to be added.
-        tank = Dict{String,Any}("name" => current[1], "status" => 1)
+        tank = Dict{String,Any}("name" => current[1], "status" => STATUS_ACTIVE)
         tank["source_id"] = ["tank", current[1]]
         tank["dispatchable"] = false
 
@@ -1124,14 +1137,14 @@ function _read_regulator!(data::Dict{String,<:Any})
         length(current) == 0 && continue # Skip.
 
         # Initialize the valve entry to be added.
-        valve = Dict{String,Any}("name" => current[1], "status" => 1)
+        valve = Dict{String,Any}("name" => current[1], "status" => STATUS_UNKNOWN)
         valve["node_fr"] = data["node_map"][current[2]]
         valve["node_to"] = data["node_map"][current[3]]
 
         # Parse the valve type and throw an error if not supported.
         if uppercase(current[5]) == "PRV"
             valve["source_id"] = ["regulator", current[1]]
-            valve["flow_direction"] = POSITIVE
+            valve["flow_direction"] = FLOW_DIRECTION_POSITIVE
         elseif uppercase(current[5]) == "TCV"
             valve["source_id"] = ["throttle_control_valve", current[1]]
             Memento.error(_LOGGER, "Valves of type $(current[5]) are not supported.")
@@ -1177,11 +1190,11 @@ Converts data parsed from an EPANET file, passed by `epanet_data` into a format 
 internal WaterModels use. Imports all data from the EPANET file if `import_all` is true.
 """
 function epanet_to_watermodels!(data::Dict{String,<:Any}; import_all::Bool = false)
-    _drop_zero_demands!(data) # Drop demands of zero from nodes.
-    _convert_short_pipes!(data) # Convert pipes that are short to short pipes and valves.
-    #_add_valves_to_tanks!(data) # Ensure that shutoff valves are connected to tanks.
-    _add_valves_from_pipes!(data) # Convert pipes with valves to pipes *and* valves.
-    _drop_pipe_flags!(data) # Drop irrelevant pipe attributes.
+    drop_zero_demands!(data) # Drop demands of zero from nodes.
+    # convert_short_pipes!(data) # Convert pipes that are short to short pipes and valves.
+    # _add_valves_to_tanks!(data) # Ensure that shutoff valves are connected to tanks.
+    add_valves_from_pipes!(data) # Convert pipes with valves to pipes *and* valves.
+    drop_pipe_flags!(data) # Drop irrelevant pipe attributes.
 end
 
 
@@ -1201,21 +1214,36 @@ function _get_max_node_id(data::Dict{String,<:Any})
 end
 
 
-function _convert_short_pipes!(data::Dict{String,<:Any})
-    exponent = uppercase(data["head_loss"]) == "H-W" ? 1.852 : 2.0
+function convert_short_pipes!(data::Dict{String, <:Any})
+    wm_data = get_wm_data(data)
+    head_loss, viscosity = wm_data["head_loss"], wm_data["viscosity"]
+    func! = x -> _convert_short_pipes!(x, head_loss, viscosity)
+    apply_wm!(func!, data; apply_to_subnetworks = true)
+end
+
+
+function _convert_short_pipes!(data::Dict{String,<:Any}, head_loss::String, viscosity::Float64)
+    exponent = _get_exponent_from_head_loss_form(head_loss)
     max_flow_exp = abs(_calc_capacity_max(data))^exponent
 
-    for (a, pipe) in data["pipe"]
-        r = _calc_pipe_resistance(pipe, data["head_loss"], data["viscosity"], 1.0, 1.0)
-        dh_max = r * pipe["length"] * max_flow_exp
+    wm_data = get_wm_data(data)
+    head_transform = _calc_head_per_unit_transform(wm_data)
+    base_length = 1.0 / _calc_length_per_unit_transform(wm_data)(1.0)
+    base_mass = 1.0 / _calc_mass_per_unit_transform(wm_data)(1.0)
+    base_time = 1.0 / _calc_time_per_unit_transform(wm_data)(1.0)
 
-        if dh_max <= 0.1
+    for (a, pipe) in data["pipe"]
+        r = _calc_pipe_resistance(pipe, head_loss, viscosity, base_length, base_mass, base_time)
+        dh_max = pipe["length"] * r * max_flow_exp
+
+        # If maximum head loss is less than one centimeter...
+        if dh_max <= head_transform(0.01)
             # Delete unnecessary fields.
             delete!(pipe, "diameter")
             delete!(pipe, "length")
             delete!(pipe, "roughness")
 
-            if pipe["has_valve"]
+            if haskey(pipe, "has_valve") && pipe["has_valve"]
                 # Transform the pipe into a valve.
                 delete!(pipe, "has_valve")
                 data["valve"][a] = deepcopy(pipe)
@@ -1239,12 +1267,24 @@ function _has_zero_demand(demand::Dict{String, <:Any})
 end
 
 
+function drop_zero_demands!(data::Dict{String, <:Any})
+    apply_wm!(_drop_zero_demands!, data; apply_to_subnetworks = true)
+end
+
 
 function _drop_zero_demands!(data::Dict{String,<:Any})
     for (i, demand) in filter(x -> _has_zero_demand(x.second), data["demand"])
         delete!(data["demand"], i)
-        haskey(data, "time_series") && delete!(data["time_series"]["demand"], i)
+
+        if haskey(data, "time_series") && haskey(data["time_series"], "demand")
+            delete!(data["time_series"]["demand"], i)
+        end
     end
+end
+
+
+function drop_pipe_flags!(data::Dict{String, <:Any})
+    apply_wm!(_drop_pipe_flags!, data; apply_to_subnetworks = true)
 end
 
 
@@ -1271,19 +1311,24 @@ function _add_valves_to_tanks!(data::Dict{String,<:Any})
 
         # Add a valve that connects the dummy (tank) node to the original node.
         v_id = _get_max_comp_id(data, "valve") + 1
-        valve = Dict{String,Any}("name" => string(v_id), "status" => 1, "index" => v_id)
+        valve = Dict{String,Any}("name" => string(v_id), "status" => STATUS_UNKNOWN, "index" => v_id)
         valve["source_id"] = AbstractString["valve", string(v_id)]
         valve["node_fr"], valve["node_to"] = original_tank_node, dummy_node_id
-        valve["flow_direction"], valve["minor_loss"] = UNKNOWN, 0.0
+        valve["flow_direction"], valve["minor_loss"] = FLOW_DIRECTION_UNKNOWN, 0.0
 
         # Add the valve to the data object.
         data["valve"][string(v_id)] = valve
     end
 end
 
+
+function add_valves_from_pipes!(data::Dict{String, <:Any})
+    apply_wm!(_add_valves_from_pipes!, data; apply_to_subnetworks = true)
+end
+
 function _add_valves_from_pipes!(data::Dict{String,<:Any})
     # Add valves to parsed pipes that have the attribute "has_valve" equal to true.
-    for (a, pipe) in filter(x -> x.second["has_valve"], data["pipe"])
+    for (a, pipe) in filter(x -> get(x.second, "has_valve", false), data["pipe"])
         # Create a dummy node to which the valve and pipe will be attached.
         dummy_node_id = _get_max_comp_id(data, "node") + 1
         dummy_node = deepcopy(data["node"][string(pipe["node_fr"])])
@@ -1291,7 +1336,7 @@ function _add_valves_from_pipes!(data::Dict{String,<:Any})
 
         # Create the valve that will connect to the dummy node.
         valve = Dict{String,Any}("index" => pipe["index"], "name" => pipe["name"])
-        valve["source_id"], valve["status"] = pipe["source_id"], 1
+        valve["source_id"], valve["status"] = pipe["source_id"], STATUS_UNKNOWN
         valve["flow_direction"] = pipe["flow_direction"]
         valve["minor_loss"] = pipe["minor_loss"]
 

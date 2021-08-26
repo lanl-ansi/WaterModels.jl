@@ -1,23 +1,24 @@
 [TITLE]
-Test for Hazen-Williams Head Loss with a Tank
+Test for Hazen-Williams Head Gain Along a Pump
 
 [JUNCTIONS]
 ;ID              Elev            Demand          Pattern
- 2               0.0             100.0                  ;
+ 2               50.0            125.0                  ;
 
 [RESERVOIRS]
 ;ID              Head            Pattern
+ 1               10.0                                   ;
 
 [TANKS]
-;ID              Elevation      InitLevel       MinLevel         MaxLevel         Diameter         MinVol           VolCurve
- 1               10.0           10.0            0.0              100.0            10.0             0                        ;
+;ID              Elevation       InitLevel       MinLevel         MaxLevel         Diameter         MinVol           VolCurve
 
 [PIPES]
 ;ID              Node1          Node2           Length           Diameter         Roughness        MinorLoss        Status
- 1               1              2               1000.0           1000.0           100.0            0.0              Open  ;
 
 [PUMPS]
 ;ID              Node1          Node2           Parameters
+ 1               1              2               HEAD 1    ;
+ 2               2              1               HEAD 1    ;
 
 [VALVES]
 ;ID              Node1          Node2           Diameter         Type             Setting          MinorLoss   
@@ -35,12 +36,18 @@ Test for Hazen-Williams Head Loss with a Tank
 
 [CURVES]
 ;ID              X-Value        Y-Value
+ 1               0.0            100.0
+ 1               120.0          90.0
+ 1               150.0          83.0
 
 [CONTROLS]
 
 [RULES]
 
 [ENERGY]
+ Global Efficiency  	    85
+ Global Price       	    1.0
+ Demand Charge      	    0.0
 
 [EMITTERS]
 ;Junction         Coefficient
@@ -60,13 +67,13 @@ Test for Hazen-Williams Head Loss with a Tank
 ;Tank             Model
 
 [TIMES]
- Duration               1:00
- Hydraulic Timestep     1:00
- Quality Timestep       1:00
+ Duration               0:00
+ Hydraulic Timestep     1:00 
+ Quality Timestep       0:05 
  Pattern Timestep       1:00
- Pattern Start          0:00
- Report Timestep        1:00
- Report Start           0:00
+ Pattern Start          0:00 
+ Report Timestep        1:00 
+ Report Start           0:00 
  Start ClockTime        12 am
  Statistic              NONE
 
@@ -91,8 +98,8 @@ Test for Hazen-Williams Head Loss with a Tank
 
 [COORDINATES]
 ;Node             X-Coord        Y-Coord
- 1                0.0            0.0
- 2                1000.0         0.0
+ 1                0.0            2500.0
+ 2                1414.21        1085.79
 
 [VERTICES]
 ;Link             X-Coord        Y-Coord

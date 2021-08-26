@@ -13,14 +13,14 @@ function constraint_pipe_head_loss(
     dhp, dhn = var(wm, n, :dhp_pipe, a), var(wm, n, :dhn_pipe, a)
 
     # Add relaxed constraints for head loss in the positive and negative directions.
-    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= inv(L) * dhp)
-    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) <= inv(L) * dhn)
+    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= dhp / L)
+    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) <= dhn / L)
 
     # Add linear upper bounds on the above convex relaxations.
     rhs_p = r * JuMP.upper_bound(qp)^(exponent - 1.0) * qp
-    c_3 = JuMP.@constraint(wm.model, inv(L) * dhp <= rhs_p)
+    c_3 = JuMP.@constraint(wm.model, dhp / L <= rhs_p)
     rhs_n = r * JuMP.upper_bound(qn)^(exponent - 1.0) * qn
-    c_4 = JuMP.@constraint(wm.model, inv(L) * dhn <= rhs_n)
+    c_4 = JuMP.@constraint(wm.model, dhn / L <= rhs_n)
 
     # Append the :pipe_head_loss constraint array.
     append!(con(wm, n, :pipe_head_loss)[a], [c_1, c_2, c_3, c_4])
@@ -35,14 +35,14 @@ function constraint_on_off_des_pipe_head_loss(
     dhp, dhn = var(wm, n, :dhp_des_pipe, a), var(wm, n, :dhn_des_pipe, a)
 
     # Add relaxed constraints for head loss in the positive and negative directions.
-    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= inv(L) * dhp)
-    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) <= inv(L) * dhn)
+    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= dhp / L)
+    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) <= dhn / L)
 
     # Add linear upper bounds on the above convex relaxations.
     rhs_p = r * JuMP.upper_bound(qp)^(exponent - 1.0) * qp
-    c_3 = JuMP.@constraint(wm.model, inv(L) * dhp <= rhs_p)
+    c_3 = JuMP.@constraint(wm.model, dhp / L <= rhs_p)
     rhs_n = r * JuMP.upper_bound(qn)^(exponent - 1.0) * qn
-    c_4 = JuMP.@constraint(wm.model, inv(L) * dhn <= rhs_n)
+    c_4 = JuMP.@constraint(wm.model, dhn / L <= rhs_n)
 
     # Append the :on_off_des_pipe_head_loss constraint array.
     append!(con(wm, n, :on_off_des_pipe_head_loss)[a], [c_1, c_2, c_3, c_4])
@@ -74,17 +74,17 @@ end
 
 function constraint_on_off_pump_power(wm::AbstractCRDModel, n::Int, a::Int, q_min_forward::Float64)
     # Gather pump flow, power, and status variables.
-    q, Ps, z = var(wm, n, :qp_pump, a), var(wm, n, :Ps_pump, a), var(wm, n, :z_pump, a)
+    q, P, z = var(wm, n, :qp_pump, a), var(wm, n, :P_pump, a), var(wm, n, :z_pump, a)
 
-    # Compute pump flow and power breakpoints.
+    # Compute pump flow and power partitioning.
     q_lb, q_ub = q_min_forward, JuMP.upper_bound(q)
     f_ua = _calc_pump_power_ua(wm, n, a, [q_lb, q_ub])
 
-    if f_ua[1] == f_ua[2]
+    if f_ua[1] != f_ua[2]
         # Build a linear under-approximation of the power.
-        slope = (f_ua[2] - f_ua[1]) * inv(q_ub - q_lb)
+        slope = (f_ua[2] - f_ua[1]) / (q_ub - q_lb)
         power_expr = slope * (q - q_lb * z) + f_ua[1] * z
-        c = JuMP.@constraint(wm.model, power_expr / (_DENSITY * _GRAVITY) <= Ps)
+        c = JuMP.@constraint(wm.model, power_expr <= P)
         append!(con(wm, n, :on_off_pump_power)[a], [c])
     end
 end

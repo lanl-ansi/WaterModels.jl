@@ -8,6 +8,7 @@ import Interpolations
 import JSON
 import JuMP
 import Memento
+import PolyhedralRelaxations
 import Statistics
 
 import MathOptInterface
@@ -24,7 +25,8 @@ __init__() = Memento.register(_LOGGER)
 "Suppresses information and warning messages output by WaterModels. For
 more fine-grained control, use the Memento package."
 function silence()
-    msg = "Suppressing information and warning messages for the rest of this session. " *
+    msg =
+        "Suppressing information and warning messages for the rest of this session. " *
         "Use the Memento package for more fine-grained control of logging."
     Memento.info(_LOGGER, msg)
     Memento.setlevel!(Memento.getlogger(InfrastructureModels), "error")
@@ -36,7 +38,17 @@ function logger_config!(level)
     Memento.config!(Memento.getlogger("WaterModels"), level)
 end
 
-const _wm_global_keys = Set(["time_series", "per_unit", "head_loss", "viscosity"])
+const _wm_global_keys = Set([
+    "base_flow",
+    "base_head",
+    "base_length",
+    "base_mass",
+    "base_time",
+    "time_series",
+    "per_unit",
+    "head_loss",
+    "viscosity",
+])
 
 const wm_it_name = "wm"
 const wm_it_sym = Symbol(wm_it_name)
@@ -46,6 +58,8 @@ include("io/epanet.jl")
 
 include("core/base.jl")
 include("core/constants.jl")
+include("core/ref.jl")
+include("core/solution.jl")
 
 include("core/node.jl")
 include("core/demand.jl")
@@ -80,8 +94,11 @@ include("prob/des.jl")
 
 include("util/relax.jl")
 include("util/variable_index.jl")
+include("util/bound_problem.jl")
 include("util/pairwise_cuts.jl")
 include("util/obbt.jl")
 
+# This must be included last to support automated export.
 include("core/export.jl")
+
 end

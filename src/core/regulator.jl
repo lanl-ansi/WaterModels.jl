@@ -14,9 +14,15 @@ end
 
 
 function correct_regulators!(data::Dict{String, <:Any})
+    apply_wm!(_correct_regulators!, data; apply_to_subnetworks = true)
+end
+
+
+function _correct_regulators!(data::Dict{String, <:Any})
     capacity = _calc_capacity_max(data)
 
     for (idx, regulator) in data["regulator"]
+        _correct_status!(regulator)
         _correct_flow_direction!(regulator)
         _correct_regulator_flow_bounds!(regulator, capacity)
     end

@@ -10,7 +10,7 @@
         network_mn = WaterModels.make_multinetwork(network)
         network_agg = make_temporally_aggregated_multinetwork(network_mn, [["1", "2"], ["3"]])
 
-        @test network_mn["duration"] == network_agg["duration"]
+        @test isapprox(network_mn["duration"], network_agg["duration"])
         demand_old = network_mn["nw"]["1"]["demand"]["2"]["flow_nominal"] 
         @test demand_old < network_agg["nw"]["1"]["demand"]["2"]["flow_nominal"]
 
@@ -20,6 +20,13 @@
 
         @test network_mn["duration"] == network_agg["duration"]
         @test length(network_agg["nw"]) == 2
+    end
+
+    @testset "set_flow_partitions_num!" begin
+        data = WaterModels.parse_file("../examples/data/epanet/van_zyl.inp")
+        WaterModels.set_flow_partitions_num!(data, 5)
+        @test length(data["pipe"]["1"]["flow_partition"]) == 5
+        @test length(data["pump"]["1"]["flow_partition"]) == 5
     end
 
     @testset "set_start! (single network)" begin
@@ -35,6 +42,13 @@
         WaterModels.set_start!(mn_data, "pipe", "q", "q_pipe_start")
     end
 
+    @testset "set_warm_start! (multinetwork)" begin
+        network = WaterModels.parse_file("../examples/data/epanet/van_zyl.inp")
+        network_mn = WaterModels.make_multinetwork(network)
+        WaterModels.set_warm_start!(network_mn)
+        @test haskey(network_mn["nw"]["1"]["pipe"]["1"], "q_start")
+    end
+
     @testset "replicate" begin
         data = WaterModels.parse_file("../test/data/epanet/snapshot/pipe-hw-lps.inp")
         mn_data = WaterModels.replicate(data, 3)
@@ -46,9 +60,10 @@
 
         @test !_IM.ismultinetwork(network_data)
         @test haskey(network_data, "time_series")
-        @test isapprox(network_data["time_series"]["demand"]["2"]["flow_nominal"][1], 0.02777, rtol=1.0e-4)
-        @test isapprox(network_data["time_series"]["demand"]["2"]["flow_nominal"][2], 0.5*0.02777, rtol=1.0e-4)
-        @test isapprox(network_data["time_series"]["demand"]["2"]["flow_nominal"][3], 0.25*0.02777, rtol=1.0e-4)
+        base_flow = WaterModels._calc_flow_per_unit_transform(network_data)(0.02777)
+        @test isapprox(network_data["time_series"]["demand"]["2"]["flow_nominal"][1], base_flow, rtol=1.0e-4)
+        @test isapprox(network_data["time_series"]["demand"]["2"]["flow_nominal"][2], 0.5*base_flow, rtol=1.0e-4)
+        @test isapprox(network_data["time_series"]["demand"]["2"]["flow_nominal"][3], 0.25*base_flow, rtol=1.0e-4)
 
         ts_length = network_data["time_series"]["num_steps"]
         mn_data = WaterModels.make_multinetwork(network_data)
@@ -56,9 +71,9 @@
         @test _IM.ismultinetwork(mn_data)
         @test !haskey(mn_data, "time_series")
         @test length(mn_data["nw"]) == ts_length
-        @test isapprox(mn_data["nw"]["1"]["demand"]["2"]["flow_nominal"], 0.02777, rtol=1.0e-4)
-        @test isapprox(mn_data["nw"]["2"]["demand"]["2"]["flow_nominal"], 0.5*0.02777, rtol=1.0e-4)
-        @test isapprox(mn_data["nw"]["3"]["demand"]["2"]["flow_nominal"], 0.25*0.02777, rtol=1.0e-4)
+        @test isapprox(mn_data["nw"]["1"]["demand"]["2"]["flow_nominal"], base_flow, rtol=1.0e-4)
+        @test isapprox(mn_data["nw"]["2"]["demand"]["2"]["flow_nominal"], 0.5*base_flow, rtol=1.0e-4)
+        @test isapprox(mn_data["nw"]["3"]["demand"]["2"]["flow_nominal"], 0.25*base_flow, rtol=1.0e-4)
     end
 
     @testset "split_multinetwork" begin
@@ -73,10 +88,13 @@
     @testset "epanet_to_watermodels!" begin
         network_data = WaterModels.parse_epanet("../test/data/epanet/snapshot/short-pipe-lps.inp")
         WaterModels.epanet_to_watermodels!(network_data)
+        WaterModels.correct_network_data!(network_data)
+        WaterModels.convert_short_pipes!(network_data)
         @test haskey(network_data["short_pipe"], "1")
 
         network_data = WaterModels.parse_epanet("../test/data/epanet/snapshot/short-pipe-valve-lps.inp")
         WaterModels.epanet_to_watermodels!(network_data)
+        WaterModels.correct_network_data!(network_data)
         @test haskey(network_data["valve"], "1")
     end
 
