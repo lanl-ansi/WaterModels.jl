@@ -127,7 +127,11 @@ function build_mn_wf(wm::AbstractWaterModel)
     # Get all network IDs in the multinetwork.
     network_ids = sort(collect(nw_ids(wm)))
 
-    network_ids_inner = length(network_ids) > 1 ? network_ids[1:end-1] : network_ids
+    if length(network_ids) > 1
+        network_ids_inner = network_ids[1:end-1]
+    else
+        network_ids_inner = network_ids
+    end
 
     for n in network_ids_inner
         # Physical variables.
