@@ -348,6 +348,81 @@ function make_multinetwork(data::Dict{String, <:Any}; global_keys::Set{String} =
 end
 
 
+function make_ts_metadata!(data::Dict{String, <:Any})
+    @assert ismultinetwork(data) # Ensure data is multinetwork.
+
+    if !haskey(data, "time_series")
+        data["time_series"] = Dict{String, Any}()
+    end
+    
+    data["time_series"]["duration"] = data["duration"]
+    data["time_series"]["num_steps"] = length(data["nw"])
+    data["time_series"]["time_step"] = data["time_step"]
+end
+
+
+function make_component_ts!(data::Dict{String, <:Any}, comp_type::String, key::String)
+    @assert ismultinetwork(data) # Ensure data is multinetwork.
+    nws = sort([parse(Int, x) for x in keys(data["nw"])])
+    
+    if !haskey(data, "time_series")
+        data["time_series"] = Dict{String, Any}()
+    end
+
+    if !haskey(data["time_series"], comp_type)
+        data["time_series"][comp_type] = Dict{String, Any}()
+    end
+
+    if !haskey(data["time_series"][comp_type], key)
+        data["time_series"][comp_type][key] = Dict{String, Any}()
+    end
+
+    for val_key in keys(data["nw"][string(nws[1])][comp_type][key])
+        vals = Array{Any}([])
+
+        for nw in nws
+            if haskey(data["nw"][string(nw)][comp_type][key], val_key)
+                push!(vals, data["nw"][string(nw)][comp_type][key][val_key])
+            else
+                # Assume the last value.
+                push!(vals, vals[end])
+            end
+        end
+
+        data["time_series"][comp_type][key][val_key] = vals
+     end
+end
+
+
+function make_single_network(data::Dict{String, <:Any})
+    @assert ismultinetwork(data) # Ensure data is multinetwork.
+
+    data_s = deepcopy(data)
+    make_ts_metadata!(data_s)
+    nws = sort([parse(Int, x) for x in keys(data["nw"])])
+    nw_1_str = string(nws[1])
+
+    for comp_type in ["tank", "regulator", "pump", "des_pipe", "pump_group", "demand",
+        "tank_group", "reservoir", "node", "short_pipe", "valve", "pipe"]
+        comp_keys = keys(data_s["nw"][nw_1_str][comp_type])
+        make_component_ts!.(Ref(data_s), comp_type, comp_keys)
+
+        if !haskey(data_s, comp_type)
+            data_s[comp_type] = Dict{String, Any}()
+        end
+
+        for comp_key in comp_keys
+            data_s[comp_type][comp_key] = pop!(data_s["nw"][nw_1_str][comp_type], comp_key)
+        end
+    end
+
+    data_s["multinetwork"] = false
+    delete!(data_s, "nw")
+
+    return data_s
+end
+
+
 function split_multinetwork(data::Dict{String, <:Any}, nw_ids::Array{Array{String, 1}, 1})
     # Ensure the data has the multinetwork attribute.
     @assert _IM.ismultinetwork(data) == true
