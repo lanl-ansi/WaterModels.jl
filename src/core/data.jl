@@ -404,6 +404,10 @@ function make_single_network(data::Dict{String, <:Any})
 
     for comp_type in ["tank", "regulator", "pump", "des_pipe", "pump_group", "demand",
         "tank_group", "reservoir", "node", "short_pipe", "valve", "pipe"]
+        if !haskey(data_s["nw"][nw_1_str], comp_type)
+            continue
+        end
+        
         comp_keys = keys(data_s["nw"][nw_1_str][comp_type])
         make_component_ts!.(Ref(data_s), comp_type, comp_keys)
 
