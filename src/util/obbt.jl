@@ -296,7 +296,7 @@ function solve_obbt_owf!(
     use_relaxed_network && relax_network!(data)
 
     # Set the problem specification that will be used for bound tightening.
-    build_type = _IM.ismultinetwork(get_wm_data(data)) ? build_mn_wf : build_wf
+    build_type = _IM.ismultinetwork(get_wm_data(data)) ? build_mn_owf : build_wf
 
     # Check for keyword argument inconsistencies.
     _check_obbt_options(upper_bound, upper_bound_constraint)
