@@ -561,7 +561,7 @@ end
 
 
 function _fix_flow_direction!(component::Dict{String,<:Any})
-    if haskey(component, "q") && !isapprox(component["q"], 0.0; atol=1.0e-6)
+    if haskey(component, "q") && !isapprox(component["q"], 0.0; atol = 1.0e-6)
         component["y_min"] = component["q"] > 0.0 ? 1.0 : 0.0
         component["y_max"] = component["q"] > 0.0 ? 1.0 : 0.0
     end

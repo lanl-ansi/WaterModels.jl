@@ -26,11 +26,11 @@ function _get_bound_problems_node(wm::AbstractWaterModel, i::Int, nw::Int; limit
 
         h_min = _get_lower_bound_from_index(wm, h_vid)
         bp_min = BoundProblem(_MOI.MIN_SENSE, h_vid, [],
-            [], "head_min", h_min, 1.0e-2, true)
+            [], "head_min", h_min, 1.0e-4, true)
 
         h_max = _get_upper_bound_from_index(wm, h_vid)
         bp_max = BoundProblem(_MOI.MAX_SENSE, h_vid, [],
-            [], "head_max", h_max, 1.0e-2, true)
+            [], "head_max", h_max, 1.0e-4, true)
 
         return Vector{BoundProblem}([bp_min, bp_max])
     else
@@ -55,11 +55,11 @@ function _get_bound_problems_pipe(wm::AbstractNCModel, i::Int, nw::Int; limit::B
 
         flow_min = _get_lower_bound_from_index(wm, q_vid)
         bp_min = BoundProblem(_MOI.MIN_SENSE, q_vid, [],
-            [], "flow_min", flow_min, 1.0e-3, true)
+            [], "flow_min", flow_min, 1.0e-4, true)
 
         flow_max = _get_lower_bound_from_index(wm, q_vid)
         bp_max = BoundProblem(_MOI.MAX_SENSE, q_vid, [],
-            [], "flow_max", flow_max, 1.0e-3, true)
+            [], "flow_max", flow_max, 1.0e-4, true)
 
         return Vector{BoundProblem}([bp_min, bp_max])
     else
@@ -75,21 +75,21 @@ function _get_bound_problems_pipe(wm::AbstractNCDModel, i::Int, nw::Int; limit::
 
         flow_min = _get_lower_bound_from_index(wm, q_vid)
         bp_q_min = BoundProblem(_MOI.MIN_SENSE, q_vid, [],
-            [], "flow_min", flow_min, 1.0e-3, true)
+            [], "flow_min", flow_min, 1.0e-4, true)
         
         flow_min_forward = get(ref(wm, q_vid.network_index,
             :pipe)[i], "flow_min_forward", 0.0)
         bp_q_min_forward = BoundProblem(_MOI.MIN_SENSE, q_vid, [y_vid],
-            [], "flow_min_forward", flow_min_forward, 1.0e-3, true)
+            [], "flow_min_forward", flow_min_forward, 1.0e-4, true)
 
         flow_max = _get_upper_bound_from_index(wm, q_vid)
         bp_q_max = BoundProblem(_MOI.MAX_SENSE, q_vid, [],
-            [], "flow_max", flow_max, 1.0e-3, true)
+            [], "flow_max", flow_max, 1.0e-4, true)
 
         flow_max_reverse = get(ref(wm, q_vid.network_index,
             :pipe)[i], "flow_max_reverse", 0.0)
         bp_q_max_reverse = BoundProblem(_MOI.MAX_SENSE, q_vid, [],
-            [y_vid], "flow_max_reverse", flow_max_reverse, 1.0e-3, true)
+            [y_vid], "flow_max_reverse", flow_max_reverse, 1.0e-4, true)
 
         bp_y_min = BoundProblem(_MOI.MIN_SENSE, y_vid, [],
             [], "y_min", 0.0, 1.0e-2, true)
@@ -126,11 +126,11 @@ function _get_bound_problems_pump(wm::AbstractWaterModel, i::Int, nw::Int; limit
         flow_min_forward = get(ref(wm, q_vid.network_index,
             :pump)[i], "flow_min_forward", 0.0)
         bp_min = BoundProblem(_MOI.MIN_SENSE, q_vid, [z_vid],
-            [], "flow_min_forward", flow_min_forward, 1.0e-3, true)
+            [], "flow_min_forward", flow_min_forward, 1.0e-4, true)
 
         flow_max = _get_upper_bound_from_index(wm, q_vid)
         bp_max = BoundProblem(_MOI.MAX_SENSE, q_vid, [z_vid],
-            [], "flow_max", flow_max, 1.0e-3, true)
+            [], "flow_max", flow_max, 1.0e-4, true)
 
         bp_z_min = BoundProblem(_MOI.MIN_SENSE, z_vid, [],
             [], "z_min", 0.0, 1.0e-2, true)
@@ -162,11 +162,11 @@ function _get_bound_problems_regulator(wm::AbstractWaterModel, i::Int, nw::Int; 
         flow_min_forward = get(ref(wm, q_vid.network_index,
             :regulator)[i], "flow_min_forward", 0.0)
         bp_min = BoundProblem(_MOI.MIN_SENSE, q_vid, [z_vid],
-            [], "flow_min_forward", flow_min_forward, 1.0e-3, true)
+            [], "flow_min_forward", flow_min_forward, 1.0e-4, true)
 
         flow_max = _get_upper_bound_from_index(wm, q_vid)
         bp_max = BoundProblem(_MOI.MAX_SENSE, q_vid, [z_vid],
-            [], "flow_max", flow_max, 1.0e-3, true)
+            [], "flow_max", flow_max, 1.0e-4, true)
 
         bp_z_min = BoundProblem(_MOI.MIN_SENSE, z_vid, [],
             [], "z_min", 0.0, 1.0e-2, true)
@@ -196,11 +196,11 @@ function _get_bound_problems_short_pipe(wm::AbstractNCModel, i::Int, nw::Int; li
 
         flow_min = _get_lower_bound_from_index(wm, q_vid)
         bp_min = BoundProblem(_MOI.MIN_SENSE, q_vid, [],
-            [], "flow_min", flow_min, 1.0e-3, true)
+            [], "flow_min", flow_min, 1.0e-4, true)
 
         flow_max = _get_lower_bound_from_index(wm, q_vid)
         bp_max = BoundProblem(_MOI.MAX_SENSE, q_vid, [],
-            [], "flow_max", flow_max, 1.0e-3, true)
+            [], "flow_max", flow_max, 1.0e-4, true)
 
         return Vector{BoundProblem}([bp_min, bp_max])
     else
@@ -216,21 +216,21 @@ function _get_bound_problems_short_pipe(wm::AbstractNCDModel, i::Int, nw::Int; l
 
         flow_min = _get_lower_bound_from_index(wm, q_vid)
         bp_q_min = BoundProblem(_MOI.MIN_SENSE, q_vid, [],
-            [], "flow_min", flow_min, 1.0e-3, true)
+            [], "flow_min", flow_min, 1.0e-4, true)
         
         flow_min_forward = get(ref(wm, q_vid.network_index,
             :short_pipe)[i], "flow_min_forward", 0.0)
         bp_q_min_forward = BoundProblem(_MOI.MIN_SENSE, q_vid, [y_vid],
-            [], "flow_min_forward", flow_min_forward, 1.0e-3, true)
+            [], "flow_min_forward", flow_min_forward, 1.0e-4, true)
 
         flow_max = _get_upper_bound_from_index(wm, q_vid)
         bp_q_max = BoundProblem(_MOI.MAX_SENSE, q_vid, [],
-            [], "flow_max", flow_max, 1.0e-3, true)
+            [], "flow_max", flow_max, 1.0e-4, true)
 
         flow_max_reverse = get(ref(wm, q_vid.network_index,
             :short_pipe)[i], "flow_max_reverse", 0.0)
         bp_q_max_reverse = BoundProblem(_MOI.MAX_SENSE, q_vid, [],
-            [y_vid], "flow_max_reverse", flow_max_reverse, 1.0e-3, true)
+            [y_vid], "flow_max_reverse", flow_max_reverse, 1.0e-4, true)
 
         bp_y_min = BoundProblem(_MOI.MIN_SENSE, y_vid, [],
             [], "y_min", 0.0, 1.0e-2, true)
@@ -266,11 +266,11 @@ function _get_bound_problems_valve(wm::AbstractNCModel, i::Int, nw::Int; limit::
 
         flow_min = _get_lower_bound_from_index(wm, q_vid)
         bp_min = BoundProblem(_MOI.MIN_SENSE, q_vid, [],
-            [], "flow_min", flow_min, 1.0e-3, true)
+            [], "flow_min", flow_min, 1.0e-4, true)
 
         flow_max = _get_lower_bound_from_index(wm, q_vid)
         bp_max = BoundProblem(_MOI.MAX_SENSE, q_vid, [],
-            [], "flow_max", flow_max, 1.0e-3, true)
+            [], "flow_max", flow_max, 1.0e-4, true)
 
         bp_z_min = BoundProblem(_MOI.MIN_SENSE, z_vid, [],
             [], "z_min", 0.0, 1.0e-2, true)
@@ -292,21 +292,21 @@ function _get_bound_problems_valve(wm::AbstractNCDModel, i::Int, nw::Int; limit:
 
         flow_min = _get_lower_bound_from_index(wm, q_vid)
         bp_q_min = BoundProblem(_MOI.MIN_SENSE, q_vid, [],
-            [], "flow_min", flow_min, 1.0e-3, true)
+            [], "flow_min", flow_min, 1.0e-4, true)
         
         flow_min_forward = get(ref(wm, q_vid.network_index,
             :valve)[i], "flow_min_forward", 0.0)
         bp_q_min_forward = BoundProblem(_MOI.MIN_SENSE, q_vid, [y_vid, z_vid],
-            [], "flow_min_forward", flow_min_forward, 1.0e-3, true)
+            [], "flow_min_forward", flow_min_forward, 1.0e-4, true)
 
         flow_max = _get_upper_bound_from_index(wm, q_vid)
         bp_q_max = BoundProblem(_MOI.MAX_SENSE, q_vid, [],
-            [], "flow_max", flow_max, 1.0e-3, true)
+            [], "flow_max", flow_max, 1.0e-4, true)
 
         flow_max_reverse = get(ref(wm, q_vid.network_index,
             :valve)[i], "flow_max_reverse", 0.0)
         bp_q_max_reverse = BoundProblem(_MOI.MAX_SENSE, q_vid, [z_vid],
-            [y_vid], "flow_max_reverse", flow_max_reverse, 1.0e-3, true)
+            [y_vid], "flow_max_reverse", flow_max_reverse, 1.0e-4, true)
 
         bp_y_min = BoundProblem(_MOI.MIN_SENSE, y_vid, [],
             [], "y_min", 0.0, 1.0e-2, true)
