@@ -14,6 +14,7 @@ JSON.lower(x::FLOW_DIRECTION) = Int(x)
     PUMP_BEST_EFFICIENCY_POINT = 1 # Head gain takes a quadratic best efficiency form.
     PUMP_EPANET = 2 # Head gain takes the form used by EPANET.
     PUMP_LINEAR_POWER = 3 # Power is modeled linearly and head gain quadratic.
+    PUMP_CONSTANT_POWER = 4 # Power is constant when the pump is active.
 end
 
 "Ensures that JSON serialization of `PUMP` returns an integer."

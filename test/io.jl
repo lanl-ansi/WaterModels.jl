@@ -37,6 +37,6 @@
         network = WaterModels.parse_file("../test/data/epanet/snapshot/pump-hw-lps.inp")
         data = JSON.parse(JSON.json(network)) # Convert data to JSON dictionary.
         @test data["pump"]["1"]["flow_direction"] == 1
-        @test data["pump"]["1"]["head_curve_form"] == 0
+        @test data["pump"]["1"]["pump_type"] == 0
     end
 end

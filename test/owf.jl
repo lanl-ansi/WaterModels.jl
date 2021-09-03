@@ -21,7 +21,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
         network = WaterModels.parse_file("../test/data/epanet/snapshot/pump-hw-lps.inp")
         t_h = WaterModels._calc_head_per_unit_transform(network)
 
-        map(x -> x["head_curve_form"] = WaterModels.PUMP_BEST_EFFICIENCY_POINT, values(network["pump"]))
+        map(x -> x["pump_type"] = WaterModels.PUMP_BEST_EFFICIENCY_POINT, values(network["pump"]))
         WaterModels.recompute_bounds!(network) # Recompute component bounds after the above changes.
         set_flow_partitions_si!(network, 10.0, 1.0e-4)
 
@@ -41,7 +41,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
         network = WaterModels.parse_file("../test/data/epanet/snapshot/pump-hw-lps.inp")
         t_h = WaterModels._calc_head_per_unit_transform(network)
 
-        map(x -> x["head_curve_form"] = PUMP_EPANET, values(network["pump"]))
+        map(x -> x["pump_type"] = PUMP_EPANET, values(network["pump"]))
         WaterModels.recompute_bounds!(network) # Recompute component bounds after the above changes.
         set_flow_partitions_si!(network, 10.0, 1.0e-4)
 

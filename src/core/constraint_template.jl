@@ -537,7 +537,7 @@ function constraint_on_off_pump_head_gain(
         flow_transform(_FLOW_MIN),
     )
 
-    if ref(wm, nw, :pump, a)["head_curve_form"] == PUMP_EPANET &&
+    if ref(wm, nw, :pump, a)["pump_type"] == PUMP_EPANET &&
        isa(wm, AbstractNonlinearModel)
         message = "PUMP_EPANET head curves are not currently supported for nonlinear models."
         Memento.error(_LOGGER, message)
@@ -565,9 +565,9 @@ function constraint_on_off_pump_power(
     _initialize_con_dict(wm, :on_off_pump_power, nw = nw, is_array = true)
     con(wm, nw, :on_off_pump_power)[a] = Array{JuMP.ConstraintRef}([])
 
-    if ref(wm, nw, :pump, a)["head_curve_form"] in [PUMP_QUADRATIC, PUMP_EPANET]
+    if ref(wm, nw, :pump, a)["pump_type"] in [PUMP_QUADRATIC, PUMP_EPANET]
         constraint_on_off_pump_power(wm, nw, a, q_min_forward)
-    elseif ref(wm, nw, :pump, a)["head_curve_form"] == PUMP_BEST_EFFICIENCY_POINT
+    elseif ref(wm, nw, :pump, a)["pump_type"] == PUMP_BEST_EFFICIENCY_POINT
         wm_data = get_wm_data(wm.data)
         density = _calc_scaled_density(wm_data)
         gravity = _calc_scaled_gravity(wm_data)
@@ -579,7 +579,7 @@ function constraint_on_off_pump_power(
             gravity,
             q_min_forward,
         )
-    elseif ref(wm, nw, :pump, a)["head_curve_form"] == PUMP_LINEAR_POWER
+    elseif ref(wm, nw, :pump, a)["pump_type"] == PUMP_LINEAR_POWER
         # Ensure that the required keys for modeling pump power exist.
         @assert haskey(ref(wm, nw, :pump, a), "power_fixed")
         @assert haskey(ref(wm, nw, :pump, a), "power_per_unit_flow")

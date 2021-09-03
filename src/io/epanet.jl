@@ -918,33 +918,45 @@ function _read_pump!(data::Dict{String,<:Any})
         # Loop over remaining entries and store remaining properties.
         for i in range(4; stop = length(current), step = 2)
             if uppercase(current[i]) == "POWER"
-                Memento.error(_LOGGER, "Constant power pumps are not supported.")
+                # Memento.error(_LOGGER, "Constant power pumps are not supported.")
+                pump["pump_type"] = PUMP_CONSTANT_POWER
+
+                # Parse the head of the reservoir (in meters).
+                if data["flow_units"] == "LPS" || data["flow_units"] == "CMH"
+                    # Conver power from kilowatts to watts.
+                    pump["power"] = 1.0e3 * parse(Float64, current[i+1])
+                elseif data["flow_units"] == "GPM" # If gallons per minute...
+                    # Convert power from horsepower to watts.
+                    pump["power"] = 745.7 * parse(Float64, current[i+1])
+                else
+                    Memento.error(_LOGGER, "Could not find a valid \"units\" option type.")
+                end
+            elseif uppercase(current[i]) == "HEAD"
+                # Obtain and scale head-versus-flow pump curve.
+                flow = first.(data["curve"][current[i+1]]) # Flow.
+                head = last.(data["curve"][current[i+1]]) # Head.
+
+                if data["flow_units"] == "LPS" # If liters per second...
+                    # Convert from liters per second to cubic meters per second.
+                    flow *= 1.0e-3
+                elseif data["flow_units"] == "CMH" # If cubic meters per hour...
+                    # Convert from cubic meters per hour to cubic meters per second.
+                    flow *= inv(3600.0)
+                elseif data["flow_units"] == "GPM" # If gallons per minute...
+                    # Convert from gallons per minute to cubic meters per second.
+                    flow *= 6.30902e-5
+
+                    # Convert head from feet to meters.
+                    head *= 0.3048
+                else
+                    Memento.error(_LOGGER, "Could not find a valid \"units\" option type.")
+                end
+
+                # Curve of head (meters) versus flow (cubic meters per second).
+                pump["head_curve"] = Array([(flow[j], head[j]) for j = 1:length(flow)])     
             elseif uppercase(current[i]) != "HEAD"
                 Memento.error(_LOGGER, "Pump keyword in INP file not recognized.")
             end
-
-            # Obtain and scale head-versus-flow pump curve.
-            flow = first.(data["curve"][current[i+1]]) # Flow.
-            head = last.(data["curve"][current[i+1]]) # Head.
-
-            if data["flow_units"] == "LPS" # If liters per second...
-                # Convert from liters per second to cubic meters per second.
-                flow *= 1.0e-3
-            elseif data["flow_units"] == "CMH" # If cubic meters per hour...
-                # Convert from cubic meters per hour to cubic meters per second.
-                flow *= inv(3600.0)
-            elseif data["flow_units"] == "GPM" # If gallons per minute...
-                # Convert from gallons per minute to cubic meters per second.
-                flow *= 6.30902e-5
-
-                # Convert head from feet to meters.
-                head *= 0.3048
-            else
-                Memento.error(_LOGGER, "Could not find a valid \"units\" option type.")
-            end
-
-            # Curve of head (meters) versus flow (cubic meters per second).
-            pump["head_curve"] = Array([(flow[j], head[j]) for j = 1:length(flow)])
         end
 
         # Flow is always in the positive direction for pumps.

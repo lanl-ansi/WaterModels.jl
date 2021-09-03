@@ -9,7 +9,7 @@ end
 function correct_enums!(data::Dict{String,<:Any})
     correct_statuses!(data)
     correct_flow_directions!(data)
-    correct_pump_head_curve_forms!(data)
+    correct_pump_types!(data)
 end
 
 
