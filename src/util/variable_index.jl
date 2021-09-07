@@ -59,7 +59,7 @@ end
 function _get_flow_variable_indices(wm::AbstractWaterModel; nw::Int=nw_id_default)
     vars = Array{_VariableIndex, 1}()
 
-    for comp_type in [:pipe, :pump, :regulator, :short_pipe, :valve]
+    for comp_type in [:pipe, :pump, :regulator, :short_pipe, :valve, :tank]
         for comp_id in ids(wm, nw, comp_type)
             v_sym = Symbol("q_" * string(comp_type))
             append!(vars, [_VariableIndex(nw, comp_type, v_sym, comp_id)])
