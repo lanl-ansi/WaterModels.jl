@@ -8,7 +8,7 @@
         JuMP.set_optimizer(wm.model, cbc) # Explicitly set an optimizer.
         vid_1 = WaterModels._VariableIndex(1, :pump, :z_pump, 1)
         vid_2 = WaterModels._VariableIndex(1, :pipe, :y_pipe, 2)
-        problem = WaterModels._PairwiseProblem(_MOI.MIN_SENSE, vid_1, vid_2, 0.0)
+        problem = WaterModels._PairwiseProblem(_MOI.MIN_SENSE, vid_1, vid_2, 0.0, 1.0e-4)
 
         @test problem.sense === _MOI.MIN_SENSE
         @test problem.variable_index_1 == vid_1
@@ -21,7 +21,7 @@
         JuMP.set_optimizer(wm.model, cbc) # Explicitly set an optimizer.
         vid_1 = WaterModels._VariableIndex(1, :pump, :z_pump, 1)
         vid_2 = WaterModels._VariableIndex(1, :pipe, :y_pipe, 2)
-        problem = WaterModels._PairwiseProblem(_MOI.MIN_SENSE, vid_1, vid_2, 0.0)
+        problem = WaterModels._PairwiseProblem(_MOI.MIN_SENSE, vid_1, vid_2, 0.0, 1.0e-4)
         termination_status = WaterModels._optimize_bound_problem!(wm, problem)
         @test termination_status === OPTIMAL
     end
@@ -31,7 +31,7 @@
         JuMP.set_optimizer(wm.model, cbc) # Explicitly set an optimizer.
         vid_1 = WaterModels._VariableIndex(1, :pump, :z_pump, 1)
         vid_2 = WaterModels._VariableIndex(1, :pipe, :y_pipe, 2)
-        problem = WaterModels._PairwiseProblem(_MOI.MIN_SENSE, vid_1, vid_2, 0.0)
+        problem = WaterModels._PairwiseProblem(_MOI.MIN_SENSE, vid_1, vid_2, 0.0, 1.0e-4)
         @test WaterModels._get_bound_problem_candidate(wm, problem) == 0.0
     end
 
@@ -40,7 +40,7 @@
         JuMP.set_optimizer(wm.model, cbc) # Explicitly set an optimizer.
         vid_1 = WaterModels._VariableIndex(1, :pump, :z_pump, 1)
         vid_2 = WaterModels._VariableIndex(1, :pipe, :y_pump, 1)
-        problem = WaterModels._PairwiseProblem(_MOI.MAX_SENSE, vid_1, vid_2, 1.0)
+        problem = WaterModels._PairwiseProblem(_MOI.MAX_SENSE, vid_1, vid_2, 1.0, 1.0e-4)
         @test WaterModels._get_bound_problem_candidate(wm, problem) == 1.0
     end
 
@@ -49,7 +49,7 @@
         JuMP.set_optimizer(wm.model, cbc) # Explicitly set an optimizer.
         vid_1 = WaterModels._VariableIndex(1, :pipe, :y_pipe, 2)
         vid_2 = WaterModels._VariableIndex(1, :pump, :z_pump, 1)
-        problem = WaterModels._PairwiseProblem(_MOI.MAX_SENSE, vid_1, vid_2, 1.0)
+        problem = WaterModels._PairwiseProblem(_MOI.MAX_SENSE, vid_1, vid_2, 1.0, 1.0e-4)
         @test WaterModels._get_bound_problem_candidate(wm, problem) == 1.0
     end
 
@@ -58,7 +58,7 @@
         JuMP.set_optimizer(wm.model, cbc) # Explicitly set an optimizer.
         vid_1 = WaterModels._VariableIndex(1, :pump, :z_pump, 1)
         vid_2 = WaterModels._VariableIndex(1, :pipe, :y_pipe, 2)
-        problem = WaterModels._PairwiseProblem(_MOI.MIN_SENSE, vid_1, vid_2, 0.0)
+        problem = WaterModels._PairwiseProblem(_MOI.MIN_SENSE, vid_1, vid_2, 0.0, 1.0e-4)
         termination_status = WaterModels._optimize_bound_problem!(wm, problem)
         WaterModels._unfix_bound_problem_variable!(wm, problem)
         @test JuMP.is_fixed(WaterModels.var(wm, 1, :y_pipe, 2)) == false
@@ -69,7 +69,7 @@
         JuMP.set_optimizer(wm.model, cbc) # Explicitly set an optimizer.
         vid_1 = WaterModels._VariableIndex(1, :pump, :z_pump, 1)
         vid_2 = WaterModels._VariableIndex(1, :pipe, :y_pipe, 2)
-        problem = WaterModels._PairwiseProblem(_MOI.MIN_SENSE, vid_1, vid_2, 0.0)
+        problem = WaterModels._PairwiseProblem(_MOI.MIN_SENSE, vid_1, vid_2, 0.0, 1.0e-4)
         @test WaterModels._solve_bound_problem!(wm, problem) == 0.0
     end
 

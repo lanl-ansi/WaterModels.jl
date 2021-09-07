@@ -3,6 +3,7 @@ mutable struct _PairwiseProblem
     variable_index_1::_VariableIndex
     variable_index_2::_VariableIndex
     variable_2_fixing_value::Float64
+    precision::Float64
 end
 
 
@@ -55,10 +56,14 @@ function _get_bound_problem_candidate(wm::AbstractWaterModel, problem::_Pairwise
                 return candidate < 0.5 ? 0.0 : 1.0
             end
         else
+            prec = problem.precision
+
             if problem.sense === _MOI.MIN_SENSE
-                return max(candidate, v_1_lb)
+                scaled_candidate = floor(inv(prec) * candidate) * prec
+                return max(scaled_candidate, v_1_lb)
             elseif problem.sense === _MOI.MAX_SENSE
-                return min(candidate, v_1_ub)
+                scaled_candidate = ceil(inv(prec) * candidate) * prec
+                return min(scaled_candidate, v_1_ub)
             end
         end
     else
@@ -88,9 +93,9 @@ function _solve_bound_problem!(wm::AbstractWaterModel, problem::_PairwiseProblem
 end
 
 
-function _get_pairwise_problem_set(variable_index_1::_VariableIndex, variable_index_2::_VariableIndex, fixing_value::Float64)
-    problem_1 = _PairwiseProblem(_MOI.MIN_SENSE, variable_index_1, variable_index_2, fixing_value)
-    problem_2 = _PairwiseProblem(_MOI.MAX_SENSE, variable_index_1, variable_index_2, fixing_value)
+function _get_pairwise_problem_set(variable_index_1::_VariableIndex, variable_index_2::_VariableIndex, fixing_value::Float64, precision::Float64)
+    problem_1 = _PairwiseProblem(_MOI.MIN_SENSE, variable_index_1, variable_index_2, fixing_value, precision)
+    problem_2 = _PairwiseProblem(_MOI.MAX_SENSE, variable_index_1, variable_index_2, fixing_value, precision)
     return _PairwiseProblemSet([problem_1, problem_2])
 end
 
@@ -105,8 +110,8 @@ function _get_pairwise_problem_sets(wm::AbstractWaterModel; nw::Int = nw_id_defa
 
     for variable_index_1 in vcat(binary_variable_indices, continuous_variable_indices)
         for variable_index_2 in setdiff(binary_variable_indices, [variable_index_1])
-            problem_set_0 = _get_pairwise_problem_set(variable_index_1, variable_index_2, 0.0)
-            problem_set_1 = _get_pairwise_problem_set(variable_index_1, variable_index_2, 1.0)
+            problem_set_0 = _get_pairwise_problem_set(variable_index_1, variable_index_2, 0.0, 1.0e-4)
+            problem_set_1 = _get_pairwise_problem_set(variable_index_1, variable_index_2, 1.0, 1.0e-4)
             append!(problem_sets, [problem_set_0, problem_set_1])
         end
     end
