@@ -56,8 +56,21 @@ function get_pipe_flow_partition_positive(pipe::Dict{String, <:Any})
     @assert haskey(pipe, "flow_partition")
     flows = filter(x -> x > 0.0, pipe["flow_partition"])
     lower_bound = max(0.0, get(pipe, "flow_min_forward", 0.0))
-    flow_max = length(flows) > 0 ? maximum(flows) : lower_bound
-    return lower_bound != flow_max ? vcat(lower_bound, flows) : [lower_bound]
+
+    if length(flows) > 0 && lower_bound == minimum(flows)
+        return flows
+    else
+        flow_max = length(flows) > 0 ? maximum(flows) : lower_bound
+        return lower_bound != flow_max ? vcat(lower_bound, flows) : [lower_bound]
+    end
+end
+
+
+function get_pipe_head_difference_partition_positive(pipe::Dict{String, <:Any}, head_loss::String, viscosity::Float64, base_length::Float64, base_mass::Float64, base_time::Float64)
+    flow_breakpoints = get_pipe_flow_partition_positive(pipe)
+    exponent = _get_exponent_from_head_loss_form(head_loss)
+    resistance = _calc_pipe_resistance(pipe, head_loss, viscosity, base_length, base_mass, base_time)
+    return (pipe["length"] * resistance) .* abs.(flow_breakpoints).^exponent
 end
 
 
@@ -65,8 +78,21 @@ function get_pipe_flow_partition_negative(pipe::Dict{String, <:Any})
     @assert haskey(pipe, "flow_partition")
     flows = filter(x -> x < 0.0, pipe["flow_partition"])
     upper_bound = min(0.0, get(pipe, "flow_max_reverse", 0.0))
-    flow_min = length(flows) > 0 ? minimum(flows) : upper_bound
-    return upper_bound != flow_min ? vcat(flows, upper_bound) : [upper_bound]    
+
+    if length(flows) > 0 && upper_bound == maximum(flows)
+         return flows
+    else
+        flow_min = length(flows) > 0 ? minimum(flows) : upper_bound
+        return upper_bound != flow_min ? vcat(flows, upper_bound) : [upper_bound]
+    end
+end
+
+
+function get_pipe_head_difference_partition_negative(pipe::Dict{String, <:Any}, head_loss::String, viscosity::Float64, base_length::Float64, base_mass::Float64, base_time::Float64)
+    flow_breakpoints = get_pipe_flow_partition_negative(pipe)
+    exponent = _get_exponent_from_head_loss_form(head_loss)
+    resistance = _calc_pipe_resistance(pipe, head_loss, viscosity, base_length, base_mass, base_time)
+    return (pipe["length"] * resistance) .* abs.(flow_breakpoints).^exponent
 end
 
 
@@ -271,6 +297,22 @@ end
 
 function _calc_head_loss_oa(q::JuMP.VariableRef, z::Union{JuMP.VariableRef, JuMP.GenericAffExpr}, q_hat::Float64, exponent::Float64)
     return q_hat^exponent * z + exponent * q_hat^(exponent - 1.0) * (q - q_hat * z)
+end
+
+
+function _relax_pipes!(data::Dict{String,<:Any})
+    if !_IM.ismultinetwork(data)
+        if haskey(data, "time_series") && haskey(data["time_series"], "pipe")
+            ts = data["time_series"]["pipe"]
+            pipes = values(filter(x -> x.first in keys(ts), data["pipe"]))
+            map(x -> x["flow_min"] = minimum(ts[string(x["index"])]["flow_min"]), pipes)
+            map(x -> x["flow_min_forward"] = minimum(ts[string(x["index"])]["flow_min_forward"]), pipes)
+            map(x -> x["flow_max"] = maximum(ts[string(x["index"])]["flow_max"]), pipes)
+            map(x -> x["flow_max_reverse"] = maximum(ts[string(x["index"])]["flow_max_reverse"]), pipes)
+            map(x -> x["y_min"] = minimum(ts[string(x["index"])]["y_min"]), pipes)
+            map(x -> x["y_max"] = maximum(ts[string(x["index"])]["y_max"]), pipes)
+        end
+    end
 end
 
 

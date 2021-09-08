@@ -1,5 +1,7 @@
 function _relax_binary_variable!(v::JuMP.VariableRef)
-    JuMP.unset_binary(v) # Make the binary variable continuous and free.
+    if JuMP.is_binary(v)
+        JuMP.unset_binary(v) # Make the binary variable continuous and free.
+    end
 
     if !JuMP.is_fixed(v) # If the variable is not fixed, set lower and upper bounds.
         JuMP.set_lower_bound(v, 0.0) # Lower-bound the relaxed binary variables.

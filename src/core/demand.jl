@@ -39,6 +39,7 @@ function _relax_demands!(data::Dict{String,<:Any})
     end
 end
 
+
 function _fix_demand!(demand::Dict{String,<:Any})
     demand["dispatchable"] = false
 end

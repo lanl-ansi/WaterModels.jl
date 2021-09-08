@@ -40,6 +40,24 @@ function _calc_valve_flow_max(valve::Dict{String, <:Any}, capacity::Float64)
 end
 
 
+function _relax_valves!(data::Dict{String,<:Any})
+    if !_IM.ismultinetwork(data)
+        if haskey(data, "time_series") && haskey(data["time_series"], "valve")
+            ts = data["time_series"]["valve"]
+            valves = values(filter(x -> x.first in keys(ts), data["valve"]))
+            map(x -> x["flow_min"] = minimum(ts[string(x["index"])]["flow_min"]), valves)
+            map(x -> x["flow_min_forward"] = minimum(ts[string(x["index"])]["flow_min_forward"]), valves)
+            map(x -> x["flow_max"] = maximum(ts[string(x["index"])]["flow_max"]), valves)
+            map(x -> x["flow_max_reverse"] = maximum(ts[string(x["index"])]["flow_max_reverse"]), valves)
+            map(x -> x["y_min"] = minimum(ts[string(x["index"])]["y_min"]), valves)
+            map(x -> x["y_max"] = maximum(ts[string(x["index"])]["y_max"]), valves)
+            map(x -> x["z_min"] = minimum(ts[string(x["index"])]["z_min"]), valves)
+            map(x -> x["z_max"] = maximum(ts[string(x["index"])]["z_max"]), valves)
+        end
+    end
+end
+
+
 function set_valve_warm_start!(data::Dict{String, <:Any})
     apply_wm!(_set_valve_warm_start!, data)
 end

@@ -22,6 +22,15 @@ function _relax_tanks!(data::Dict{String,<:Any})
         tanks = values(data["tank"])
         map(x -> x["dispatchable"] = true, tanks)
     end
+
+    if !_IM.ismultinetwork(data)
+        if haskey(data, "time_series") && haskey(data["time_series"], "tank")
+            ts = data["time_series"]["tank"]
+            tanks = values(filter(x -> x.first in keys(ts), data["tank"]))
+            map(x -> x["flow_min"] = minimum(ts[string(x["index"])]["flow_min"]), tanks)
+            map(x -> x["flow_max"] = maximum(ts[string(x["index"])]["flow_max"]), tanks)
+        end
+    end
 end
 
 

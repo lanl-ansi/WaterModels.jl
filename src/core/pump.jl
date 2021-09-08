@@ -449,8 +449,13 @@ function get_pump_flow_partition(pump::Dict{String, <:Any})
     @assert haskey(pump, "flow_partition")
     flows = filter(x -> x > 0.0, pump["flow_partition"])
     lower_bound = max(0.0, get(pump, "flow_min_forward", 0.0))
-    flow_max = length(flows) > 0 ? maximum(flows) : lower_bound
-    return lower_bound != flow_max ? vcat(lower_bound, flows) : [lower_bound]
+
+    if length(flows) > 0 && lower_bound == minimum(flows)
+        return flows
+    else
+        flow_max = length(flows) > 0 ? maximum(flows) : lower_bound
+        return lower_bound != flow_max ? vcat(lower_bound, flows) : [lower_bound]
+    end
 end
 
 
@@ -463,6 +468,22 @@ end
 
 function set_pump_warm_start!(data::Dict{String, <:Any})
     apply_wm!(_set_pump_warm_start!, data)
+end
+
+
+function _relax_pumps!(data::Dict{String,<:Any})
+    if !_IM.ismultinetwork(data)
+        if haskey(data, "time_series") && haskey(data["time_series"], "pump")
+            ts = data["time_series"]["pump"]
+            pumps = values(filter(x -> x.first in keys(ts), data["pump"]))
+            map(x -> x["flow_min"] = minimum(ts[string(x["index"])]["flow_min"]), pumps)
+            map(x -> x["flow_min_forward"] = minimum(ts[string(x["index"])]["flow_min_forward"]), pumps)
+            map(x -> x["flow_max"] = maximum(ts[string(x["index"])]["flow_max"]), pumps)
+            map(x -> x["flow_max_reverse"] = maximum(ts[string(x["index"])]["flow_max_reverse"]), pumps)
+            map(x -> x["z_min"] = minimum(ts[string(x["index"])]["z_min"]), pumps)
+            map(x -> x["z_max"] = maximum(ts[string(x["index"])]["z_max"]), pumps)
+        end
+    end
 end
 
 
