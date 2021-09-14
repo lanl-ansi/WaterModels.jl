@@ -137,11 +137,15 @@ function _variable_component_flow(
 
     if bounded # Bound flow-related variables if desired.
         for (a, comp) in ref(wm, nw, comp_sym)
+            qp_min = max(0.0, comp["flow_min"])
+            JuMP.set_lower_bound(qp[a], qp_min)
             qp_max = max(0.0, comp["flow_max"])
             JuMP.set_upper_bound(qp[a], qp_max)
             qp_start = comp_start_value(comp, "qp_start", 0.5 * qp_max)
             JuMP.set_start_value(qp[a], qp_start)
 
+            qn_min = max(0.0, -comp["flow_max"])
+            JuMP.set_lower_bound(qn[a], qn_min)
             qn_max = max(0.0, -comp["flow_min"])
             JuMP.set_upper_bound(qn[a], qn_max)
             qn_start = comp_start_value(comp, "qn_start", 0.0)
