@@ -57,6 +57,13 @@ function _solve_bound_problem!(wm::AbstractWaterModel, bound_problem::BoundProbl
     v_one = _get_variable_from_index.(Ref(wm), bound_problem.variables_fix_one)
     v_zero = _get_variable_from_index.(Ref(wm), bound_problem.variables_fix_zero)
 
+    # Determine if the variable being tightened is discrete.
+    if isa(v, JuMP.VariableRef)
+        var_is_discrete = any(occursin(x, JuMP.name(v)) for x in ["_x", "_y", "_z"])
+    else
+        var_is_discrete = false
+    end
+
     # Fix binary variables to desired values.
     _fix_indicator.(v_one, 1.0), _fix_indicator.(v_zero, 0.0)
     vars_relaxed = Vector{JuMP.VariableRef}([])
@@ -80,6 +87,12 @@ function _solve_bound_problem!(wm::AbstractWaterModel, bound_problem::BoundProbl
     # Store the candidate bound calculated from the optimization.
     if termination_status in [_MOI.LOCALLY_SOLVED, _MOI.OPTIMAL]
         candidate = JuMP.objective_value(wm.model)
+
+        if var_is_discrete && bound_problem.sense === _MOI.MIN_SENSE
+            candidate = candidate > 0.01 ? 1.0 : candidate
+        elseif var_is_discrete && bound_problem.sense === _MOI.MAX_SENSE
+            candidate = candidate < 0.99 ? 0.0 : candidate
+        end
     end
 
     # Unfix binary variables that were fixed above.

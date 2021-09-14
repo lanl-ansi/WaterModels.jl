@@ -412,7 +412,11 @@ end
 function _fix_indicator_variable(v::JuMP.VariableRef, component::Dict{String, <:Any}, name::String)
     min_name, max_name = name * "_min", name * "_max"
 
-    if haskey(component, min_name) && haskey(component, max_name)
+    if haskey(component, min_name) && component[min_name] > 0.01
+        JuMP.fix(v, 1.0; force = true)
+    elseif haskey(component, max_name) && component[max_name] < 0.99
+        JuMP.fix(v, 0.0; force = true)
+    elseif haskey(component, min_name) && haskey(component, max_name)
         if component[min_name] == component[max_name]
             JuMP.fix(v, component[min_name])
         end
