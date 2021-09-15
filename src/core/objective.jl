@@ -2,24 +2,25 @@
 # This file defines commonly-used objectives for water systems models.
 ######################################################################
 
+
 """
-    objective_wf(wm::AbstractWaterModel)
+    objective_wf(wm::AbstractWaterModel)::Nothing
 
 Sets the objective function for [Water Flow (WF)](@ref) and [Multinetwork Water Flow (MN
 WF)](@ref) problem specifications. By default, only feasibility must be satisfied.
 """
-function objective_wf(wm::AbstractWaterModel)
-    JuMP.set_objective_sense(wm.model, _MOI.FEASIBILITY_SENSE)
+function objective_wf(wm::AbstractWaterModel)::Nothing
+    return JuMP.set_objective_sense(wm.model, _MOI.FEASIBILITY_SENSE)
 end
 
 
 """
-    objective_des(wm::AbstractWaterModel)
+    objective_des(wm::AbstractWaterModel)::JuMP.AffExpr
 
 Sets the objective function for [Optimal Design (DES)](@ref) problem specifications. The
 cost of selecting the discrete pipe resistances over all design pipes is minimized.
 """
-function objective_des(wm::AbstractWaterModel)
+function objective_des(wm::AbstractWaterModel)::JuMP.AffExpr
     objective = JuMP.AffExpr(0.0)
 
     for n in nw_ids(wm)
@@ -34,11 +35,11 @@ end
 
 
 """
-    objective_max_demand(wm::AbstractWaterModel)
+    objective_max_demand(wm::AbstractWaterModel)::JuMP.AffExpr
 
 Sets the objective function for [Maximal Demand Delivery (MDD)](@ref) problem specifications.
 """
-function objective_max_demand(wm::AbstractWaterModel)
+function objective_max_demand(wm::AbstractWaterModel)::JuMP.AffExpr
     # Get all network IDs in the multinetwork.
     network_ids = sort(collect(nw_ids(wm)))
 
@@ -66,12 +67,12 @@ end
 
 
 """
-    objective_owf(wm::AbstractWaterModel)
+    objective_owf(wm::AbstractWaterModel)::JuMP.AffExpr
 
 Sets the objective function for [Optimal Water Flow (OWF)](@ref) and [Multinetwork Optimal
 Water Flow (MN OWF)](@ref) problem specifications.
 """
-function objective_owf(wm::AbstractWaterModel)
+function objective_owf(wm::AbstractWaterModel)::JuMP.AffExpr
     # Get all network IDs in the multinetwork.
     network_ids = sort(collect(nw_ids(wm)))
 
