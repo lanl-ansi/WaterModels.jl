@@ -1016,3 +1016,188 @@ function _set_warm_start!(data::Dict{String, <:Any})
     _set_short_pipe_warm_start!(data)
     _set_valve_warm_start!(data)
 end
+
+
+"""
+Deactivates components that are not needed in the network by repeated calls to
+`propagate_topology_status!`. This implementation has quadratic complexity.
+"""
+function simplify_network!(data::Dict{String,<:Any})::Bool
+    revised, num_iterations = true, 0
+
+    while revised
+        revised = false
+        revised |= propagate_topology_status!(data)
+        # revised |= deactivate_isolated_components!(data)
+        num_iterations += 1
+    end
+
+    Memento.info(_LOGGER, "Network simplification reached in $(num_iterations) rounds.")
+
+    # Returns whether or not the data has been modified.
+    return revised
+end
+
+
+"""
+Propagates inactive network node statuses to attached components (e.g., pipes) so that
+system status values are consistent. Returns true if any component was modified.
+"""
+function propagate_topology_status!(data::Dict{String, <:Any})::Bool
+    revised = false
+    wm_data = get_wm_data(data)
+
+    if _IM.ismultinetwork(wm_data)
+        for wm_nw_data in values(wm_data["nw"])
+            revised |= _propagate_topology_status!(wm_nw_data)
+        end
+    else
+        revised = _propagate_topology_status!(wm_data)
+    end
+
+    return revised
+end
+
+
+""
+function _propagate_topology_status!(data::Dict{String,<:Any})
+    nodes = Dict{Int, Any}(node["index"] => node for (i, node) in data["node"])
+
+    # Compute what active demands are incident to each node.
+    incident_demand = node_comp_lookup(data["demand"], data["node"])
+    incident_active_demand = Dict()
+
+    for (i, demand_list) in incident_demand
+        incident_active_demand[i] = [demand for demand in demand_list if demand["status"] != STATUS_INACTIVE]
+    end
+
+    # Compute what active reservoirs are incident to each node.
+    incident_reservoir = node_comp_lookup(data["reservoir"], data["node"])
+    incident_active_reservoir = Dict()
+
+    for (i, reservoir_list) in incident_reservoir
+        incident_active_reservoir[i] = [reservoir for reservoir in reservoir_list if reservoir["status"] != STATUS_INACTIVE]
+    end
+
+    # Compute what active tanks are incident to each node.
+    incident_tank = node_comp_lookup(data["tank"], data["node"])
+    incident_active_tank = Dict()
+
+    for (i, tank_list) in incident_tank
+        incident_active_tank[i] = [tank for tank in tank_list if tank["status"] != STATUS_INACTIVE]
+    end
+
+    # Compute what active pipes are incident to each node.
+    incident_pipe = Dict{Int, Any}(node["index"] => [] for (i, node) in data["node"])
+
+    for pipe in values(data["pipe"])
+        push!(incident_pipe[pipe["node_fr"]], pipe)
+        push!(incident_pipe[pipe["node_to"]], pipe)
+    end
+
+    # Compute what active design pipes are incident to each node.
+    incident_des_pipe = Dict{Int, Any}(node["index"] => [] for (i, node) in data["node"])
+
+    for des_pipe in values(data["des_pipe"])
+        push!(incident_des_pipe[des_pipe["node_fr"]], des_pipe)
+        push!(incident_des_pipe[des_pipe["node_to"]], des_pipe)
+    end
+
+    # Compute what active pumps are incident to each node.
+    incident_pump = Dict{Int, Any}(node["index"] => [] for (i, node) in data["node"])
+
+    for pump in values(data["pump"])
+        push!(incident_pump[pump["node_fr"]], pump)
+        push!(incident_pump[pump["node_to"]], pump)
+    end
+
+    # Compute what active regulators are incident to each node.
+    incident_regulator = Dict{Int, Any}(node["index"] => [] for (i, node) in data["node"])
+
+    for regulator in values(data["regulator"])
+        push!(incident_regulator[regulator["node_fr"]], regulator)
+        push!(incident_regulator[regulator["node_to"]], regulator)
+    end
+
+    # Compute what active short pipes are incident to each node.
+    incident_short_pipe = Dict{Int, Any}(node["index"] => [] for (i, node) in data["node"])
+
+    for short_pipe in values(data["short_pipe"])
+        push!(incident_short_pipe[short_pipe["node_fr"]], short_pipe)
+        push!(incident_short_pipe[short_pipe["node_to"]], short_pipe)
+    end
+
+    # Compute what active valves are incident to each node.
+    incident_valve = Dict{Int, Any}(node["index"] => [] for (i, node) in data["node"])
+
+    for valve in values(data["valve"])
+        push!(incident_valve[valve["node_fr"]], valve)
+        push!(incident_valve[valve["node_to"]], valve)
+    end
+
+    revised = false
+
+    for comp_type in ["pipe", "des_pipe", "pump", "regulator", "short_pipe", "valve"]
+        for (i, comp) in data[comp_type]
+            if comp["status"] != STATUS_INACTIVE
+                node_fr = nodes[comp["node_fr"]]
+                node_to = nodes[comp["node_to"]]
+
+                if any(x["status"] == STATUS_INACTIVE for x in [node_fr, node_to])
+                    message = "Deactivating $(replace(comp_type, "_" => " ")) $(i): "
+                    message *= "($(comp["node_fr"]), $(comp["node_to"])) "
+                    message *= "because of a connecting node's status."
+                    Memento.info(_LOGGER, message)
+
+                    comp["status"] = STATUS_INACTIVE
+                    revised = true
+                end
+            end
+        end
+    end
+
+    for (i, node) in nodes
+        if node["status"] == STATUS_INACTIVE
+            for demand in incident_active_demand[i]
+                if demand["status"] != STATUS_INACTIVE
+                    message = "Deactivating demand $(demand["index"]) due to inactive node $(i)."
+                    Memento.info(_LOGGER, message)
+                    demand["status"] = STATUS_INACTIVE
+                    revised = true
+                end
+            end
+
+            for reservoir in incident_active_reservoir[i]
+                if reservoir["status"] != STATUS_INACTIVE
+                    message = "Deactivating reservoir $(reservoir["index"]) due to inactive node $(i)."
+                    Memento.info(_LOGGER, message)
+                    reservoir["status"] = STATUS_INACTIVE
+                    revised = true
+                end
+            end
+
+            for tank in incident_active_tank[i]
+                if tank["status"] != STATUS_INACTIVE
+                    message = "Deactivating tank $(tank["index"]) due to inactive node $(i)."
+                    Memento.info(_LOGGER, message)
+                    tank["status"] = STATUS_INACTIVE
+                    revised = true
+                end
+            end
+        end
+    end
+
+    return revised
+end
+
+
+"Builds a lookup list of what components are connected to a given node."
+function node_comp_lookup(comp_data::Dict{String,<:Any}, node_data::Dict{String,<:Any})
+    node_comp = Dict{Int, Any}(node["index"] => [] for (i, node) in node_data)
+
+    for comp in values(comp_data)
+        push!(node_comp[comp["node"]], comp)
+    end
+    
+    return node_comp
+end
