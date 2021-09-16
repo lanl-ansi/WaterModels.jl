@@ -38,3 +38,9 @@ const _GRAVITY = 9.80665 # In meters per second squared.
 
 "Defines the constant for the density of water."
 const _DENSITY = 1000.0 # In kilograms per cubic meter.
+
+"Defines a convenient vector for node-connected component types."
+const _NODE_CONNECTED_COMPONENTS = ["demand", "reservoir", "tank"]
+
+"Defines a convenient vector for node-connecting component types."
+const _NODE_CONNECTING_COMPONENTS = ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]

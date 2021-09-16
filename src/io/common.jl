@@ -53,6 +53,12 @@ end
 
 function correct_network_data!(data::Dict{String, <:Any})
     epanet_to_watermodels!(data; import_all = false)
+
+    # Perform data consistency checks.
+    check_connectivity(data)
+    check_status(data)
+
+    # Perform data correction routines.
     correct_pipes!(data)
     correct_des_pipes!(data)
     correct_pumps!(data)

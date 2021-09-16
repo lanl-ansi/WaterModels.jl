@@ -6,6 +6,85 @@ function apply_wm!(func!::Function, data::Dict{String, <:Any}; apply_to_subnetwo
 end
 
 
+"Check that all nodes are unique and other components link to valid nodes."
+function check_connectivity(data::Dict{String,<:Any})
+    apply_wm!(_check_connectivity, data)
+end
+
+
+"Check that all nodes are unique and other components link to valid nodes for a
+single-network data set that does not contain other multi-infrastructure data."
+function _check_connectivity(data::Dict{String,<:Any})
+    node_ids = Set(node["index"] for (i, node) in data["node"])
+    @assert(length(node_ids) == length(data["node"]))
+
+    for comp_type in _NODE_CONNECTED_COMPONENTS
+        for (i, comp) in data[comp_type]
+            if !(comp["node"] in node_ids)
+                error_message = "Node $(comp["node"]) in $(comp_type) $(i) is not defined."
+                Memento.error(_LOGGER, error_message)
+            end
+        end
+    end
+
+    for comp_type in _NODE_CONNECTING_COMPONENTS
+        for (i, comp) in data[comp_type]
+            if !(comp["node_fr"] in node_ids)
+                error_message = "From node $(comp["node_fr"]) in "
+                error_message *= "$(replace(comp_type, "_" => " ")) $(i) is not defined."
+                Memento.error(_LOGGER, error_message)
+            end
+
+            if !(comp["node_to"] in node_ids)
+                error_message = "To node $(comp["node_to"]) in "
+                error_message *= "$(replace(comp_type, "_" => " ")) $(i) is not defined."
+                Memento.error(_LOGGER, error_message)
+            end
+        end
+    end
+end
+
+
+"Check that active components are not connected to inactive nodes."
+function check_status(data::Dict{String,<:Any})
+    apply_wm!(_check_status, data)
+end
+
+
+"Check that active components are not connected to inactive nodes for a
+single-network data set that does not contain other multi-infrastructure data."
+function _check_status(data::Dict{String,<:Any})
+    active_nodes = filter(x -> x.second["status"] != STATUS_INACTIVE, data["node"])
+    active_node_ids = Set(node["index"] for (i, node) in active_nodes)
+
+    for comp_type in _NODE_CONNECTED_COMPONENTS
+        for (i, comp) in data[comp_type]
+            if comp["status"] != STATUS_INACTIVE && !(comp["node"] in active_node_ids)
+                warning_message = "Active $(comp_type) $(i) is connected to inactive "
+                warning_message *= "node $(comp["node"])."
+                Memento.warn(_LOGGER, warning_message)
+            end
+        end
+    end
+
+    for comp_type in _NODE_CONNECTING_COMPONENTS
+        for (i, comp) in data[comp_type]
+            if comp["status"] != STATUS_INACTIVE && !(comp["node_fr"] in active_node_ids)
+                warning_message = "Active $(comp_type) $(i) is connected to inactive "
+                warning_message *= "from node $(comp["node_fr"])."
+                Memento.warn(_LOGGER, warning_message)
+            end
+
+            if comp["status"] != STATUS_INACTIVE && !(comp["node_to"] in active_node_ids)
+                warning_message = "Active $(comp_type) $(i) is connected to inactive "
+                warning_message *= "to node $(comp["node_to"])."
+                Memento.warn(_LOGGER, warning_message)
+            end
+        end
+    end
+end
+
+
 function correct_enums!(data::Dict{String,<:Any})
     correct_statuses!(data)
     correct_flow_directions!(data)
@@ -19,7 +98,7 @@ end
 
 
 function _correct_flow_directions!(data::Dict{String,<:Any})
-    for component_type in ["pipe", "des_pipe", "short_pipe", "pump", "regulator", "valve"]
+    for component_type in _NODE_CONNECTING_COMPONENTS
         components = values(get(data, component_type, Dict{String,Any}()))
         _correct_flow_direction!.(components)
     end
@@ -32,10 +111,7 @@ end
 
 
 function _correct_statuses!(data::Dict{String,<:Any})
-    edge_types = ["pipe", "des_pipe", "short_pipe", "pump", "regulator", "valve"]
-    node_types = ["node", "demand", "reservoir", "tank", "reservoir"]
-
-    for component_type in vcat(edge_types, node_types)
+    for component_type in vcat(_NODE_CONNECTING_COMPONENTS, _NODE_CONNECTED_COMPONENTS)
         components = values(get(data, component_type, Dict{String,Any}()))
         _correct_status!.(components)
     end
@@ -640,7 +716,7 @@ end
 
 function _recompute_bounds!(data::Dict{String, <:Any})
     # Clear the existing flow bounds for node-connecting components.
-    for comp_type in ["pipe", "des_pipe", "pump", "regulator", "short_pipe", "valve"]
+    for comp_type in _NODE_CONNECTING_COMPONENTS
         map(x -> x["flow_min"] = -Inf, values(data[comp_type]))
         map(x -> x["flow_max"] = Inf, values(data[comp_type]))
     end
