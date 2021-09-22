@@ -20,7 +20,7 @@ Logging.disable_logging(Logging.Info)
 
 using Test
 
-# Default MIP optimizer
+# Default MIP optimizer.
 cbc = JuMP.optimizer_with_attributes(Cbc.Optimizer, "logLevel" => 0)
 
 # Default NLP optimizer.

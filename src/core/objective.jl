@@ -54,7 +54,10 @@ function objective_max_demand(wm::AbstractWaterModel)::JuMP.AffExpr
     objective = JuMP.AffExpr(0.0)
 
     for n in network_ids_flow
-        for (i, demand) in ref(wm, n, :dispatchable_demand)
+        # Get the set of dispatchable demands at time index `n`.
+        dispatchable_demands = ref(wm, n, :dispatchable_demand)
+
+        for (i, demand) in filter(x -> x.second["flow_min"] >= 0.0, dispatchable_demands)
             # Add the volume delivered at demand `i` and time period `n`.
             coeff = get(demand, "priority", 1.0) * ref(wm, n, :time_step)
             JuMP.add_to_expression!(objective, coeff * var(wm, n, :q_demand, i))
@@ -62,7 +65,7 @@ function objective_max_demand(wm::AbstractWaterModel)::JuMP.AffExpr
     end
 
     # Maximize the total amount of water volume delivered.
-    return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
+    return JuMP.@objective(wm.model, _MOI.MAX_SENSE, objective)
 end
 
 

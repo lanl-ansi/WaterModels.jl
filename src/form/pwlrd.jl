@@ -1,5 +1,5 @@
 # Define common PWLRD (piecewise linear relaxation- and direction-based) implementations of water
-# distribution network constraints, which use directed flow variables.
+# distribution network constraints, which use directed flow variables (i.e., `qp` and `qn`).
 
 
 ########################################## VARIABLES ##########################################

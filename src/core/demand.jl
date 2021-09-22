@@ -13,6 +13,30 @@ function aggregate_demands(subnetworks::Array{Dict{String, Any}, 1})
 end
 
 
+function make_demands_dispatchable!(data::Dict{String,<:Any})
+    apply_wm!(_make_demands_dispatchable!, data)
+end
+
+
+function _make_demands_dispatchable!(data::Dict{String,<:Any})
+    _make_demand_dispatchable!.(values(data["demand"]))
+end
+
+
+function _make_demand_dispatchable!(demand::Dict{String,<:Any})
+    if demand["flow_min"] >= 0.0 && demand["flow_max"] > 0.0
+        # If the demand is a sink for flow, modify the lower bound.
+        demand["flow_min"] = 0.0
+        demand["dispatchable"] = true
+    elseif demand["flow_min"] < 0.0 && demand["flow_max"] <= 0.0
+        # If the demand is a source of flow, modify the upper bound.
+        demand["flow_max"] = 0.0
+        demand["dispatchable"] = true
+    end
+end
+
+
+
 function _relax_demand!(demand::Dict{String,<:Any})
     if haskey(demand, "flow_min") && haskey(demand, "flow_max")
         demand["dispatchable"] = demand["flow_min"] != demand["flow_max"]
@@ -43,6 +67,7 @@ end
 function _fix_demand!(demand::Dict{String,<:Any})
     demand["dispatchable"] = false
 end
+
 
 function _fix_demands!(data::Dict{String, <:Any})
     if _IM.ismultinetwork(data)

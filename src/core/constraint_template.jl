@@ -750,7 +750,7 @@ function constraint_on_off_regulator_head(
     node_fr = ref(wm, nw, :regulator, a)["node_fr"]
     node_to = ref(wm, nw, :regulator, a)["node_to"]
     elevation = ref(wm, nw, :node, node_to)["elevation"]
-    head_setting = elevation + ref(wm, nw, :regulator, a)["setting"]
+    head_setting = elevation + ref(wm, nw, :regulator, a, "setting")
 
     _initialize_con_dict(wm, :on_off_regulator_head, nw = nw, is_array = true)
     con(wm, nw, :on_off_regulator_head)[a] = Array{JuMP.ConstraintRef}([])
