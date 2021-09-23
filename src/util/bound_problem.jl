@@ -21,7 +21,7 @@ end
 
 
 function _get_bound_problems_node(wm::AbstractWaterModel, i::Int, nw::Int; limit::Bool = false)
-    if haskey(var(wm, nw), :h) && i in [x[1] for x in eachindex(var(wm, nw, :h))]
+    if haskey(var(wm, nw), :h) && i in [x for x in var(wm, nw, :h).axes[1]]
         h_vid = _VariableIndex(nw, :node, :h, i)
 
         h_min = _get_lower_bound_from_index(wm, h_vid)
@@ -50,7 +50,7 @@ end
 
 
 function _get_bound_problems_pipe(wm::AbstractNCModel, i::Int, nw::Int; limit::Bool = false)
-    if haskey(var(wm, nw), :q_pipe) && i in [x[1] for x in eachindex(var(wm, nw, :q_pipe))]
+    if haskey(var(wm, nw), :q_pipe) && i in [x for x in var(wm, nw, :q_pipe).axes[1]]
         q_vid = _VariableIndex(nw, :pipe, :q_pipe, i)
 
         flow_min = _get_lower_bound_from_index(wm, q_vid)
@@ -69,7 +69,7 @@ end
 
 
 function _get_bound_problems_pipe(wm::AbstractNCDModel, i::Int, nw::Int; limit::Bool = false)
-    if haskey(var(wm, nw), :q_pipe) && i in [x[1] for x in eachindex(var(wm, nw, :q_pipe))]
+    if haskey(var(wm, nw), :q_pipe) && i in [x for x in var(wm, nw, :q_pipe).axes[1]]
         q_vid = _VariableIndex(nw, :pipe, :q_pipe, i)
         y_vid = _VariableIndex(nw, :pipe, :y_pipe, i)
 
@@ -119,7 +119,7 @@ end
 
 
 function _get_bound_problems_pump(wm::AbstractWaterModel, i::Int, nw::Int; limit::Bool = false)
-    if haskey(var(wm, nw), :q_pump) && i in [x[1] for x in eachindex(var(wm, nw, :q_pump))]
+    if haskey(var(wm, nw), :q_pump) && i in [x for x in var(wm, nw, :q_pump).axes[1]]
         q_vid = _VariableIndex(nw, :pump, :q_pump, i)
         z_vid = _VariableIndex(nw, :pump, :z_pump, i)
 
@@ -155,7 +155,7 @@ end
 
 
 function _get_bound_problems_regulator(wm::AbstractWaterModel, i::Int, nw::Int; limit::Bool = false)
-    if haskey(var(wm, nw), :q_regulator) && i in [x[1] for x in eachindex(var(wm, nw, :q_regulator))]
+    if haskey(var(wm, nw), :q_regulator) && i in [x for x in var(wm, nw, :q_regulator).axes[1]]
         q_vid = _VariableIndex(nw, :regulator, :q_regulator, i)
         z_vid = _VariableIndex(nw, :regulator, :z_regulator, i)
 
@@ -191,7 +191,7 @@ end
 
 
 function _get_bound_problems_short_pipe(wm::AbstractNCModel, i::Int, nw::Int; limit::Bool = false)
-    if haskey(var(wm, nw), :q_short_pipe) && i in [x[1] for x in eachindex(var(wm, nw, :q_short_pipe))]
+    if haskey(var(wm, nw), :q_short_pipe) && i in [x for x in var(wm, nw, :q_short_pipe).axes[1]]
         q_vid = _VariableIndex(nw, :short_pipe, :q_short_pipe, i)
 
         flow_min = _get_lower_bound_from_index(wm, q_vid)
@@ -210,7 +210,7 @@ end
 
 
 function _get_bound_problems_short_pipe(wm::AbstractNCDModel, i::Int, nw::Int; limit::Bool = false)
-    if haskey(var(wm, nw), :q_short_pipe) && i in [x[1] for x in eachindex(var(wm, nw, :q_short_pipe))]
+    if haskey(var(wm, nw), :q_short_pipe) && i in [x for x in var(wm, nw, :q_short_pipe).axes[1]]
         q_vid = _VariableIndex(nw, :short_pipe, :q_short_pipe, i)
         y_vid = _VariableIndex(nw, :short_pipe, :y_short_pipe, i)
 
@@ -260,7 +260,7 @@ end
 
 
 function _get_bound_problems_valve(wm::AbstractNCModel, i::Int, nw::Int; limit::Bool = false)
-    if haskey(var(wm, nw), :q_valve) && i in [x[1] for x in eachindex(var(wm, nw, :q_valve))]
+    if haskey(var(wm, nw), :q_valve) && i in [x for x in var(wm, nw, :q_valve).axes[1]]
         q_vid = _VariableIndex(nw, :valve, :q_valve, i)
         z_vid = _VariableIndex(nw, :valve, :z_valve, i)
 
@@ -285,7 +285,7 @@ end
 
 
 function _get_bound_problems_valve(wm::AbstractNCDModel, i::Int, nw::Int; limit::Bool = false)
-    if haskey(var(wm, nw), :q_valve) && i in [x[1] for x in eachindex(var(wm, nw, :q_valve))]
+    if haskey(var(wm, nw), :q_valve) && i in [x for x in var(wm, nw, :q_valve).axes[1]]
         q_vid = _VariableIndex(nw, :valve, :q_valve, i)
         y_vid = _VariableIndex(nw, :valve, :y_valve, i)
         z_vid = _VariableIndex(nw, :valve, :z_valve, i)
