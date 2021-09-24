@@ -103,10 +103,10 @@ function _calc_pump_head_gain_max(pump::Dict{String, <:Any}, node_fr::Dict{Strin
     # Calculate the flow at the maximum head gain, then return maximum head gain.
     c = _calc_head_curve_coefficients(pump)
 
-    if pump["pump_type"] in [PUMP_QUADRATIC, PUMP_BEST_EFFICIENCY_POINT, PUMP_LINEAR_POWER]
+    if pump["pump_type"] in [PUMP_QUADRATIC, PUMP_BEST_EFFICIENCY_POINT]
         flow_at_max = -c[2] * inv(2.0 * c[1]) > 0.0 ? -c[2] * inv(2.0 * c[1]) : 0.0
         return max(0.0, c[1] * flow_at_max^2 + c[2] * flow_at_max + c[3])
-    elseif pump["pump_type"] == PUMP_EPANET
+    elseif pump["pump_type"] in [PUMP_EPANET, PUMP_LINEAR_POWER]
         return max(0.0, c[1])
     end
 end
@@ -116,7 +116,7 @@ function _calc_pump_flow_max(pump::Dict{String,<:Any}, node_fr::Dict{String,Any}
     # Get possible maximal flow values based on the head curve.
     c = _calc_head_curve_coefficients(pump)
 
-    if pump["pump_type"] in [PUMP_QUADRATIC, PUMP_BEST_EFFICIENCY_POINT, PUMP_LINEAR_POWER]
+    if pump["pump_type"] in [PUMP_QUADRATIC, PUMP_BEST_EFFICIENCY_POINT]
         q_max_1 = (-c[2] + sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0 * c[1])
         q_max_2 = (-c[2] - sqrt(c[2]^2 - 4.0*c[1]*c[3])) * inv(2.0 * c[1])
 
@@ -127,7 +127,7 @@ function _calc_pump_flow_max(pump::Dict{String,<:Any}, node_fr::Dict{String,Any}
 
         # Get the minimal value of the above and the possible "flow_max" value.
         return min(max(q_max_1, q_max_2), max(q_max_3, q_max_4), get(pump, "flow_max", Inf))
-    elseif pump["pump_type"] == PUMP_EPANET
+    elseif pump["pump_type"] in [PUMP_EPANET, PUMP_LINEAR_POWER]
         return min((-c[1] * inv(c[2]))^(inv(c[3])), get(pump, "flow_max", Inf))
     end
 end
@@ -155,11 +155,11 @@ end
 
 
 function _calc_head_curve_coefficients(pump::Dict{String, <:Any})
-    if pump["pump_type"] in [PUMP_QUADRATIC, PUMP_LINEAR_POWER]
+    if pump["pump_type"] == PUMP_QUADRATIC
         return _calc_head_curve_coefficients_quadratic(pump)
     elseif pump["pump_type"] == PUMP_BEST_EFFICIENCY_POINT
         return _calc_head_curve_coefficients_best_efficiency_point(pump)
-    elseif pump["pump_type"] == PUMP_EPANET
+    elseif pump["pump_type"] in [PUMP_EPANET, PUMP_LINEAR_POWER]
         return _calc_head_curve_coefficients_epanet(pump)
     else
         error("\"$(pump["pump_type"])\" is not a valid head curve formulation.")
@@ -168,13 +168,13 @@ end
 
 
 function _calc_head_curve_function(pump::Dict{String, <:Any})
-    if pump["pump_type"] in [PUMP_QUADRATIC, PUMP_LINEAR_POWER]
+    if pump["pump_type"] == PUMP_QUADRATIC
         coeff = _calc_head_curve_coefficients_quadratic(pump)
         return x -> sum(coeff .* [x^2, x, 1.0])
     elseif pump["pump_type"] == PUMP_BEST_EFFICIENCY_POINT
         coeff = _calc_head_curve_coefficients_best_efficiency_point(pump)
         return x -> sum(coeff .* [x^2, x, 1.0])
-    elseif pump["pump_type"] == PUMP_EPANET
+    elseif pump["pump_type"] in [PUMP_EPANET, PUMP_LINEAR_POWER]
         coeff = _calc_head_curve_coefficients_epanet(pump)
         return x -> coeff[1] + coeff[2] * x^coeff[3]
     else
@@ -184,13 +184,13 @@ end
 
 
 function _calc_head_curve_function(pump::Dict{String, <:Any}, z::JuMP.VariableRef)
-    if pump["pump_type"] in [PUMP_QUADRATIC, PUMP_LINEAR_POWER]
+    if pump["pump_type"] == PUMP_QUADRATIC
         coeff = _calc_head_curve_coefficients_quadratic(pump)
         return x -> sum(coeff .* [x^2, x, z])
     elseif pump["pump_type"] == PUMP_BEST_EFFICIENCY_POINT
         coeff = _calc_head_curve_coefficients_best_efficiency_point(pump)
         return x -> sum(coeff .* [x^2, x, z])
-    elseif pump["pump_type"] == PUMP_EPANET
+    elseif pump["pump_type"] in [PUMP_EPANET, PUMP_LINEAR_POWER]
         coeff = _calc_head_curve_coefficients_epanet(pump)
         return x -> coeff[1] * z + coeff[2] * x^coeff[3]
     else
@@ -199,13 +199,13 @@ function _calc_head_curve_function(pump::Dict{String, <:Any}, z::JuMP.VariableRe
 end
 
 function _calc_head_curve_derivative(pump::Dict{String, <:Any})
-    if pump["pump_type"] in [PUMP_QUADRATIC, PUMP_LINEAR_POWER]
+    if pump["pump_type"] == PUMP_QUADRATIC
         coeff = _calc_head_curve_coefficients_quadratic(pump)
         return x -> sum(coeff .* [2.0 * x, 1.0, 0.0])
     elseif pump["pump_type"] == PUMP_BEST_EFFICIENCY_POINT
         coeff = _calc_head_curve_coefficients_best_efficiency_point(pump)
         return x -> sum(coeff .* [2.0 * x, 1.0, 0.0])
-    elseif pump["pump_type"] == PUMP_EPANET
+    elseif pump["pump_type"] in [PUMP_EPANET, PUMP_LINEAR_POWER]
         coeff = _calc_head_curve_coefficients_epanet(pump)
         return x -> coeff[2] * coeff[3] * x^(coeff[3] - 1.0)
     else
@@ -215,15 +215,16 @@ end
 
 
 function _calc_head_curve_coefficients_epanet(pump::Dict{String, <:Any})
-    a = pump["head_curve"][1][2]
-    h4 = pump["head_curve"][1][2] - pump["head_curve"][2][2]
-    h5 = pump["head_curve"][1][2] - pump["head_curve"][3][2]
-    q1, q2 = pump["head_curve"][2][1], pump["head_curve"][3][1]
+    # Use LsqFit to compute a fit with respect to points on the head curve.
+    q, h = [x[1] for x in pump["head_curve"]], [x[2] for x in pump["head_curve"]]
+    model_function(x, p) = p[1] .+ p[2] .* x.^p[3] # (i.e., a + b * x^c)
+    params = LsqFit.curve_fit(model_function, q, h, [h[1], -1.0, 2.0]).param
 
-    c = log(h5 * inv(h4)) * inv(log(q2 * inv(q1)))
-    b = -h4 * inv(q1^c)
+    # Ensure the function is concave with a positive offset.
+    @assert params[1] > 0.0 && params[2] * (params[3]^2 - params[3]) < 0.0
 
-    return [a, b, c]
+    # Return the vector of function parameters.
+    return Vector{Float64}(params)
 end
 
 function _calc_head_curve_coefficients_quadratic(pump::Dict{String, <:Any})

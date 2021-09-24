@@ -197,8 +197,9 @@ function constraint_on_off_pump_head_gain(
     qp, g, z = var(wm, n, :qp_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
 
     # Calculate the head curve function and its derivative.
-    head_curve_func = _calc_head_curve_function(ref(wm, n, :pump, a))
-    head_curve_deriv = _calc_head_curve_derivative(ref(wm, n, :pump, a))
+    # Get pump head curve function and its derivative.
+    head_curve_func = ref(wm, n, :pump, a, "head_curve_function")
+    head_curve_deriv = ref(wm, n, :pump, a, "head_curve_derivative")
     partition = get_pump_flow_partition(ref(wm, n, :pump, a))
     qp_min, qp_max = minimum(partition), maximum(partition)
 
