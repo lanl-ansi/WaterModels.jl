@@ -141,7 +141,7 @@ function variable_pump_power(wm::AbstractWaterModel; nw::Int=nw_id_default, boun
     # Create expressions to compute the unscaled pump costs.
     c = var(wm, nw)[:c_pump] = JuMP.@expression(
         wm.model, [a in ids(wm, nw, :pump)], E[a] *
-        ref(wm, nw, :pump, a)["energy_price"])
+        ref(wm, nw, :pump, a, "energy_price"))
 
     if report
         # Initialize entries to the solution component dictionary for expressions.

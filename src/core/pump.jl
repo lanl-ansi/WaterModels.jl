@@ -218,7 +218,8 @@ function _calc_head_curve_coefficients_epanet(pump::Dict{String, <:Any})
     # Use LsqFit to compute a fit with respect to points on the head curve.
     q, h = [x[1] for x in pump["head_curve"]], [x[2] for x in pump["head_curve"]]
     model_function(x, p) = p[1] .+ p[2] .* x.^p[3] # (i.e., a + b * x^c)
-    params = LsqFit.curve_fit(model_function, q, h, [h[1], -1.0, 2.0]).param
+    params = LsqFit.curve_fit(model_function, q, h, [h[1], -1.0, 2.0];
+        lower = [0.0, -Inf, 1.0 + 1.0e-12], upper = [Inf, -1.0e-12, Inf]).param
 
     # Ensure the function is concave with a positive offset.
     @assert params[1] > 0.0 && params[2] * (params[3]^2 - params[3]) < 0.0
