@@ -336,7 +336,7 @@ function solve_obbt_owf!(
     # Log widths.
     bound_width_msg = _log_bound_widths(data)
     Memento.info(_LOGGER, "[OBBT] Initial bound widths: $(bound_width_msg).")
-    terminate, time_elapsed = false, 0.0
+    terminate, time_elapsed, parallel_time_elapsed = false, 0.0, 0.0
 
     # Set up algorithm metadata.
     current_iteration = 1
@@ -345,16 +345,19 @@ function solve_obbt_owf!(
     while any([x.changed for x in bound_problems]) && !terminate
         # Obtain new candidate bounds, update bounds, and update the data.
         vals = zeros(length(bound_problems))
+        parallel_times_elapsed = zeros(length(bound_problems))
 
         time_elapsed += @elapsed Threads.@threads for i in 1:length(bound_problems)
-            vals[i] = _solve_bound_problem!(wms[Threads.threadid()], bound_problems[i])
+            parallel_times_elapsed = @elapsed vals[i] = _solve_bound_problem!(
+                wms[Threads.threadid()], bound_problems[i])
             _set_new_bound!(bound_problems[i], vals[i])
         end
 
-        time_elapsed > time_limit && ((terminate = true) && break)
-        _update_data_bounds!(data, bound_problems)
+        parallel_time_elapsed += maximum(parallel_times_elapsed)
+        WM._update_data_bounds!(data, bound_problems)
         flow_partition_func(data)
-        !terminate && _clean_bound_problems!(bound_problems, vals)
+        time_elapsed > time_limit && ((terminate = true) && break)
+        !terminate && WM._clean_bound_problems!(bound_problems, vals)
 
         # Log widths.
         bound_width_msg = _log_bound_widths(data)
@@ -390,7 +393,9 @@ function solve_obbt_owf!(
     end
 
     time_elapsed_rounded = round(time_elapsed; digits = 2)
-    Memento.info(_LOGGER, "[OBBT] Completed in $(time_elapsed_rounded) seconds.")
+    parallel_time_elapsed_rounded = round(parallel_time_elapsed; digits = 2)
+    Memento.info(_LOGGER, "[OBBT] Completed in $(time_elapsed_rounded) " *
+        "seconds (ideal parallel time: $(parallel_time_elapsed_rounded) seconds).")
 end
 
 
