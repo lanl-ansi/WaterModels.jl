@@ -39,6 +39,35 @@ function _get_bound_problems_node(wm::AbstractWaterModel, i::Int, nw::Int; limit
 end
 
 
+function _get_bound_problems_tanks(wm::AbstractWaterModel; limit::Bool = false)
+    return vcat(_get_bound_problems_tanks.(Ref(wm), nw_ids(wm); limit = limit)...)
+end
+
+
+function _get_bound_problems_tanks(wm::AbstractWaterModel, nw::Int; limit::Bool = false)
+    return vcat(_get_bound_problems_tank.(Ref(wm), ids(wm, nw, :tank), nw; limit = limit)...)
+end
+
+
+function _get_bound_problems_tank(wm::AbstractWaterModel, i::Int, nw::Int; limit::Bool = false)
+    if haskey(var(wm, nw), :q_tank) && i in [x for x in var(wm, nw, :q_tank).axes[1]]
+        q_tank_vid = _VariableIndex(nw, :tank, :q_tank, i)
+
+        q_tank_min = _get_lower_bound_from_index(wm, q_tank_vid)
+        bp_min = BoundProblem(_MOI.MIN_SENSE, q_tank_vid, [],
+            [], "flow_min", q_tank_min, 1.0e-4, true)
+
+        q_tank_max = _get_upper_bound_from_index(wm, q_tank_vid)
+        bp_max = BoundProblem(_MOI.MAX_SENSE, q_tank_vid, [],
+            [], "flow_max", q_tank_max, 1.0e-4, true)
+
+        return Vector{BoundProblem}([bp_min, bp_max])
+    else
+        return Vector{BoundProblem}([])
+    end
+end
+
+
 function _get_bound_problems_pipes(wm::AbstractWaterModel; limit::Bool = false)
     return vcat(_get_bound_problems_pipes.(Ref(wm), nw_ids(wm); limit = limit)...)
 end
@@ -332,11 +361,12 @@ end
 function _get_bound_problems(wm::AbstractWaterModel; limit::Bool = false)::Vector{BoundProblem}
     # Create the sets of bound-tightening problems.
     bps_node = _get_bound_problems_nodes(wm; limit = limit)
+    bps_tank = _get_bound_problems_tanks(wm; limit = limit)
     bps_pipe = _get_bound_problems_pipes(wm; limit = limit)
     bps_pump = _get_bound_problems_pumps(wm; limit = limit)
     bps_regulator = _get_bound_problems_regulators(wm; limit = limit)
     bps_short_pipe = _get_bound_problems_short_pipes(wm; limit = limit)
     bps_valve = _get_bound_problems_valves(wm; limit = limit)
     return vcat(bps_pump, bps_valve, bps_regulator,
-        bps_pipe, bps_short_pipe, bps_node)
+        bps_pipe, bps_short_pipe, bps_node, bps_tank)
 end

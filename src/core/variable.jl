@@ -77,8 +77,8 @@ end
 function variable_pump_head_gain(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     # Initialize variables for total hydraulic head gain from a pump.
     g = var(wm, nw)[:g_pump] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
-        base_name="$(nw)_g_pump", lower_bound=0.0, # Pump gain is nonnegative.
-        start=comp_start_value(ref(wm, nw, :pump, a), "g_pump_start", 1.0e-6))
+        base_name = "$(nw)_g_pump", lower_bound = 0.0, # Pump gain is nonnegative.
+        start = comp_start_value(ref(wm, nw, :pump, a), "g_pump_start", 1.0e-6))
 
     if bounded
         for (a, pump) in ref(wm, nw, :pump)
@@ -157,8 +157,8 @@ end
 since for each reservoir, there will never be incoming flow."
 function variable_reservoir_flow(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     q_reservoir = var(wm, nw)[:q_reservoir] = JuMP.@variable(wm.model,
-        [i in ids(wm, nw, :reservoir)], lower_bound=0.0, base_name="$(nw)_q_reservoir",
-        start=comp_start_value(ref(wm, nw, :reservoir, i), "q_reservoir_start"))
+        [i in ids(wm, nw, :reservoir)], lower_bound = 0.0, base_name = "$(nw)_q_reservoir",
+        start = comp_start_value(ref(wm, nw, :reservoir, i), "q_reservoir_start"))
 
     if bounded
         for (i, reservoir) in ref(wm, nw, :reservoir)
@@ -200,36 +200,39 @@ function variable_demand_flow(wm::AbstractWaterModel; nw::Int=nw_id_default, bou
         [i in ids(wm, nw, :dispatchable_demand)], base_name="$(nw)_q_demand",
         start=comp_start_value(ref(wm, nw, :dispatchable_demand, i), "q_demand_start"))
 
-    # if bounded
-    #     for (i, demand) in ref(wm, nw, :dispatchable_demand)
-    #         flow_min, flow_max = 0.0, 0.0
+    if bounded
+        for (i, demand) in ref(wm, nw, :dispatchable_demand)
+            flow_min, flow_max = 0.0, 0.0
 
-    #         for name in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
-    #             edges_fr = ref(wm, nw, Symbol(name * "_fr"), demand["node"])
-    #             edges_to = ref(wm, nw, Symbol(name * "_to"), demand["node"])
+            for name in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
+                edges_fr = ref(wm, nw, Symbol(name * "_fr"), demand["node"])
+                edges_to = ref(wm, nw, Symbol(name * "_to"), demand["node"])
 
-    #             if length(edges_fr) > 0
-    #                 flow_min -= sum(ref(wm, nw, Symbol(name), a)["flow_min"] for a in edges_fr)
-    #                 flow_max -= sum(ref(wm, nw, Symbol(name), a)["flow_max"] for a in edges_fr)
-    #             end
+                if length(edges_fr) > 0
+                    flow_min -= sum(ref(wm, nw, Symbol(name), a)["flow_max"] for a in edges_fr)
+                    flow_max -= sum(ref(wm, nw, Symbol(name), a)["flow_min"] for a in edges_fr)
+                end
 
-    #             if length(edges_to) > 0
-    #                 flow_min -= sum(ref(wm, nw, Symbol(name), a)["flow_max"] for a in edges_to)
-    #                 flow_max -= sum(ref(wm, nw, Symbol(name), a)["flow_min"] for a in edges_to)
-    #             end
-    #         end
+                if length(edges_to) > 0
+                    flow_min += sum(ref(wm, nw, Symbol(name), a)["flow_min"] for a in edges_to)
+                    flow_max += sum(ref(wm, nw, Symbol(name), a)["flow_max"] for a in edges_to)
+                end
+            end
 
-    #         flow_min = max(flow_min, demand["flow_min"])
-    #         flow_max = min(flow_max, demand["flow_max"])
 
-    #         JuMP.set_lower_bound(q_demand[i], flow_min)
-    #         JuMP.set_upper_bound(q_demand[i], flow_max)
+            flow_min = max(flow_min, demand["flow_min"])
+            JuMP.set_lower_bound(q_demand[i], flow_min)
+            ref(wm, nw, :demand, i)["flow_min"] = flow_min
 
-    #         flow_mid = flow_min + 0.5 * (flow_max - flow_min)
-    #         q_start = comp_start_value(demand, "q_demand_start", flow_mid)
-    #         JuMP.set_start_value(q_demand[i], q_start)
-    #     end
-    # end
+            flow_max = min(flow_max, demand["flow_max"])
+            JuMP.set_upper_bound(q_demand[i], flow_max)
+            ref(wm, nw, :demand, i)["flow_max"] = flow_max
+
+            flow_mid = 0.5 * (flow_min + flow_max)
+            q_start = comp_start_value(demand, "q_demand_start", flow_mid)
+            JuMP.set_start_value(q_demand[i], q_start)
+        end
+    end
 
     report && sol_component_value(wm, nw, :demand, :q, ids(wm, nw, :dispatchable_demand), q_demand)
 end
@@ -261,12 +264,16 @@ function variable_tank_flow(wm::AbstractWaterModel; nw::Int=nw_id_default, bound
                 end
             end
 
+
+            flow_min = max(flow_min, get(tank, "flow_min", -Inf))
             JuMP.set_lower_bound(q_tank[i], flow_min)
-            JuMP.set_upper_bound(q_tank[i], flow_max)
             ref(wm, nw, :tank, i)["flow_min"] = flow_min
+
+            flow_max = min(flow_max, get(tank, "flow_max", Inf))
+            JuMP.set_upper_bound(q_tank[i], flow_max)
             ref(wm, nw, :tank, i)["flow_max"] = flow_max
 
-            flow_mid = 0.5 * (flow_max + flow_min)
+            flow_mid = 0.5 * (flow_min + flow_max)
             q_start = comp_start_value(tank, "q_tank_start", flow_mid)
             JuMP.set_start_value(q_tank[i], q_start)
         end
