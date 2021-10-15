@@ -706,9 +706,9 @@ function _relax_network!(data::Dict{String,<:Any})
     _relax_reservoirs!(data)
     _relax_demands!(data)
 
-    _relax_pipes!(data)
-    _relax_pumps!(data)
-    _relax_valves!(data)
+    # _relax_pipes!(data)
+    # _relax_pumps!(data)
+    # _relax_valves!(data)
 end
 
 

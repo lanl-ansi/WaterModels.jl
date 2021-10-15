@@ -104,9 +104,9 @@ function _get_pairwise_problem_sets(wm::AbstractWaterModel; nw::Int = nw_id_defa
     problem_sets = Array{_PairwiseProblemSet, 1}()
     binary_variable_indices = _get_binary_variable_indices(wm; nw = nw)
 
-    pipe_variable_indices = _get_flow_variable_indices(wm; nw = nw)
+    flow_variable_indices = _get_flow_variable_indices(wm; nw = nw)
     head_variable_indices = _get_head_variable_indices(wm; nw = nw)
-    continuous_variable_indices = vcat(pipe_variable_indices, head_variable_indices)
+    continuous_variable_indices = vcat(flow_variable_indices, head_variable_indices)
 
     for variable_index_1 in vcat(binary_variable_indices, continuous_variable_indices)
         for variable_index_2 in setdiff(binary_variable_indices, [variable_index_1])
