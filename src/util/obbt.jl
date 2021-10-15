@@ -354,10 +354,10 @@ function solve_obbt_owf!(
         end
 
         parallel_time_elapsed += maximum(parallel_times_elapsed)
-        WM._update_data_bounds!(data, bound_problems)
+        _update_data_bounds!(data, bound_problems)
         flow_partition_func(data)
         time_elapsed > time_limit && ((terminate = true) && break)
-        !terminate && WM._clean_bound_problems!(bound_problems, vals)
+        !terminate && _clean_bound_problems!(bound_problems, vals)
 
         # Log widths.
         bound_width_msg = _log_bound_widths(data)
