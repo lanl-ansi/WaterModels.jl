@@ -117,8 +117,9 @@ function _correct_des_pipes!(data::Dict{String, <:Any}, head_loss::String, visco
 
         # Correct various pipe properties. The sequence is important, here.
         _correct_flow_direction!(des_pipe)
-        _correct_pipe_flow_bounds!(des_pipe, node_fr, node_to,
-            head_loss, viscosity, capacity, base_length, base_mass, base_time)
+        _correct_pipe_flow_bounds!(
+            des_pipe, node_fr, node_to, head_loss, viscosity,
+            capacity, base_length, base_mass, base_time)
     end
 end
 
@@ -296,7 +297,9 @@ end
 
 
 function _calc_head_loss_oa(q::JuMP.VariableRef, z::Union{JuMP.VariableRef, JuMP.GenericAffExpr}, q_hat::Float64, exponent::Float64)
-    return q_hat^exponent * z + exponent * q_hat^(exponent - 1.0) * (q - q_hat * z)
+    f::Float64 = q_hat^exponent
+    df::Float64 = exponent * q_hat^(exponent - 1.0)
+    return f * z + df * (q - q_hat * z)
 end
 
 

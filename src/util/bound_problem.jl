@@ -24,13 +24,17 @@ function _get_bound_problems_node(wm::AbstractWaterModel, i::Int, nw::Int; limit
     if haskey(var(wm, nw), :h) && i in [x for x in var(wm, nw, :h).axes[1]]
         h_vid = _VariableIndex(nw, :node, :h, i)
 
+        wm_data = get_wm_data(wm.data)
+        head_transform = _calc_head_per_unit_transform(wm_data)
+        head_precision = head_transform(1.0e-4)
+
         h_min = _get_lower_bound_from_index(wm, h_vid)
         bp_min = BoundProblem(_MOI.MIN_SENSE, h_vid, [],
-            [], "head_min", h_min, 1.0e-4, true)
+            [], "head_min", h_min, head_precision, true)
 
         h_max = _get_upper_bound_from_index(wm, h_vid)
         bp_max = BoundProblem(_MOI.MAX_SENSE, h_vid, [],
-            [], "head_max", h_max, 1.0e-4, true)
+            [], "head_max", h_max, head_precision, true)
 
         return Vector{BoundProblem}([bp_min, bp_max])
     else
@@ -130,6 +134,62 @@ function _get_bound_problems_pipe(wm::AbstractNCDModel, i::Int, nw::Int; limit::
         else
             return Vector{BoundProblem}([bp_q_min, bp_q_min_forward,
                 bp_q_max, bp_q_max_reverse, bp_y_min, bp_y_max])
+        end
+    else
+        return Vector{BoundProblem}([])
+    end
+end
+
+
+function _get_bound_problems_des_pipes(wm::AbstractWaterModel; limit::Bool = false)
+    return vcat(_get_bound_problems_des_pipes.(Ref(wm), nw_ids(wm); limit = limit)...)
+end
+
+
+function _get_bound_problems_des_pipes(wm::AbstractWaterModel, nw::Int; limit::Bool = false)
+    return vcat(_get_bound_problems_des_pipe.(Ref(wm), ids(wm, nw, :des_pipe), nw; limit = limit)...)
+end
+
+
+function _get_bound_problems_des_pipe(wm::AbstractNCDModel, i::Int, nw::Int; limit::Bool = false)
+    if haskey(var(wm, nw), :q_des_pipe) && i in [x for x in var(wm, nw, :q_des_pipe).axes[1]]
+        q_vid = _VariableIndex(nw, :des_pipe, :q_des_pipe, i)
+        y_vid = _VariableIndex(nw, :des_pipe, :y_des_pipe, i)
+        z_vid = _VariableIndex(nw, :des_pipe, :z_des_pipe, i)
+
+        flow_min = _get_lower_bound_from_index(wm, q_vid)
+        bp_q_min = BoundProblem(_MOI.MIN_SENSE, q_vid, [],
+            [], "flow_min", flow_min, 1.0e-4, true)
+        
+        flow_min_forward = get(ref(wm, q_vid.network_index,
+            :des_pipe)[i], "flow_min_forward", 0.0)
+        bp_q_min_forward = BoundProblem(_MOI.MIN_SENSE, q_vid, [y_vid, z_vid],
+            [], "flow_min_forward", flow_min_forward, 1.0e-4, true)
+
+        flow_max = _get_upper_bound_from_index(wm, q_vid)
+        bp_q_max = BoundProblem(_MOI.MAX_SENSE, q_vid, [],
+            [], "flow_max", flow_max, 1.0e-4, true)
+
+        flow_max_reverse = get(ref(wm, q_vid.network_index,
+            :des_pipe)[i], "flow_max_reverse", 0.0)
+        bp_q_max_reverse = BoundProblem(_MOI.MAX_SENSE, q_vid, [z_vid],
+            [y_vid], "flow_max_reverse", flow_max_reverse, 1.0e-4, true)
+
+        bp_y_min = BoundProblem(_MOI.MIN_SENSE, y_vid, [],
+            [], "y_min", 0.0, 1.0e-2, true)
+        bp_y_max = BoundProblem(_MOI.MAX_SENSE, y_vid, [],
+            [], "y_max", 1.0, 1.0e-2, true)
+
+        bp_z_min = BoundProblem(_MOI.MIN_SENSE, z_vid, [],
+            [], "z_min", 0.0, 1.0e-2, true)
+        bp_z_max = BoundProblem(_MOI.MAX_SENSE, z_vid, [],
+            [], "z_max", 1.0, 1.0e-2, true)
+
+        if limit
+            return Vector{BoundProblem}([bp_q_min_forward, bp_q_max_reverse])
+        else
+            return Vector{BoundProblem}([bp_q_min, bp_q_min_forward, bp_q_max,
+                bp_q_max_reverse, bp_y_min, bp_y_max, bp_z_min, bp_z_max])
         end
     else
         return Vector{BoundProblem}([])
@@ -363,10 +423,11 @@ function _get_bound_problems(wm::AbstractWaterModel; limit::Bool = false)::Vecto
     bps_node = _get_bound_problems_nodes(wm; limit = limit)
     bps_tank = _get_bound_problems_tanks(wm; limit = limit)
     bps_pipe = _get_bound_problems_pipes(wm; limit = limit)
+    bps_des_pipe = _get_bound_problems_des_pipes(wm; limit = limit)
     bps_pump = _get_bound_problems_pumps(wm; limit = limit)
     bps_regulator = _get_bound_problems_regulators(wm; limit = limit)
     bps_short_pipe = _get_bound_problems_short_pipes(wm; limit = limit)
     bps_valve = _get_bound_problems_valves(wm; limit = limit)
-    return vcat(bps_pump, bps_valve, bps_regulator,
+    return vcat(bps_pump, bps_valve, bps_regulator, bps_des_pipe,
         bps_pipe, bps_short_pipe, bps_node, bps_tank)
 end

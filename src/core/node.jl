@@ -57,6 +57,7 @@ function _correct_node_head_bounds!(
     # Compute minimum and maximum head bounds for the node.
     node["head_min"] = _calc_node_head_min(node, demands, reservoirs, tanks, head_offset)
     node["head_max"] = _calc_node_head_max(node, demands, reservoirs, tanks, head_max)
+    @assert node["head_min"] <= node["head_max"]
 end
 
 

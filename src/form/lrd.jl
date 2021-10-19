@@ -102,13 +102,16 @@ function constraint_on_off_des_pipe_head_loss(
     q_min_forward::Float64,
 )
     # Get the variable for flow directionality.
-    y, z = var(wm, n, :y_des_pipe, a), var(wm, n, :z_des_pipe, a)
+    y = var(wm, n, :y_des_pipe, a)
+    z = var(wm, n, :z_des_pipe, a)
 
     # Get variables for positive flow and head difference.
-    qp, dhp = var(wm, n, :qp_des_pipe, a), var(wm, n, :dhp_des_pipe, a)
+    qp = var(wm, n, :qp_des_pipe, a)
+    dhp = var(wm, n, :dhp_des_pipe, a)
 
     # Get the corresponding positive flow partitioning.
-    partition_p = get_pipe_flow_partition_positive(ref(wm, n, :des_pipe, a))
+    des_pipe = ref(wm, n, :des_pipe, a)
+    partition_p = get_pipe_flow_partition_positive(des_pipe)
 
     # Loop over consequential points (i.e., those that have nonzero head loss).
     for flow_value in filter(x -> x > 0.0, partition_p)

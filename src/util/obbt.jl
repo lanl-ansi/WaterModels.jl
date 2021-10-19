@@ -23,8 +23,6 @@ solve_obbt_owf!("examples/data/epanet/van_zyl.inp", gurobi)
 * `upper_bound_constraint`: boolean option that can be used to add an additional
    constraint to reduce the search space of each of the bound tightening
    solves. This cannot be set to `true` without specifying an upper bound.
-* `use_relaxed_network`: boolean option that specifies whether or not to use a relaxed,
-   snapshot, dispatchable version of the origin multinetwork problem for bound tightening.
 """
 function solve_obbt_owf!(file::String, optimizer; kwargs...)
     data = WaterModels.parse_file(file)
@@ -65,7 +63,8 @@ function _solve_bound_problem!(wm::AbstractWaterModel, bound_problem::BoundProbl
     end
 
     # Fix binary variables to desired values.
-    _fix_indicator.(v_one, 1.0), _fix_indicator.(v_zero, 0.0)
+    _fix_indicator.(v_one, 1.0)
+    _fix_indicator.(v_zero, 0.0)
     vars_relaxed = Vector{JuMP.VariableRef}([])
 
     if ismultinetwork(wm)
@@ -107,16 +106,18 @@ function _solve_bound_problem!(wm::AbstractWaterModel, bound_problem::BoundProbl
             return min(bound_problem.bound, candidate)
         end
     else
-        return bound_problem.bound # Optimization was not successful. Return the starting bound.
+        # Optimization was not successful. Return the starting bound.
+        return bound_problem.bound
     end
 end
 
 
 function _set_new_bound!(bound_problem::BoundProblem, candidate::Float64)
     prec = bound_problem.precision
+    num_digits = Int(ceil(1.0 / prec))
 
     if bound_problem.sense === _MOI.MIN_SENSE
-        scaled_candidate = floor(inv(prec) * candidate) * prec
+        scaled_candidate = floor(candidate; digits = num_digits)
 
         if scaled_candidate > bound_problem.bound
             setfield!(bound_problem, :bound, scaled_candidate)
@@ -125,7 +126,7 @@ function _set_new_bound!(bound_problem::BoundProblem, candidate::Float64)
             setfield!(bound_problem, :changed, false)
         end
     else
-        scaled_candidate = ceil(inv(prec) * candidate) * prec
+        scaled_candidate = ceil(candidate; digits = num_digits)
 
         if scaled_candidate < bound_problem.bound
             setfield!(bound_problem, :bound, scaled_candidate)
@@ -244,6 +245,7 @@ function _log_bound_widths(data::Dict{String,<:Any})
     message = ""
     message *= _log_node_bound_width(wm_data, "node")    
     message *= _log_flow_bound_width(wm_data, "pipe")
+    message *= _log_flow_bound_width(wm_data, "des_pipe")
     message *= _log_flow_bound_width(wm_data, "short_pipe")
     message *= _log_flow_bound_width(wm_data, "valve")
     message *= _log_forward_flow_bound_width(wm_data, "pump")
@@ -294,102 +296,120 @@ function _clean_bound_problems!(problems::Vector{BoundProblem}, vals::Vector{Flo
 end
 
 
-function solve_obbt_owf!(
-    data::Dict{String,<:Any}, optimizer; use_relaxed_network::Bool = true,
+function solve_obbt!(
+    data::Dict{String,<:Any}, build_method::Function, optimizer;
     model_type::Type = PWLRDWaterModel, time_limit::Float64 = 3600.0,
-    upper_bound::Float64 = Inf, upper_bound_constraint::Bool = false,
-    max_iter::Int = 100, solve_relaxed::Bool = true,
+    upper_bound::Float64 = Inf, max_iter::Int = 100, relax_integrality::Bool = false,
     flow_partition_func::Function = x -> set_flow_partitions_si!(x, 1.0, 1.0e-4),
     limit_problems::Bool = false, kwargs...)
     # Print a message with relevant algorithm limit information.
-    message = "[OBBT] Maximum time limit set to default value of $(time_limit) seconds."
+    message = "[OBBT] Time limit set to $(time_limit) seconds."
     Memento.info(_LOGGER, message)
 
-    # Relax the network (e.g., make nodal components dispatchable) if requested.
-    use_relaxed_network && relax_network!(data)
-
-    # Set the problem specification that will be used for bound tightening.
-    build_type = _IM.ismultinetwork(get_wm_data(data)) ? build_mn_owf : build_wf
-
-    # Check for keyword argument inconsistencies.
-    _check_obbt_options(upper_bound, upper_bound_constraint)
+    # Execute the flow partitioning function.
+    flow_partition_func(data)
 
     # Instantiate the bound tightening model and relax integrality, if requested.
-    wms = [instantiate_model(data, model_type, build_type) for i in 1:Threads.nthreads()]
+    wms = Vector{AbstractWaterModel}(undef, Threads.nthreads())
 
-    if upper_bound_constraint
-        map(x -> _constraint_obj_bound(x, upper_bound), wms)
+    # Update WaterModels objects in parallel.
+    Threads.@threads for i in 1:Threads.nthreads()
+        wms[i] = instantiate_model(deepcopy(data), model_type, build_method)
+
+        if upper_bound < Inf
+            # Add a constraint on the objective upper bound.
+            objective_expr = JuMP.objective_function(wms[i].model)
+            JuMP.@constraint(wms[i].model, objective_expr <= upper_bound)
+        end
+
+        if relax_integrality
+            # Relax the binary variables if requested.
+            relax_all_binary_variables!(wms[i])
+        end
+
+        # Set the optimizer for the bound tightening model.
+        JuMP.set_optimizer(wms[i].model, optimizer)
     end
 
-    if solve_relaxed
-        # Relax the binary variables if requested.
-        map(x -> relax_all_binary_variables!(x), wms)
-    end
-
-    # Set the optimizer for the bound tightening model.
-    map(x -> JuMP.set_optimizer(x.model, optimizer), wms)
-
-    # Collect all problems.
+    # Collect all bound tightening problems and update bounds in `data`.
     bound_problems = _get_bound_problems(wms[1]; limit = limit_problems)
     _update_data_bounds!(data, bound_problems) # Populate data with bounds.
 
-    # Log widths.
+    # Log mean ranges between important lower and upper bounds.
     bound_width_msg = _log_bound_widths(data)
     Memento.info(_LOGGER, "[OBBT] Initial bound widths: $(bound_width_msg).")
-    terminate, time_elapsed, parallel_time_elapsed = false, 0.0, 0.0
 
-    # Set up algorithm metadata.
-    current_iteration = 1
+    # Instantiate termination and time logging variables.
+    current_iteration = 1 # Tracks the iteration counter of the algorithm.
+    time_elapsed = 0.0 # Tracks the amount of algorithm time elapsed.
+    parallel_time_elapsed = 0.0 # Tracks the ideal parallel time elapsed.
+    
+    # Instantiate the variable that determines when OBBT is terminated.
     terminate = current_iteration >= max_iter
 
     while any([x.changed for x in bound_problems]) && !terminate
-        # Obtain new candidate bounds, update bounds, and update the data.
+        # Initialize vector of bound candidates.
         vals = zeros(length(bound_problems))
+
+        # Initialize vector of time elapsed per problem.
         parallel_times_elapsed = zeros(length(bound_problems))
 
+        # Parallelize all bound tightening problems over available threads.
         time_elapsed += @elapsed Threads.@threads for i in 1:length(bound_problems)
+            # Solve the bound tightening problem and store the candidate.
             parallel_times_elapsed = @elapsed vals[i] = _solve_bound_problem!(
                 wms[Threads.threadid()], bound_problems[i])
+
+            # Update the bound stored in the bound problem definition.
             _set_new_bound!(bound_problems[i], vals[i])
         end
 
+        # Update the ideal parallel time elapsed from the current iteration.
         parallel_time_elapsed += maximum(parallel_times_elapsed)
-        _update_data_bounds!(data, bound_problems)
-        flow_partition_func(data)
-        time_elapsed > time_limit && ((terminate = true) && break)
-        !terminate && _clean_bound_problems!(bound_problems, vals)
 
-        # Log widths.
+        # Update all bounds within `data` using the new bounds in `bound_problems`.
+        _update_data_bounds!(data, bound_problems)
+
+        # Re-execute the flow partitioning function.
+        flow_partition_func(data)
+
+        # Check if the time limit has been exceeded and terminate, if necessary.
+        time_elapsed > time_limit && ((terminate = true) && break)
+
+        if !terminate
+            # Remove bound problems where discrete variables were fixed.
+            _clean_bound_problems!(bound_problems, vals)
+        end
+
+        # Log mean ranges between important lower and upper bounds.
         bound_width_msg = _log_bound_widths(data)
         message = "[OBBT] Iteration $(current_iteration) bound widths: $(bound_width_msg)."
         Memento.info(_LOGGER, message)
 
-        # Update algorithm metadata.
+        # Update the current iteration of the algorithm.
         current_iteration += 1
-
-        # Set up the next optimization problem using the new bounds.
-        wms = [instantiate_model(data, model_type, build_type) for i in 1:Threads.nthreads()]
-
-        if upper_bound_constraint
-            map(x -> _constraint_obj_bound(x, upper_bound), wms)
-        end
-
-        if solve_relaxed
-            # Relax the binary variables if requested.
-            map(x -> relax_all_binary_variables!(x), wms)
-        end
-
-        # Set the optimizer for the bound tightening model.
-        map(x -> JuMP.set_optimizer(x.model, optimizer), wms)
 
         # Set the termination variable if max iterations is exceeded.
         current_iteration >= max_iter && (terminate = true)
-    end
 
-    if use_relaxed_network
-        _fix_demands!(data)
-        _fix_tanks!(data)
-        _fix_reservoirs!(data)
+        # Update WaterModels objects in parallel.
+        Threads.@threads for i in 1:Threads.nthreads()
+            wms[i] = instantiate_model(deepcopy(data), model_type, build_method)
+
+            if upper_bound < Inf
+                # Add a constraint on the objective upper bound.
+                objective_expr = JuMP.objective_function(wms[i].model)
+                JuMP.@constraint(wms[i].model, objective_expr <= upper_bound)
+            end
+
+            if relax_integrality
+                # Relax the binary variables if requested.
+                relax_all_binary_variables!(wms[i])
+            end
+
+            # Set the optimizer for the bound tightening model.
+            JuMP.set_optimizer(wms[i].model, optimizer)
+        end
     end
 
     time_elapsed_rounded = round(time_elapsed; digits = 2)

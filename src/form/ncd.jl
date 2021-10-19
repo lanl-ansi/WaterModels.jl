@@ -304,10 +304,13 @@ function constraint_on_off_des_pipe_head(
     node_to::Int,
 )
     # Get head difference variables for the des_pipe.
-    dhp, dhn = var(wm, n, :dhp_des_pipe, a), var(wm, n, :dhn_des_pipe, a)
+    dh = var(wm, n, :dh_des_pipe, a)
+    dhp = var(wm, n, :dhp_des_pipe, a)
+    dhn = var(wm, n, :dhn_des_pipe, a)
 
     # Get des_pipe direction and status variable.
-    y, z = var(wm, n, :y_des_pipe, a), var(wm, n, :z_des_pipe, a)
+    y = var(wm, n, :y_des_pipe, a)
+    z = var(wm, n, :z_des_pipe, a)
 
     # If the des_pipe is off, decouple the head difference relationship.
     dhp_ub, dhn_ub = JuMP.upper_bound(dhp), JuMP.upper_bound(dhn)
@@ -315,9 +318,10 @@ function constraint_on_off_des_pipe_head(
     c_2 = JuMP.@constraint(wm.model, dhn <= dhn_ub * (1.0 - y))
     c_3 = JuMP.@constraint(wm.model, dhp <= dhp_ub * z)
     c_4 = JuMP.@constraint(wm.model, dhn <= dhn_ub * z)
+    c_5 = JuMP.@constraint(wm.model, dh == dhp - dhn)
 
     # Append the constraint array.
-    append!(con(wm, n, :on_off_des_pipe_head, a), [c_1, c_2, c_3, c_4])
+    append!(con(wm, n, :on_off_des_pipe_head, a), [c_1, c_2, c_3, c_4, c_5])
 end
 
 
@@ -371,18 +375,16 @@ function constraint_des_pipe_head(
     k::Int,
     node_fr::Int,
     node_to::Int,
-    des_pipes::Array{Int64,1},
+    des_pipes::Vector{Int64}
 )
     # Collect relevant design pipe variables and summations.
-    dhp, dhn = var(wm, n, :dhp_des_pipe), var(wm, n, :dhn_des_pipe)
     h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
-    dhp_sum, dhn_sum = sum(dhp[a] for a in des_pipes), sum(dhn[a] for a in des_pipes)
-    dh_sum = sum(var(wm, n, :dh_des_pipe, a) for a in des_pipes)
 
-    # Add constraints equating the sums of head differences to head difference.
-    c_1 = JuMP.@constraint(wm.model, dh_sum == dhp_sum - dhn_sum)
-    c_2 = JuMP.@constraint(wm.model, dhp_sum - dhn_sum == h_i - h_j)
-    append!(con(wm, n, :des_pipe_head)[k], [c_1, c_2])
+    # Relate directed head differences with actual head difference.
+    dhp_sum = sum(var(wm, n, :dhp_des_pipe, a) for a in des_pipes)
+    dhn_sum = sum(var(wm, n, :dhn_des_pipe, a) for a in des_pipes)    
+    c = JuMP.@constraint(wm.model, dhp_sum - dhn_sum == h_i - h_j)
+    append!(con(wm, n, :des_pipe_head)[k], [c])
 end
 
 

@@ -45,10 +45,12 @@ function variable_head(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::B
             # Get the nodes that are connected by the design pipe.
             node_fr = ref(wm, nw, :node, des_pipe["node_fr"])
             node_to = ref(wm, nw, :node, des_pipe["node_to"])
-
+            
             # Set the lower and upper bounds for the design pipe head difference.
-            JuMP.set_lower_bound(dh_des_pipe[a], node_fr["head_min"] - node_to["head_max"])
-            JuMP.set_upper_bound(dh_des_pipe[a], node_fr["head_max"] - node_to["head_min"])
+            dhn_max = max(0.0, node_to["head_max"] - node_fr["head_min"])
+            JuMP.set_lower_bound(dh_des_pipe[a], -dhn_max)
+            dhp_max = max(0.0, node_fr["head_max"] - node_to["head_min"])
+            JuMP.set_upper_bound(dh_des_pipe[a], dhp_max)
         end
     end
 

@@ -152,8 +152,10 @@ function constraint_on_off_des_pipe_head(
     node_to::Int,
 )
     # Get head difference and status variables for the design pipe.
-    dh, z = var(wm, n, :dh_des_pipe, a), var(wm, n, :z_des_pipe, a)
-    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+    dh = var(wm, n, :dh_des_pipe, a)
+    z = var(wm, n, :z_des_pipe, a)
+    h_i = var(wm, n, :h, node_fr)
+    h_j = var(wm, n, :h, node_to)
 
     # For pipes, the differences must satisfy lower and upper bounds.
     dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
