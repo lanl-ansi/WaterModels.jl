@@ -241,13 +241,13 @@ end
 
 
 function _calc_abs_flow_midpoint(comp::Dict{String,Any})
-    if comp["flow_direction"] in [0, UNKNOWN]
+    if comp["flow_direction"] in [0, FLOW_DIRECTION_UNKNOWN]
         qp_ub_mid = 0.5 * max(0.0, comp["flow_max"])
         qn_ub_mid = 0.5 * max(0.0, -comp["flow_min"])
         return max(qp_ub_mid, qn_ub_mid)
-    elseif comp["flow_direction"] in [1, POSITIVE]
+    elseif comp["flow_direction"] in [1, FLOW_DIRECTION_POSITIVE]
         return 0.5 * max(0.0, comp["flow_max"])
-    elseif comp["flow_direction"] in [-1, NEGATIVE]
+    elseif comp["flow_direction"] in [-1, FLOW_DIRECTION_NEGATIVE]
         return 0.5 * max(0.0, -comp["flow_min"])
     end
 end
@@ -370,6 +370,8 @@ function set_start!(data::Dict{String,<:Any}, component_type::String, var_name::
     else
         comps = values(wm_data[component_type])
         map(x -> x[start_name] = x[var_name], comps)
+    end
+end
 
 function spatial_partition(data::Dict{String, <:Any}, br_pts::Array{Array{String, 1}, 1})
     # number of partitions
