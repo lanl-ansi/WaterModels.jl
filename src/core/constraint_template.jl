@@ -243,6 +243,20 @@ function constraint_tank_volume(wm::AbstractWaterModel, i::Int; nw::Int = nw_id_
     end
 end
 
+function constraint_tank_volume_last(wm::AbstractWaterModel, i::Int; nw::Int=nw_id_default)
+    # Only set the tank state if the tank is nondispatchable.
+    if !ref(wm, nw, :tank, i)["dispatchable"]
+        tank = ref(wm, nw, :tank, i)
+        initial_level = tank["init_level"]
+        surface_area = 0.25 * pi * tank["diameter"]^2
+        V_initial = surface_area * initial_level
+
+        # Apply the tank volume constraint at the specified time step.
+        _initialize_con_dict(wm, :tank_volume_last, nw = nw)
+        constraint_tank_volume_fixed_last(wm, nw, i, V_initial)
+    end
+end
+
 
 function constraint_tank_volume(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2::Int)
     # Only apply the constraint if the tank exists in both subnetworks.
@@ -253,8 +267,17 @@ function constraint_tank_volume(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2:
         # Only set the tank state if the tank is nondispatchable.
         if !tank_nw_1["dispatchable"] && !tank_nw_2["dispatchable"]
             # Apply the tank volume integration constraint between the two time steps.
-            _initialize_con_dict(wm, :tank_volume; nw = nw_2, is_array = true)
-            con(wm, nw_2, :tank_volume)[i] = Array{JuMP.ConstraintRef,1}([])
+# <<<<<<< master
+#             _initialize_con_dict(wm, :tank_volume; nw = nw_2, is_array = true)
+#             con(wm, nw_2, :tank_volume)[i] = Array{JuMP.ConstraintRef,1}([])
+# =======
+
+            _initialize_con_dict(wm, :tank_volume_integration; nw=nw_2, is_array=true)
+            con(wm, nw_2, :tank_volume_integration)[i] = Array{JuMP.ConstraintRef, 1}([])
+# =======
+#             _initialize_con_dict(wm, :tank_volume_integration, nw = nw_2)
+# >>>>>>> dw
+
             constraint_tank_volume(wm, nw_1, nw_2, i, ref(wm, nw_1, :time_step))
         end
     end
