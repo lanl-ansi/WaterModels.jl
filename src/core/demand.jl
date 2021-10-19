@@ -52,3 +52,16 @@ function _fix_demands!(data::Dict{String, <:Any})
         map(x -> _fix_demand!(x), values(data["demand"]))
     end
 end
+
+
+function set_demand_warm_start!(data::Dict{String, <:Any})
+    apply_wm!(_set_demand_warm_start!, data)
+end
+
+
+function _set_demand_warm_start!(data::Dict{String, <:Any})
+    for demand in values(data["demand"])
+        flow_mid = 0.5 * (demand["flow_min"] + demand["flow_max"])
+        demand["q_demand_start"] = get(demand, "q", flow_mid)
+    end
+end

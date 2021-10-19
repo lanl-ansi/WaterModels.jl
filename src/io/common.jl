@@ -10,8 +10,13 @@ function parse_file(path::String; skip_correct::Bool = false)
         network_data = WaterModels.parse_epanet(path)
     elseif endswith(path, ".json")
         network_data = WaterModels.parse_json(path)
+        correct_enums!(network_data)
     else
         error("\"$(path)\" is not a valid file type.")
+    end
+
+    if !haskey(network_data, "per_unit")
+        network_data["per_unit"] = false
     end
 
     if !skip_correct
@@ -29,13 +34,7 @@ Parses a JavaScript Object Notation (JSON) file from the file path `path` and re
 WaterModels data structure (a dictionary of data).
 """
 function parse_json(path::String)
-    dict = JSON.parsefile(path)
-
-    if !haskey(dict, "per_unit")
-        dict["per_unit"] = false
-    end
-
-    return dict
+    return JSON.parsefile(path)
 end
 
 
@@ -54,14 +53,14 @@ end
 
 function correct_network_data!(data::Dict{String, <:Any})
     epanet_to_watermodels!(data; import_all = false)
-    InfrastructureModels.apply!(correct_pipes!, data, wm_it_name)
-    InfrastructureModels.apply!(correct_des_pipes!, data, wm_it_name)
-    InfrastructureModels.apply!(correct_pumps!, data, wm_it_name)
-    InfrastructureModels.apply!(correct_regulators!, data, wm_it_name)
-    InfrastructureModels.apply!(correct_short_pipes!, data, wm_it_name)
-    InfrastructureModels.apply!(correct_valves!, data, wm_it_name)
-    InfrastructureModels.apply!(correct_nodes!, data, wm_it_name)
+    correct_pipes!(data)
+    correct_des_pipes!(data)
+    correct_pumps!(data)
+    correct_regulators!(data)
+    correct_short_pipes!(data)
+    correct_valves!(data)
+    correct_nodes!(data)
 
     # Make data per-unit if necessary.
-    # make_per_unit!(data)
+    make_per_unit!(data)
 end

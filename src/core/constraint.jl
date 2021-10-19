@@ -48,11 +48,12 @@ Adds a constraint that ensures the volume of a tank at some time step is fixed. 
 is the WaterModels object, `n` is the index of a subnetwork within a multinetwork, `i` is
 the index of the tank, and `V_0` is the fixed volume of the tank that is desired.
 """
-function constraint_tank_volume_fixed(wm::AbstractWaterModel, n::Int, i::Int, V_0::Float64, time_step::Float64, min_vol::Float64)
+function constraint_tank_volume_fixed(wm::AbstractWaterModel, n::Int, i::Int, V_0::Float64, time_step::Float64, min_vol::Float64, max_vol::Float64)
     V, q = var(wm, n, :V, i), var(wm, n, :q_tank, i)
     c_1 = JuMP.@constraint(wm.model, V == V_0)
     c_2 = JuMP.@constraint(wm.model, min_vol <= V_0 - q * time_step)
-    append!(con(wm, n, :tank_volume)[i], [c_1, c_2])
+    c_3 = JuMP.@constraint(wm.model, V_0 - q * time_step <= max_vol)
+    append!(con(wm, n, :tank_volume)[i], [c_1, c_2, c_3])
 end
 
 function constraint_tank_volume_fixed_last(wm::AbstractWaterModel, n::Int, i::Int, V_0::Float64)
@@ -112,13 +113,15 @@ function constraint_tank_volume_recovery(wm::AbstractWaterModel, i::Int, n_1::In
 end
 
 
-function constraint_on_off_pump_power_best_efficiency(wm::AbstractWaterModel, n::Int, a::Int, q_min_forward::Float64)
+function constraint_on_off_pump_power_best_efficiency(
+    wm::AbstractWaterModel, n::Int, a::Int,
+    density::Float64, gravity::Float64, q_min_forward::Float64)
     # Gather pump flow, power, and status variables.
     q, P, z = var(wm, n, :q_pump, a), var(wm, n, :P_pump, a), var(wm, n, :z_pump, a)
 
     # Get pump best efficiency data required for construction.
     flow_bep = _calc_pump_best_efficiency_flow(ref(wm, n, :pump, a))
-    power_bep = _calc_pump_best_efficiency_power(ref(wm, n, :pump, a))
+    power_bep = _calc_pump_best_efficiency_power(ref(wm, n, :pump, a), density, gravity)
 
     # Compute the linear expression used to calculate power.
     P_expr = power_bep * (inv(3.0) * q * inv(flow_bep) + z * 2.0 * inv(3.0))

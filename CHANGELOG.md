@@ -1,6 +1,33 @@
 WaterModels.jl Change Log
 =========================
 
+### v0.8.0
+- Remove the convention of defining the _number_ of flow partitioning points for parameterizing linearized formulations.
+- Let users define flow partitioning points for head loss and head gain functions using `flow_partition` entries within pipe, design pipe, and pump objects.
+- Implement a `set_flow_partitions_si!` function that leverages PolyhedralRelaxations.jl to partition the space of flows for pipes, design pipes, and pumps.
+- Implement per-unit conversions for network data and automatically compute per-unit transformations if not provided by the user.
+- Add new global keys for per-unit conversion factors.
+- Implement `pump_group` component sets that model symmetrical groups of pumps.
+- Implement symmetry-breaking constraints for symmetrical groups of pumps.
+- Refactor flow direction, pump model, and status enumerated types.
+- Implement additional constraints to ensure tank level bounds will be satisfied after an Euler step, beginning from a fixed tank level.
+- Implement constraints to model pump on and off switching limits.
+- Implement new OWF specification that includes pump switching limits.
+- Implement new functions for setting variable warm-start values.
+- Implement `apply_wm!`, which wraps the InfrastructureModels `apply!` function.
+- Remove scaled pump power variables and use direct power variables in per-unit, instead.
+- Correctly distinguish between time _points_ and time _intervals_ used in multinetwork formulations.
+- By default, do _not_ convert pipes that are short to short pipes.
+- Refactor portions of the optimization-based bound tightening (OBBT) algorithm.
+- Allow for usage of OBBT on multinetwork data sets.
+- Add helper functions for relaxing select binary variables.
+
+### v0.7.0
+- Incorporate InfrastructureModels multi-infrastructure features.
+- Rename `run_` methods to `solve_` and add deprecation warnings.
+- Add pump models that obey linear power curves and quadratic head gain curves.
+- Improve bounds for node-attached flow variables.
+
 ### v0.6.0
 - Standardized network data conventions.
 - Implemented `NCD` and `PWLRD` formulations.

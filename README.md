@@ -9,7 +9,7 @@ The code is engineered to decouple problem specifications (e.g., network design,
 This decoupling enables the definition of a wide variety of optimization formulations and their comparison on common problem specifications.
 
 **Core Problem Specifications**
-* Water Flow (`wf` and `mn_wf`) - obtain feasible flows for a network
+* Water Flow (`wf` and `mn_wf`) - obtain feasible flows and heads for a network
 * Optimal Water Flow (`owf` and `mn_owf`) - minimize the cost of network operation
 * Network Design (`des`) - minimize the cost of network design
 
@@ -38,6 +38,7 @@ Previous work was supported by the Los Alamos National Laboratory Directed Resea
 It is also supported by the [Advanced Network Science Initiative](https://lanl-ansi.github.io) at Los Alamos National Laboratory.
 
 The primary developer is [Byron Tasseff](https://github.com/tasseff) with support from the following contributors:
+- [Clayton Barrows](https://github.com/claytonpbarrows), National Renewable Energy Laboratory
 - [Russell Bent](https://github.com/rb004f), Los Alamos National Laboratory
 - [Carleton Coffrin](https://github.com/ccoffrin), Los Alamos National Laboratory
 - Donatella Pasqualini, Los Alamos National Laboratory

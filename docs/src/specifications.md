@@ -19,6 +19,16 @@
 
 ### Constraints
 
+## Multinetwork Water Flow with Switching Constraints (MN WF SWITCHING)
+
+### Functions
+
+### Objective
+
+### Variables
+
+### Constraints
+
 ## Optimal Water Flow (OWF)
 
 ### Functions

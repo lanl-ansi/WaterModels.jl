@@ -43,3 +43,6 @@ for status_code_enum in [TerminationStatusCode, ResultStatusCode]
         @eval export $(Symbol(status_code))
     end
 end
+
+# from InfrastructureModels
+export ids, ref, var, con, sol, nw_ids, nws, optimize_model!, nw_id_default

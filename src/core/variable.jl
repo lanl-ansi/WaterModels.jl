@@ -15,15 +15,6 @@ function comp_start_value(comp::Dict{String,<:Any}, key_1::String, key_2::Int64,
 end
 
 
-"Given a variable that is indexed by component IDs, builds the standard solution structure."
-function sol_component_value(wm::AbstractWaterModel, n::Int, comp_name::Symbol, field_name::Symbol, comp_ids, variables)
-    for i in comp_ids
-        @assert !haskey(sol(wm, n, comp_name, i), field_name)
-        sol(wm, n, comp_name, i)[field_name] = variables[i]
-    end
-end
-
-
 ### Variables related to nodal components. ###
 "Creates bounded (by default) or unbounded total hydraulic head (or head)
 variables for all nodes in the network, i.e., `h[i]` for `i` in `node`."
@@ -75,8 +66,8 @@ function variable_head(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::B
     # Create an expression that maps total hydraulic head to volume for tanks.
     V = var(wm, nw)[:V] = JuMP.@expression(wm.model, [i in ids(wm, nw, :tank)],
         (var(wm, nw, :h, ref(wm, nw, :tank, i)["node"]) -
-         ref(wm, nw, :node, ref(wm, nw, :tank, i)["node"])["elevation"]) *
-         0.25 * pi * ref(wm, nw, :tank, i)["diameter"]^2)
+        ref(wm, nw, :node, ref(wm, nw, :tank, i)["node"])["elevation"]) *
+        0.25 * pi * ref(wm, nw, :tank, i)["diameter"]^2)
 
     # Initialize an entry to the solution component dictionary for volumes.
     report && sol_component_value(wm, nw, :tank, :V, ids(wm, nw, :tank), V)
@@ -112,10 +103,19 @@ end
 
 
 function variable_pump_power(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
+    # Compute scaled density and gravity.
+    wm_data = get_wm_data(wm.data)
+    base_mass = get(wm_data, "base_mass", 1.0)
+    base_length = get(wm_data, "base_length", 1.0)
+    base_time = get(wm_data, "base_time", 1.0)
+
+    rho_s = _calc_scaled_density(base_mass, base_length)
+    g_s = _calc_scaled_gravity(base_length, base_time)
+
     # Initialize variables for the power utilization of a pump.
-    Ps = var(wm, nw)[:Ps_pump] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
-        base_name="$(nw)_Ps_pump", lower_bound=0.0, # Pump power is nonnegative.
-        start=comp_start_value(ref(wm, nw, :pump, a), "Ps_pump_start", 0.0))
+    P = var(wm, nw)[:P_pump] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
+        base_name = "$(nw)_P_pump", lower_bound = 0.0, # Pump power is nonnegative.
+        start = comp_start_value(ref(wm, nw, :pump, a), "P_pump_start", 0.0))
 
     if bounded
         for (a, pump) in ref(wm, nw, :pump)
@@ -124,23 +124,14 @@ function variable_pump_power(wm::AbstractWaterModel; nw::Int=nw_id_default, boun
             node_to = ref(wm, nw, :node, pump["node_to"])
     
             # Set the upper bound for the power variable.
-            P_max = _calc_pump_power_max(pump, node_fr, node_to)
-            JuMP.set_upper_bound(Ps[a], P_max / (_DENSITY * _GRAVITY))
+            P_max = _calc_pump_power_max(pump, node_fr, node_to, rho_s, g_s)
+            JuMP.set_upper_bound(P[a], P_max)
 
             # Set the start value for the scaled power variable.
-            Ps_mid = 0.5 * P_max / (_DENSITY * _GRAVITY)
-            Ps_start = comp_start_value(pump, "Ps_pump_start", Ps_mid)
-            JuMP.set_start_value(Ps[a], Ps_start)
+            P_start = comp_start_value(pump, "P_pump_start", 0.5 * P_max)
+            JuMP.set_start_value(P[a], P_start)
         end
     end
-
-    # Initialize an entry to the solution component dictionary for powers.
-    report && sol_component_value(wm, nw, :pump, :Ps, ids(wm, nw, :pump), Ps)
-
-    # Create expressions to compute the unscaled power values.
-    P = var(wm, nw)[:P_pump] = JuMP.@expression(
-        wm.model, [a in ids(wm, nw, :pump)],
-        Ps[a] * _DENSITY * _GRAVITY)
 
     # Create expressions to compute the unscaled pump energies.
     E = var(wm, nw)[:E_pump] = JuMP.@expression(
@@ -272,6 +263,8 @@ function variable_tank_flow(wm::AbstractWaterModel; nw::Int=nw_id_default, bound
 
             JuMP.set_lower_bound(q_tank[i], flow_min)
             JuMP.set_upper_bound(q_tank[i], flow_max)
+            ref(wm, nw, :tank, i)["flow_min"] = flow_min
+            ref(wm, nw, :tank, i)["flow_max"] = flow_max
 
             flow_mid = 0.5 * (flow_max + flow_min)
             q_start = comp_start_value(tank, "q_tank_start", flow_mid)

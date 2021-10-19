@@ -4,6 +4,11 @@ end
 
 
 function correct_short_pipes!(data::Dict{String, <:Any})
+    apply_wm!(_correct_short_pipes!, data; apply_to_subnetworks = true)
+end
+
+
+function _correct_short_pipes!(data::Dict{String, <:Any})
     capacity = _calc_capacity_max(data)
 
     for (idx, short_pipe) in data["short_pipe"]
@@ -32,4 +37,21 @@ end
 function _calc_short_pipe_flow_max(short_pipe::Dict{String, <:Any}, capacity::Float64)
     flow_max_dir = short_pipe["flow_direction"] == FLOW_DIRECTION_NEGATIVE ? 0.0 : Inf
     return min(capacity, flow_max_dir, get(short_pipe, "flow_max", Inf))
+end
+
+
+function set_short_pipe_warm_start!(data::Dict{String, <:Any})
+    apply_wm!(_set_short_pipe_warm_start!, data)
+end
+
+
+function _set_short_pipe_warm_start!(data::Dict{String, <:Any})
+    for short_pipe in values(data["short_pipe"])
+        flow_mid = 0.5 * (short_pipe["flow_min"] + short_pipe["flow_max"])
+
+        short_pipe["q_start"] = get(short_pipe, "q", flow_mid)
+        short_pipe["qp_start"] = max(0.0, get(short_pipe, "q", flow_mid))
+        short_pipe["qn_start"] = max(0.0, -get(short_pipe, "q", flow_mid))
+        short_pipe["z_short_pipe_start"] = get(short_pipe, "q", 0.0) > 0.0 ? 1.0 : 0.0
+    end
 end
