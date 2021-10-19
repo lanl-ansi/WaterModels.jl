@@ -122,3 +122,12 @@ function build_mn_owf_part_start_int(wm::AbstractWaterModel)
     # Add the optimal water flow objective.
     objective_owf(wm)
 end
+
+
+function build_owf_geo_part(wm::AbstractWaterModel)
+    # Build the water flow problem.
+    build_geo_wf(wm)
+
+    # Add the optimal water flow objective.
+    objective_geo_owf(wm)
+end

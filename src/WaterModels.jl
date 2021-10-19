@@ -82,6 +82,8 @@ include("util/relax.jl")
 include("util/variable_index.jl")
 include("util/pairwise_cuts.jl")
 include("util/obbt.jl")
+include("util/graphops.jl")
+include("util/temporal_decomp_utils.jl")
 
 include("core/export.jl")
 end
