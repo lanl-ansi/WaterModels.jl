@@ -114,8 +114,8 @@ end
 
 function _set_new_bound!(bound_problem::BoundProblem, candidate::Float64)
     prec = bound_problem.precision
-    num_digits = Int(ceil(1.0 / prec))
-
+    num_digits = Int(ceil(-log10(prec)))
+ 
     if bound_problem.sense === _MOI.MIN_SENSE
         scaled_candidate = floor(candidate; digits = num_digits)
 

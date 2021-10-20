@@ -134,15 +134,13 @@ function constraint_on_off_des_pipe_head_loss(
         # Compute scaled versions of the head loss overapproximations.
         f_1, f_2 = r * qp_min_forward^exponent, r * qp_max^exponent
         f_slope = (f_2 - f_1) / (qp_max - qp_min_forward)
-        f_lb_line_y = f_slope * (qp - qp_min_forward * y) + f_1 * y
         f_lb_line_z = f_slope * (qp - qp_min_forward * z) + f_1 * z
 
         # Add upper-bounding lines of the head loss constraint.
-        c_1 = JuMP.@constraint(wm.model, dhp / L <= f_lb_line_y)
-        c_2 = JuMP.@constraint(wm.model, dhp / L <= f_lb_line_z)
+        c = JuMP.@constraint(wm.model, dhp / L <= f_lb_line_z)
 
         # Append the :on_off_des_pipe_head_loss constraint array.
-        append!(con(wm, n, :on_off_des_pipe_head_loss)[a], [c_1, c_2])
+        append!(con(wm, n, :on_off_des_pipe_head_loss)[a], [c])
     end
 
     # Get variables for negative flow and head difference.
@@ -172,15 +170,13 @@ function constraint_on_off_des_pipe_head_loss(
         # Compute scaled versions of the head loss overapproximations.
         f_1, f_2 = r * qn_min_forward^exponent, r * qn_max^exponent
         f_slope = (f_2 - f_1) / (qn_max - qn_min_forward)
-        f_lb_line_y = f_slope * (qn - qn_min_forward * (1.0 - y)) + f_1 * (1.0 - y)
         f_lb_line_z = f_slope * (qn - qn_min_forward * z) + f_1 * z
 
         # Add upper-bounding lines of the head loss constraint.
-        c_1 = JuMP.@constraint(wm.model, dhn / L <= f_lb_line_y)
-        c_2 = JuMP.@constraint(wm.model, dhn / L <= f_lb_line_z)
+        c = JuMP.@constraint(wm.model, dhn / L <= f_lb_line_z)
 
         # Append the :on_off_des_pipe_head_loss constraint array.
-        append!(con(wm, n, :on_off_des_pipe_head_loss)[a], [c_1, c_2])
+        append!(con(wm, n, :on_off_des_pipe_head_loss)[a], [c])
     end
 end
 
