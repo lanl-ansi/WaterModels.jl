@@ -83,31 +83,33 @@ function _solve_bound_problem!(wm::AbstractWaterModel, bound_problem::BoundProbl
         JuMP.set_binary.(vars_relaxed)
     end
 
-    # Store the candidate bound calculated from the optimization.
-    if termination_status in [_MOI.LOCALLY_SOLVED, _MOI.OPTIMAL]
-        candidate = JuMP.objective_value(wm.model)
-
-        if var_is_discrete && bound_problem.sense === _MOI.MIN_SENSE
-            candidate = candidate > 0.01 ? 1.0 : candidate
-        elseif var_is_discrete && bound_problem.sense === _MOI.MAX_SENSE
-            candidate = candidate < 0.99 ? 0.0 : candidate
+    if termination_status !== _MOI.INFEASIBLE
+        try
+            # Store the candidate bound calculated from the optimization.
+            candidate = JuMP.objective_bound(wm.model)
+        catch
+            # Otherwise, store the original bound.
+            candidate = bound_problem.bound
         end
+    else
+        candidate = bound_problem.bound
+    end
+
+    # Update the candidate if it's for a discrete variable.
+    if var_is_discrete && bound_problem.sense === _MOI.MIN_SENSE
+        candidate = candidate > 0.01 ? 1.0 : candidate
+    elseif var_is_discrete && bound_problem.sense === _MOI.MAX_SENSE
+        candidate = candidate < 0.99 ? 0.0 : candidate
     end
 
     # Unfix binary variables that were fixed above.
     _unfix_indicator.(v_one), _unfix_indicator.(v_zero)
 
-    # Return an optimized bound or the initial bound that was started with.
-    if termination_status in [_MOI.LOCALLY_SOLVED, _MOI.OPTIMAL]
-        # Get the objective value and return the better of the old and new bounds.
-        if bound_problem.sense === _MOI.MIN_SENSE
-            return max(bound_problem.bound, candidate)
-        elseif bound_problem.sense === _MOI.MAX_SENSE
-            return min(bound_problem.bound, candidate)
-        end
-    else
-        # Optimization was not successful. Return the starting bound.
-        return bound_problem.bound
+    # Return the better of the old and new bounds.
+    if bound_problem.sense === _MOI.MIN_SENSE
+        return max(bound_problem.bound, candidate)
+    elseif bound_problem.sense === _MOI.MAX_SENSE
+        return min(bound_problem.bound, candidate)
     end
 end
 
