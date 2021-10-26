@@ -92,6 +92,7 @@ function _solve_bound_problem!(wm::AbstractWaterModel, bound_problem::BoundProbl
             candidate = bound_problem.bound
         end
     else
+        bound_problem.infeasible = true
         candidate = bound_problem.bound
     end
 
@@ -258,7 +259,7 @@ end
 
 
 "Remove bound problems where a discrete variable has been successfully fixed."
-function _clean_bound_problems!(problems::Vector{BoundProblem}, vals::Vector{Float64})
+function _clean_bound_problems(problems::Vector{BoundProblem}, vals::Vector{Float64})
     # Initialize vectors for storing fixed binary variables.
     fixed_one_vars = Vector{_VariableIndex}([])
     fixed_zero_vars = Vector{_VariableIndex}([])
@@ -285,16 +286,22 @@ function _clean_bound_problems!(problems::Vector{BoundProblem}, vals::Vector{Flo
         end
     end
 
+    # Initialize the new vector of problems, which may be reduced.
+    problems_new = Vector{BoundProblem}([])
+    
     for problem in problems
         # Check if the problem fixes one of the variables that has now been fixed.
         contains_fixed_one = any([x in problem.variables_fix_one for x in fixed_zero_vars])
         contains_fixed_zero = any([x in problem.variables_fix_zero for x in fixed_one_vars])
 
         # If the problem fixes variables that we already proved can be fixed, remove it.
-        if contains_fixed_one || contains_fixed_zero
-            problems = Vector{BoundProblem}(setdiff!(problems, [problem]))
+        if !(contains_fixed_one || contains_fixed_zero) && !problem.infeasible
+            push!(problems_new, problem)
         end
     end
+
+    # Return the new vector of bound problems.
+    return problems_new
 end
 
 
@@ -340,6 +347,7 @@ function solve_obbt!(
     # Log mean ranges between important lower and upper bounds.
     bound_width_msg = _log_bound_widths(data)
     Memento.info(_LOGGER, "[OBBT] Initial bound widths: $(bound_width_msg).")
+    Memento.info(_LOGGER, "[OBBT] Solving $(length(bound_problems)) subproblems.")
 
     # Instantiate termination and time logging variables.
     current_iteration = 1 # Tracks the iteration counter of the algorithm.
@@ -375,18 +383,19 @@ function solve_obbt!(
         # Re-execute the flow partitioning function.
         flow_partition_func(data)
 
-        # Check if the time limit has been exceeded and terminate, if necessary.
-        time_elapsed > time_limit && ((terminate = true) && break)
-
         if !terminate
             # Remove bound problems where discrete variables were fixed.
-            _clean_bound_problems!(bound_problems, vals)
+            bound_problems = _clean_bound_problems(bound_problems, vals)
         end
 
         # Log mean ranges between important lower and upper bounds.
         bound_width_msg = _log_bound_widths(data)
-        message = "[OBBT] Iteration $(current_iteration) bound widths: $(bound_width_msg)."
+        message = "[OBBT] Iteration $(current_iteration): bound widths: $(bound_width_msg)."
         Memento.info(_LOGGER, message)
+        Memento.info(_LOGGER, "[OBBT] Next iteration, Solving $(length(bound_problems)) subproblems.")
+
+        # Check if the time limit has been exceeded and terminate, if necessary.
+        time_elapsed > time_limit && ((terminate = true) && break)
 
         # Update the current iteration of the algorithm.
         current_iteration += 1
