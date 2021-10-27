@@ -28,13 +28,15 @@ function constraint_pipe_head_loss(
     # Loop over consequential points (i.e., those that have nonzero head loss).
     for flow_value in filter(x -> x > 0.0, partition_p)
         # Add a linear outer approximation of the convex relaxation at `flow_value`.
-        lhs = _calc_head_loss_oa(qp, y, flow_value, exponent)
+        lhs = r * _calc_head_loss_oa(qp, y, flow_value, exponent)
 
-        # Add outer-approximation of the head loss constraint.
-        c = JuMP.@constraint(wm.model, r * lhs <= dhp / L)
+        if minimum(abs.(lhs.terms.vals)) >= 1.0e-4
+            # Add outer-approximation of the head loss constraint.
+            c = JuMP.@constraint(wm.model, lhs <= dhp / L)
 
-        # Append the :pipe_head_loss constraint array.
-        append!(con(wm, n, :pipe_head_loss)[a], [c])
+            # Append the :pipe_head_loss constraint array.
+            append!(con(wm, n, :pipe_head_loss)[a], [c])
+        end
     end
 
     # Get the corresponding min/max positive directed flows (when active).
@@ -62,13 +64,15 @@ function constraint_pipe_head_loss(
     # Loop over consequential points (i.e., those that have nonzero head loss).
     for flow_value in filter(x -> x > 0.0, partition_n)
         # Add a linear outer approximation of the convex relaxation at `flow_value`.
-        lhs = _calc_head_loss_oa(qn, 1.0 - y, flow_value, exponent)
+        lhs = r * _calc_head_loss_oa(qn, 1.0 - y, flow_value, exponent)
 
-        # Add outer-approximation of the head loss constraint.
-        c = JuMP.@constraint(wm.model, r * lhs <= dhn / L)
+        if minimum(abs.(lhs.terms.vals)) >= 1.0e-4
+            # Add outer-approximation of the head loss constraint.
+            c = JuMP.@constraint(wm.model, lhs <= dhn / L)
 
-        # Append the :pipe_head_loss constraint array.
-        append!(con(wm, n, :pipe_head_loss)[a], [c])
+            # Append the :pipe_head_loss constraint array.
+            append!(con(wm, n, :pipe_head_loss)[a], [c])
+        end
     end
 
     # Get the corresponding maximum negative directed flow (when active).
@@ -207,11 +211,13 @@ function constraint_on_off_pump_head_gain(
         # Compute head gain and derivative at the point.
         f, df = head_curve_func(flow_value), head_curve_deriv(flow_value)
 
-        # Add the outer-approximation constraint for the pump.
-        c_1 = JuMP.@constraint(wm.model, g <= f * z + df * (qp - flow_value * z))
-
-        # Append the :on_off_pump_head_gain constraint array.
-        append!(con(wm, n, :on_off_pump_head_gain)[a], [c_1])
+        if abs(df) >= 1.0e-4 # Only add an outer-approximation if the derivative isn't too small.
+            # Add the outer-approximation constraint for the pump.
+            c_1 = JuMP.@constraint(wm.model, g <= f * z + df * (qp - flow_value * z))
+    
+            # Append the :on_off_pump_head_gain constraint array.
+            append!(con(wm, n, :on_off_pump_head_gain)[a], [c_1])
+        end
     end
 
     if qp_min < qp_max
