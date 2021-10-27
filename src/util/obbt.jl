@@ -305,6 +305,37 @@ function _clean_bound_problems(problems::Vector{BoundProblem}, vals::Vector{Floa
 end
 
 
+"Solve a sequence of OBBT problems based on multinetwork data."
+function solve_obbt_seq(data::Dict{String,<:Any}, build_method::Function, optimizer; kwargs...)
+    num_time_steps = data["time_series"]["num_steps"]
+    network_mn = make_multinetwork(data)
+
+    for nw in 1:num_time_steps-1
+        message = "[OBBT] Starting OBBT for network with multinetwork index $(nw)."
+        Memento.info(_LOGGER, message)
+
+        data_nw = deepcopy(data)
+        _IM.load_timepoint!(data_nw, nw)
+
+        if nw != 1
+            map(x -> x["dispatchable"] = true, values(data_nw["tank"]))
+            solve_obbt!(data_nw, build_wf, optimizer; kwargs...)
+            map(x -> x["dispatchable"] = false, values(data_nw["tank"]))
+        else
+            solve_obbt!(data_nw, build_wf, optimizer; kwargs...)
+        end
+
+        network_mn["nw"][string(nw)] = data_nw
+
+        for key in _wm_global_keys
+            delete!(network_mn["nw"][string(nw)], key)
+        end
+    end
+
+    return network_mn
+end
+
+
 function solve_obbt!(
     data::Dict{String,<:Any}, build_method::Function, optimizer;
     model_type::Type = PWLRDWaterModel, time_limit::Float64 = 3600.0,
