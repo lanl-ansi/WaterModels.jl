@@ -120,12 +120,15 @@ function constraint_on_off_des_pipe_head_loss(
     # Loop over consequential points (i.e., those that have nonzero head loss).
     for flow_value in filter(x -> x > 0.0, partition_p)
         # Get linear outer approximations of the convex relaxation at `flow_value`.
-        lhs_1 = _calc_head_loss_oa(qp, z, flow_value, exponent)
-        lhs_2 = _calc_head_loss_oa(qp, y, flow_value, exponent)
+        lhs_1 = r * _calc_head_loss_oa(qp, z, flow_value, exponent)
+        lhs_2 = r * _calc_head_loss_oa(qp, y, flow_value, exponent)
 
         # Add outer approximations of the head loss constraint.
-        c_1 = JuMP.@constraint(wm.model, r * lhs_1 <= dhp / L)
-        c_2 = JuMP.@constraint(wm.model, r * lhs_2 <= dhp / L)
+        min_val = minimum(abs.(filter(x -> x != 0.0, lhs_1.terms.vals)))
+        scalar = 10^(-0.25 * log10(min_val)) # Helps with scaling issues.
+
+        c_1 = JuMP.@constraint(wm.model, scalar * lhs_1 <= scalar * dhp / L)
+        c_2 = JuMP.@constraint(wm.model, scalar * lhs_2 <= scalar * dhp / L)
 
         # Append the :on_off_des_pipe_head_loss constraint array.
         append!(con(wm, n, :on_off_des_pipe_head_loss)[a], [c_1, c_2])
@@ -141,7 +144,9 @@ function constraint_on_off_des_pipe_head_loss(
         f_lb_line_z = f_slope * (qp - qp_min_forward * z) + f_1 * z
 
         # Add upper-bounding lines of the head loss constraint.
-        c = JuMP.@constraint(wm.model, dhp / L <= f_lb_line_z)
+        min_val = minimum(abs.(filter(x -> x != 0.0, f_lb_line_z.terms.vals)))
+        scalar = 10^(-0.25 * log10(min_val)) # Helps with scaling issues.
+        c = JuMP.@constraint(wm.model, scalar * dhp / L <= scalar * f_lb_line_z)
 
         # Append the :on_off_des_pipe_head_loss constraint array.
         append!(con(wm, n, :on_off_des_pipe_head_loss)[a], [c])
@@ -156,12 +161,14 @@ function constraint_on_off_des_pipe_head_loss(
     # Loop over consequential points (i.e., those that have nonzero head loss).
     for flow_value in filter(x -> x > 0.0, partition_n)
         # Get linear outer approximations of the convex relaxation at `flow_value`.
-        lhs_1 = _calc_head_loss_oa(qn, z, flow_value, exponent)
-        lhs_2 = _calc_head_loss_oa(qn, 1.0 - y, flow_value, exponent)
+        lhs_1 = r * _calc_head_loss_oa(qn, z, flow_value, exponent)
+        lhs_2 = r * _calc_head_loss_oa(qn, 1.0 - y, flow_value, exponent)
 
         # Add outer approximations of the head loss constraint.
-        c_1 = JuMP.@constraint(wm.model, r * lhs_1 <= dhn / L)
-        c_2 = JuMP.@constraint(wm.model, r * lhs_2 <= dhn / L)
+        min_val = minimum(abs.(filter(x -> x != 0.0, lhs_1.terms.vals)))
+        scalar = 10^(-0.25 * log10(min_val)) # Helps with scaling issues.
+        c_1 = JuMP.@constraint(wm.model, scalar * lhs_1 <= scalar * dhn / L)
+        c_2 = JuMP.@constraint(wm.model, scalar * lhs_2 <= scalar * dhn / L)
 
         # Append the :on_off_des_pipe_head_loss constraint array.
         append!(con(wm, n, :on_off_des_pipe_head_loss)[a], [c_1, c_2])
@@ -177,7 +184,9 @@ function constraint_on_off_des_pipe_head_loss(
         f_lb_line_z = f_slope * (qn - qn_min_forward * z) + f_1 * z
 
         # Add upper-bounding lines of the head loss constraint.
-        c = JuMP.@constraint(wm.model, dhn / L <= f_lb_line_z)
+        min_val = minimum(abs.(filter(x -> x != 0.0, f_lb_line_z.terms.vals)))
+        scalar = 10^(-0.25 * log10(min_val)) # Helps with scaling issues.
+        c = JuMP.@constraint(wm.model, scalar * dhn / L <= scalar * f_lb_line_z)
 
         # Append the :on_off_des_pipe_head_loss constraint array.
         append!(con(wm, n, :on_off_des_pipe_head_loss)[a], [c])
