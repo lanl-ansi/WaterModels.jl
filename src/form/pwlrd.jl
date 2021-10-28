@@ -240,16 +240,23 @@ function constraint_on_off_des_pipe_head_loss(
     # Add a constraint that upper-bounds the head loss variable.
     f_p = r .* partition_p.^exponent
     f_p_ub_expr = sum(f_p[k] * lambda_p[a, k] for k in bp_range)
-    c_6 = JuMP.@constraint(wm.model, dhp / L <= f_p_ub_expr)
+    min_val_p = minimum(abs.(filter(x -> x != 0.0, f_p_ub_expr.terms.vals)))
+    scalar_p = 10^(-0.25 * log10(min_val_p)) # Helps with scaling issues.
+    c_6 = JuMP.@constraint(wm.model, scalar_p * dhp / L <= scalar_p * f_p_ub_expr)
     append!(con(wm, n, :on_off_des_pipe_head_loss, a), [c_6])
 
     # Loop over consequential points (i.e., those that have nonzero head loss).
     for flow_value in filter(x -> x > 0.0, partition_p)
         # Add head loss outer (i.e., lower) approximations.
-        lhs_p_1 = _calc_head_loss_oa(qp, y, flow_value, exponent)
-        c_7 = JuMP.@constraint(wm.model, r * lhs_p_1 <= dhp / L)
-        lhs_p_2 = _calc_head_loss_oa(qp, z, flow_value, exponent)
-        c_8 = JuMP.@constraint(wm.model, r * lhs_p_2 <= dhp / L)
+        lhs_p_1 = r * _calc_head_loss_oa(qp, y, flow_value, exponent)
+        min_val_1 = minimum(abs.(filter(x -> x != 0.0, lhs_p_1.terms.vals)))
+        scalar_1 = 10^(-0.25 * log10(min_val_1)) # Helps with scaling issues.
+        c_7 = JuMP.@constraint(wm.model, scalar_1 * lhs_p_1 <= scalar_1 * dhp / L)
+
+        lhs_p_2 = r * _calc_head_loss_oa(qp, z, flow_value, exponent)
+        min_val_2 = minimum(abs.(filter(x -> x != 0.0, lhs_p_2.terms.vals)))
+        scalar_2 = 10^(-0.25 * log10(min_val_2)) # Helps with scaling issues.
+        c_8 = JuMP.@constraint(wm.model, scalar_2 * lhs_p_2 <= scalar_2 * dhp / L)
         append!(con(wm, n, :on_off_des_pipe_head_loss, a), [c_7, c_8])
     end
 
@@ -286,16 +293,23 @@ function constraint_on_off_des_pipe_head_loss(
     # Add a constraint that upper-bounds the head loss variable.
     f_n = r .* partition_n.^exponent
     f_n_ub_expr = sum(f_n[k] * lambda_n[a, k] for k in bn_range)
-    c_15 = JuMP.@constraint(wm.model, dhn / L <= f_n_ub_expr)
+    min_val_n = minimum(abs.(filter(x -> x != 0.0, f_n_ub_expr.terms.vals)))
+    scalar_n = 10^(-0.25 * log10(min_val_n)) # Helps with scaling issues.
+    c_15 = JuMP.@constraint(wm.model, scalar_n * dhn / L <= scalar_n * f_n_ub_expr)
     append!(con(wm, n, :on_off_des_pipe_head_loss, a), [c_15])
 
     # Loop over consequential points (i.e., those that have nonzero head loss).
     for flow_value in filter(x -> x > 0.0, partition_n)
         # Add head loss outer (i.e., lower) approximations.
-        lhs_n_1 = _calc_head_loss_oa(qn, 1.0 - y, flow_value, exponent)
-        c_16 = JuMP.@constraint(wm.model, r * lhs_n_1 <= dhn / L)
-        lhs_n_2 = _calc_head_loss_oa(qn, z, flow_value, exponent)
-        c_17 = JuMP.@constraint(wm.model, r * lhs_n_2 <= dhn / L)
+        lhs_n_1 = r * _calc_head_loss_oa(qn, 1.0 - y, flow_value, exponent)
+        min_val_1 = minimum(abs.(filter(x -> x != 0.0, lhs_n_1.terms.vals)))
+        scalar_1 = 10^(-0.25 * log10(min_val_1)) # Helps with scaling issues.
+        c_16 = JuMP.@constraint(wm.model, scalar_1 * lhs_n_1 <= scalar_1 * dhn / L)
+
+        lhs_n_2 = r * _calc_head_loss_oa(qn, z, flow_value, exponent)
+        min_val_2 = minimum(abs.(filter(x -> x != 0.0, lhs_n_2.terms.vals)))
+        scalar_2 = 10^(-0.25 * log10(min_val_2)) # Helps with scaling issues.
+        c_17 = JuMP.@constraint(wm.model, scalar_2 * lhs_n_2 <= scalar_2 * dhn / L)
         append!(con(wm, n, :on_off_des_pipe_head_loss, a), [c_16, c_17])
     end
 
