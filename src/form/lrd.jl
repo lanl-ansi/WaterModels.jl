@@ -31,8 +31,11 @@ function constraint_pipe_head_loss(
         lhs = r * _calc_head_loss_oa(qp, y, flow_value, exponent)
 
         if minimum(abs.(lhs.terms.vals)) >= 1.0e-4
+            # Compute a scaling factor to normalize the constraint.
+            scalar = _get_scaling_factor(vcat(lhs.terms.vals, [1.0 / L]))
+
             # Add outer-approximation of the head loss constraint.
-            c = JuMP.@constraint(wm.model, lhs <= dhp / L)
+            c = JuMP.@constraint(wm.model, scalar * lhs <= scalar * dhp / L)
 
             # Append the :pipe_head_loss constraint array.
             append!(con(wm, n, :pipe_head_loss)[a], [c])
@@ -48,8 +51,11 @@ function constraint_pipe_head_loss(
         f_slope = (f_2 - f_1) / (qp_max - qp_min_forward)
         f_lb_line = f_slope * (qp - qp_min_forward * y) + f_1 * y
 
+        # Compute a scaling factor to normalize the constraint.
+        scalar = _get_scaling_factor(vcat(f_lb_line.terms.vals, [1.0 / L]))
+
         # Add upper-bounding line of the head loss constraint.
-        c = JuMP.@constraint(wm.model, dhp / L <= f_lb_line)
+        c = JuMP.@constraint(wm.model, scalar * dhp / L <= scalar * f_lb_line)
 
         # Append the :pipe_head_loss constraint array.
         append!(con(wm, n, :pipe_head_loss)[a], [c])
@@ -67,8 +73,11 @@ function constraint_pipe_head_loss(
         lhs = r * _calc_head_loss_oa(qn, 1.0 - y, flow_value, exponent)
 
         if minimum(abs.(lhs.terms.vals)) >= 1.0e-4
+            # Compute a scaling factor to normalize the constraint.
+            scalar = _get_scaling_factor(vcat(lhs.terms.vals, [1.0 / L]))
+
             # Add outer-approximation of the head loss constraint.
-            c = JuMP.@constraint(wm.model, lhs <= dhn / L)
+            c = JuMP.@constraint(wm.model, scalar * lhs <= scalar * dhn / L)
 
             # Append the :pipe_head_loss constraint array.
             append!(con(wm, n, :pipe_head_loss)[a], [c])
@@ -84,8 +93,11 @@ function constraint_pipe_head_loss(
         f_slope = (f_2 - f_1) / (qn_max - qn_min_forward)
         f_lb_line = f_slope * (qn - qn_min_forward * (1.0 - y)) + f_1 * (1.0 - y)
 
+        # Compute a scaling factor to normalize the constraint.
+        scalar = _get_scaling_factor(vcat(f_lb_line.terms.vals, [1.0 / L]))
+
         # Add upper-bounding line of the head loss constraint.
-        c = JuMP.@constraint(wm.model, dhn / L <= f_lb_line)
+        c = JuMP.@constraint(wm.model, scalar * dhn / L <= scalar * f_lb_line)
 
         # Append the :pipe_head_loss constraint array.
         append!(con(wm, n, :pipe_head_loss)[a], [c])
@@ -124,10 +136,10 @@ function constraint_on_off_des_pipe_head_loss(
         lhs_2 = r * _calc_head_loss_oa(qp, y, flow_value, exponent)
 
         # Add outer approximations of the head loss constraint.
-        min_val = minimum(abs.(filter(x -> x != 0.0, lhs_1.terms.vals)))
-        scalar = 10^(-0.25 * log10(min_val)) # Helps with scaling issues.
-
+        scalar = _get_scaling_factor(vcat(lhs_1.terms.vals, [1.0 / L]))
         c_1 = JuMP.@constraint(wm.model, scalar * lhs_1 <= scalar * dhp / L)
+
+        scalar = _get_scaling_factor(vcat(lhs_2.terms.vals, [1.0 / L]))
         c_2 = JuMP.@constraint(wm.model, scalar * lhs_2 <= scalar * dhp / L)
 
         # Append the :on_off_des_pipe_head_loss constraint array.
@@ -144,8 +156,7 @@ function constraint_on_off_des_pipe_head_loss(
         f_lb_line_z = f_slope * (qp - qp_min_forward * z) + f_1 * z
 
         # Add upper-bounding lines of the head loss constraint.
-        min_val = minimum(abs.(filter(x -> x != 0.0, f_lb_line_z.terms.vals)))
-        scalar = 10^(-0.25 * log10(min_val)) # Helps with scaling issues.
+        scalar = _get_scaling_factor(vcat(f_lb_line_z.terms.vals, [1.0 / L]))
         c = JuMP.@constraint(wm.model, scalar * dhp / L <= scalar * f_lb_line_z)
 
         # Append the :on_off_des_pipe_head_loss constraint array.
@@ -165,9 +176,10 @@ function constraint_on_off_des_pipe_head_loss(
         lhs_2 = r * _calc_head_loss_oa(qn, 1.0 - y, flow_value, exponent)
 
         # Add outer approximations of the head loss constraint.
-        min_val = minimum(abs.(filter(x -> x != 0.0, lhs_1.terms.vals)))
-        scalar = 10^(-0.25 * log10(min_val)) # Helps with scaling issues.
+        scalar = _get_scaling_factor(vcat(lhs_1.terms.vals, [1.0 / L]))
         c_1 = JuMP.@constraint(wm.model, scalar * lhs_1 <= scalar * dhn / L)
+
+        scalar = _get_scaling_factor(vcat(lhs_2.terms.vals, [1.0 / L]))
         c_2 = JuMP.@constraint(wm.model, scalar * lhs_2 <= scalar * dhn / L)
 
         # Append the :on_off_des_pipe_head_loss constraint array.
@@ -184,8 +196,7 @@ function constraint_on_off_des_pipe_head_loss(
         f_lb_line_z = f_slope * (qn - qn_min_forward * z) + f_1 * z
 
         # Add upper-bounding lines of the head loss constraint.
-        min_val = minimum(abs.(filter(x -> x != 0.0, f_lb_line_z.terms.vals)))
-        scalar = 10^(-0.25 * log10(min_val)) # Helps with scaling issues.
+        scalar = _get_scaling_factor(vcat(f_lb_line_z.terms.vals, [1.0 / L]))
         c = JuMP.@constraint(wm.model, scalar * dhn / L <= scalar * f_lb_line_z)
 
         # Append the :on_off_des_pipe_head_loss constraint array.
@@ -221,9 +232,13 @@ function constraint_on_off_pump_head_gain(
         f, df = head_curve_func(flow_value), head_curve_deriv(flow_value)
 
         if abs(df) >= 1.0e-4 # Only add an outer-approximation if the derivative isn't too small.
+            # Compute a scaling factor to normalize the constraint.
+            scalar = _get_scaling_factor([1.0, f, df * flow_value])
+
             # Add the outer-approximation constraint for the pump.
-            c_1 = JuMP.@constraint(wm.model, g <= f * z + df * (qp - flow_value * z))
-    
+            rhs = f * z + df * (qp - flow_value * z)
+            c_1 = JuMP.@constraint(wm.model, scalar * g <= scalar * rhs)
+
             # Append the :on_off_pump_head_gain constraint array.
             append!(con(wm, n, :on_off_pump_head_gain)[a], [c_1])
         end
@@ -235,8 +250,11 @@ function constraint_on_off_pump_head_gain(
         g_slope = (g_2 - g_1) / (qp_max - qp_min)
         g_lb_line = g_slope * (qp - qp_min * z) + g_1 * z
 
+        # Compute a scaling factor to normalize the constraint.
+        scalar = _get_scaling_factor(vcat([1.0], g_lb_line.terms.vals))
+
         # Add the lower-bounding line for the head gain curve.
-        c_2 = JuMP.@constraint(wm.model, g_lb_line <= g)
+        c_2 = JuMP.@constraint(wm.model, scalar * g_lb_line <= scalar * g)
 
         # Append the :on_off_pump_head_gain constraint array.
         append!(con(wm, n, :on_off_pump_head_gain)[a], [c_2])
