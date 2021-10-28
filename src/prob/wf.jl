@@ -120,7 +120,8 @@ function build_mn_wf(wm::AbstractWaterModel)
     # Create head loss functions, if necessary.
     _function_head_loss(wm)
 
-    for (n, network) in nws(wm)
+    #for (n, network) in nws(wm)
+    for n in 1:6
         # Physical variables.
         variable_head(wm; nw=n)
         variable_flow(wm; nw=n)
@@ -194,7 +195,7 @@ function build_mn_wf(wm::AbstractWaterModel)
 
     # Get all network IDs in the multinetwork.
     network_ids = sort(collect(nw_ids(wm)))
-
+    network_ids = 1:6
     # Start with the first network, representing the initial time step.
     n_1 = network_ids[1]
 
@@ -672,7 +673,8 @@ function build_geo_wf(wm::AbstractWaterModel)
 
     #for (n, network) in nws(wm)
 
-    for (n, network) in nws(wm)
+    #for (n, network) in nws(wm)
+    for n in 1:6
 
         # Physical variables.
         variable_head(wm; nw=n)
@@ -748,7 +750,7 @@ function build_geo_wf(wm::AbstractWaterModel)
     end
     # Get all network IDs in the multinetwork.
     network_ids = sort(collect(nw_ids(wm)))
-
+    network_ids = 1:6
 
     # Start with the first network, representing the initial time step.
     n_1 = network_ids[1]

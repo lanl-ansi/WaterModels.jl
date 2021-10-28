@@ -38,7 +38,8 @@ function build_mn_owf(wm::AbstractWaterModel)
 
     # Ensure tanks recover their initial volume.
     n_1, n_f = network_ids[1], network_ids[end]
-
+    n_1 = 1
+    n_f = 6
     for i in ids(wm, n_f, :tank)
         constraint_tank_volume_recovery(wm, i, n_1, n_f)
     end
@@ -128,6 +129,18 @@ function build_owf_geo_part(wm::AbstractWaterModel)
     # Build the water flow problem.
     build_geo_wf(wm)
 
+    # Get all network IDs in the multinetwork.
+    network_ids = sort(collect(nw_ids(wm)))
+
+    # Ensure tanks recover their initial volume.
+    n_1, n_f = network_ids[1], network_ids[end]
+    n_1 = 1
+    n_f = 6
+    for i in ids(wm, n_f, :tank)
+        constraint_tank_volume_recovery(wm, i, n_1, n_f)
+    end
+
     # Add the optimal water flow objective.
-    objective_geo_owf(wm)
+    #objective_geo_owf(wm)
+    objective_owf(wm)
 end
