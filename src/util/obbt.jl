@@ -77,13 +77,13 @@ function _solve_bound_problem!(wm::AbstractWaterModel, bound_problem::BoundProbl
     # Optimize the variable (or affine expression) being tightened.
     JuMP.@objective(wm.model, bound_problem.sense, v)
     JuMP.optimize!(wm.model)
-    termination_status = JuMP.termination_status(wm.model) 
+    termination_status = JuMP.termination_status(wm.model)
 
     if ismultinetwork(wm)
         JuMP.set_binary.(vars_relaxed)
     end
 
-    if termination_status !== _MOI.INFEASIBLE
+    if !(termination_status in [_MOI.INFEASIBLE, _MOI.INFEASIBLE_OR_UNBOUNDED])
         try
             # Store the candidate bound calculated from the optimization.
             candidate = JuMP.objective_bound(wm.model)
@@ -458,13 +458,4 @@ function solve_obbt!(
     parallel_time_elapsed_rounded = round(parallel_time_elapsed; digits = 2)
     Memento.info(_LOGGER, "[OBBT] Completed in $(time_elapsed_rounded) " *
         "seconds (ideal parallel time: $(parallel_time_elapsed_rounded) seconds).")
-end
-
-
-function _check_obbt_options(ub::Float64, ub_constraint::Bool)
-    if ub_constraint && isinf(ub)
-        message = "[OBBT] The option \"upper_bound_constraint\" cannot " *
-            "be set to true without specifying an upper bound."
-        Memento.error(_LOGGER, message)
-    end
 end
