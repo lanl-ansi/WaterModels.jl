@@ -127,8 +127,10 @@ function constraint_on_off_pump_power_custom(wm::AbstractWaterModel, n::Int, a::
     q, P, z = var(wm, n, :q_pump, a), var(wm, n, :P_pump, a), var(wm, n, :z_pump, a)
     
     # Add constraint equating power with respect to the linear power curve.
-    c = JuMP.@constraint(wm.model, power_fixed * z + power_variable * q == P)
-
+    lhs = power_fixed * z + power_variable * q
+    scalar = _get_scaling_factor(vcat(lhs.terms.vals, [1.0]))
+    c = JuMP.@constraint(wm.model, scalar * lhs == scalar * P)
+ 
     # Append the :on_off_pump_power constraint array.
     append!(con(wm, n, :on_off_pump_power)[a], [c])
 end
@@ -165,10 +167,10 @@ function constraint_pump_switch_on(wm::AbstractWaterModel, a::Int, n_1::Int, n_2
         c_2 = JuMP.@constraint(wm.model, z_switch_on <= z_nw)
         append!(con(wm, n_2, :pump_switch_on)[a], [c_2])
     end
- end
+end
 
 
- function constraint_pump_switch_off(wm::AbstractWaterModel, a::Int, n_1::Int, n_2::Int, nws_inactive::Array{Int64, 1})
+function constraint_pump_switch_off(wm::AbstractWaterModel, a::Int, n_1::Int, n_2::Int, nws_inactive::Array{Int64, 1})
     z_1, z_2 = var(wm, n_1, :z_pump, a), var(wm, n_2, :z_pump, a)
     z_switch_off = var(wm, n_2, :z_switch_off_pump, a)
     c_1 = JuMP.@constraint(wm.model, z_switch_off >= z_1 - z_2)
@@ -179,11 +181,11 @@ function constraint_pump_switch_on(wm::AbstractWaterModel, a::Int, n_1::Int, n_2
         c_2 = JuMP.@constraint(wm.model, z_nw <= 1.0 - z_switch_off)
         append!(con(wm, n_2, :pump_switch_off)[a], [c_2])
     end
- end
+end
 
 
- "Try to determine a scaling factor that centers values around one."
- function _get_scaling_factor(values::Vector{Float64})::Float64
+"Try to determine a scaling factor that centers values around one."
+function _get_scaling_factor(values::Vector{Float64})::Float64
     mean_log10_value = Statistics.mean(log10.(abs.(values)))
     return 10^(-mean_log10_value)
- end
+end
