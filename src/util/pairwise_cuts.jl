@@ -201,7 +201,7 @@ function _compute_pairwise_cuts!(wm::AbstractWaterModel, problem_sets::Array{_Pa
 end
 
 
-function _add_pairwise_cuts!(wm::AbstractWaterModel, cuts::Array{_PairwiseCut, 1})
+function _add_pairwise_cuts!(wm::AbstractWaterModel, cuts::Vector{_PairwiseCut})
     for cut in cuts
         has_v_1 = _model_has_variable_index(wm, cut.variable_index_1)
         has_v_2 = _model_has_variable_index(wm, cut.variable_index_2)
@@ -220,4 +220,34 @@ function _add_pairwise_cuts!(wm::AbstractWaterModel; nw::Int = nw_id_default)
     problem_sets = _get_pairwise_problem_sets(wm; nw=nw)
     cuts = _compute_pairwise_cuts!(wm, problem_sets)
     _add_pairwise_cuts!(wm, cuts)
+end
+
+
+function _read_pairwise_cuts(path::String)
+    cuts_array = Vector{WM._PairwiseCut}([])
+    
+    for entry in JSON.parsefile(path)
+        vid_1_network_index = Int(entry["variable_index_1"]["network_index"])
+        vid_1_component_type = Symbol(entry["variable_index_1"]["component_type"])
+        vid_1_variable_symbol = Symbol(entry["variable_index_1"]["variable_symbol"])
+        vid_1_component_index = Int(entry["variable_index_1"]["component_index"])
+        vid_1 = _VariableIndex(vid_1_network_index, vid_1_component_type,
+            vid_1_variable_symbol, vid_1_component_index)
+
+        vid_2_network_index = Int(entry["variable_index_2"]["network_index"])
+        vid_2_component_type = Symbol(entry["variable_index_2"]["component_type"])
+        vid_2_variable_symbol = Symbol(entry["variable_index_2"]["variable_symbol"])
+        vid_2_component_index = Int(entry["variable_index_2"]["component_index"])
+        vid_2 = _VariableIndex(vid_2_network_index, vid_2_component_type,
+            vid_2_variable_symbol, vid_2_component_index)
+
+        coefficient_1 = entry["coefficient_1"]
+        coefficient_2 = entry["coefficient_2"]
+        constant = entry["constant"]
+        
+        push!(cuts_array, _PairwiseCut(coefficient_1, vid_1,
+            coefficient_2, vid_2, constant))
+    end
+
+    return cuts_array
 end
