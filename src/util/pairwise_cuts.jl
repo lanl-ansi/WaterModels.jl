@@ -224,7 +224,7 @@ end
 
 
 function _read_pairwise_cuts(path::String)
-    cuts_array = Vector{WM._PairwiseCut}([])
+    cuts_array = Vector{_PairwiseCut}([])
     
     for entry in JSON.parsefile(path)
         vid_1_network_index = Int(entry["variable_index_1"]["network_index"])
