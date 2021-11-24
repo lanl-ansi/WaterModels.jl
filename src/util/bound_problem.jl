@@ -1,5 +1,5 @@
 mutable struct BoundProblem
-    sense::_MOI.OptimizationSense # Minimization or maximization.
+    sense::JuMP.MOI.OptimizationSense # Minimization or maximization.
     variable_to_tighten::_VariableIndex # Index of variable to tighten.
     variables_fix_one::Array{_VariableIndex} # Fix to one.
     variables_fix_zero::Array{_VariableIndex} # Fix to zero.
@@ -31,10 +31,10 @@ function _get_bound_problems_node(wm::AbstractWaterModel, i::Int, nw::Int; limit
         head_precision = head_transform(1.0e-4)
 
         h_min = max(get(node, "h_min", -Inf), _get_lower_bound_from_index(wm, h_vid))
-        bp_min = BoundProblem(_MOI.MIN_SENSE, h_vid, [], [], "head_min", h_min, head_precision, true, false)
+        bp_min = BoundProblem(JuMP.MOI.MIN_SENSE, h_vid, [], [], "head_min", h_min, head_precision, true, false)
 
         h_max = min(get(node, "h_max", Inf), _get_upper_bound_from_index(wm, h_vid))
-        bp_max = BoundProblem(_MOI.MAX_SENSE, h_vid, [], [], "head_max", h_max, head_precision, true, false)
+        bp_max = BoundProblem(JuMP.MOI.MAX_SENSE, h_vid, [], [], "head_max", h_max, head_precision, true, false)
 
         return Vector{BoundProblem}([bp_min, bp_max])
     else
@@ -63,10 +63,10 @@ function _get_bound_problems_tank(wm::AbstractWaterModel, i::Int, nw::Int; limit
         flow_precision = flow_transform(1.0e-5)
 
         q_tank_min = max(get(tank, "flow_min", -Inf), _get_lower_bound_from_index(wm, q_tank_vid))
-        bp_min = BoundProblem(_MOI.MIN_SENSE, q_tank_vid, [], [], "flow_min", q_tank_min, flow_precision, true, false)
+        bp_min = BoundProblem(JuMP.MOI.MIN_SENSE, q_tank_vid, [], [], "flow_min", q_tank_min, flow_precision, true, false)
 
         q_tank_max = min(get(tank, "flow_max", Inf), _get_upper_bound_from_index(wm, q_tank_vid))
-        bp_max = BoundProblem(_MOI.MAX_SENSE, q_tank_vid, [], [], "flow_max", q_tank_max, flow_precision, true, false)
+        bp_max = BoundProblem(JuMP.MOI.MAX_SENSE, q_tank_vid, [], [], "flow_max", q_tank_max, flow_precision, true, false)
 
         return Vector{BoundProblem}([bp_min, bp_max])
     else
@@ -95,10 +95,10 @@ function _get_bound_problems_pipe(wm::AbstractNCModel, i::Int, nw::Int; limit::B
         flow_precision = flow_transform(1.0e-5)
 
         flow_min = max(get(pipe, "flow_min", -Inf), _get_lower_bound_from_index(wm, q_vid))
-        bp_min = BoundProblem(_MOI.MIN_SENSE, q_vid, [], [], "flow_min", flow_min, flow_precision, true, false)
+        bp_min = BoundProblem(JuMP.MOI.MIN_SENSE, q_vid, [], [], "flow_min", flow_min, flow_precision, true, false)
 
         flow_max = min(get(pipe, "flow_max", Inf), _get_upper_bound_from_index(wm, q_vid))
-        bp_max = BoundProblem(_MOI.MAX_SENSE, q_vid, [], [], "flow_max", flow_max, flow_precision, true, false)
+        bp_max = BoundProblem(JuMP.MOI.MAX_SENSE, q_vid, [], [], "flow_max", flow_max, flow_precision, true, false)
 
         return Vector{BoundProblem}([bp_min, bp_max])
     else
@@ -119,26 +119,26 @@ function _get_bound_problems_pipe(wm::AbstractNCDModel, i::Int, nw::Int; limit::
         flow_precision = flow_transform(1.0e-5)
 
         y_min = get(pipe, "y_min", 0.0)
-        bp_y_min = BoundProblem(_MOI.MIN_SENSE, y_vid, [], [], "y_min", y_min, 1.0e-2, true, false)
+        bp_y_min = BoundProblem(JuMP.MOI.MIN_SENSE, y_vid, [], [], "y_min", y_min, 1.0e-2, true, false)
        
         y_max = get(pipe, "y_max", 1.0)
-        bp_y_max = BoundProblem(_MOI.MAX_SENSE, y_vid, [], [], "y_max", y_max, 1.0e-2, true, false)
+        bp_y_max = BoundProblem(JuMP.MOI.MAX_SENSE, y_vid, [], [], "y_max", y_max, 1.0e-2, true, false)
 
         flow_min = max(get(pipe, "flow_min", -Inf), _get_lower_bound_from_index(wm, q_vid))
         flow_min = y_min == 1.0 ? max(0.0, flow_min) : flow_min
-        bp_q_min = BoundProblem(_MOI.MIN_SENSE, q_vid, [], [], "flow_min", flow_min, flow_precision, true, false)
+        bp_q_min = BoundProblem(JuMP.MOI.MIN_SENSE, q_vid, [], [], "flow_min", flow_min, flow_precision, true, false)
  
         flow_min_forward = get(pipe, "flow_min_forward", 0.0)
         flow_min_forward = y_max == 0.0 ? 0.0 : flow_min_forward
-        bp_q_min_forward = BoundProblem(_MOI.MIN_SENSE, q_vid, [y_vid], [], "flow_min_forward", flow_min_forward, flow_precision, true, false)
+        bp_q_min_forward = BoundProblem(JuMP.MOI.MIN_SENSE, q_vid, [y_vid], [], "flow_min_forward", flow_min_forward, flow_precision, true, false)
 
         flow_max = min(get(pipe, "flow_max", Inf), _get_upper_bound_from_index(wm, q_vid))
         flow_max = y_max == 0.0 ? min(0.0, flow_max) : flow_max
-        bp_q_max = BoundProblem(_MOI.MAX_SENSE, q_vid, [], [], "flow_max", flow_max, flow_precision, true, false)
+        bp_q_max = BoundProblem(JuMP.MOI.MAX_SENSE, q_vid, [], [], "flow_max", flow_max, flow_precision, true, false)
 
         flow_max_reverse = get(pipe, "flow_max_reverse", 0.0)
         flow_max_reverse = y_min == 1.0 ? 0.0 : flow_max_reverse
-        bp_q_max_reverse = BoundProblem(_MOI.MAX_SENSE, q_vid, [], [y_vid], "flow_max_reverse", flow_max_reverse, flow_precision, true, false)
+        bp_q_max_reverse = BoundProblem(JuMP.MOI.MAX_SENSE, q_vid, [], [y_vid], "flow_max_reverse", flow_max_reverse, flow_precision, true, false)
 
         if limit
             return Vector{BoundProblem}([bp_q_min, bp_q_max])
@@ -174,36 +174,36 @@ function _get_bound_problems_des_pipe(wm::AbstractNCDModel, i::Int, nw::Int; lim
         flow_precision = flow_transform(1.0e-5)
 
         y_min = get(des_pipe, "y_min", 0.0)
-        bp_y_min = BoundProblem(_MOI.MIN_SENSE, y_vid, [], [], "y_min", y_min, 1.0e-2, true, false)
+        bp_y_min = BoundProblem(JuMP.MOI.MIN_SENSE, y_vid, [], [], "y_min", y_min, 1.0e-2, true, false)
 
         y_max = get(des_pipe, "y_max", 1.0)
-        bp_y_max = BoundProblem(_MOI.MAX_SENSE, y_vid, [], [], "y_max", y_max, 1.0e-2, true, false)
+        bp_y_max = BoundProblem(JuMP.MOI.MAX_SENSE, y_vid, [], [], "y_max", y_max, 1.0e-2, true, false)
 
         z_min = get(des_pipe, "z_min", 0.0)
-        bp_z_min = BoundProblem(_MOI.MIN_SENSE, z_vid, [], [], "z_min", z_min, 1.0e-2, true, false)
+        bp_z_min = BoundProblem(JuMP.MOI.MIN_SENSE, z_vid, [], [], "z_min", z_min, 1.0e-2, true, false)
 
         z_max = get(des_pipe, "z_max", 1.0)
-        bp_z_max = BoundProblem(_MOI.MAX_SENSE, z_vid, [], [], "z_max", z_max, 1.0e-2, true, false)
+        bp_z_max = BoundProblem(JuMP.MOI.MAX_SENSE, z_vid, [], [], "z_max", z_max, 1.0e-2, true, false)
 
         flow_min = max(get(des_pipe, "flow_min", -Inf), _get_lower_bound_from_index(wm, q_vid))
         flow_min = y_min == 1.0 ? max(0.0, flow_min) : flow_min
         flow_min = z_max == 0.0 ? 0.0 : flow_min
-        bp_q_min = BoundProblem(_MOI.MIN_SENSE, q_vid, [], [], "flow_min", flow_min, flow_precision, true, false)
+        bp_q_min = BoundProblem(JuMP.MOI.MIN_SENSE, q_vid, [], [], "flow_min", flow_min, flow_precision, true, false)
         
         flow_min_forward = get(des_pipe, "flow_min_forward", 0.0)
         flow_min_forward = y_max == 0.0 ? 0.0 : flow_min_forward
         flow_min_forward = z_max == 0.0 ? 0.0 : flow_min_forward
-        bp_q_min_forward = BoundProblem(_MOI.MIN_SENSE, q_vid, [y_vid, z_vid], [], "flow_min_forward", flow_min_forward, flow_precision, true, false)
+        bp_q_min_forward = BoundProblem(JuMP.MOI.MIN_SENSE, q_vid, [y_vid, z_vid], [], "flow_min_forward", flow_min_forward, flow_precision, true, false)
 
         flow_max = min(get(des_pipe, "flow_max", Inf), _get_upper_bound_from_index(wm, q_vid))
         flow_max = y_max == 0.0 ? min(0.0, flow_max) : flow_max
         flow_max = z_max == 0.0 ? 0.0 : flow_max
-        bp_q_max = BoundProblem(_MOI.MAX_SENSE, q_vid, [], [], "flow_max", flow_max, flow_precision, true, false)
+        bp_q_max = BoundProblem(JuMP.MOI.MAX_SENSE, q_vid, [], [], "flow_max", flow_max, flow_precision, true, false)
 
         flow_max_reverse = get(des_pipe, "flow_max_reverse", 0.0)
         flow_max_reverse = y_min == 1.0 ? 0.0 : flow_max_reverse
         flow_max_reverse = z_max == 0.0 ? 0.0 : flow_max_reverse
-        bp_q_max_reverse = BoundProblem(_MOI.MAX_SENSE, q_vid, [z_vid], [y_vid], "flow_max_reverse", flow_max_reverse, flow_precision, true, false)
+        bp_q_max_reverse = BoundProblem(JuMP.MOI.MAX_SENSE, q_vid, [z_vid], [y_vid], "flow_max_reverse", flow_max_reverse, flow_precision, true, false)
         
         if limit
             return Vector{BoundProblem}([bp_q_min_forward, bp_q_max_reverse])
@@ -238,18 +238,18 @@ function _get_bound_problems_pump(wm::AbstractWaterModel, i::Int, nw::Int; limit
         flow_precision = flow_transform(1.0e-5)
 
         z_min = get(pump, "z_min", 0.0)
-        bp_z_min = BoundProblem(_MOI.MIN_SENSE, z_vid, [], [], "z_min", z_min, 1.0e-2, true, false)
+        bp_z_min = BoundProblem(JuMP.MOI.MIN_SENSE, z_vid, [], [], "z_min", z_min, 1.0e-2, true, false)
 
         z_max = get(pump, "z_max", 1.0)
-        bp_z_max = BoundProblem(_MOI.MAX_SENSE, z_vid, [], [], "z_max", z_max, 1.0e-2, true, false)
+        bp_z_max = BoundProblem(JuMP.MOI.MAX_SENSE, z_vid, [], [], "z_max", z_max, 1.0e-2, true, false)
 
         flow_min_forward = get(pump, "flow_min_forward", 0.0)
         flow_min_forward = z_max == 0.0 ? 0.0 : flow_min_forward
-        bp_min = BoundProblem(_MOI.MIN_SENSE, q_vid, [z_vid], [], "flow_min_forward", flow_min_forward, flow_precision, true, false)
+        bp_min = BoundProblem(JuMP.MOI.MIN_SENSE, q_vid, [z_vid], [], "flow_min_forward", flow_min_forward, flow_precision, true, false)
 
         flow_max = min(get(pump, "flow_max", Inf), _get_upper_bound_from_index(wm, q_vid))
         flow_max = z_max == 0.0 ? 0.0 : flow_max
-        bp_max = BoundProblem(_MOI.MAX_SENSE, q_vid, [], [], "flow_max", flow_max, flow_precision, true, false)
+        bp_max = BoundProblem(JuMP.MOI.MAX_SENSE, q_vid, [], [], "flow_max", flow_max, flow_precision, true, false)
 
         return Vector{BoundProblem}([bp_min, bp_max, bp_z_min, bp_z_max])
     else
@@ -280,18 +280,18 @@ function _get_bound_problems_regulator(wm::AbstractWaterModel, i::Int, nw::Int; 
         flow_precision = flow_transform(1.0e-5)
 
         z_min = get(regulator, "z_min", 0.0)
-        bp_z_min = BoundProblem(_MOI.MIN_SENSE, z_vid, [], [], "z_min", z_min, 1.0e-2, true, false)
+        bp_z_min = BoundProblem(JuMP.MOI.MIN_SENSE, z_vid, [], [], "z_min", z_min, 1.0e-2, true, false)
 
         z_max = get(regulator, "z_max", 1.0)
-        bp_z_max = BoundProblem(_MOI.MAX_SENSE, z_vid, [], [], "z_max", z_max, 1.0e-2, true, false)
+        bp_z_max = BoundProblem(JuMP.MOI.MAX_SENSE, z_vid, [], [], "z_max", z_max, 1.0e-2, true, false)
 
         flow_min_forward = get(regulator, "flow_min_forward", 0.0)
         flow_min_forward = z_max == 0.0 ? 0.0 : flow_min_forward
-        bp_min = BoundProblem(_MOI.MIN_SENSE, q_vid, [z_vid], [], "flow_min_forward", flow_min_forward, flow_precision, true, false)
+        bp_min = BoundProblem(JuMP.MOI.MIN_SENSE, q_vid, [z_vid], [], "flow_min_forward", flow_min_forward, flow_precision, true, false)
 
         flow_max = min(get(regulator, "flow_max", Inf), _get_upper_bound_from_index(wm, q_vid))
         flow_max = z_max == 0.0 ? 0.0 : flow_max
-        bp_max = BoundProblem(_MOI.MAX_SENSE, q_vid, [], [], "flow_max", flow_max, flow_precision, true, false)
+        bp_max = BoundProblem(JuMP.MOI.MAX_SENSE, q_vid, [], [], "flow_max", flow_max, flow_precision, true, false)
 
         return Vector{BoundProblem}([bp_min, bp_max, bp_z_min, bp_z_max])
     else
@@ -320,10 +320,10 @@ function _get_bound_problems_short_pipe(wm::AbstractNCModel, i::Int, nw::Int; li
         flow_precision = flow_transform(1.0e-5)
 
         flow_min = max(get(short_pipe, "flow_min", -Inf), _get_lower_bound_from_index(wm, q_vid))
-        bp_min = BoundProblem(_MOI.MIN_SENSE, q_vid, [], [], "flow_min", flow_min, flow_precision, true, false)
+        bp_min = BoundProblem(JuMP.MOI.MIN_SENSE, q_vid, [], [], "flow_min", flow_min, flow_precision, true, false)
 
         flow_max = min(get(short_pipe, "flow_max", Inf), _get_lower_bound_from_index(wm, q_vid))
-        bp_max = BoundProblem(_MOI.MAX_SENSE, q_vid, [], [], "flow_max", flow_max, flow_precision, true, false)
+        bp_max = BoundProblem(JuMP.MOI.MAX_SENSE, q_vid, [], [], "flow_max", flow_max, flow_precision, true, false)
 
         return Vector{BoundProblem}([bp_min, bp_max])
     else
@@ -344,26 +344,26 @@ function _get_bound_problems_short_pipe(wm::AbstractNCDModel, i::Int, nw::Int; l
         flow_precision = flow_transform(1.0e-5)
 
         y_min = get(short_pipe, "y_min", 0.0)
-        bp_y_min = BoundProblem(_MOI.MIN_SENSE, y_vid, [], [], "y_min", y_min, 1.0e-2, true, false)
+        bp_y_min = BoundProblem(JuMP.MOI.MIN_SENSE, y_vid, [], [], "y_min", y_min, 1.0e-2, true, false)
        
         y_max = get(short_pipe, "y_max", 1.0)
-        bp_y_max = BoundProblem(_MOI.MAX_SENSE, y_vid, [], [], "y_max", y_max, 1.0e-2, true, false)
+        bp_y_max = BoundProblem(JuMP.MOI.MAX_SENSE, y_vid, [], [], "y_max", y_max, 1.0e-2, true, false)
 
         flow_min = max(get(short_pipe, "flow_min", -Inf), _get_lower_bound_from_index(wm, q_vid))
         flow_min = y_min == 1.0 ? max(0.0, flow_min) : flow_min
-        bp_q_min = BoundProblem(_MOI.MIN_SENSE, q_vid, [], [], "flow_min", flow_min, flow_precision, true, false)
+        bp_q_min = BoundProblem(JuMP.MOI.MIN_SENSE, q_vid, [], [], "flow_min", flow_min, flow_precision, true, false)
         
         flow_min_forward = get(short_pipe, "flow_min_forward", 0.0)
         flow_min_forward = y_max == 0.0 ? 0.0 : flow_min_forward
-        bp_q_min_forward = BoundProblem(_MOI.MIN_SENSE, q_vid, [y_vid], [], "flow_min_forward", flow_min_forward, flow_precision, true, false)
+        bp_q_min_forward = BoundProblem(JuMP.MOI.MIN_SENSE, q_vid, [y_vid], [], "flow_min_forward", flow_min_forward, flow_precision, true, false)
 
         flow_max = min(get(short_pipe, "flow_max", Inf), _get_upper_bound_from_index(wm, q_vid))
         flow_max = y_max == 0.0 ? min(0.0, flow_max) : flow_max
-        bp_q_max = BoundProblem(_MOI.MAX_SENSE, q_vid, [], [], "flow_max", flow_max, flow_precision, true, false)
+        bp_q_max = BoundProblem(JuMP.MOI.MAX_SENSE, q_vid, [], [], "flow_max", flow_max, flow_precision, true, false)
 
         flow_max_reverse = get(short_pipe, "flow_max_reverse", 0.0)
         flow_max_reverse = y_min == 1.0 ? 0.0 : flow_max_reverse
-        bp_q_max_reverse = BoundProblem(_MOI.MAX_SENSE, q_vid, [], [y_vid], "flow_max_reverse", flow_max_reverse, flow_precision, true, false)
+        bp_q_max_reverse = BoundProblem(JuMP.MOI.MAX_SENSE, q_vid, [], [y_vid], "flow_max_reverse", flow_max_reverse, flow_precision, true, false)
 
         if limit
             return Vector{BoundProblem}([bp_q_min, bp_q_max])
@@ -398,18 +398,18 @@ function _get_bound_problems_valve(wm::AbstractNCModel, i::Int, nw::Int; limit::
         flow_precision = flow_transform(1.0e-5)
 
         z_min = get(valve, "z_min", 0.0)
-        bp_z_min = BoundProblem(_MOI.MIN_SENSE, z_vid, [], [], "z_min", z_min, 1.0e-2, true, false)
+        bp_z_min = BoundProblem(JuMP.MOI.MIN_SENSE, z_vid, [], [], "z_min", z_min, 1.0e-2, true, false)
 
         z_max = get(valve, "z_max", 1.0)
-        bp_z_max = BoundProblem(_MOI.MAX_SENSE, z_vid, [], [], "z_max", z_max, 1.0e-2, true, false)
+        bp_z_max = BoundProblem(JuMP.MOI.MAX_SENSE, z_vid, [], [], "z_max", z_max, 1.0e-2, true, false)
 
         flow_min = max(get(valve, "flow_min", -Inf), _get_lower_bound_from_index(wm, q_vid))
         flow_min = z_max == 0.0 ? 0.0 : flow_min
-        bp_min = BoundProblem(_MOI.MIN_SENSE, q_vid, [], [], "flow_min", flow_min, flow_precision, true, false)
+        bp_min = BoundProblem(JuMP.MOI.MIN_SENSE, q_vid, [], [], "flow_min", flow_min, flow_precision, true, false)
 
         flow_max = min(get(valve, "flow_max", Inf), _get_upper_bound_from_index(wm, q_vid))
         flow_max = z_max == 0.0 ? 0.0 : flow_max
-        bp_max = BoundProblem(_MOI.MAX_SENSE, q_vid, [], [], "flow_max", flow_max, flow_precision, true, false)
+        bp_max = BoundProblem(JuMP.MOI.MAX_SENSE, q_vid, [], [], "flow_max", flow_max, flow_precision, true, false)
 
         return Vector{BoundProblem}([bp_min, bp_max, bp_z_min, bp_z_max])
     else
@@ -431,36 +431,36 @@ function _get_bound_problems_valve(wm::AbstractNCDModel, i::Int, nw::Int; limit:
         flow_precision = flow_transform(1.0e-5)
 
         y_min = get(valve, "y_min", 0.0)
-        bp_y_min = BoundProblem(_MOI.MIN_SENSE, y_vid, [], [], "y_min", y_min, 1.0e-2, true, false)
+        bp_y_min = BoundProblem(JuMP.MOI.MIN_SENSE, y_vid, [], [], "y_min", y_min, 1.0e-2, true, false)
 
         y_max = get(valve, "y_max", 1.0)
-        bp_y_max = BoundProblem(_MOI.MAX_SENSE, y_vid, [], [], "y_max", y_max, 1.0e-2, true, false)
+        bp_y_max = BoundProblem(JuMP.MOI.MAX_SENSE, y_vid, [], [], "y_max", y_max, 1.0e-2, true, false)
 
         z_min = get(valve, "z_min", 0.0)
-        bp_z_min = BoundProblem(_MOI.MIN_SENSE, z_vid, [], [], "z_min", z_min, 1.0e-2, true, false)
+        bp_z_min = BoundProblem(JuMP.MOI.MIN_SENSE, z_vid, [], [], "z_min", z_min, 1.0e-2, true, false)
 
         z_max = get(valve, "z_max", 1.0)
-        bp_z_max = BoundProblem(_MOI.MAX_SENSE, z_vid, [], [], "z_max", z_max, 1.0e-2, true, false)
+        bp_z_max = BoundProblem(JuMP.MOI.MAX_SENSE, z_vid, [], [], "z_max", z_max, 1.0e-2, true, false)
 
         flow_min = max(get(valve, "flow_min", -Inf), _get_lower_bound_from_index(wm, q_vid))
         flow_min = y_min == 1.0 ? max(0.0, flow_min) : flow_min
         flow_min = z_max == 0.0 ? 0.0 : flow_min
-        bp_q_min = BoundProblem(_MOI.MIN_SENSE, q_vid, [], [], "flow_min", flow_min, flow_precision, true, false)
+        bp_q_min = BoundProblem(JuMP.MOI.MIN_SENSE, q_vid, [], [], "flow_min", flow_min, flow_precision, true, false)
         
         flow_min_forward = get(valve, "flow_min_forward", 0.0)
         flow_min_forward = y_max == 0.0 ? 0.0 : flow_min_forward
         flow_min_forward = z_max == 0.0 ? 0.0 : flow_min_forward
-        bp_q_min_forward = BoundProblem(_MOI.MIN_SENSE, q_vid, [y_vid, z_vid], [], "flow_min_forward", flow_min_forward, flow_precision, true, false)
+        bp_q_min_forward = BoundProblem(JuMP.MOI.MIN_SENSE, q_vid, [y_vid, z_vid], [], "flow_min_forward", flow_min_forward, flow_precision, true, false)
 
         flow_max = min(get(valve, "flow_max", Inf), _get_upper_bound_from_index(wm, q_vid))
         flow_max = y_max == 0.0 ? min(0.0, flow_max) : flow_max
         flow_max = z_max == 0.0 ? 0.0 : flow_max
-        bp_q_max = BoundProblem(_MOI.MAX_SENSE, q_vid, [], [], "flow_max", flow_max, flow_precision, true, false)
+        bp_q_max = BoundProblem(JuMP.MOI.MAX_SENSE, q_vid, [], [], "flow_max", flow_max, flow_precision, true, false)
 
         flow_max_reverse = get(valve, "flow_max_reverse", 0.0)
         flow_max_reverse = y_min == 1.0 ? 0.0 : flow_max_reverse
         flow_max_reverse = z_max == 0.0 ? 0.0 : flow_max_reverse
-        bp_q_max_reverse = BoundProblem(_MOI.MAX_SENSE, q_vid, [z_vid], [y_vid], "flow_max_reverse", flow_max_reverse, flow_precision, true, false)
+        bp_q_max_reverse = BoundProblem(JuMP.MOI.MAX_SENSE, q_vid, [z_vid], [y_vid], "flow_max_reverse", flow_max_reverse, flow_precision, true, false)
 
         if limit
             return Vector{BoundProblem}([bp_q_min, bp_q_max])

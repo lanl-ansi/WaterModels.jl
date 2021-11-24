@@ -9,7 +9,6 @@ import Logging
 import Memento
 
 const _IM = WaterModels._IM
-const _MOI = WaterModels._MOI
 
 # Suppress warnings during testing.
 Memento.setlevel!(Memento.getlogger(_IM), "error")

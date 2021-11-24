@@ -1,5 +1,5 @@
 mutable struct _PairwiseProblem
-    sense::_MOI.OptimizationSense
+    sense::JuMP.MOI.OptimizationSense
     variable_index_1::_VariableIndex
     variable_index_2::_VariableIndex
     variable_2_fixing_value::Float64
@@ -47,47 +47,47 @@ function _get_bound_problem_candidate(wm::AbstractWaterModel, problem::_Pairwise
     termination_status = JuMP.termination_status(wm.model)
 
     # Otherwise, store the original bound.
-    if problem.sense === _MOI.MIN_SENSE
+    if problem.sense === JuMP.MOI.MIN_SENSE
         candidate = v_1_lb
-    elseif problem.sense === _MOI.MAX_SENSE
+    elseif problem.sense === JuMP.MOI.MAX_SENSE
         candidate = v_1_ub
     end
 
-    if !(termination_status in [_MOI.INFEASIBLE, _MOI.INFEASIBLE_OR_UNBOUNDED])
+    if !(termination_status in [JuMP.MOI.INFEASIBLE, JuMP.MOI.INFEASIBLE_OR_UNBOUNDED])
         try
             # Store the candidate value calculated from the optimization.
             candidate = JuMP.objective_bound(wm.model)
         catch
             # Otherwise, store the original bound.
-            if problem.sense === _MOI.MIN_SENSE
+            if problem.sense === JuMP.MOI.MIN_SENSE
                 candidate = v_1_lb
-            elseif problem.sense === _MOI.MAX_SENSE
+            elseif problem.sense === JuMP.MOI.MAX_SENSE
                 candidate = v_1_ub
             end
         end
 
         if isa(v_1, JuMP.VariableRef) && JuMP.is_binary(v_1)
-            if problem.sense === _MOI.MIN_SENSE
+            if problem.sense === JuMP.MOI.MIN_SENSE
                 return candidate >= 0.5 ? 1.0 : 0.0
-            elseif problem.sense === _MOI.MAX_SENSE
+            elseif problem.sense === JuMP.MOI.MAX_SENSE
                 return candidate < 0.5 ? 0.0 : 1.0
             end
         else
             prec = problem.precision
 
-            if problem.sense === _MOI.MIN_SENSE
+            if problem.sense === JuMP.MOI.MIN_SENSE
                 scaled_candidate = floor(inv(prec) * candidate) * prec
                 return max(scaled_candidate, v_1_lb)
-            elseif problem.sense === _MOI.MAX_SENSE
+            elseif problem.sense === JuMP.MOI.MAX_SENSE
                 scaled_candidate = ceil(inv(prec) * candidate) * prec
                 return min(scaled_candidate, v_1_ub)
             end
         end
     else
         if isa(v_1, JuMP.VariableRef) && JuMP.is_binary(v_1)
-            return problem.sense === _MOI.MIN_SENSE ? 0.0 : 1.0
+            return problem.sense === JuMP.MOI.MIN_SENSE ? 0.0 : 1.0
         else
-            return problem.sense === _MOI.MIN_SENSE ? v_1_lb : v_1_ub
+            return problem.sense === JuMP.MOI.MIN_SENSE ? v_1_lb : v_1_ub
         end
     end
 end
@@ -111,8 +111,8 @@ end
 
 
 function _get_pairwise_problem_set(variable_index_1::_VariableIndex, variable_index_2::_VariableIndex, fixing_value::Float64, precision::Float64)
-    problem_1 = _PairwiseProblem(_MOI.MIN_SENSE, variable_index_1, variable_index_2, fixing_value, precision)
-    problem_2 = _PairwiseProblem(_MOI.MAX_SENSE, variable_index_1, variable_index_2, fixing_value, precision)
+    problem_1 = _PairwiseProblem(JuMP.MOI.MIN_SENSE, variable_index_1, variable_index_2, fixing_value, precision)
+    problem_2 = _PairwiseProblem(JuMP.MOI.MAX_SENSE, variable_index_1, variable_index_2, fixing_value, precision)
     return _PairwiseProblemSet([problem_1, problem_2])
 end
 
@@ -140,16 +140,16 @@ end
 function _get_binary_continuous_cut(problem::_PairwiseProblem, value::Float64, v_1_lb::Float64, v_1_ub::Float64)
     vid_1, vid_2 = problem.variable_index_1, problem.variable_index_2
 
-    if problem.sense === _MOI.MIN_SENSE && problem.variable_2_fixing_value == 1.0
+    if problem.sense === JuMP.MOI.MIN_SENSE && problem.variable_2_fixing_value == 1.0
         # value * v_2 + v_1_lb * (1.0 - v_2) <= v_1  -->  -v_1 + (value - v_1_lb) * v_2 + v_1_lb <= 0
         return _PairwiseCut(-1.0, vid_1, value - v_1_lb, vid_2, v_1_lb)
-    elseif problem.sense === _MOI.MIN_SENSE && problem.variable_2_fixing_value == 0.0
+    elseif problem.sense === JuMP.MOI.MIN_SENSE && problem.variable_2_fixing_value == 0.0
         # value * (1.0 - v_2) + v_1_lb * v_2 <= v_1  -->  -v_1 + (v_1_lb - value) * v_2 + value <= 0
         return _PairwiseCut(-1.0, vid_1, v_1_lb - value, vid_2, value)
-    elseif problem.sense === _MOI.MAX_SENSE && problem.variable_2_fixing_value == 1.0
+    elseif problem.sense === JuMP.MOI.MAX_SENSE && problem.variable_2_fixing_value == 1.0
         # v_1 <= value * v_2 + v_1_ub * (1.0 - v_2)  -->  v_1 - (value - v_1_ub) * v_2 - v_1_ub <= 0
         return _PairwiseCut(1.0, vid_1, v_1_ub - value, vid_2, -v_1_ub)
-    elseif problem.sense === _MOI.MAX_SENSE && problem.variable_2_fixing_value == 0.0
+    elseif problem.sense === JuMP.MOI.MAX_SENSE && problem.variable_2_fixing_value == 0.0
         # v_1 <= value * (1.0 - v_2) + v_1_ub * v_2  -->  v_1 + (value - v_1_ub) * v_2 - value <= 0
         return _PairwiseCut(1.0, vid_1, value - v_1_ub, vid_2, -value)
     end
@@ -188,9 +188,9 @@ function _compute_pairwise_cuts!(wm::AbstractWaterModel, problem_sets::Array{_Pa
         elseif !(all(x -> isa(x, JuMP.VariableRef) && JuMP.is_binary(x), v_1_vars))
             # Add a cut relating a binary variable to a continuous variable.
             for (i, problem) in enumerate(problem_set.problems)
-                if (problem.sense === _MOI.MIN_SENSE && candidates[i] > v_1_lb)
+                if (problem.sense === JuMP.MOI.MIN_SENSE && candidates[i] > v_1_lb)
                     push!(cuts, _get_binary_continuous_cut(problem, candidates[i], v_1_lb, v_1_ub))
-                elseif (problem.sense === _MOI.MAX_SENSE && candidates[i] < v_1_ub)
+                elseif (problem.sense === JuMP.MOI.MAX_SENSE && candidates[i] < v_1_ub)
                     push!(cuts, _get_binary_continuous_cut(problem, candidates[i], v_1_lb, v_1_ub))
                 end
             end

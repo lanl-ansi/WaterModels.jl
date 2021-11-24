@@ -1,4 +1,4 @@
-function _choose_solver(wm::AbstractWaterModel, nl_solver::_MOI.OptimizerWithAttributes, mip_solver::_MOI.OptimizerWithAttributes)
+function _choose_solver(wm::AbstractWaterModel, nl_solver::JuMP.MOI.OptimizerWithAttributes, mip_solver::JuMP.MOI.OptimizerWithAttributes)
     if isa(wm, AbstractNonlinearModel)
         f = Juniper.register(head_loss_args(wm)..., autodiff=false)
         return JuMP.optimizer_with_attributes(Juniper.Optimizer,
@@ -9,6 +9,6 @@ function _choose_solver(wm::AbstractWaterModel, nl_solver::_MOI.OptimizerWithAtt
     end
 end
 
-function _is_valid_status(status::_MOI.TerminationStatusCode)
+function _is_valid_status(status::JuMP.TerminationStatusCode)
     return status in [OPTIMAL, LOCALLY_SOLVED, ALMOST_LOCALLY_SOLVED]
 end

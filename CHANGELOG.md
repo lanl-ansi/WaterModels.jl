@@ -1,6 +1,9 @@
 WaterModels.jl Change Log
 =========================
 
+### v0.9.0
+- Remove MathOptInterface dependency in support of JuMP 0.22.
+
 ### v0.8.0
 - Remove the convention of defining the _number_ of flow partitioning points for parameterizing linearized formulations.
 - Let users define flow partitioning points for head loss and head gain functions using `flow_partition` entries within pipe, design pipe, and pump objects.

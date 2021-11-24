@@ -10,7 +10,7 @@ Sets the objective function for [Water Flow (WF)](@ref) and [Multinetwork Water 
 WF)](@ref) problem specifications. By default, only feasibility must be satisfied.
 """
 function objective_wf(wm::AbstractWaterModel)::Nothing
-    return JuMP.set_objective_sense(wm.model, _MOI.FEASIBILITY_SENSE)
+    return JuMP.set_objective_sense(wm.model, JuMP.MOI.FEASIBILITY_SENSE)
 end
 
 
@@ -30,7 +30,7 @@ function objective_des(wm::AbstractWaterModel)::JuMP.AffExpr
         end
     end
 
-    return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
+    return JuMP.@objective(wm.model, JuMP.MOI.MIN_SENSE, objective)
 end
 
 
@@ -65,7 +65,7 @@ function objective_max_demand(wm::AbstractWaterModel)::JuMP.AffExpr
     end
 
     # Maximize the total amount of water volume delivered.
-    return JuMP.@objective(wm.model, _MOI.MAX_SENSE, objective)
+    return JuMP.@objective(wm.model, JuMP.MOI.MAX_SENSE, objective)
 end
 
 
@@ -106,5 +106,5 @@ function objective_owf(wm::AbstractWaterModel)::JuMP.AffExpr
     end
 
     # Minimize the cost of network operation.
-    return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
+    return JuMP.@objective(wm.model, JuMP.MOI.MIN_SENSE, objective)
 end
