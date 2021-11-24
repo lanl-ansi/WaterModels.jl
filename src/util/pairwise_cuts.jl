@@ -27,7 +27,7 @@ function _optimize_bound_problem!(wm::AbstractWaterModel, problem::_PairwiseProb
     v_2 = _get_variable_from_index(wm, problem.variable_index_2)
 
     if !JuMP.is_fixed(v_2)
-        # Fix the second variable in the pairwise problem.
+        # Fix the second variable in the pairwise problem (always binary).
         JuMP.fix(v_2, problem.variable_2_fixing_value)
     end
 
@@ -42,12 +42,29 @@ end
 
 function _get_bound_problem_candidate(wm::AbstractWaterModel, problem::_PairwiseProblem)
     v_1 = _get_variable_from_index(wm, problem.variable_index_1)
-    v_2 = _get_variable_from_index(wm, problem.variable_index_2)
     v_1_lb = _get_lower_bound_from_index(wm, problem.variable_index_1)
     v_1_ub = _get_upper_bound_from_index(wm, problem.variable_index_1)
+    termination_status = JuMP.termination_status(wm.model)
 
-    if JuMP.termination_status(wm.model) in [_MOI.LOCALLY_SOLVED, _MOI.OPTIMAL]
-        candidate = JuMP.objective_value(wm.model)
+    # Otherwise, store the original bound.
+    if problem.sense === _MOI.MIN_SENSE
+        candidate = v_1_lb
+    elseif problem.sense === _MOI.MAX_SENSE
+        candidate = v_1_ub
+    end
+
+    if !(termination_status in [_MOI.INFEASIBLE, _MOI.INFEASIBLE_OR_UNBOUNDED])
+        try
+            # Store the candidate value calculated from the optimization.
+            candidate = JuMP.objective_bound(wm.model)
+        catch
+            # Otherwise, store the original bound.
+            if problem.sense === _MOI.MIN_SENSE
+                candidate = v_1_lb
+            elseif problem.sense === _MOI.MAX_SENSE
+                candidate = v_1_ub
+            end
+        end
 
         if isa(v_1, JuMP.VariableRef) && JuMP.is_binary(v_1)
             if problem.sense === _MOI.MIN_SENSE
@@ -110,8 +127,8 @@ function _get_pairwise_problem_sets(wm::AbstractWaterModel; nw::Int = nw_id_defa
 
     for variable_index_1 in vcat(binary_variable_indices, continuous_variable_indices)
         for variable_index_2 in setdiff(binary_variable_indices, [variable_index_1])
-            problem_set_0 = _get_pairwise_problem_set(variable_index_1, variable_index_2, 0.0, 1.0e-4)
-            problem_set_1 = _get_pairwise_problem_set(variable_index_1, variable_index_2, 1.0, 1.0e-4)
+            problem_set_0 = _get_pairwise_problem_set(variable_index_1, variable_index_2, 0.0, 1.0e-5)
+            problem_set_1 = _get_pairwise_problem_set(variable_index_1, variable_index_2, 1.0, 1.0e-5)
             append!(problem_sets, [problem_set_0, problem_set_1])
         end
     end
@@ -156,7 +173,7 @@ end
 
 
 function _compute_pairwise_cuts!(wm::AbstractWaterModel, problem_sets::Array{_PairwiseProblemSet, 1})
-    cuts = Array{_PairwiseCut, 1}()
+    cuts = Vector{_PairwiseCut}([])
 
     for problem_set in problem_sets
         # Solve all the problems in the _PairwiseProblemSet.
@@ -170,7 +187,13 @@ function _compute_pairwise_cuts!(wm::AbstractWaterModel, problem_sets::Array{_Pa
             append!(cuts, [_get_binary_pairwise_cut(problem_set, candidates[1])])
         elseif !(all(x -> isa(x, JuMP.VariableRef) && JuMP.is_binary(x), v_1_vars))
             # Add a cut relating a binary variable to a continuous variable.
-            append!(cuts, _get_binary_continuous_cut.(problem_set.problems, candidates, v_1_lb, v_1_ub))
+            for (i, problem) in enumerate(problem_set.problems)
+                if (problem.sense === _MOI.MIN_SENSE && candidates[i] > v_1_lb)
+                    push!(cuts, _get_binary_continuous_cut(problem, candidates[i], v_1_lb, v_1_ub))
+                elseif (problem.sense === _MOI.MAX_SENSE && candidates[i] < v_1_ub)
+                    push!(cuts, _get_binary_continuous_cut(problem, candidates[i], v_1_lb, v_1_ub))
+                end
+            end
         end
     end
 

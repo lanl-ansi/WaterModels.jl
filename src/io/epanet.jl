@@ -1028,6 +1028,8 @@ function _read_reservoir!(data::Dict{String,<:Any})
             reservoir["elevation"] = reservoir["head_nominal"]
         else
             reservoir["elevation"] = reservoir["head_nominal"]
+            reservoir["head_min"] = reservoir["head_nominal"]
+            reservoir["head_max"] = reservoir["head_nominal"]
         end
 
         # Add a temporary index to be used in the data dictionary.

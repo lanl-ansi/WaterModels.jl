@@ -186,6 +186,7 @@ end
 
 "Try to determine a scaling factor that centers values around one."
 function _get_scaling_factor(values::Vector{Float64})::Float64
-    mean_log10_value = Statistics.mean(log10.(abs.(values)))
+    values_filtered = values[values .!= 0.0]
+    mean_log10_value = Statistics.mean(log10.(abs.(values_filtered)))
     return 10^(-mean_log10_value)
 end

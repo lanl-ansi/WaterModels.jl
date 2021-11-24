@@ -2,34 +2,6 @@
 ### This is built upon https://github.com/lanl-ansi/PowerModels.jl/blob/master/src/util/obbt.jl
 
 
-"""
-Iteratively tighten bounds on water model variables.
-By default, the function uses the PWLRD relaxation for performing bound tightening.
-
-# Example
-
-The function can be invoked as follows:
-
-```
-gurobi = JuMP.optimizer_with_attributes(Gurobi.Optimizer)
-solve_obbt_owf!("examples/data/epanet/van_zyl.inp", gurobi)
-```
-
-# Keyword Arguments
-* `model_type`: relaxation to use for performing bound tightening.
-* `max_iter`: maximum number of bound tightening iterations to perform.
-* `time_limit`: maximum amount of time (seconds) for the bound tightening algorithm.
-* `upper_bound`: can be used to specify a local feasible solution objective for the problem.
-* `upper_bound_constraint`: boolean option that can be used to add an additional
-   constraint to reduce the search space of each of the bound tightening
-   solves. This cannot be set to `true` without specifying an upper bound.
-"""
-function solve_obbt_owf!(file::String, optimizer; kwargs...)
-    data = WaterModels.parse_file(file)
-    return solve_obbt_owf!(data, optimizer; kwargs...)
-end
-
-
 function _fix_indicator(v::JuMP.VariableRef, value::Float64)
     if JuMP.is_binary(v)
         JuMP.fix(v, value)
@@ -151,6 +123,15 @@ function _update_data_bounds!(data::Dict{String,<:Any}, bound_problems::Array{Bo
         comp = data_nw[string(vid.component_type)][string(vid.component_index)]
         comp[bound_problem.bound_name] = bound_problem.bound
     end
+
+    # Perform data correction routines.
+    correct_pipes!(data_wm)
+    correct_des_pipes!(data_wm)
+    correct_pumps!(data_wm)
+    correct_regulators!(data_wm)
+    correct_short_pipes!(data_wm)
+    correct_valves!(data_wm)
+    correct_nodes!(data_wm)
 end
 
 
@@ -310,6 +291,9 @@ function solve_obbt_seq(data::Dict{String,<:Any}, build_method::Function, optimi
     num_time_steps = data["time_series"]["num_steps"]
     network_mn = make_multinetwork(data)
 
+    Memento.info(_LOGGER, "[OBBT] Beginning multistep OBBT routine.")
+    time_elapsed = 0.0
+
     for nw in 1:num_time_steps-1
         message = "[OBBT] Starting OBBT for network with multinetwork index $(nw)."
         Memento.info(_LOGGER, message)
@@ -319,10 +303,10 @@ function solve_obbt_seq(data::Dict{String,<:Any}, build_method::Function, optimi
 
         if nw != 1
             map(x -> x["dispatchable"] = true, values(data_nw["tank"]))
-            solve_obbt!(data_nw, build_wf, optimizer; kwargs...)
+            time_elapsed += @elapsed solve_obbt!(data_nw, build_method, optimizer; kwargs...)
             map(x -> x["dispatchable"] = false, values(data_nw["tank"]))
         else
-            solve_obbt!(data_nw, build_wf, optimizer; kwargs...)
+            time_elapsed += @elapsed solve_obbt!(data_nw, build_method, optimizer; kwargs...)
         end
 
         network_mn["nw"][string(nw)] = data_nw
@@ -331,6 +315,9 @@ function solve_obbt_seq(data::Dict{String,<:Any}, build_method::Function, optimi
             delete!(network_mn["nw"][string(nw)], key)
         end
     end
+
+    time_elapsed_rounded = round(time_elapsed; digits = 2)
+    Memento.info(_LOGGER, "Multistep OBBT routine completed in $(time_elapsed_rounded) seconds.")
 
     return network_mn
 end
@@ -432,7 +419,7 @@ function solve_obbt!(
         current_iteration += 1
 
         # Set the termination variable if max iterations is exceeded.
-        current_iteration >= max_iter && (terminate = true)
+        current_iteration > max_iter && (terminate = true)
 
         # Update WaterModels objects in parallel.
         Threads.@threads for i in 1:Threads.nthreads()

@@ -26,16 +26,18 @@ end
 function correct_pipes!(data::Dict{String, <:Any})
     wm_data = get_wm_data(data)
     head_loss, viscosity = wm_data["head_loss"], wm_data["viscosity"]
-    func! = x -> _correct_pipes!(x, head_loss, viscosity)
+
+    base_length = get(wm_data, "base_length", 1.0)
+    base_mass = get(wm_data, "base_mass", 1.0)
+    base_time = get(wm_data, "base_time", 1.0)
+
+    func! = x -> _correct_pipes!(x, head_loss, viscosity, base_length, base_mass, base_time)
     apply_wm!(func!, data; apply_to_subnetworks = true)
 end
 
 
-function _correct_pipes!(data::Dict{String, <:Any}, head_loss::String, viscosity::Float64)
+function _correct_pipes!(data::Dict{String, <:Any}, head_loss::String, viscosity::Float64, base_length::Float64, base_mass::Float64, base_time::Float64)
     capacity = _calc_capacity_max(data)
-    base_length = get(data, "base_length", 1.0)
-    base_mass = get(data, "base_mass", 1.0)
-    base_time = get(data, "base_time", 1.0)
 
     for pipe in values(data["pipe"])
          # Get common connecting node data for later use.
@@ -98,18 +100,20 @@ end
 
 function correct_des_pipes!(data::Dict{String, <:Any})
     wm_data = get_wm_data(data)
-    head_loss, viscosity = wm_data["head_loss"], wm_data["viscosity"]
-    func! = x -> _correct_des_pipes!(x, head_loss, viscosity)
-    apply_wm!(func!, data; apply_to_subnetworks = true)
-end
 
-
-function _correct_des_pipes!(data::Dict{String, <:Any}, head_loss::String, viscosity::Float64)
-    capacity = _calc_capacity_max(data)
     base_length = get(data, "base_length", 1.0)
     base_mass = get(data, "base_mass", 1.0)
     base_time = get(data, "base_time", 1.0)
 
+    head_loss, viscosity = wm_data["head_loss"], wm_data["viscosity"]
+    func! = x -> _correct_des_pipes!(x, head_loss, viscosity, base_length, base_mass, base_time)
+    apply_wm!(func!, data; apply_to_subnetworks = true)
+end
+
+
+function _correct_des_pipes!(data::Dict{String, <:Any}, head_loss::String, viscosity::Float64, base_length::Float64, base_mass::Float64, base_time::Float64)
+    capacity = _calc_capacity_max(data)
+    
     for des_pipe in values(data["des_pipe"])
         # Get common connecting node data for later use.
         node_fr = data["node"][string(des_pipe["node_fr"])]
@@ -165,6 +169,29 @@ function _correct_pipe_flow_bounds!(
     pipe["flow_min"], pipe["flow_max"] = flow_min, flow_max
     pipe["flow_min_forward"] = max(flow_min, get(pipe, "flow_min_forward", 0.0))
     pipe["flow_max_reverse"] = min(flow_max, get(pipe, "flow_max_reverse", 0.0))
+
+    if get(pipe, "y_min", 0.0) == 1.0
+        pipe["flow_min"] = max(0.0, pipe["flow_min"])
+        pipe["flow_min_forward"] = max(0.0, pipe["flow_min_forward"])
+        pipe["flow_max_reverse"] = 0.0
+        pipe["flow_max"] = max(0.0, pipe["flow_max"])
+    elseif get(pipe, "y_max", 1.0) == 0.0
+        pipe["flow_min"] = min(0.0, pipe["flow_min"])
+        pipe["flow_min_forward"] = 0.0
+        pipe["flow_max_reverse"] = min(0.0, pipe["flow_max_reverse"])
+        pipe["flow_max"] = min(0.0, pipe["flow_max"])
+    end
+
+    pipe["flow_max"] = max(pipe["flow_min"], pipe["flow_max"])
+    pipe["flow_min"] = min(pipe["flow_min"], pipe["flow_max"])
+    pipe["flow_min_forward"] = max(pipe["flow_min_forward"], pipe["flow_min"])
+    pipe["flow_min_forward"] = min(pipe["flow_min_forward"], pipe["flow_max"])
+    pipe["flow_max_reverse"] = min(pipe["flow_max_reverse"], pipe["flow_max"])
+    pipe["flow_max_reverse"] = max(pipe["flow_max_reverse"], pipe["flow_min"])
+
+    @assert pipe["flow_min"] <= pipe["flow_max"]
+    @assert get(pipe, "flow_min_forward", 0.0) <= max(0.0, pipe["flow_max"])
+    @assert min(0.0, pipe["flow_min"]) <= get(pipe, "flow_max_reverse", 0.0)
 end
 
 

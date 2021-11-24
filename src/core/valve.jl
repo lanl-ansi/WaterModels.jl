@@ -25,6 +25,36 @@ function _correct_valve_flow_bounds!(valve::Dict{String, <:Any}, capacity::Float
     valve["flow_min"], valve["flow_max"] = flow_min, flow_max
     valve["flow_min_forward"] = max(flow_min, get(valve, "flow_min_forward", 0.0))
     valve["flow_max_reverse"] = min(flow_max, get(valve, "flow_max_reverse", 0.0))
+
+    if get(valve, "y_min", 0.0) == 1.0
+        valve["flow_min"] = max(0.0, valve["flow_min"])
+        valve["flow_min_forward"] = max(0.0, valve["flow_min_forward"])
+        valve["flow_max_reverse"] = 0.0
+        valve["flow_max"] = max(0.0, valve["flow_max"])
+    elseif get(valve, "y_max", 1.0) == 0.0
+        valve["flow_min"] = min(0.0, valve["flow_min"])
+        valve["flow_min_forward"] = 0.0
+        valve["flow_max_reverse"] = min(0.0, valve["flow_max_reverse"])
+        valve["flow_max"] = min(0.0, valve["flow_max"])
+    end
+
+    if get(valve, "z_max", 1.0) == 0.0
+        valve["flow_min"] = 0.0
+        valve["flow_max"] = 0.0
+        valve["flow_min_forward"] = 0.0
+        valve["flow_max_reverse"] = 0.0
+    end
+
+    valve["flow_max"] = max(valve["flow_min"], valve["flow_max"])
+    valve["flow_min"] = min(valve["flow_min"], valve["flow_max"])
+    valve["flow_min_forward"] = max(valve["flow_min_forward"], valve["flow_min"])
+    valve["flow_min_forward"] = min(valve["flow_min_forward"], valve["flow_max"])
+    valve["flow_max_reverse"] = min(valve["flow_max_reverse"], valve["flow_max"])
+    valve["flow_max_reverse"] = max(valve["flow_max_reverse"], valve["flow_min"])
+
+    @assert valve["flow_min"] <= valve["flow_max"]
+    @assert get(valve, "flow_min_forward", 0.0) <= max(0.0, valve["flow_max"])
+    @assert min(0.0, valve["flow_min"]) <= get(valve, "flow_max_reverse", 0.0)
 end
 
 

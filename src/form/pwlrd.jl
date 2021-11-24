@@ -135,6 +135,9 @@ function constraint_pipe_head_loss(
         scalar = _get_scaling_factor(vcat(f_p_ub_expr.terms.vals, [1.0 / L]))
         c_6 = JuMP.@constraint(wm.model, scalar * dhp / L <= scalar * f_p_ub_expr)
         append!(con(wm, n, :pipe_head_loss, a), [c_6])
+    else
+        c_6 = JuMP.@constraint(wm.model, dhp == 0.0)
+        append!(con(wm, n, :pipe_head_loss, a), [c_6])
     end
 
     # Loop over consequential points (i.e., those that have nonzero head loss).
@@ -186,6 +189,9 @@ function constraint_pipe_head_loss(
         f_n_ub_expr = sum(f_n[k] * lambda_n[a, k] for k in bn_range)
         scalar = _get_scaling_factor(vcat(f_n_ub_expr.terms.vals, [1.0 / L]))
         c_14 = JuMP.@constraint(wm.model, scalar * dhn / L <= scalar * f_n_ub_expr)
+        append!(con(wm, n, :pipe_head_loss, a), [c_14])
+    else
+        c_14 = JuMP.@constraint(wm.model, dhn == 0.0)
         append!(con(wm, n, :pipe_head_loss, a), [c_14])
     end
 

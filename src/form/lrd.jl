@@ -59,6 +59,14 @@ function constraint_pipe_head_loss(
 
         # Append the :pipe_head_loss constraint array.
         append!(con(wm, n, :pipe_head_loss)[a], [c])
+    elseif qp_max == 0.0
+        c = JuMP.@constraint(wm.model, dhp == 0.0)
+        append!(con(wm, n, :pipe_head_loss)[a], [c])
+    else
+        f_q = r * qp_max^exponent
+        scalar = _get_scaling_factor([f_q == 0.0 ? 1.0 : f_q, 1.0 / L])
+        c = JuMP.@constraint(wm.model, scalar * dhp / L == scalar * f_q * y)
+        append!(con(wm, n, :pipe_head_loss)[a], [c])
     end
 
     # Get variables for negative flow and head difference.
@@ -100,6 +108,14 @@ function constraint_pipe_head_loss(
         c = JuMP.@constraint(wm.model, scalar * dhn / L <= scalar * f_lb_line)
 
         # Append the :pipe_head_loss constraint array.
+        append!(con(wm, n, :pipe_head_loss)[a], [c])
+    elseif qn_max == 0.0
+        c = JuMP.@constraint(wm.model, dhn == 0.0)
+        append!(con(wm, n, :pipe_head_loss)[a], [c])
+    else
+        f_q = r * qn_max^exponent
+        scalar = _get_scaling_factor([f_q == 0.0 ? 1.0 : f_q, 1.0 / L])
+        c = JuMP.@constraint(wm.model, scalar * dhn / L == scalar * f_q * (1.0 - y))
         append!(con(wm, n, :pipe_head_loss)[a], [c])
     end
 end
@@ -217,7 +233,9 @@ function constraint_on_off_pump_head_gain(
     q_min_forward::Float64,
 )
     # Get variables for positive flow, head difference, and pump status.
-    qp, g, z = var(wm, n, :qp_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
+    qp = var(wm, n, :qp_pump, a)
+    g = var(wm, n, :g_pump, a)
+    z = var(wm, n, :z_pump, a)
 
     # Calculate the head curve function and its derivative.
     # Get pump head curve function and its derivative.

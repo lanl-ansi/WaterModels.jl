@@ -107,8 +107,12 @@ function _calc_node_head_max(
         # Return the head associated with the minimum level.
         return min(node["elevation"] + max_level_min, head_max, head_max_base)
     elseif length(reservoirs) > 0
-        @assert haskey(node, "head_nominal")
-        return get(node, "head_nominal", Inf)
+        if haskey(node, "head_max")
+            return node["head_max"]
+        else
+            @assert haskey(node, "head_nominal")
+            return get(node, "head_nominal", Inf)
+        end
     else
         return min(head_max, head_max_base)
     end
