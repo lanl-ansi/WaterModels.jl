@@ -27,7 +27,7 @@ function _check_connectivity(data::Dict{String,<:Any})
         end
     end
 
-    for comp_type in _NODE_CONNECTING_COMPONENTS
+    for comp_type in _LINK_COMPONENTS
         for (i, comp) in data[comp_type]
             if !(comp["node_fr"] in node_ids)
                 error_message = "From node $(comp["node_fr"]) in "
@@ -67,7 +67,7 @@ function _check_status(data::Dict{String,<:Any})
         end
     end
 
-    for comp_type in _NODE_CONNECTING_COMPONENTS
+    for comp_type in _LINK_COMPONENTS
         for (i, comp) in data[comp_type]
             if comp["status"] != STATUS_INACTIVE && !(comp["node_fr"] in active_node_ids)
                 warning_message = "Active $(comp_type) $(i) is connected to inactive "
@@ -98,7 +98,7 @@ end
 
 
 function _correct_flow_directions!(data::Dict{String,<:Any})
-    for component_type in _NODE_CONNECTING_COMPONENTS
+    for component_type in _LINK_COMPONENTS
         components = values(get(data, component_type, Dict{String,Any}()))
         _correct_flow_direction!.(components)
     end
@@ -111,7 +111,7 @@ end
 
 
 function _correct_statuses!(data::Dict{String,<:Any})
-    for component_type in vcat(_NODE_CONNECTING_COMPONENTS, _NODE_CONNECTED_COMPONENTS)
+    for component_type in vcat(_LINK_COMPONENTS, _NODE_CONNECTED_COMPONENTS)
         components = values(get(data, component_type, Dict{String,Any}()))
         _correct_status!.(components)
     end
@@ -720,7 +720,7 @@ end
 
 function _recompute_bounds!(data::Dict{String, <:Any})
     # Clear the existing flow bounds for node-connecting components.
-    for comp_type in _NODE_CONNECTING_COMPONENTS
+    for comp_type in _LINK_COMPONENTS
         map(x -> x["flow_min"] = -Inf, values(data[comp_type]))
         map(x -> x["flow_max"] = Inf, values(data[comp_type]))
     end

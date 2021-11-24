@@ -1,8 +1,8 @@
 # Constraint templates help simplify data wrangling across multiple water network
 # optimization formulations by providing an abstraction layer between the network data and
 # network constraint definitions. Each constraint template's job is to extract the required
-# parameters from a given network data structure and pass the data as named arguments to
-# the water network optimization constraints. Here, constraint templates should always be
+# parameters from a given network data structure and pass the data as named arguments to the
+# water network optimization constraints. Here, constraint templates should always be
 # defined over the type `AbstractWaterModel` and should never refer to model variables.
 
 
@@ -227,7 +227,11 @@ function constraint_tank_volume(wm::AbstractWaterModel, i::Int; nw::Int = nw_id_
 end
 
 
-function constraint_tank_volume_fixed(wm::AbstractWaterModel, i::Int; nw::Int = nw_id_default)
+function constraint_tank_volume_fixed(
+    wm::AbstractWaterModel,
+    i::Int;
+    nw::Int = nw_id_default,
+)
     # Compute the cross-sectional area of the tank.
     tank = ref(wm, nw, :tank, i)
     initial_level = tank["init_level"]

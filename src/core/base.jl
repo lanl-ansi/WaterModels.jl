@@ -208,7 +208,7 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any})
         ref[:node] = _filter_active_components(ref[:node])
 
         # Create mappings of "from" and "to" arcs for link- (i.e., edge-) type components.
-        for name in _NODE_CONNECTING_COMPONENTS
+        for name in _LINK_COMPONENTS
             ref[Symbol(name)] = _filter_active_components(ref[Symbol(name)])
             fr_sym, to_sym = Symbol(name * "_fr"), Symbol(name * "_to")
             ref[fr_sym], ref[to_sym] = _build_node_map(ref[:node], ref[Symbol(name)])

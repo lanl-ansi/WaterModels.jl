@@ -59,7 +59,7 @@ end
 function _get_flow_variable_indices(wm::AbstractWaterModel; nw::Int=nw_id_default)
     vars = Array{_VariableIndex, 1}()
 
-    for comp_type in vcat(_NODE_CONNECTING_COMPONENTS, "tank")
+    for comp_type in vcat(_LINK_COMPONENTS, "tank")
         for comp_id in ids(wm, nw, Symbol(comp_type))
             v_sym = Symbol("q_" * comp_type)
             append!(vars, [_VariableIndex(nw, Symbol(comp_type), v_sym, comp_id)])
@@ -84,7 +84,7 @@ end
 function _get_direction_variable_indices(wm::AbstractNCDModel; nw::Int=nw_id_default)
     vars = Array{_VariableIndex, 1}()
 
-    for comp_type in _NODE_CONNECTING_COMPONENTS
+    for comp_type in _LINK_COMPONENTS
         for comp_id in ids(wm, nw, Symbol(comp_type))
             v_sym = Symbol("y_" * comp_type)
             append!(vars, [_VariableIndex(nw, Symbol(comp_type), v_sym, comp_id)])
