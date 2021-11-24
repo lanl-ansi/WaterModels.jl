@@ -3,31 +3,13 @@ function solve_wf(network, model_constructor, optimizer; kwargs...)
 end
 
 
-function run_wf(network, model_constructor, optimizer; kwargs...)
-    Memento.warn(_LOGGER, "\"run_\" methods should be renamed \"solve_\" and will be deprecated in future versions.")
-    return solve_wf(network, model_constructor, optimizer; kwargs...)
-end
-
-
 function solve_mn_wf(file, model_constructor, optimizer; kwargs...)
     return solve_model(file, model_constructor, optimizer, build_mn_wf; multinetwork=true, kwargs...)
 end
 
 
-function run_mn_wf(network, model_constructor, optimizer; kwargs...)
-    Memento.warn(_LOGGER, "\"run_\" methods should be renamed \"solve_\" and will be deprecated in future versions.")
-    return solve_mn_wf(network, model_constructor, optimizer; kwargs...)
-end
-
-
 function solve_mn_wf_switching(file, model_constructor, optimizer; kwargs...)
     return solve_model(file, model_constructor, optimizer, build_mn_wf_switching; multinetwork=true, kwargs...)
-end
-
-
-function run_mn_wf_switching(network, model_constructor, optimizer; kwargs...)
-    Memento.warn(_LOGGER, "\"run_\" methods should be renamed \"solve_\" and will be deprecated in future versions.")
-    return solve_mn_wf_switching(network, model_constructor, optimizer; kwargs...)
 end
 
 

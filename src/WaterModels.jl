@@ -87,7 +87,6 @@ include("form/pwlrd.jl")
 include("form/lrd.jl")
 
 include("prob/wf.jl")
-include("prob/wff.jl")
 include("prob/owf.jl")
 include("prob/des.jl")
 include("prob/mdd.jl")
@@ -100,5 +99,16 @@ include("util/obbt.jl")
 
 # This must be included last to support automated export.
 include("core/export.jl")
+
+# Deprecated `run_` functions (now `solve_`).
+@deprecate run_des(network, model_constructor, optimizer; kwargs...) solve_des(network, model_constructor, optimizer; kwargs...)
+@deprecate run_mdd(network, model_constructor, optimizer; kwargs...) solve_mdd(network, model_constructor, optimizer; kwargs...)
+@deprecate run_mn_mdd(network, model_constructor, optimizer; kwargs...) solve_mn_mdd(network, model_constructor, optimizer; kwargs...)
+@deprecate run_owf(network, model_constructor, optimizer; kwargs...) solve_owf(network, model_constructor, optimizer; kwargs...)
+@deprecate run_mn_owf(network, model_constructor, optimizer; kwargs...) solve_mn_owf(network, model_constructor, optimizer; kwargs...)
+@deprecate run_mn_owf_switching(network, model_constructor, optimizer; kwargs...) solve_mn_owf_switching(network, model_constructor, optimizer; kwargs...)
+@deprecate run_wf(network, model_constructor, optimizer; kwargs...) solve_wf(network, model_constructor, optimizer; kwargs...)
+@deprecate run_mn_wf(network, model_constructor, optimizer; kwargs...) solve_mn_wf(network, model_constructor, optimizer; kwargs...)
+@deprecate run_mn_wf_switching(network, model_constructor, optimizer; kwargs...) solve_mn_wf_switching(network, model_constructor, optimizer; kwargs...)
 
 end
