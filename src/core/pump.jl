@@ -413,7 +413,7 @@ function _calc_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, 
 end
 
 
-function _calc_pump_power(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Array{Float64, 1})
+function _calc_pump_power(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Vector{Float64})
     q_true, f_true = _calc_pump_power_points(wm, nw, pump_id, 100)
     return max.(Interpolations.LinearInterpolation(q_true, f_true).(q), 0.0)
 end
@@ -435,7 +435,7 @@ function _calc_pump_power_ua(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::V
 end
 
 
-function _calc_pump_power_oa(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Array{Float64, 1})
+function _calc_pump_power_oa(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Vector{Float64})
     q_true, f_true = _calc_pump_power_points(wm, nw, pump_id, 100)
     f_interp = Interpolations.LinearInterpolation(q_true, f_true).(q)
 

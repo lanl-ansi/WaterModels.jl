@@ -632,7 +632,7 @@ end
 function constraint_on_off_pump_switch(
     wm::AbstractWaterModel,
     a::Int,
-    network_ids::Array{Int64,1};
+    network_ids::Vector{Int64};
     kwargs...,
 )
     _initialize_con_dict(wm, :on_off_pump_switch, nw = network_ids[end], is_array = true)

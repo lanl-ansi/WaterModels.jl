@@ -776,7 +776,7 @@ function _read_pattern!(data::Dict{String,<:Any})
         name = current[1]
 
         if !(name in keys(data["pattern"]))
-            data["pattern"][name] = Array{Float64,1}()
+            data["pattern"][name] = Vector{Float64}()
         end
 
         values = [parse(Float64, s) for s in current[2:end]]

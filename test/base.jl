@@ -86,19 +86,19 @@
 
     @testset "nw_ids helper function" begin
         wm = instantiate_model(network_path, NCWaterModel, build_wf)
-        @test Array{Int64,1}(collect(nw_ids(wm))) == Array{Int64,1}([_IM.nw_id_default])
+        @test Vector{Int64}(collect(nw_ids(wm))) == Vector{Int64}([_IM.nw_id_default])
     end
 
     @testset "nws helper function" begin
         wm = instantiate_model(network_path, NCWaterModel, build_wf)
-        @test Array{Int64,1}(collect(keys(nws(wm)))) == Array{Int64,1}([_IM.nw_id_default])
+        @test Vector{Int64}(collect(keys(nws(wm)))) == Vector{Int64}([_IM.nw_id_default])
     end
 
     @testset "ids helper functions" begin
         wm = instantiate_model(network_path, NCWaterModel, build_wf)
-        @test Array{Int64,1}(collect(ids(wm, _IM.nw_id_default, :pipe))) ==
-              Array{Int64,1}([1])
-        @test Array{Int64,1}(collect(ids(wm, :pipe))) == Array{Int64,1}([1])
+        @test Vector{Int64}(collect(ids(wm, _IM.nw_id_default, :pipe))) ==
+              Vector{Int64}([1])
+        @test Vector{Int64}(collect(ids(wm, :pipe))) == Vector{Int64}([1])
     end
 
     @testset "ref helper functions" begin

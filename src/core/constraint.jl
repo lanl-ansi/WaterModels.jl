@@ -12,12 +12,12 @@
 Adds a constraint that ensures flow conservation at a node in the network.
 """
 function constraint_flow_conservation(
-    wm::AbstractWaterModel, n::Int, i::Int, pipe_fr::Array{Int64,1},
-    pipe_to::Array{Int64,1}, des_pipe_fr::Array{Int64,1}, des_pipe_to::Array{Int64,1},
-    pump_fr::Array{Int64,1}, pump_to::Array{Int64,1}, regulator_fr::Array{Int64,1},
-    regulator_to::Array{Int64,1}, short_pipe_fr::Array{Int64,1},
-    short_pipe_to::Array{Int64,1}, valve_fr::Array{Int64,1}, valve_to::Array{Int64,1},
-    reservoirs::Array{Int64,1}, tanks::Array{Int64,1}, dispatchable_demands::Array{Int64,1},
+    wm::AbstractWaterModel, n::Int, i::Int, pipe_fr::Vector{Int64},
+    pipe_to::Vector{Int64}, des_pipe_fr::Vector{Int64}, des_pipe_to::Vector{Int64},
+    pump_fr::Vector{Int64}, pump_to::Vector{Int64}, regulator_fr::Vector{Int64},
+    regulator_to::Vector{Int64}, short_pipe_fr::Vector{Int64},
+    short_pipe_to::Vector{Int64}, valve_fr::Vector{Int64}, valve_to::Vector{Int64},
+    reservoirs::Vector{Int64}, tanks::Vector{Int64}, dispatchable_demands::Vector{Int64},
     fixed_demand::Float64)
     # Collect flow variable references per component.
     q_pipe, q_des_pipe = var(wm, n, :q_pipe), var(wm, n, :q_des_pipe)
@@ -57,7 +57,7 @@ function constraint_tank_volume_fixed(wm::AbstractWaterModel, n::Int, i::Int, V_
 end
 
 
-function constraint_des_pipe_selection(wm::AbstractWaterModel, n::Int, k::Int, node_fr::Int, node_to::Int, des_pipes::Array{Int64,1})
+function constraint_des_pipe_selection(wm::AbstractWaterModel, n::Int, k::Int, node_fr::Int, node_to::Int, des_pipes::Vector{Int64})
     z_des_pipe = var(wm, n, :z_des_pipe)
     c = JuMP.@constraint(wm.model, sum(z_des_pipe[a] for a in des_pipes) == 1.0)
     append!(con(wm, n, :des_pipe_selection)[k], [c])
@@ -149,14 +149,14 @@ function constraint_on_off_pump_group(wm::AbstractWaterModel, n::Int, k::Int, pu
 end
 
 
-function constraint_on_off_pump_switch(wm::AbstractWaterModel, a::Int, network_ids::Array{Int64, 1}, max_switches::Int64)
+function constraint_on_off_pump_switch(wm::AbstractWaterModel, a::Int, network_ids::Vector{Int64}, max_switches::Int64)
     z_switch_on_sum = sum(var(wm, n, :z_switch_on_pump, a) for n in network_ids)
     c = JuMP.@constraint(wm.model, z_switch_on_sum <= max_switches)
     append!(con(wm, network_ids[end], :on_off_pump_switch)[a], [c])
 end
 
 
-function constraint_pump_switch_on(wm::AbstractWaterModel, a::Int, n_1::Int, n_2::Int, nws_active::Array{Int64, 1})
+function constraint_pump_switch_on(wm::AbstractWaterModel, a::Int, n_1::Int, n_2::Int, nws_active::Vector{Int64})
     z_1, z_2 = var(wm, n_1, :z_pump, a), var(wm, n_2, :z_pump, a)
     z_switch_on = var(wm, n_2, :z_switch_on_pump, a)
     c_1 = JuMP.@constraint(wm.model, z_switch_on >= z_2 - z_1)
@@ -170,7 +170,7 @@ function constraint_pump_switch_on(wm::AbstractWaterModel, a::Int, n_1::Int, n_2
 end
 
 
-function constraint_pump_switch_off(wm::AbstractWaterModel, a::Int, n_1::Int, n_2::Int, nws_inactive::Array{Int64, 1})
+function constraint_pump_switch_off(wm::AbstractWaterModel, a::Int, n_1::Int, n_2::Int, nws_inactive::Vector{Int64})
     z_1, z_2 = var(wm, n_1, :z_pump, a), var(wm, n_2, :z_pump, a)
     z_switch_off = var(wm, n_2, :z_switch_off_pump, a)
     c_1 = JuMP.@constraint(wm.model, z_switch_off >= z_1 - z_2)
