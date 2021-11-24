@@ -32,10 +32,7 @@
 
     @testset "_ref_add_core!" begin
         wm = instantiate_model(parse_file(network_path), NCWaterModel, build_wf)
-        WaterModels._ref_add_core!(
-            wm.ref[:it][wm_it_sym][:nw],
-            wm.ref[:it][wm_it_sym][:head_loss],
-        )
+        WaterModels._ref_add_core!(wm.ref[:it][wm_it_sym][:nw])
         @test length(ref(wm, :pipe)) == 1
     end
 
@@ -137,30 +134,5 @@
         wm = instantiate_model(network_path, NCWaterModel, build_wf)
         @test haskey(sol(wm, _IM.nw_id_default)[:pipe], 1)
         @test haskey(sol(wm)[:pipe], 1)
-    end
-
-    @testset "_pumps_match (with symmetric pumps)" begin
-        data = parse_file("../test/data/epanet/snapshot/pump-hw-lps-multiple.inp")
-        @test WaterModels._pumps_match(data["pump"]["1"], data["pump"]["2"])
-    end
-
-    @testset "_pumps_match (with unique pumps)" begin
-        data = parse_file("../test/data/epanet/snapshot/pump-hw-lps-unique.inp")
-        @test !WaterModels._pumps_match(data["pump"]["1"], data["pump"]["2"])
-    end
-
-    @testset "_build_pump_groups (with symmetric pumps)" begin
-        data = parse_file("../test/data/epanet/snapshot/pump-hw-lps-multiple.inp")
-        pump_ref = build_ref(data)[:it][wm_it_sym][:nw][nw_id_default][:pump]
-        pump_groups = WaterModels._build_pump_groups(pump_ref)
-        @test collect(keys(pump_groups)) == [1]
-        @test pump_groups[1]["pump_indices"] == [1, 2]
-    end
-
-    @testset "_build_pump_groups (with unique pumps)" begin
-        data = parse_file("../test/data/epanet/snapshot/pump-hw-lps-unique.inp")
-        pump_ref = build_ref(data)[:it][wm_it_sym][:nw][nw_id_default][:pump]
-        pump_groups = WaterModels._build_pump_groups(pump_ref)
-        @test length(pump_groups) == 0
     end
 end

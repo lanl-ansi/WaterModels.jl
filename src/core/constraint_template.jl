@@ -54,7 +54,7 @@ function constraint_flow_conservation(
     nondispatch_demand_ids = ids(wm, nw, :nondispatchable_demand)
     nd_demands_at_i = filter(j -> j in nondispatch_demand_ids, demands)
     fixed_demands_at_i = ref.(Ref(wm), nw, :nondispatchable_demand, nd_demands_at_i)
-    fixed_flows_at_i = [x["flow_nominal"] for x in fixed_demands_at_i]    
+    fixed_flows_at_i = [x["flow_nominal"] for x in fixed_demands_at_i]
     net_fixed_demand = length(fixed_flows_at_i) > 0 ? sum(fixed_flows_at_i) : 0.0
 
     # Get the indices of dispatchable demands connected to node `i`.
@@ -110,7 +110,7 @@ function constraint_node_directionality(
     nondispatch_demand_ids = ids(wm, nw, :nondispatchable_demand)
     nd_demands_at_i = filter(j -> j in nondispatch_demand_ids, demands)
     fixed_demands_at_i = ref.(Ref(wm), nw, :nondispatchable_demand, nd_demands_at_i)
-    fixed_flows_at_i = [x["flow_nominal"] for x in fixed_demands_at_i]    
+    fixed_flows_at_i = [x["flow_nominal"] for x in fixed_demands_at_i]
     net_fixed_demand = length(fixed_flows_at_i) > 0 ? sum(fixed_flows_at_i) : 0.0
 
     # Get the in degree of node `i`.
@@ -220,27 +220,34 @@ end
 
 ### Tank Constraints ###
 function constraint_tank_volume(wm::AbstractWaterModel, i::Int; nw::Int = nw_id_default)
-    # Only set the tank state if the tank is nondispatchable.
-    if !ref(wm, nw, :tank, i)["dispatchable"]
-        tank = ref(wm, nw, :tank, i)
-        initial_level = tank["init_level"]
-        surface_area = 0.25 * pi * tank["diameter"]^2
-
-        V_initial = surface_area * initial_level
-        time_step = ref(wm, nw, :time_step)
-        V_min = max(tank["min_vol"], surface_area * tank["min_level"])
-        V_max = surface_area * tank["max_level"]
-
-        # Update the nodal elevation data.
-        node = ref(wm, nw, :node, tank["node"])
-        head = node["elevation"] + initial_level
-        node["head_nominal"] = node["head_min"] = node["head_max"] = head
-
-        # Apply the tank volume constraint at the specified time step.
-        _initialize_con_dict(wm, :tank_volume; nw = nw, is_array = true)
-        con(wm, nw, :tank_volume)[i] = Array{JuMP.ConstraintRef,1}([])
-        constraint_tank_volume_fixed(wm, nw, i, V_initial, time_step, V_min, V_max)
+    if !ref(wm, nw, :tank, i, "dispatchable")
+        # Only set the tank state if the tank is nondispatchable.
+        constraint_tank_volume_fixed(wm, i; nw = nw)
     end
+end
+
+
+function constraint_tank_volume_fixed(wm::AbstractWaterModel, i::Int; nw::Int = nw_id_default)
+    # Compute the cross-sectional area of the tank.
+    tank = ref(wm, nw, :tank, i)
+    initial_level = tank["init_level"]
+    surface_area = 0.25 * pi * tank["diameter"]^2
+
+    # Compute initial, minimum, and maximum tank volumes.
+    V_initial = surface_area * initial_level
+    time_step = ref(wm, nw, :time_step)
+    V_min = max(tank["min_vol"], surface_area * tank["min_level"])
+    V_max = surface_area * tank["max_level"]
+
+    # Update the nodal elevation data corresponding to the tank.
+    node = ref(wm, nw, :node, tank["node"])
+    head = node["elevation"] + initial_level
+    node["head_nominal"] = node["head_min"] = node["head_max"] = head
+
+    # Apply the tank volume constraint at the specified time step.
+    _initialize_con_dict(wm, :tank_volume; nw = nw, is_array = true)
+    con(wm, nw, :tank_volume)[i] = Array{JuMP.ConstraintRef,1}([])
+    constraint_tank_volume_fixed(wm, nw, i, V_initial, time_step, V_min, V_max)
 end
 
 
@@ -248,7 +255,8 @@ function constraint_tank_volume(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2:
     # Only apply the constraint if the tank exists in both subnetworks.
     if haskey(ref(wm, nw_1, :tank), i) && haskey(ref(wm, nw_2, :tank), i)
         # Get the tank reference within each of the subnetworks.
-        tank_nw_1, tank_nw_2 = ref(wm, nw_1, :tank, i), ref(wm, nw_2, :tank, i)
+        tank_nw_1 = ref(wm, nw_1, :tank, i)
+        tank_nw_2 = ref(wm, nw_2, :tank, i)
 
         # Only set the tank state if the tank is nondispatchable.
         if !tank_nw_1["dispatchable"] && !tank_nw_2["dispatchable"]
@@ -284,7 +292,8 @@ function constraint_pipe_head(
     nw::Int = nw_id_default,
     kwargs...,
 )
-    node_fr, node_to = ref(wm, nw, :pipe, a)["node_fr"], ref(wm, nw, :pipe, a)["node_to"]
+    node_fr = ref(wm, nw, :pipe, a, "node_fr")
+    node_to = ref(wm, nw, :pipe, a, "node_to")
     _initialize_con_dict(wm, :pipe_head, nw = nw, is_array = true)
     con(wm, nw, :pipe_head)[a] = Array{JuMP.ConstraintRef}([])
     constraint_pipe_head(wm, nw, a, node_fr, node_to)
@@ -297,8 +306,10 @@ function constraint_pipe_head_loss(
     nw::Int = nw_id_default,
     kwargs...,
 )
-    node_fr, node_to = ref(wm, nw, :pipe, a)["node_fr"], ref(wm, nw, :pipe, a)["node_to"]
-    exponent, L = ref(wm, nw, :alpha), ref(wm, nw, :pipe, a)["length"]
+    node_fr = ref(wm, nw, :pipe, a, "node_fr")
+    node_to = ref(wm, nw, :pipe, a, "node_to")
+    exponent = _get_exponent_from_head_loss_form(wm.ref[:it][wm_it_sym][:head_loss])
+    L = ref(wm, nw, :pipe, a, "length")
 
     wm_data = get_wm_data(wm.data)
     head_loss, viscosity = wm_data["head_loss"], wm_data["viscosity"]
@@ -464,7 +475,14 @@ function constraint_on_off_des_pipe_head_loss(
     base_mass = get(wm_data, "base_mass", 1.0)
     base_time = get(wm_data, "base_time", 1.0)
 
-    r = _calc_pipe_resistance(des_pipe, head_loss, viscosity, base_length, base_mass, base_time)
+    r = _calc_pipe_resistance(
+        des_pipe,
+        head_loss,
+        viscosity,
+        base_length,
+        base_mass,
+        base_time,
+    )
     q_max_reverse = min(get(des_pipe, "flow_max_reverse", 0.0), 0.0)
     q_min_forward = max(get(des_pipe, "flow_min_forward", 0.0), 0.0)
 
@@ -538,8 +556,7 @@ function constraint_on_off_pump_head_gain(
         flow_transform(_FLOW_MIN),
     )
 
-    if ref(wm, nw, :pump, a)["pump_type"] == PUMP_EPANET &&
-       isa(wm, AbstractNonlinearModel)
+    if ref(wm, nw, :pump, a, "pump_type") == PUMP_EPANET && isa(wm, AbstractNonlinearModel)
         message = "PUMP_EPANET head curves are not currently supported for nonlinear models."
         Memento.error(_LOGGER, message)
     end
