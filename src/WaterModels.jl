@@ -100,6 +100,8 @@ include("util/variable_index.jl")
 include("util/bound_problem.jl")
 include("util/pairwise_cuts.jl")
 include("util/obbt.jl")
+include("util/graphops.jl")
+include("util/temporal_decomp_utils.jl")
 
 # This must be included last to support automated export.
 include("core/export.jl")
