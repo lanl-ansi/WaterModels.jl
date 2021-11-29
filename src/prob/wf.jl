@@ -121,7 +121,7 @@ function build_mn_wf(wm::AbstractWaterModel)
     _function_head_loss(wm)
 
     #for (n, network) in nws(wm)
-    for n in 1:6
+    for n in 1:4
         # Physical variables.
         variable_head(wm; nw=n)
         variable_flow(wm; nw=n)
@@ -195,7 +195,7 @@ function build_mn_wf(wm::AbstractWaterModel)
 
     # Get all network IDs in the multinetwork.
     network_ids = sort(collect(nw_ids(wm)))
-    network_ids = 1:6
+    network_ids = 1:4
     # Start with the first network, representing the initial time step.
     n_1 = network_ids[1]
 
@@ -674,7 +674,7 @@ function build_geo_wf(wm::AbstractWaterModel)
     #for (n, network) in nws(wm)
 
     #for (n, network) in nws(wm)
-    for n in 1:6
+    for n in 1:4
 
         # Physical variables.
         variable_head(wm; nw=n)
@@ -695,7 +695,7 @@ function build_geo_wf(wm::AbstractWaterModel)
 
         # Flow conservation at all nodes.
         for (i, node) in ref(wm, :node; nw=n)
-            if node["name"] ∉ values(wm.data["nw"][string(n)]["common"])
+             if node["name"] ∉ values(wm.data["nw"][string(n)]["common"])
                 constraint_flow_conservation(wm, i; nw=n)
                 constraint_node_directionality(wm, i; nw=n)
             end
@@ -750,7 +750,7 @@ function build_geo_wf(wm::AbstractWaterModel)
     end
     # Get all network IDs in the multinetwork.
     network_ids = sort(collect(nw_ids(wm)))
-    network_ids = 1:6
+    network_ids = 1:4
 
     # Start with the first network, representing the initial time step.
     n_1 = network_ids[1]
@@ -773,11 +773,11 @@ function build_geo_wf(wm::AbstractWaterModel)
     end
 
     # Ensure tanks recover their initial volume.
-    n_1, n_f = network_ids[1], network_ids[end]
-    for tank in ids(wm, n_f, :tank)
-        constraint_tank_volume_recovery(wm, tank, n_1, n_f)
+    # n_1, n_f = network_ids[1], network_ids[end]
+    # for tank in ids(wm, n_f, :tank)
+    #     constraint_tank_volume_recovery(wm, tank, n_1, n_f)
 
-    end
+    # end
 
     # Add the objective.
     objective_wf(wm)

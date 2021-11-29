@@ -21,60 +21,66 @@ xp = JuMP.optimizer_with_attributes(Xpress.Optimizer, "MAXTIME"=>30.0);
 #     JuMP.fix(vref, set_points[time]; force = true)
 # end
 result_LP = WaterModels.optimize_model!(wm, optimizer = xp)
-
-for time in  1:6
+pos_flow_array = []
+neg_flow_array =[]
+h_4_array = []
+h_13_array = []
+for time in  1:4
     println("")
     println("time ",time)
     h_4 = JuMP.value(wm.var[:it][:wm][:nw][time][:h][4])
     h_13 = JuMP.value(wm.var[:it][:wm][:nw][time][:h][13])
     pos_flow_4_13 = JuMP.value(wm.var[:it][:wm][:nw][time][:qp_pipe][2])
     neg_flow_4_13 = JuMP.value(wm.var[:it][:wm][:nw][time][:qn_pipe][2])
-
+    push!(pos_flow_array,pos_flow_4_13)
+    push!(neg_flow_array,neg_flow_4_13)
+    push!(h_4_array,h_4)
+    push!(h_13_array,h_13)
     @show h_4
     @show h_13
     @show pos_flow_4_13
     @show neg_flow_4_13
     println("")
 end
+@show pos_flow_array
+@show neg_flow_array
+@show h_4_array
+@show h_13_array
 
 
-# time 1
-# h_4 = 0.7681818181818182
-# h_13 = 0.7681818181818182
-# pos_flow_4_13 = 0.0
-# neg_flow_4_13 = 0.0
+time 1
+h_4 = 1.0247915558722451
+h_13 = 0.8793539521371608
+pos_flow_4_13 = 0.2411775428041607
+neg_flow_4_13 = 0.0
 
 
-# time 2
-# h_4 = 1.0224107797360427
-# h_13 = 0.8718787201021464
-# pos_flow_4_13 = 0.24559697007060888
-# neg_flow_4_13 = 0.0
+time 2
+h_4 = 0.9894384162847942
+h_13 = 0.8225119671669396
+pos_flow_4_13 = 0.2598190603862963
+neg_flow_4_13 = 0.0
 
 
-# time 3
-# h_4 = 1.0014814907696807
-# h_13 = 0.8156485165421574
-# pos_flow_4_13 = 0.2686054280077992
-# neg_flow_4_13 = 0.0
+time 3
+h_4 = 0.8635675455329749
+h_13 = 0.7697081113168751
+pos_flow_4_13 = 0.19643361464907033
+neg_flow_4_13 = 0.0
 
 
-# time 4
-# h_4 = 0.8604757199477432
-# h_13 = 0.7651654378411213
-# pos_flow_4_13 = 0.19769222142753703
-# neg_flow_4_13 = 0.0
+time 4
+h_4 = 0.7681818181818182
+h_13 = 0.7681818181818182
+pos_flow_4_13 = 0.0
+neg_flow_4_13 = 0.0
 
-
-# time 5
-# h_4 = 0.8607492101967075
-# h_13 = 0.7655672641620435
-# pos_flow_4_13 = 0.19758089021828817
-# neg_flow_4_13 = 0.0
-
-
-# time 6
-# h_4 = 0.7681818181818182
-# h_13 = 0.7681818181818182
-# pos_flow_4_13 = 0.0
-# neg_flow_4_13 = 0.0
+pos_flow_array = Any[0.2411775428041607, 0.2598190603862963, 0.19643361464907033, 0.0]
+neg_flow_array = Any[0.0, 0.0, 0.0, 0.0]
+h_4_array = Any[1.0247915558722451, 0.9894384162847942, 0.8635675455329749, 0.7681818181818182]
+h_13_array = Any[0.8793539521371608, 0.8225119671669396, 0.7697081113168751, 0.7681818181818182]
+4-element Vector{Any}:
+ 0.8793539521371608
+ 0.8225119671669396
+ 0.7697081113168751
+ 0.7681818181818182

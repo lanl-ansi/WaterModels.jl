@@ -42,7 +42,7 @@ function objective_owf(wm::AbstractWaterModel)
     objective = JuMP.AffExpr(0.0)
 
     #for (n, nw_ref) in nws(wm)
-    for n in 1:6
+    for n in 1:4
         for (i, reservoir) in ref(wm, n, :reservoir)
             # Add reservoir flow extraction and treatment costs to the objective.
             @assert haskey(reservoir, "flow_cost") # Ensure a flow cost exists.
@@ -52,7 +52,7 @@ function objective_owf(wm::AbstractWaterModel)
     end
 
     #for (n, nw_ref) in nws(wm)
-    for n in 1:6
+    for n in 1:4
         for (a, pump) in ref(wm, n, :pump)
             # Add pump energy costs to the objective.
             @assert haskey(pump, "energy_price") # Ensure a price exists.
@@ -68,6 +68,7 @@ function objective_owf(wm::AbstractWaterModel)
 
     # Minimize the (numerically scaled) cost required to operate pumps.
     #return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective_scaled)
+    @show objective
     return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
 end
 
