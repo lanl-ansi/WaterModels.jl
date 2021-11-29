@@ -218,10 +218,15 @@ end
 
 "Correct flow direction attribute of edge-type components."
 function _correct_flow_direction!(comp::Dict{String, <:Any})
-    if !isa(comp["flow_direction"], FLOW_DIRECTION)
-        comp["flow_direction"] = FLOW_DIRECTION(comp["flow_direction"])
+    flow_direction = get(comp, "flow_direction", FLOW_DIRECTION_UNKNOWN)
+
+    if isa(flow_direction, FLOW_DIRECTION)
+        comp["flow_direction"] = flow_direction
+    else
+        comp["flow_direction"] = FLOW_DIRECTION(flow_direction)
     end
 end
+
 
 "Correct status attribute of a component."
 function _correct_status!(comp::Dict{String, <:Any})
@@ -503,15 +508,16 @@ function split_multinetwork(data::Dict{String, <:Any}, nw_ids::Array{Array{Strin
     @assert _IM.ismultinetwork(data) == true
 
     # Get sub-multinetwork datasets indexed by the "nw" key.
-    sub_mn = [Dict{String, Any}(i => deepcopy(data["nw"][i]) for i in ids) for ids in nw_ids]
+    sub_mn = [Dict{String, Any}(i => deepcopy(data["nw"][i])
+        for i in ids) for ids in nw_ids]
 
     # Get all data not associated with multinetwork components
     g_data = filter(x -> x.first != "nw", data)
 
     # Return the new, split multinetwork data dictionaries.
-    return [merge(deepcopy(g_data), Dict{String, Any}("nw" => sub_mn[i])) for i in 1:length(nw_ids)]
+    return [merge(deepcopy(g_data), Dict{String, Any}("nw" =>
+        sub_mn[i])) for i in 1:length(nw_ids)]
 end
-
 
 
 function set_start!(data::Dict{String,<:Any}, component_type::String, var_name::String, start_name::String)
@@ -528,57 +534,6 @@ function set_start!(data::Dict{String,<:Any}, component_type::String, var_name::
     end
 end
 
-function spatial_partition(data::Dict{String, <:Any}, br_pts::Array{Array{String, 1}, 1})
-    # number of partitions
-    Npr = size(br_pts, 1)
-
-    # initialize an array of WaterModels
-    gwms = Array{Dict{String, Any}}([])
-
-    for n in 1:Npr
-        ntwrk = deepcopy(data)
-        common = Dict()
-        for node_type in ["tank", "demand", "reservoir"]
-            for (a, comp) in ntwrk[node_type]
-                if (string(comp["node"]) ∉ br_pts[n])
-                    delete!(ntwrk[node_type], a)
-                    if node_type == "demand"
-                        delete!(ntwrk["time_series"]["demand"], a)
-                    end
-                end
-            end
-        end
-
-        for br_type in ["pipe", "pump", "regulator", "short_pipe", "valve"]
-            for (a, comp) in ntwrk[br_type]
-                if (string(comp["node_fr"]) ∉ br_pts[n]) && (string(comp["node_to"]) ∉ br_pts[n])
-                    delete!(ntwrk[br_type], a)
-                    if br_type == "pump"
-                        delete!(ntwrk["time_series"]["pump"], a)
-                    end
-                elseif (string(comp["node_fr"]) ∈ br_pts[n]) && (string(comp["node_to"]) ∉ br_pts[n])
-                    common[length(common)+1] = string(comp["node_to"])
-                elseif (string(comp["node_fr"]) ∉ br_pts[n]) && (string(comp["node_to"]) ∈ br_pts[n])
-                    common[length(common)+1] = string(comp["node_fr"])
-                end
-            end
-        end
-
-        for (a, comp) in ntwrk["node"]
-            if (a ∉ br_pts[n]) && (a ∉ values(common))
-                delete!(ntwrk["node"], a)
-            end
-        end
-
-        ntwrk["common"] = common
-        gwms = [gwms; ntwrk]
-
-    end
-
-    return gwms
-end
-
-
 
 function set_direction_start_from_flow!(data::Dict{String,<:Any}, component_type::String, var_name::String, start_name::String)
     wm_data = get_wm_data(data)
@@ -586,13 +541,11 @@ function set_direction_start_from_flow!(data::Dict{String,<:Any}, component_type
     if _IM.ismultinetwork(wm_data)
         for (n, nw) in wm_data["nw"]
             comps = values(nw[component_type])
-            map(x -> x[start_name] = x[var_name], comps)
+            map(x -> x[start_name] = x[var_name] > 0.0 ? 1 : 0, comps)
         end
     else
-
         comps = values(wm_data[component_type])
         map(x -> x[start_name] = x[var_name] > 0.0 ? 1 : 0, comps)
-
     end
 end
 
@@ -613,7 +566,6 @@ function _set_flow_start!(data::Dict{String,<:Any})
 end
 
 
-
 function set_flow_direction_start!(data::Dict{String,<:Any})
     apply_wm!(_set_flow_direction_start!, data)
 end
@@ -626,7 +578,6 @@ function _set_flow_direction_start!(data::Dict{String,<:Any})
     set_direction_start_from_flow!(data, "short_pipe", "q", "y_short_pipe_start")
     set_direction_start_from_flow!(data, "valve", "q", "y_valve_start")
 end
-
 
 
 function set_head_start!(data::Dict{String,<:Any})
@@ -653,7 +604,6 @@ end
 
 
 function set_start_all!(data::Dict{String,<:Any})
-
     apply_wm!(_set_start_all!, data)
 end
 
@@ -713,12 +663,12 @@ end
 
 
 function _fix_indicator!(component::Dict{String,<:Any})
-    if haskey(component, "status") # Assumes this is binary.
-        component["z_min"] = component["status"] > 0.5 ? 1.0 : 0.0
-        component["z_max"] = component["status"] > 0.5 ? 1.0 : 0.0
+    if haskey(component, "status")
+        _correct_status!(component)
+        component["z_min"] = component["status"] === STATUS_ACTIVE ? 1.0 : 0.0
+        component["z_max"] = component["status"] === STATUS_ACTIVE ? 1.0 : 0.0
     end
 end
-
 
 
 function turn_on_all_components!(data::Dict{String,<:Any})
@@ -1148,7 +1098,6 @@ function _set_warm_start!(data::Dict{String, <:Any})
 end
 
 
-
 """
 Deactivates components that are not needed in the network by repeated calls to
 `propagate_topology_status!`. This implementation has quadratic complexity.
@@ -1332,4 +1281,3 @@ function node_comp_lookup(comp_data::Dict{String,<:Any}, node_data::Dict{String,
     
     return node_comp
 end
-

@@ -119,7 +119,7 @@ function _variable_component_flow(
             wm.model,
             [a in ids(wm, nw, comp_sym)],
             lower_bound = 0.0,
-            base_name = "$(nw)_qp_$(component_name)", #"base_name = "$(nw)_qp",
+            base_name = "$(nw)_qp",
             start =
                 comp_start_value(ref(wm, nw, comp_sym, a), "qp_start", flow_min_scaled)
         )
@@ -130,7 +130,7 @@ function _variable_component_flow(
             wm.model,
             [a in ids(wm, nw, comp_sym)],
             lower_bound = 0.0,
-            base_name = "$(nw)_qn_$(component_name)",#base_name = "$(nw)_qn",
+            base_name = "$(nw)_qn",
             start =
                 comp_start_value(ref(wm, nw, comp_sym, a), "qn_start", flow_min_scaled)
         )
