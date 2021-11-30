@@ -1,0 +1,7 @@
+{
+    "base_time": 100000.0,
+    "base_length": 10.0,
+    "base_head": 10.0,
+    "base_mass": 1.0e17,
+    "base_flow": 0.01
+}

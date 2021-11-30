@@ -5,6 +5,10 @@ repo = "https://github.com/lanl-ansi/WaterModels.jl"
 version = "0.8.0"
 
 [deps]
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+GLPK = "60bf3e95-4087-53dc-ae20-288a0d20c6a6"
+Images = "916415d5-f1e6-5110-898d-aaa5f9f070e0"
 InfrastructureModels = "2030c09a-7f63-5d83-885d-db604e0e9cc0"
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
 JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
