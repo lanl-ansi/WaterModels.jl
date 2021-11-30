@@ -1281,3 +1281,53 @@ function node_comp_lookup(comp_data::Dict{String,<:Any}, node_data::Dict{String,
     
     return node_comp
 end
+
+function spatial_partition(data::Dict{String, <:Any}, br_pts::Array{Array{String, 1}, 1})
+    # number of partitions
+    Npr = size(br_pts, 1)
+
+    # initialize an array of WaterModels
+    gwms = Array{Dict{String, Any}}([])
+
+    for n in 1:Npr
+        ntwrk = deepcopy(data)
+        common = Dict()
+        for node_type in ["tank", "demand", "reservoir"]
+            for (a, comp) in ntwrk[node_type]
+                if (string(comp["node"]) ∉ br_pts[n])
+                    delete!(ntwrk[node_type], a)
+                    if node_type == "demand"
+                        delete!(ntwrk["time_series"]["demand"], a)
+                    end
+                end
+            end
+        end
+
+        for br_type in ["pipe", "pump", "regulator", "short_pipe", "valve"]
+            for (a, comp) in ntwrk[br_type]
+                if (string(comp["node_fr"]) ∉ br_pts[n]) && (string(comp["node_to"]) ∉ br_pts[n])
+                    delete!(ntwrk[br_type], a)
+                    if br_type == "pump"
+                        delete!(ntwrk["time_series"]["pump"], a)
+                    end
+                elseif (string(comp["node_fr"]) ∈ br_pts[n]) && (string(comp["node_to"]) ∉ br_pts[n])
+                    common[length(common)+1] = string(comp["node_to"])
+                elseif (string(comp["node_fr"]) ∉ br_pts[n]) && (string(comp["node_to"]) ∈ br_pts[n])
+                    common[length(common)+1] = string(comp["node_fr"])
+                end
+            end
+        end
+
+        for (a, comp) in ntwrk["node"]
+            if (a ∉ br_pts[n]) && (a ∉ values(common))
+                delete!(ntwrk["node"], a)
+            end
+        end
+
+        ntwrk["common"] = common
+        gwms = [gwms; ntwrk]
+
+    end
+
+    return gwms
+end

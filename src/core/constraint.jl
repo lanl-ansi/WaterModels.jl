@@ -56,6 +56,11 @@ function constraint_tank_volume_fixed(wm::AbstractWaterModel, n::Int, i::Int, V_
     append!(con(wm, n, :tank_volume)[i], [c_1, c_2, c_3])
 end
 
+function constraint_tank_volume_fixed_last(wm::AbstractWaterModel, n::Int, i::Int, V_0::Float64)
+    V = var(wm, n, :V, i)
+    c = JuMP.@constraint(wm.model, V >= V_0)
+    con(wm, n, :tank_volume_last)[i] = c
+end
 
 function constraint_des_pipe_selection(wm::AbstractWaterModel, n::Int, k::Int, node_fr::Int, node_to::Int, des_pipes::Array{Int64,1})
     z_des_pipe = var(wm, n, :z_des_pipe)
