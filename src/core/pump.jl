@@ -476,11 +476,11 @@ function _calc_efficiencies(points::Array{Float64}, curve::Vector{Tuple{Float64,
 end
 
 # FIX might need to comment this out
-function _calc_efficiencies(points::Vector{Float64}, curve::Vector{<:Any})
-    q, eff = [[x[1] for x in curve], [x[2] for x in curve]]
-    return Interpolations.LinearInterpolation(q, eff,
-        extrapolation_bc=Interpolations.Flat()).(points)
-end
+# function _calc_efficiencies(points::Vector{Float64}, curve::Vector{<:Any})
+#     q, eff = [[x[1] for x in curve], [x[2] for x in curve]]
+#     return Interpolations.LinearInterpolation(q, eff,
+#         extrapolation_bc=Interpolations.Flat()).(points)
+# end
 
 function get_pump_flow_partition(pump::Dict{String, <:Any})
     @assert haskey(pump, "flow_partition")
