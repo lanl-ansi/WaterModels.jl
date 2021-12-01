@@ -189,7 +189,7 @@ function _get_bound_problems_des_pipe(wm::AbstractNCDModel, i::Int, nw::Int; lim
         flow_min = y_min == 1.0 ? max(0.0, flow_min) : flow_min
         flow_min = z_max == 0.0 ? 0.0 : flow_min
         bp_q_min = BoundProblem(JuMP.MOI.MIN_SENSE, q_vid, [], [], "flow_min", flow_min, flow_precision, true, false)
-        
+
         flow_min_forward = get(des_pipe, "flow_min_forward", 0.0)
         flow_min_forward = y_max == 0.0 ? 0.0 : flow_min_forward
         flow_min_forward = z_max == 0.0 ? 0.0 : flow_min_forward
@@ -204,7 +204,7 @@ function _get_bound_problems_des_pipe(wm::AbstractNCDModel, i::Int, nw::Int; lim
         flow_max_reverse = y_min == 1.0 ? 0.0 : flow_max_reverse
         flow_max_reverse = z_max == 0.0 ? 0.0 : flow_max_reverse
         bp_q_max_reverse = BoundProblem(JuMP.MOI.MAX_SENSE, q_vid, [z_vid], [y_vid], "flow_max_reverse", flow_max_reverse, flow_precision, true, false)
-        
+
         if limit
             return Vector{BoundProblem}([bp_q_min_forward, bp_q_max_reverse])
         else

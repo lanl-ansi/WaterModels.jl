@@ -121,10 +121,53 @@ function _correct_des_pipes!(data::Dict{String, <:Any}, head_loss::String, visco
 
         # Correct various pipe properties. The sequence is important, here.
         _correct_flow_direction!(des_pipe)
-        _correct_pipe_flow_bounds!(
-            des_pipe, node_fr, node_to, head_loss, viscosity,
-            capacity, base_length, base_mass, base_time)
+        _correct_des_pipe_flow_bounds!(
+             des_pipe, node_fr, node_to, head_loss, viscosity,
+             capacity, base_length, base_mass, base_time)
     end
+end
+
+
+function _correct_des_pipe_flow_bounds!(
+    pipe::Dict{String, <:Any}, node_fr::Dict{String, <:Any}, node_to::Dict{String, <:Any},
+    form::String, viscosity::Float64, capacity::Float64, base_length::Float64, base_mass::Float64, base_time::Float64)
+    # Calculate flow bounds, which depend on the head loss formulation.
+    flow_min = _calc_pipe_flow_min(pipe, node_fr, node_to, form, viscosity, capacity, base_length, base_mass, base_time)
+    flow_max = _calc_pipe_flow_max(pipe, node_fr, node_to, form, viscosity, capacity, base_length, base_mass, base_time)
+
+    pipe["flow_min"], pipe["flow_max"] = flow_min, flow_max
+    pipe["flow_min_forward"] = max(flow_min, get(pipe, "flow_min_forward", 0.0))
+    pipe["flow_max_reverse"] = min(flow_max, get(pipe, "flow_max_reverse", 0.0))
+
+    if get(pipe, "y_min", 0.0) == 1.0
+        pipe["flow_min"] = max(0.0, pipe["flow_min"])
+        pipe["flow_min_forward"] = max(0.0, pipe["flow_min_forward"])
+        pipe["flow_max_reverse"] = 0.0
+        pipe["flow_max"] = max(0.0, pipe["flow_max"])
+    elseif get(pipe, "y_max", 1.0) == 0.0
+        pipe["flow_min"] = min(0.0, pipe["flow_min"])
+        pipe["flow_min_forward"] = 0.0
+        pipe["flow_max_reverse"] = min(0.0, pipe["flow_max_reverse"])
+        pipe["flow_max"] = min(0.0, pipe["flow_max"])
+    end
+
+    pipe["flow_max"] = max(pipe["flow_min"], pipe["flow_max"])
+    pipe["flow_min"] = min(pipe["flow_min"], pipe["flow_max"])
+    pipe["flow_min_forward"] = max(pipe["flow_min_forward"], pipe["flow_min"])
+    pipe["flow_min_forward"] = min(pipe["flow_min_forward"], pipe["flow_max"])
+    pipe["flow_max_reverse"] = min(pipe["flow_max_reverse"], pipe["flow_max"])
+    pipe["flow_max_reverse"] = max(pipe["flow_max_reverse"], pipe["flow_min"])
+
+    if get(pipe, "z_max", 1.0) == 0.0
+        pipe["flow_min"] = 0.0
+        pipe["flow_max"] = 0.0
+        pipe["flow_min_forward"] = 0.0
+        pipe["flow_max_reverse"] = 0.0
+    end
+
+    @assert pipe["flow_min"] <= pipe["flow_max"]
+    @assert get(pipe, "flow_min_forward", 0.0) <= max(0.0, pipe["flow_max"])
+    @assert min(0.0, pipe["flow_min"]) <= get(pipe, "flow_max_reverse", 0.0)
 end
 
 
