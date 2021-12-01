@@ -327,7 +327,7 @@ function _calc_median_abs_flow_midpoint(data::Dict{String,<:Any})
     q_median = Statistics.median(q)
 
     # Return the median if not equal to zero. Otherwise, return 1.0.
-    return q_median != 0.0 ? q_media : 1.0
+    return q_median != 0.0 ? q_median : 1.0
 end
 
 

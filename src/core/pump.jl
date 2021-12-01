@@ -424,8 +424,16 @@ function _calc_pump_power_ua(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::V
     f_interp = Interpolations.LinearInterpolation(q_true, f_true).(q)
 
     for i in 2:length(q)
-        slope = (f_interp[i] - f_interp[i-1]) * inv(q[i] - q[i-1])
-        true_ids = filter(x -> q_true[x] >= q[i-1] && q_true[x] <= q[i], 1:length(q_true))
+        # Find the indices that will be used in the approximation.
+        true_ids = filter(k -> q_true[k] >= q[i-1] && q_true[k] <= q[i], 1:length(q_true))
+
+        if length(true_ids) == 0
+            true_ids = filter(k -> q_true[k] >= q[i-1], 1:length(q_true))
+            true_ids = vcat(true_ids[1] - 1, true_ids[1])
+        end
+
+        # Shift the approximation by the maximum error, ensuring it's an underapproximation.
+        slope = (f_interp[i] - f_interp[i-1]) / (q[i] - q[i-1])
         f_est_s = f_interp[i-1] .+ (slope .* (q_true[true_ids] .- q[i-1]))
         est_err = max(0.0, maximum(f_est_s .- f_true[true_ids]))
         f_interp[i-1:i] .-= est_err
@@ -440,7 +448,7 @@ function _calc_pump_power_oa(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::V
     f_interp = Interpolations.LinearInterpolation(q_true, f_true).(q)
 
     for i in 2:length(q)
-        slope = (f_interp[i] - f_interp[i-1]) * inv(q[i] - q[i-1])
+        slope = (f_interp[i] - f_interp[i-1]) / (q[i] - q[i-1])
         true_ids = filter(x -> q_true[x] >= q[i-1] && q_true[x] <= q[i], 1:length(q_true))
         f_est_s = f_interp[i-1] .+ (slope .* (q_true[true_ids] .- q[i-1]))
         est_err = max(0.0, maximum(f_true[true_ids] .- f_est_s))
