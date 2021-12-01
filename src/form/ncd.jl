@@ -6,6 +6,7 @@
 # correspond to flow from j to i. That is, when qp is nonzero, qn should be zero, and when
 # qn is nonzero, qp should be zero.
 
+
 "Initialize variables associated with flow direction. If this variable is equal to one, the
 flow direction is from i to j. If it is equal to zero, the flow direction is from j to i."
 function _variable_component_direction(

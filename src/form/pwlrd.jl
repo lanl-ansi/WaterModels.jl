@@ -408,15 +408,20 @@ function constraint_on_off_pump_power(wm::AbstractPWLRDModel, n::Int, a::Int, q_
     bp_range = 1:length(partition)
     
     # Add a constraint that lower-bounds the power variable.
-    f_ua = _calc_pump_power_ua(wm, n, a, partition)
-    power_lb_expr = sum(f_ua[k] * lambda[a, k] for k in bp_range)
-    c_1 = JuMP.@constraint(wm.model, power_lb_expr <= P)
+    if minimum(partition) == 0.0 && maximum(partition) == 0.0
+        c_1 = JuMP.@constraint(wm.model, P == 0.0)
+        append!(con(wm, n, :on_off_pump_power)[a], [c_1])
+    else
+        f_ua = _calc_pump_power_ua(wm, n, a, partition)
+        power_lb_expr = sum(f_ua[k] * lambda[a, k] for k in bp_range)
+        c_1 = JuMP.@constraint(wm.model, power_lb_expr <= P)
 
-    # Add a constraint that upper-bounds the power variable.
-    f_oa = _calc_pump_power_oa(wm, n, a, partition)
-    power_ub_expr = sum(f_oa[k] * lambda[a, k] for k in bp_range)
-    c_2 = JuMP.@constraint(wm.model, P <= power_ub_expr)
+        # Add a constraint that upper-bounds the power variable.
+        f_oa = _calc_pump_power_oa(wm, n, a, partition)
+        power_ub_expr = sum(f_oa[k] * lambda[a, k] for k in bp_range)
+        c_2 = JuMP.@constraint(wm.model, P <= power_ub_expr)
 
-    # Append the :on_off_pump_power constraint array.
-    append!(con(wm, n, :on_off_pump_power)[a], [c_1, c_2])
+        # Append the :on_off_pump_power constraint array.
+        append!(con(wm, n, :on_off_pump_power)[a], [c_1, c_2])
+    end
 end
