@@ -51,8 +51,8 @@ function check_status(data::Dict{String,<:Any})
 end
 
 
-"Check that active components are not connected to inactive nodes for a
-single-network data set that does not contain other multi-infrastructure data."
+"Check that active components are not connected to inactive nodes for a single-network data
+set that does not contain other multi-infrastructure data."
 function _check_status(data::Dict{String,<:Any})
     active_nodes = filter(x -> x.second["status"] != STATUS_INACTIVE, data["node"])
     active_node_ids = Set(node["index"] for (i, node) in active_nodes)
@@ -101,6 +101,25 @@ function _correct_flow_directions!(data::Dict{String,<:Any})
     for component_type in _LINK_COMPONENTS
         components = values(get(data, component_type, Dict{String,Any}()))
         _correct_flow_direction!.(components)
+    end
+end
+
+
+"Correct flow direction attribute of link-type components."
+function _correct_flow_direction!(comp::Dict{String, <:Any})
+    flow_direction = get(comp, "flow_direction", FLOW_DIRECTION_UNKNOWN)
+
+    if !isa(flow_direction, FLOW_DIRECTION)
+        # Correct "flow_direction" type to the enum type.
+        comp["flow_direction"] = FLOW_DIRECTION(flow_direction)
+    end
+
+    if get(comp, "flow_min", -Inf) > 0.0
+        # If minimum flow is positive, assume positively-directed flow.
+        comp["flow_direction"] = FLOW_DIRECTION_POSITIVE
+    elseif get(comp, "flow_max", Inf) < 0.0
+        # If maximum flow is negative, assume negatively-directed flow.
+        comp["flow_direction"] = FLOW_DIRECTION_NEGATIVE
     end
 end
 
@@ -216,18 +235,6 @@ function _calc_length_per_unit_transform(data::Dict{String,<:Any})
 end
 
 
-"Correct flow direction attribute of edge-type components."
-function _correct_flow_direction!(comp::Dict{String, <:Any})
-    flow_direction = get(comp, "flow_direction", FLOW_DIRECTION_UNKNOWN)
-
-    if isa(flow_direction, FLOW_DIRECTION)
-        comp["flow_direction"] = flow_direction
-    else
-        comp["flow_direction"] = FLOW_DIRECTION(flow_direction)
-    end
-end
-
-
 "Correct status attribute of a component."
 function _correct_status!(comp::Dict{String, <:Any})
     status = get(comp, "status", STATUS_UNKNOWN)
@@ -316,8 +323,11 @@ function _calc_median_abs_flow_midpoint(data::Dict{String,<:Any})
     q_valve = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["valve"]]
     q = vcat(q_des_pipe, q_pipe, q_pump, q_regulator, q_short_pipe, q_valve)
 
-    # Return the median of all values computed above.
-    return Statistics.median(q)
+    # Calculate the median of all values computed above.
+    q_median = Statistics.median(q)
+
+    # Return the median if not equal to zero. Otherwise, return 1.0.
+    return q_median != 0.0 ? q_media : 1.0
 end
 
 
