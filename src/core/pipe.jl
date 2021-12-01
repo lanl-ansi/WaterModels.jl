@@ -135,7 +135,7 @@ function _correct_des_pipe_flow_bounds!(
     flow_min = _calc_pipe_flow_min(pipe, node_fr, node_to, form, viscosity, capacity, base_length, base_mass, base_time)
     flow_max = _calc_pipe_flow_max(pipe, node_fr, node_to, form, viscosity, capacity, base_length, base_mass, base_time)
 
-    pipe["flow_min"], pipe["flow_max"] = flow_min, flow_max
+    pipe["flow_min"], pipe["flow_max"] = min(0.0, flow_min), max(0.0, flow_max)
     pipe["flow_min_forward"] = max(flow_min, get(pipe, "flow_min_forward", 0.0))
     pipe["flow_max_reverse"] = min(flow_max, get(pipe, "flow_max_reverse", 0.0))
 

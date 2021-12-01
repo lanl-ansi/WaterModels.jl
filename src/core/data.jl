@@ -109,7 +109,10 @@ end
 function _correct_flow_direction!(comp::Dict{String, <:Any})
     flow_direction = get(comp, "flow_direction", FLOW_DIRECTION_UNKNOWN)
 
-    if !isa(flow_direction, FLOW_DIRECTION)
+    if isa(flow_direction, FLOW_DIRECTION)
+        # Use the flow direction from above, which is correctly typed.
+        comp["flow_direction"] = flow_direction
+    else
         # Correct "flow_direction" type to the enum type.
         comp["flow_direction"] = FLOW_DIRECTION(flow_direction)
     end
