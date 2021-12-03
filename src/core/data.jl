@@ -412,10 +412,12 @@ function _calc_head_max(data::Dict{String, <:Any})
 end
 
 
-function _calc_capacity_max(data::Dict{String, <:Any})
+"Compute the maximum capacity of the network."
+function calc_capacity_max(data::Dict{String, <:Any})
+    # Get the WaterModels portion of the data dictionary.
     wm_data = get_wm_data(data)
 
-    # Include the sum of all maximal flows from demands.
+    # Compute the sum of all maximal flows from demands.
     capacity = sum(x["flow_max"] for (i, x) in wm_data["demand"])
 
     for (i, tank) in wm_data["tank"]
@@ -707,21 +709,45 @@ function _turn_on_component!(component::Dict{String,<:Any})
 end
 
 
-function relax_network!(data::Dict{String,<:Any})
-    apply_wm!(_relax_network!, data; apply_to_subnetworks = true)
+function set_bounds_from_time_series!(data::Dict{String,<:Any})
+    apply_wm!(_set_bounds_from_time_series!, data; apply_to_subnetworks = false)
 end
 
 
-"Translate a multinetwork dataset to a snapshot dataset with dispatchable components."
-function _relax_network!(data::Dict{String,<:Any})
-    _relax_nodes!(data)
-    _relax_tanks!(data)
-    _relax_reservoirs!(data)
-    _relax_demands!(data)
+function _set_bounds_from_time_series!(data::Dict{String,<:Any})
+    # Only operate on non-multinetworks.
+    @assert !ismultinetwork(data)
 
-    # _relax_pipes!(data)
-    # _relax_pumps!(data)
-    # _relax_valves!(data)
+    if haskey(data, "time_series")
+        time_series = Ref(data["time_series"])
+
+        # Set node and nodal component data based on time series bounds.
+        _set_node_bounds_from_time_series!.(values(data["node"]), time_series)
+        _set_demand_bounds_from_time_series!.(values(data["demand"]), time_series)
+        _set_reservoir_bounds_from_time_series!.(values(data["reservoir"]), time_series)
+        _set_tank_bounds_from_time_series!.(values(data["tank"]), time_series)
+
+        for link in _LINK_COMPONENTS
+            # Set link component data based on time series bounds.
+            _set_link_bounds_from_time_series!.(values(data[link]), link, time_series)
+        end        
+    end
+end
+
+
+function make_all_nondispatchable!(data::Dict{String,<:Any})
+    apply_wm!(_make_all_nondispatchable!, data)
+end
+
+
+function _make_all_nondispatchable!(data::Dict{String,<:Any})
+    for comp_type in vcat(_LINK_COMPONENTS, _NODE_CONNECTED_COMPONENTS)
+        for comp in values(data[comp_type])
+            if haskey(comp, "dispatchable")
+                comp["dispatchable"] = false
+            end
+        end
+    end
 end
 
 
@@ -743,81 +769,6 @@ function _recompute_bounds!(data::Dict{String, <:Any})
 end
 
 
-function sum_subnetwork_values(subnetworks::Array{Dict{String, Any},1}, comp_name::String, index::String, key::String)
-    return sum(nw[comp_name][index][key] for nw in subnetworks)
-end
-
-
-function max_subnetwork_values(subnetworks::Array{Dict{String, Any},1}, comp_name::String, index::String, key::String)
-    return maximum(nw[comp_name][index][key] for nw in subnetworks)
-end
-
-
-function min_subnetwork_values(subnetworks::Array{Dict{String, Any},1}, comp_name::String, index::String, key::String)
-    return minimum(nw[comp_name][index][key] for nw in subnetworks)
-end
-
-
-function all_subnetwork_values(subnetworks::Array{Dict{String, Any},1}, comp_name::String, index::String, key::String)
-    return all(nw[comp_name][index][key] for nw in subnetworks)
-end
-
-
-function any_subnetwork_values(subnetworks::Array{Dict{String, Any},1}, comp_name::String, index::String, key::String)
-    return any(nw[comp_name][index][key] == 1 for nw in subnetworks) ? 1 : 0
-end
-
-
-function aggregate_time_steps(subnetworks::Array{Dict{String, Any}, 1})
-    return sum(x["time_step"] for x in subnetworks)
-end
-
-
-function aggregate_subnetworks(data::Dict{String, Any}, nw_ids::Array{String, 1})
-    # Initialize important metadata and dictionary.
-    subnetworks = [data["nw"][x] for x in nw_ids]
-    time_step = aggregate_time_steps(subnetworks)
-    data_agg = Dict{String,Any}("time_step" => time_step)
-
-    # Aggregate nodal components.
-    data_agg["node"] = aggregate_nodes(subnetworks)
-    data_agg["demand"] = aggregate_demands(subnetworks)
-    data_agg["reservoir"] = aggregate_reservoirs(subnetworks)
-    data_agg["tank"] = aggregate_tanks(subnetworks)
-
-    # Aggregate node-connecting componets.
-    data_agg["pipe"] = aggregate_pipes(subnetworks)
-    data_agg["des_pipe"] = aggregate_des_pipes(subnetworks)
-    data_agg["pump"] = aggregate_pumps(subnetworks)
-    data_agg["regulator"] = aggregate_regulators(subnetworks)
-    data_agg["short_pipe"] = aggregate_short_pipes(subnetworks)
-    data_agg["valve"] = aggregate_valves(subnetworks)
-
-    # Return the time-aggregated network.
-    return data_agg
-end
-
-function make_temporally_aggregated_multinetwork(data::Dict{String, <:Any}, nw_ids::Array{Array{String, 1}, 1})
-    # Initialize the temporally aggregated multinetwork.
-    new_nw_ids = [string(i) for i in 1:length(nw_ids)]
-    data_agg = Dict{String, Any}("nw" => Dict{String, Any}())
-
-    for n in 1:length(new_nw_ids)
-        # Construct and add the aggregation of subnetworks.
-        new_nw_id, old_nw_ids = new_nw_ids[n], nw_ids[n]
-        data_agg["nw"][new_nw_id] = aggregate_subnetworks(data, old_nw_ids)
-    end
-
-    data_agg["name"], data_agg["per_unit"] = data["name"], data["per_unit"]
-    data_agg["viscosity"], data_agg["multinetwork"] = data["viscosity"], true
-    duration = sum(x["time_step"] for (i, x) in data_agg["nw"])
-    data_agg["duration"], data_agg["head_loss"] = duration, data["head_loss"]
-
-    # Return the temporally aggregated multinetwork.
-    return data_agg
-end
-
-
 function _transform_flow_key!(comp::Dict{String,<:Any}, key::String, transform_flow::Function)
     haskey(comp, key) && (comp[key] = transform_flow.(comp[key]))
 end
@@ -825,9 +776,10 @@ end
 
 function _transform_flows!(comp::Dict{String,<:Any}, transform_flow::Function)
     _transform_flow_key!(comp, "flow_min", transform_flow)
-    _transform_flow_key!(comp, "flow_max", transform_flow)
-    _transform_flow_key!(comp, "flow_nominal", transform_flow)
     _transform_flow_key!(comp, "flow_min_forward", transform_flow)
+    _transform_flow_key!(comp, "flow_max", transform_flow)
+    _transform_flow_key!(comp, "flow_max_reverse", transform_flow)
+    _transform_flow_key!(comp, "flow_nominal", transform_flow)
     _transform_flow_key!(comp, "minor_loss", transform_flow)
     _transform_flow_key!(comp, "flow_partition", transform_flow)
 end

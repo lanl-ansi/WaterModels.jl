@@ -5,23 +5,6 @@
         @test data["per_unit"] == true
     end
 
-    @testset "make_temporally_aggregated_multinetwork" begin
-        network = WaterModels.parse_file("../test/data/epanet/multinetwork/owf-hw-lps.inp")
-        network_mn = WaterModels.make_multinetwork(network)
-        network_agg = make_temporally_aggregated_multinetwork(network_mn, [["1", "2"], ["3"]])
-
-        @test isapprox(network_mn["duration"], network_agg["duration"])
-        demand_old = network_mn["nw"]["1"]["demand"]["2"]["flow_nominal"] 
-        @test demand_old < network_agg["nw"]["1"]["demand"]["2"]["flow_nominal"]
-
-        network = WaterModels.parse_file("../test/data/epanet/multinetwork/prv-hw-lps.inp")
-        network_mn = WaterModels.make_multinetwork(network)
-        network_agg = make_temporally_aggregated_multinetwork(network_mn, [["1", "2"], ["3"]])
-
-        @test network_mn["duration"] == network_agg["duration"]
-        @test length(network_agg["nw"]) == 2
-    end
-
     @testset "set_flow_partitions_num!" begin
         data = WaterModels.parse_file("../examples/data/epanet/van_zyl.inp")
         WaterModels.set_flow_partitions_num!(data, 5)

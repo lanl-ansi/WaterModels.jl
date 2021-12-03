@@ -1,18 +1,3 @@
-function aggregate_nodes(subnetworks::Array{Dict{String, Any}, 1})
-    nodes = deepcopy(subnetworks[1]["node"])
-
-    for (i, x) in nodes
-        x["elevation"] = min_subnetwork_values(subnetworks, "node", i, "elevation")
-        x["head_min"] = min_subnetwork_values(subnetworks, "node", i, "head_min")
-        x["head_max"] = max_subnetwork_values(subnetworks, "node", i, "head_max")
-        x["head_nominal"] = max_subnetwork_values(subnetworks, "node", i, "head_nominal")
-        x["status"] = any_subnetwork_values(subnetworks, "node", i, "status")
-    end
-
-    return nodes
-end
-
-
 function relax_nodes!(data::Dict{String,Any})
     apply_wm!(_relax_nodes!, data; apply_to_subnetworks = true)
 end
@@ -26,6 +11,36 @@ function _relax_nodes!(data::Dict{String,<:Any})
             map(x -> x["head_min"] = minimum(ts[string(x["index"])]["head_min"]), nodes)
             map(x -> x["head_max"] = maximum(ts[string(x["index"])]["head_max"]), nodes)
         end
+    end
+end
+
+
+function _set_node_bounds_from_time_series!(node::Dict{String,<:Any}, time_series::Dict{String,<:Any})
+    # Get the index of the node.
+    node_index = string(node["index"])
+
+    if haskey(time_series, "node") && haskey(time_series["node"], node_index)
+        # Get the time series data corresponding to the node.
+        node_time_series = time_series["node"][node_index]
+        
+        if haskey(node_time_series, "head_min")
+            # Set minimum head to the minimum across all time.
+            node["head_min"] = minimum(node_time_series["head_min"])
+        end
+
+        if haskey(node_time_series, "head_max")
+            # Set the maximum head to the maximum across all time.
+            node["head_max"] = maximum(node_time_series["head_max"])
+        end
+
+        if haskey(node_time_series, "head_nominal")
+            # Set the nominal head to the mean across all time.
+            node["head_nominal"] = Statistics.mean(node_time_series["head_nominal"])
+        end
+
+        # Ensure node values are bounded as expected.
+        @assert node["head_min"] <= node["head_nominal"]
+        @assert node["head_nominal"] <= node["head_max"]
     end
 end
 

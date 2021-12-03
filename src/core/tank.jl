@@ -1,67 +1,52 @@
-function aggregate_tanks(subnetworks::Array{Dict{String, Any}, 1})
-    tanks = deepcopy(subnetworks[1]["tank"])
-
-    for (i, x) in tanks
-        x["min_level"] = max_subnetwork_values(subnetworks, "tank", i, "min_level")
-        x["max_level"] = min_subnetwork_values(subnetworks, "tank", i, "max_level")
-        x["min_vol"] = max_subnetwork_values(subnetworks, "tank", i, "min_vol")
-        x["init_level"] = min_subnetwork_values(subnetworks, "tank", i, "init_level")
-        x["dispatchable"] = all_subnetwork_values(subnetworks, "tank", i, "dispatchable")
-        x["status"] = any_subnetwork_values(subnetworks, "tank", i, "status")
-    end
-
-    return tanks
+function set_tank_bounds_from_time_series!(data::Dict{String,<:Any})
+    wm_data = get_wm_data(data) # Get WaterModels-only portion of the data.
+    @assert !ismultinetwork(wm_data) && haskey(wm_data, "time_series")
+    func! = x -> _set_tank_bounds_from_time_series!(x, wm_data["time_series"])
+    apply_wm!.(func!, values(wm_data["tank"]); apply_to_subnetworks = false)
 end
 
 
-function _relax_tanks!(data::Dict{String,<:Any})
-    if _IM.ismultinetwork(data)
-        tanks = vcat([vcat(values(nw["tank"])...) for (n, nw) in data["nw"]]...)
-        map(x -> x["dispatchable"] = true, tanks)
-    else
-        tanks = values(data["tank"])
-        map(x -> x["dispatchable"] = true, tanks)
+function _set_tank_bounds_from_time_series!(tank::Dict{String,<:Any}, time_series::Dict{String,<:Any})
+    # Get the index of the tank.
+    tank_index = string(tank["index"])
+
+    if haskey(time_series, "tank") && haskey(time_series["tank"], tank_index)
+        # Get the time series data corresponding to the tank.
+        tank_time_series = time_series["tank"][tank_index]
+        
+        if haskey(tank_time_series, "min_level")
+            # Set minimum level to the minimum across all time.
+            tank["min_level"] = minimum(tank_time_series["min_level"])
+        end
+
+        if haskey(tank_time_series, "max_level")
+            # Set the maximum level to the maximum across all time.
+            tank["max_level"] = maximum(tank_time_series["max_level"])
+        end
+
+        # Ensure tank minimum and maximum levels are sensible.
+        @assert tank["min_level"] <= tank["max_level"]
     end
 
-    if !_IM.ismultinetwork(data)
-        if haskey(data, "time_series") && haskey(data["time_series"], "tank")
-            ts = data["time_series"]["tank"]
-            tanks = values(filter(x -> x.first in keys(ts), data["tank"]))
-            map(x -> x["flow_min"] = minimum(ts[string(x["index"])]["flow_min"]), tanks)
-            map(x -> x["flow_max"] = maximum(ts[string(x["index"])]["flow_max"]), tanks)
-        end
-    end
+    # If "min_level" and "max_level" are different, make the tank dispatchable.
+    tank["dispatchable"] = tank["min_level"] < tank["max_level"]
 end
 
 
 function make_tank_start_dispatchable!(data::Dict{String,<:Any})
-    if _IM.ismultinetwork(data)
-        nw_ids = sort(collect(keys(data["nw"])))
+    wm_data = get_wm_data(data)
+
+    if _IM.ismultinetwork(wm_data)
+        nw_ids = sort(collect(keys(wm_data["nw"])))
         start_nw = string(sort([parse(Int, i) for i in nw_ids])[1])
 
-        for (i, tank) in data["nw"][start_nw]["tank"]
+        for tank in values(wm_data["nw"][start_nw]["tank"])
             tank["dispatchable"] = true
         end
     else
-        for (i, tank) in data["tank"]
+        for tank in values(wm_data["tank"])
             tank["dispatchable"] = true
         end
-    end
-end
-
-
-function _fix_tank!(tank::Dict{String,<:Any})
-    tank["dispatchable"] = false
-end
-
-
-function _fix_tanks!(data::Dict{String, <:Any})
-    if _IM.ismultinetwork(data)
-        for (n, nw) in data["nw"]
-            map(x -> _fix_tank!(x), values(nw["tank"]))
-        end
-    else
-        map(x -> _fix_tank!(x), values(data["tank"]))
     end
 end
 

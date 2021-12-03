@@ -1,42 +1,21 @@
 @testset "src/core/demand.jl" begin
-    @testset "_fix_demands! (multinetwork)" begin
+    @testset "make_all_nondispatchable! (multinetwork)" begin
         data = WaterModels.parse_file("../test/data/epanet/multinetwork/pipe-hw-lps.inp")
         mn_data = WaterModels.make_multinetwork(data)
-        WaterModels._fix_demands!(mn_data)
+        WaterModels.make_all_nondispatchable!(mn_data)
         @test mn_data["nw"]["1"]["demand"]["2"]["dispatchable"] == false
         @test mn_data["nw"]["3"]["demand"]["2"]["dispatchable"] == false
     end
 
-    @testset "_relax_demand! (has keys)" begin
-        data = WaterModels.parse_file("../test/data/epanet/snapshot/pipe-hw-lps.inp")
-        data["demand"]["2"]["flow_min"], data["demand"]["2"]["flow_max"] = 0.0, 1.0
-        WaterModels._relax_demand!(data["demand"]["2"])
-        @test data["demand"]["2"]["dispatchable"] == true
-    end
-
-    @testset "_relax_demand! (does not have keys)" begin
-        data = WaterModels.parse_file("../test/data/epanet/snapshot/pipe-hw-lps.inp")
-        WaterModels._relax_demand!(data["demand"]["2"])
-        @test data["demand"]["2"]["dispatchable"] == false
-    end
-
-    @testset "_relax_demands! (single network)" begin
-        data = WaterModels.parse_file("../test/data/epanet/snapshot/pipe-hw-lps.inp")
-        WaterModels._relax_demands!(data)
-        @test data["demand"]["2"]["dispatchable"] == false
-    end
-
-    @testset "_relax_demands! (single network with `time_series`)" begin
+    @testset "set_demand_bounds_from_time_series! (single network with `time_series`)" begin
         data = WaterModels.parse_file("../test/data/epanet/multinetwork/pipe-hw-lps.inp")
-        WaterModels._relax_demands!(data)
+        WaterModels.set_demand_bounds_from_time_series!(data)
         @test data["demand"]["2"]["dispatchable"] == true
     end
 
-    @testset "_relax_demands! (multinetwork)" begin
+    @testset "set_demand_bounds_from_time_series! (multinetwork)" begin
         data = WaterModels.parse_file("../test/data/epanet/multinetwork/pipe-hw-lps.inp")
         mn_data = WaterModels.make_multinetwork(data)
-        WaterModels._relax_demands!(mn_data)
-        @test mn_data["nw"]["1"]["demand"]["2"]["dispatchable"] == false
-        @test mn_data["nw"]["3"]["demand"]["2"]["dispatchable"] == false
+        @test_throws AssertionError WaterModels.set_demand_bounds_from_time_series!(mn_data)
     end
 end

@@ -1,18 +1,3 @@
-function aggregate_pumps(subnetworks::Array{Dict{String, Any}, 1})
-    pumps = deepcopy(subnetworks[1]["pump"])
-
-    for (i, x) in pumps
-        x["flow_min"] = sum_subnetwork_values(subnetworks, "pump", i, "flow_min")
-        x["flow_max"] = sum_subnetwork_values(subnetworks, "pump", i, "flow_max")
-        x["flow_min_forward"] = sum_subnetwork_values(subnetworks, "pump", i, "flow_min_forward")
-        x["status"] = any_subnetwork_values(subnetworks, "pump", i, "status")
-        x["energy_price"] = max_subnetwork_values(subnetworks, "pump", i, "energy_price")
-    end
-
-    return pumps
-end
-
-
 function correct_pumps!(data::Dict{String, <:Any})
     wm_data = get_wm_data(data)
 

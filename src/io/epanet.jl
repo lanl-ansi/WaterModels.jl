@@ -1238,7 +1238,7 @@ end
 
 function _convert_short_pipes!(data::Dict{String,<:Any}, head_loss::String, viscosity::Float64)
     exponent = _get_exponent_from_head_loss_form(head_loss)
-    max_flow_exp = abs(_calc_capacity_max(data))^exponent
+    max_flow_exp = abs(calc_capacity_max(data))^exponent
 
     wm_data = get_wm_data(data)
     head_transform = _calc_head_per_unit_transform(wm_data)

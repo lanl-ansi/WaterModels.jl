@@ -23,7 +23,6 @@ function get_all_binary_vars_at_nw!(wm::AbstractWaterModel, nw::Int)
         vars_binary_inner = collect(filter(x -> JuMP.is_binary(x), vars))
         append!(vars_binary, vars_binary_inner)
     end
-    # println(vars_binary)
 
     return vars_binary
 end
