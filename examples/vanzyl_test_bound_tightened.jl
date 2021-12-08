@@ -12,11 +12,11 @@ using WaterModels
 # result = WaterModels.solve_mn_owf(network_mn, WaterModels.PWLRDWaterModel, gurobi);
 
 #relax_all_binary_variables!(wm)
-xp = JuMP.optimizer_with_attributes(Xpress.Optimizer, "MAXTIME"=>30.0);
+xp = JuMP.optimizer_with_attributes(Xpress.Optimizer, "MAXTIME"=>300.0);
 network_path = "./examples/data/json/Van_Zyl-BT.json";
 network_mn = WaterModels.parse_file(network_path; skip_correct = true);
-WaterModels.set_flow_partitions_si!(network_mn, 1.0, 1.0e-4);
-wm = WaterModels.instantiate_model(network_mn, WaterModels.LRDWaterModel, WaterModels.build_mn_owf);
+WaterModels.set_flow_partitions_si!(network_mn, 5.0, 1.0e-4);
+wm = WaterModels.instantiate_model(network_mn, WaterModels.PWLRDWaterModel, WaterModels.build_mn_owf);
 result = WaterModels.optimize_model!(wm, optimizer = xp);
 
 pos_flow_array = []

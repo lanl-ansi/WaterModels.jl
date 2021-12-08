@@ -469,11 +469,11 @@ function _calc_pump_power_quadratic_approximation(wm::AbstractWaterModel, nw::In
 end
 
 
-function _calc_efficiencies(points::Array{Float64}, curve::Vector{Tuple{Float64, Float64}})
-    q, eff = [[x[1] for x in curve], [x[2] for x in curve]]
-    return Interpolations.LinearInterpolation(q, eff,
-        extrapolation_bc=Interpolations.Flat()).(points)
-end
+# function _calc_efficiencies(points::Array{Float64}, curve::Vector{Tuple{Float64, Float64}})
+#     q, eff = [[x[1] for x in curve], [x[2] for x in curve]]
+#     return Interpolations.LinearInterpolation(q, eff,
+#         extrapolation_bc=Interpolations.Flat()).(points)
+# end
 
 # FIX might need to comment this out
 function _calc_efficiencies(points::Vector{Float64}, curve::Vector{<:Any})

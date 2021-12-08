@@ -134,6 +134,7 @@ function build_mn_wf(wm::AbstractWaterModel)
     end
 
     for n in network_ids_inner
+    #for n in 1:6
         # Physical variables.
         variable_head(wm; nw=n)
         variable_flow(wm; nw=n)
@@ -210,6 +211,7 @@ function build_mn_wf(wm::AbstractWaterModel)
         end
     end
 
+    #network_ids = 1:6
     # Start with the first network, representing the initial time step.
     n_1 = network_ids[1]
 
@@ -221,7 +223,7 @@ function build_mn_wf(wm::AbstractWaterModel)
 
     if length(network_ids) > 1
         # Initialize head variables for the final time index.
-        variable_head(wm; nw = network_ids[end])
+        variable_head(wm; nw = network_ids[end]) # DONT FORGET TO UNCOMMENT THIS 
 
         # Constraints on tank volumes.
         for n_2 in network_ids[2:end]
@@ -821,16 +823,22 @@ function build_mn_wf_decomp_start_v2(wm::AbstractWaterModel)
 
 end
 
+
+
 function build_geo_wf(wm::AbstractWaterModel)
     # Create head loss functions, if necessary.
     _function_head_loss(wm)
 
+    # Get all network IDs in the multinetwork.
     network_ids = sort(collect(nw_ids(wm)))
 
-    #for (n, network) in nws(wm)
+    if length(network_ids) > 1
+        network_ids_inner = network_ids[1:end-1]
+    else
+        network_ids_inner = network_ids
+    end
 
-    #for (n, network) in nws(wm)
-    for n in 1:4
+    for n in network_ids_inner
 
         # Physical variables.
         variable_head(wm; nw=n)
@@ -905,8 +913,35 @@ function build_geo_wf(wm::AbstractWaterModel)
         end
     end
     # Get all network IDs in the multinetwork.
-    network_ids = sort(collect(nw_ids(wm)))
-    network_ids = 1:4
+    # network_ids = sort(collect(nw_ids(wm)))
+    # network_ids = 1:6
+
+    # # Start with the first network, representing the initial time step.
+    # n_1 = network_ids[1]
+
+    # # Constraints on tank volumes.
+    # for i in ids(wm, :tank; nw = n_1)
+    #     # Set initial conditions of tanks.
+    #     constraint_tank_volume(wm, i; nw = n_1)
+    # end
+
+
+    # # Constraints on tank volumes.
+    # for n_2 in network_ids[2:end]
+    #     # Constrain tank volumes after the initial time step.
+    #     for (i, tank) in ref(wm, :tank; nw = n_2)
+    #         constraint_tank_volume(wm, i, n_1, n_2)
+    #     end
+
+    #     n_1 = n_2 # Update the first network used for integration.
+    # end
+
+    # Ensure tanks recover their initial volume.
+    # n_1, n_f = network_ids[1], network_ids[end]
+    # for tank in ids(wm, n_f, :tank)
+    #     constraint_tank_volume_recovery(wm, tank, n_1, n_f)
+
+    # end
 
     # Start with the first network, representing the initial time step.
     n_1 = network_ids[1]
@@ -917,23 +952,21 @@ function build_geo_wf(wm::AbstractWaterModel)
         constraint_tank_volume(wm, i; nw = n_1)
     end
 
+    if length(network_ids) > 1
+        # Initialize head variables for the final time index.
+        variable_head(wm; nw = network_ids[end]) # DONT FORGET TO UNCOMMENT THIS 
 
-    # Constraints on tank volumes.
-    for n_2 in network_ids[2:end]
-        # Constrain tank volumes after the initial time step.
-        for (i, tank) in ref(wm, :tank; nw = n_2)
-            constraint_tank_volume(wm, i, n_1, n_2)
+        # Constraints on tank volumes.
+        for n_2 in network_ids[2:end]
+            # Constrain tank volumes after the initial time index.
+            for i in ids(wm, :tank; nw = n_2)
+                constraint_tank_volume(wm, i, n_1, n_2)
+            end
+
+            # Update the first network used for integration.
+            n_1 = n_2
         end
-
-        n_1 = n_2 # Update the first network used for integration.
     end
-
-    # Ensure tanks recover their initial volume.
-    # n_1, n_f = network_ids[1], network_ids[end]
-    # for tank in ids(wm, n_f, :tank)
-    #     constraint_tank_volume_recovery(wm, tank, n_1, n_f)
-
-    # end
 
     # Add the objective.
     objective_wf(wm)

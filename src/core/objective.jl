@@ -85,8 +85,8 @@ function objective_owf(wm::AbstractWaterModel)::JuMP.AffExpr
     # Initialize the objective expression to zero.
     objective = JuMP.AffExpr(0.0)
 
-    #for n in network_ids_flow
-    for n in 1:4
+    for n in network_ids_flow
+    #for n in 1:6
         for (i, reservoir) in ref(wm, n, :reservoir)
             # Add reservoir extraction and treatment costs to the objective.
             @assert haskey(reservoir, "flow_cost") # Ensure a flow cost exists.
@@ -95,8 +95,8 @@ function objective_owf(wm::AbstractWaterModel)::JuMP.AffExpr
         end
     end
 
-    #for n in network_ids_flow
-    for n in 1:4
+    for n in network_ids_flow
+    #for n in 1:6
         for a in ids(wm, n, :pump)
             # Add pump energy costs to the objective.
             JuMP.add_to_expression!(objective, var(wm, n, :c_pump, a))
