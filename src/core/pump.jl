@@ -388,7 +388,7 @@ function _calc_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, 
 
     wm_data = get_wm_data(wm.data)
     flow_transform = _calc_flow_per_unit_transform(wm_data)
-    q_min = max(get(pump, "flow_min_forward",
+    q_min = min(get(pump, "flow_min_forward",
         flow_transform(_FLOW_MIN)), flow_transform(_FLOW_MIN))
 
     q_max = max(q_min, pump["flow_max"])
@@ -476,11 +476,11 @@ function _calc_efficiencies(points::Array{Float64}, curve::Vector{Tuple{Float64,
 end
 
 # FIX might need to comment this out
-# function _calc_efficiencies(points::Vector{Float64}, curve::Vector{<:Any})
-#     q, eff = [[x[1] for x in curve], [x[2] for x in curve]]
-#     return Interpolations.LinearInterpolation(q, eff,
-#         extrapolation_bc=Interpolations.Flat()).(points)
-# end
+function _calc_efficiencies(points::Vector{Float64}, curve::Vector{<:Any})
+    q, eff = [[x[1] for x in curve], [x[2] for x in curve]]
+    return Interpolations.LinearInterpolation(q, eff,
+        extrapolation_bc=Interpolations.Flat()).(points)
+end
 
 function get_pump_flow_partition(pump::Dict{String, <:Any})
     @assert haskey(pump, "flow_partition")

@@ -576,6 +576,8 @@ function constraint_on_off_pump_power(
         flow_transform(_FLOW_MIN),
     )
 
+    q_min_forward = min(q_min_forward, ref(wm, nw, :pump, a, "flow_max"))
+
     _initialize_con_dict(wm, :on_off_pump_power, nw = nw, is_array = true)
     con(wm, nw, :on_off_pump_power)[a] = Array{JuMP.ConstraintRef}([])
 
