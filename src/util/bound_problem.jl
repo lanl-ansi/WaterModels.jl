@@ -5,41 +5,76 @@ mutable struct BoundProblem
     variables_fix_zero::Array{_VariableIndex} # Fix to zero.
     bound_name::String # e.g., flow_min, flow_max, flow_min_forward
     bound::Float64 # The current bound of the variable.
-    precision::Float64 # The precision of the variable bound.
+    precision::Float64 # The desired precision of the variable bound.
     changed::Bool # Indicator specifying if the bound has changed.
     infeasible::Bool # Indicator specifying if the problem is infeasible.
 end
 
 
-function _get_bound_problems_nodes(wm::AbstractWaterModel; limit::Bool = false)
-    return vcat(_get_bound_problems_nodes.(Ref(wm), nw_ids(wm); limit = limit)...)
+function _var_exists(wm::AbstractWaterModel, nw_id::Int, var_symbol::Symbol, index::Int)
+    if haskey(var(wm, nw_id), var_symbol)
+        var_indices = var(wm, nw_id, var_symbol).axes[1]
+        return index in var_indices
+    else
+        return false
+    end
 end
 
 
-function _get_bound_problems_nodes(wm::AbstractWaterModel, nw::Int; limit::Bool = false)
-    return vcat(_get_bound_problems_node.(Ref(wm), ids(wm, nw, :node), nw; limit = limit)...)
+function _get_bound_problems_nodes(wm::AbstractWaterModel; kwargs...)
+    return vcat(_get_bound_problems_nodes.(Ref(wm), nw_ids(wm); kwargs...)...)
 end
 
 
-function _get_bound_problems_node(wm::AbstractWaterModel, i::Int, nw::Int; limit::Bool = false)
-    if haskey(var(wm, nw), :h) && i in [x for x in var(wm, nw, :h).axes[1]]
-        node = ref(wm, nw, :node, i)
+function _get_bound_problems_nodes(wm::AbstractWaterModel, nw::Int; kwargs...)
+    return vcat(_get_bound_problems_node.(Ref(wm), ids(wm, nw, :node), nw; kwargs...)...)
+end
+
+
+function _get_bound_problems_node(
+    wm::AbstractWaterModel, i::Int, nw::Int)::Vector{BoundProblem}
+    # Initialize the bound problem vector.
+    bound_problems = Vector{BoundProblem}([])
+
+    if _var_exists(wm, nw, :h, i)
+        # Get the head variable at the node index.
         h_vid = _VariableIndex(nw, :node, :h, i)
 
+        # Get the WaterModels portion of the data dictionary.
         wm_data = get_wm_data(wm.data)
+
+        # Define the desired precision of the head bound.
         head_transform = _calc_head_per_unit_transform(wm_data)
-        head_precision = head_transform(1.0e-4)
+        head_precision = head_transform(1.0e-3) # 1.0 mm.
 
-        h_min = max(get(node, "h_min", -Inf), _get_lower_bound_from_index(wm, h_vid))
-        bp_min = BoundProblem(JuMP.MOI.MIN_SENSE, h_vid, [], [], "head_min", h_min, head_precision, true, false)
+        # Get the node corresponding to the index.
+        node = ref(wm, nw, :node, i)
 
-        h_max = min(get(node, "h_max", Inf), _get_upper_bound_from_index(wm, h_vid))
-        bp_max = BoundProblem(JuMP.MOI.MAX_SENSE, h_vid, [], [], "head_max", h_max, head_precision, true, false)
+        # Get minimum head bounds from data and the variable and take the maximum.
+        h_min_data = get(node, "h_min", -Inf)
+        h_min_var = _get_lower_bound_from_index(wm, h_vid)
+        h_min = max(h_min_data, h_min_var)
 
-        return Vector{BoundProblem}([bp_min, bp_max])
-    else
-        return Vector{BoundProblem}([])
+        # Get maximum head bounds from data and the variable and take the maximum.
+        h_max_data = get(node, "h_max", Inf)
+        h_max_var = _get_upper_bound_from_index(wm, h_vid)
+        h_max = min(h_max_data, h_max_var)
+
+        # Ensure the minimum and maximum bounds are sensible.
+        @assert h_min <= h_max
+
+        if h_min < h_max
+            # Push a BoundProblem instance to minimize head.
+            push!(bound_problems, BoundProblem(JuMP.MOI.MIN_SENSE, h_vid,
+                [], [], "head_min", h_min, head_precision, true, false))
+
+            # Push a BoundProblem instance to maximize head.
+            push!(bound_problems, BoundProblem(JuMP.MOI.MAX_SENSE, h_vid,
+                [], [], "head_max", h_max, head_precision, true, false))
+        end
     end
+
+    return bound_problems
 end
 
 
@@ -475,7 +510,7 @@ end
 
 function _get_bound_problems(wm::AbstractWaterModel; limit::Bool = false)::Vector{BoundProblem}
     # Create the sets of bound-tightening problems.
-    bps_node = _get_bound_problems_nodes(wm; limit = limit)
+    bps_node = _get_bound_problems_nodes(wm)
     bps_tank = _get_bound_problems_tanks(wm; limit = limit)
     bps_pipe = _get_bound_problems_pipes(wm; limit = limit)
     bps_des_pipe = _get_bound_problems_des_pipes(wm; limit = limit)
