@@ -269,7 +269,11 @@ end
 
 
 @testset "solve_wf (with symmetric pumps)" begin
-    network = parse_file("../test/data/epanet/snapshot/pump-hw-lps-multiple.inp")
+    network = WaterModels.parse_file("../test/data/epanet/snapshot/pump-hw-lps-multiple.inp"; skip_correct = true)
+    modifications = WaterModels.parse_file("../test/data/json/pump-multiple-group.json"; skip_correct = true)
+    _IM.update_data!(network, modifications)
+    WaterModels.correct_network_data!(network)
+
     set_flow_partitions_si!(network, 10.0, 1.0e-4)
     result = WaterModels.solve_wf(network, LRDWaterModel, cbc)
     @test _is_valid_status(result["termination_status"])
@@ -277,7 +281,10 @@ end
 
 
 @testset "solve_mn_wf (with symmetric pumps)" begin
-    network = parse_file("../test/data/epanet/multinetwork/pump-hw-lps-multiple.inp")
+    network = parse_file("../test/data/epanet/multinetwork/pump-hw-lps-multiple.inp"; skip_correct = true)
+    modifications = WaterModels.parse_file("../test/data/json/pump-multiple-group.json"; skip_correct = true)
+    _IM.update_data!(network, modifications)
+    WaterModels.correct_network_data!(network)
     network_mn = WaterModels.make_multinetwork(network)
     set_flow_partitions_si!(network_mn, 10.0, 1.0e-4)
 
