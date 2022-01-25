@@ -396,7 +396,9 @@ function constraint_on_off_pump_flow(
     q_min_forward::Float64,
 )
     # Get pump status variable.
-    qp, y, z = var(wm, n, :qp_pump, a), var(wm, n, :y_pump, a), var(wm, n, :z_pump, a)
+    qp = var(wm, n, :qp_pump, a)
+    y = var(wm, n, :y_pump, a)
+    z = var(wm, n, :z_pump, a)
 
     # If the pump is inactive, flow must be zero.
     qp_lb, qp_ub = q_min_forward, JuMP.upper_bound(qp)
@@ -420,7 +422,9 @@ function constraint_on_off_pump_head_gain(
     q_min_forward::Float64,
 )
     # Gather pump flow, head gain, and status variables.
-    qp, g, z = var(wm, n, :qp_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
+    qp = var(wm, n, :qp_pump, a)
+    g = var(wm, n, :g_pump, a)
+    z = var(wm, n, :z_pump, a)
 
     # Define the (relaxed) head gain relationship for the pump.
     head_curve_func = _calc_head_curve_function(ref(wm, n, :pump, a), z)
@@ -437,7 +441,9 @@ function constraint_on_off_pump_power(
     q_min_forward::Float64,
 )
     # Gather pump flow, power, and status variables.
-    q, P, z = var(wm, n, :qp_pump, a), var(wm, n, :P_pump, a), var(wm, n, :z_pump, a)
+    q = var(wm, n, :qp_pump, a)
+    P = var(wm, n, :P_pump, a)
+    z = var(wm, n, :z_pump, a)
 
     # Add constraint equating power with respect to the power curve.
     power_qa = _calc_pump_power_quadratic_approximation(wm, n, a, z)

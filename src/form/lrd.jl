@@ -20,7 +20,8 @@ function constraint_pipe_head_loss(
     y = var(wm, n, :y_pipe, a)
 
     # Get variables for positive flow and head difference.
-    qp, dhp = var(wm, n, :qp_pipe, a), var(wm, n, :dhp_pipe, a)
+    qp = var(wm, n, :qp_pipe, a)
+    dhp = var(wm, n, :dhp_pipe, a)
 
     # Get the corresponding positive flow partitioning.
     partition_p = get_pipe_flow_partition_positive(ref(wm, n, :pipe, a))
@@ -70,7 +71,8 @@ function constraint_pipe_head_loss(
     end
 
     # Get variables for negative flow and head difference.
-    qn, dhn = var(wm, n, :qn_pipe, a), var(wm, n, :dhn_pipe, a)
+    qn = var(wm, n, :qn_pipe, a)
+    dhn = var(wm, n, :dhn_pipe, a)
 
     # Get the corresponding negative flow partitioning (negated).
     partition_n = sort(-get_pipe_flow_partition_negative(ref(wm, n, :pipe, a)))

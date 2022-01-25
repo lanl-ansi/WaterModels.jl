@@ -225,7 +225,7 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any})
 
             # Initialize a dictionary to store a mapping of nodes to nodal components.
             name_sym = Symbol("node_" * name)
-            ref[name_sym] = Dict{Int,Array{Int,1}}(i => Int[] for (i, node) in ref[:node])
+            ref[name_sym] = Dict{Int,Vector{Int}}(i => Int[] for (i, node) in ref[:node])
 
             # Populate the dictionary mapping nodes to arrays of nodal components.
             for (i, comp) in ref[Symbol(name)]

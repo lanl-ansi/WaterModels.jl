@@ -412,15 +412,16 @@ function _calc_pipe_resistance_hw(
 )
     # Conversion factor for SI units. This value is in units of:
     # ((meters^3 / s)^1.852 / (meters^4.8704))^(1 / 1.852).
-    k_si = 0.849 # This is the Hazen-Williams conversion factor given on Wikipedia.
+    # k_si = 0.849 # This is the Hazen-Williams conversion factor given on Wikipedia.
+    k_si = 0.849325293356677 # This approximates the constant used by EPANET.
 
     # Convert the conversion factor above (in SI units) to per-unit units.
     k =
-        k_si * (((inv(base_length))^3)^1.852 / (inv(base_length))^4.8704)^(1 / 1.852) /
+        k_si * (((inv(base_length))^3)^1.852 / (inv(base_length))^4.871)^(1 / 1.852) /
         inv(base_time)
 
     # Return the pipe resistance in the per-unit unit system.
-    return 7.8828 * inv(k^1.852 * roughness^1.852 * diameter^4.8704)
+    return 7.8828 * inv(k^1.852 * roughness^1.852 * diameter^4.871)
 end
 
 

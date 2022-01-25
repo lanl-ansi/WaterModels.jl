@@ -6,6 +6,50 @@ function apply_wm!(func!::Function, data::Dict{String, <:Any}; apply_to_subnetwo
 end
 
 
+function update_component_keys!(data_1::Dict{String,<:Any}, data_2::Dict{String,<:Any})
+    for (n, data_nw) in data_1["nw"]
+        if haskey(data_2["nw"], n)
+             component_types = keys(data_2["nw"][n])
+
+            for component_type in component_types
+                mod_comp = data_2["nw"][n][component_type]
+                name_map = Dict(x["source_id"][2] => string(x["index"])
+                    for (i, x) in data_nw[component_type])
+
+                for (name, index) in name_map
+                    if haskey(mod_comp, name)
+                        mod_comp[index] = pop!(mod_comp, name)
+                    end
+                end
+            end
+        end
+    end
+end
+
+
+function update_data_from_source!(data::Dict{String,<:Any}, modifications::Dict{String,<:Any})
+    if ismultinetwork(data) && ismultinetwork(modifications)
+        for (n, data_nw) in data["nw"]
+            if haskey(modifications["nw"], n)
+                component_types = keys(modifications["nw"][n])
+
+                for component_type in component_types
+                    mod_comp = modifications["nw"][n][component_type]
+                    name_map = Dict(x["source_id"][2] => string(x["index"])
+                        for (i, x) in data_nw[component_type])
+
+                    for (name, index) in name_map
+                        mod_comp[index] = pop!(mod_comp, name)
+                    end
+                end
+            end
+        end
+    end
+
+    _IM.update_data!(data, modifications)
+end
+
+
 "Check that all nodes are unique and other components link to valid nodes."
 function check_connectivity(data::Dict{String,<:Any})
     apply_wm!(_check_connectivity, data)

@@ -27,17 +27,24 @@ function constraint_flow_conservation(
     q_demand = var(wm, n, :q_demand)
 
     # Add the flow conservation constraint.
-    con(wm, n, :flow_conservation)[i] = JuMP.@constraint(wm.model, -
-        sum(q_pipe[a] for a in pipe_fr) + sum(q_pipe[a] for a in pipe_to) -
-        sum(q_des_pipe[a] for a in des_pipe_fr) + sum(q_des_pipe[a] for a in des_pipe_to) -
-        sum(q_pump[a] for a in pump_fr) + sum(q_pump[a] for a in pump_to) -
-        sum(q_regulator[a] for a in regulator_fr) +
-        sum(q_regulator[a] for a in regulator_to) -
-        sum(q_short_pipe[a] for a in short_pipe_fr) +
-        sum(q_short_pipe[a] for a in short_pipe_to) -
-        sum(q_valve[a] for a in valve_fr) + sum(q_valve[a] for a in valve_to) == -
-        sum(q_reservoir[k] for k in reservoirs) - sum(q_tank[k] for k in tanks) +
-        sum(q_demand[k] for k in dispatchable_demands) + fixed_demand)
+    con(wm, n, :flow_conservation)[i] = JuMP.@constraint(
+        wm.model,
+        - sum(q_pipe[a] for a in pipe_fr)
+        + sum(q_pipe[a] for a in pipe_to)
+        - sum(q_des_pipe[a] for a in des_pipe_fr)
+        + sum(q_des_pipe[a] for a in des_pipe_to)
+        - sum(q_pump[a] for a in pump_fr)
+        + sum(q_pump[a] for a in pump_to)
+        - sum(q_regulator[a] for a in regulator_fr)
+        + sum(q_regulator[a] for a in regulator_to)
+        - sum(q_short_pipe[a] for a in short_pipe_fr)
+        + sum(q_short_pipe[a] for a in short_pipe_to)
+        - sum(q_valve[a] for a in valve_fr)
+        + sum(q_valve[a] for a in valve_to) ==
+        - sum(q_reservoir[k] for k in reservoirs)
+        - sum(q_tank[k] for k in tanks)
+        + sum(q_demand[k] for k in dispatchable_demands)
+        + fixed_demand)
 end
 
 
@@ -124,13 +131,15 @@ end
 
 function constraint_on_off_pump_power_custom(wm::AbstractWaterModel, n::Int, a::Int, power_fixed::Float64, power_variable::Float64)
     # Gather pump flow, power, and status variables.
-    q, P, z = var(wm, n, :q_pump, a), var(wm, n, :P_pump, a), var(wm, n, :z_pump, a)
+    q = var(wm, n, :q_pump, a)
+    P = var(wm, n, :P_pump, a)
+    z = var(wm, n, :z_pump, a)
     
     # Add constraint equating power with respect to the linear power curve.
     lhs = power_fixed * z + power_variable * q
     scalar = _get_scaling_factor(vcat(lhs.terms.vals, [1.0]))
     c = JuMP.@constraint(wm.model, scalar * lhs == scalar * P)
- 
+
     # Append the :on_off_pump_power constraint array.
     append!(con(wm, n, :on_off_pump_power)[a], [c])
 end
