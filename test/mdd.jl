@@ -28,3 +28,24 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
         @test _is_valid_status(result["termination_status"])
     end
 end
+
+
+@testset "solve_mdd" begin
+    network = WaterModels.parse_file("../test/data/epanet/snapshot/pump-hw-lps.inp")
+    set_flow_partitions_si!(network, 10.0, 1.0e-4)
+
+    result = WaterModels.solve_mdd(network, LRDWaterModel, cbc)
+    result = WaterModels.run_mdd(network, LRDWaterModel, cbc)
+    @test _is_valid_status(result["termination_status"])
+end
+
+
+@testset "solve_mn_mdd" begin
+    network = WaterModels.parse_file("../test/data/epanet/multinetwork/owf-hw-lps.inp")
+    network_mn = WaterModels.make_multinetwork(network)
+    set_flow_partitions_si!(network_mn, 10.0, 1.0e-4)
+
+    result = WaterModels.solve_mn_mdd(network_mn, LRDWaterModel, cbc)
+    result = WaterModels.run_mn_mdd(network_mn, LRDWaterModel, cbc)
+    @test _is_valid_status(result["termination_status"])
+end
