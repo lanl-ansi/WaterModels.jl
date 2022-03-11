@@ -289,7 +289,7 @@ function _correct_status!(comp::Dict{String, <:Any})
     if isa(status, STATUS)
         comp["status"] = status
     else
-        comp["status"] = STATUS(Int(status))
+        comp["status"] = STATUS(Int(round(status)))
     end
 end
 
@@ -724,8 +724,8 @@ end
 function _fix_indicator!(component::Dict{String,<:Any})
     if haskey(component, "status")
         _correct_status!(component)
-        component["z_min"] = component["status"] === STATUS_ACTIVE ? 1.0 : 0.0
-        component["z_max"] = component["status"] === STATUS_ACTIVE ? 1.0 : 0.0
+         component["z_min"] = component["status"] === STATUS_ACTIVE ? 1.0 : 0.0
+         component["z_max"] = component["status"] === STATUS_ACTIVE ? 1.0 : 0.0
     end
 end
 
