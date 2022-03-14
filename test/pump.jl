@@ -27,7 +27,7 @@
             # Set up and solve an optimization problem with the pump data.
             set_flow_partitions_si!(network, 10.0, 1.0e-4)
             wm = instantiate_model(network, LRDWaterModel, build_wf)
-            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
+            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, highs))
             @test _is_valid_status(result["termination_status"])
         end
     end
