@@ -1,6 +1,15 @@
 WaterModels.jl Change Log
 =========================
 
+### Staged
+- Add `per_unit` option to `parse_file`.
+- Update to InfrastructureModels v0.7.
+- Update to JuMP v0.22 and v0.23.
+- Increase Julia lower bound to v1.6.
+- Drop dependency on MathOptInterface.
+- Replace Cbc with HiGHS in tests.
+- Replace uses of `Int64` with `Int` for portability.
+
 ### v0.8.0
 - Remove the convention of defining the _number_ of flow partitioning points for parameterizing linearized formulations.
 - Let users define flow partitioning points for head loss and head gain functions using `flow_partition` entries within pipe, design pipe, and pump objects.
