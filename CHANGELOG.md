@@ -2,6 +2,7 @@ WaterModels.jl Change Log
 =========================
 
 ### Staged
+- Rename `run_` methods to `_solve` and add deprecation warnings.
 - Add `per_unit` option to `parse_file`.
 - Update to InfrastructureModels v0.7.
 - Update to JuMP v0.22 and v0.23.

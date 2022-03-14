@@ -95,6 +95,9 @@ include("util/bound_problem.jl")
 include("util/pairwise_cuts.jl")
 include("util/obbt.jl")
 
+# Deprecated functions.
+include("deprecated.jl")
+
 # This must be included last to support automated export.
 include("core/export.jl")
 
