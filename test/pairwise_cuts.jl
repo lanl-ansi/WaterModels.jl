@@ -5,7 +5,7 @@
 
     @testset "_PairwiseProblem instantiation" begin
         wm = instantiate_model(mn_data, LRDWaterModel, build_mn_wf)
-        JuMP.set_optimizer(wm.model, highs) # Explicitly set an optimizer.
+        JuMP.set_optimizer(wm.model, milp_solver) # Explicitly set an optimizer.
         vid_1 = WaterModels._VariableIndex(1, :pump, :z_pump, 1)
         vid_2 = WaterModels._VariableIndex(1, :pipe, :y_pipe, 2)
         problem = WaterModels._PairwiseProblem(JuMP.MIN_SENSE, vid_1, vid_2, 0.0)
@@ -18,7 +18,7 @@
 
     @testset "_optimize_bound_problem!" begin
         wm = instantiate_model(mn_data, LRDWaterModel, build_mn_wf)
-        JuMP.set_optimizer(wm.model, highs) # Explicitly set an optimizer.
+        JuMP.set_optimizer(wm.model, milp_solver) # Explicitly set an optimizer.
         vid_1 = WaterModels._VariableIndex(1, :pump, :z_pump, 1)
         vid_2 = WaterModels._VariableIndex(1, :pipe, :y_pipe, 2)
         problem = WaterModels._PairwiseProblem(JuMP.MIN_SENSE, vid_1, vid_2, 0.0)
@@ -28,7 +28,7 @@
 
     @testset "_get_bound_problem_candidate! (minimization)" begin
         wm = instantiate_model(mn_data, LRDWaterModel, build_mn_wf)
-        JuMP.set_optimizer(wm.model, highs) # Explicitly set an optimizer.
+        JuMP.set_optimizer(wm.model, milp_solver) # Explicitly set an optimizer.
         vid_1 = WaterModels._VariableIndex(1, :pump, :z_pump, 1)
         vid_2 = WaterModels._VariableIndex(1, :pipe, :y_pipe, 2)
         problem = WaterModels._PairwiseProblem(JuMP.MIN_SENSE, vid_1, vid_2, 0.0)
@@ -37,7 +37,7 @@
 
     @testset "_get_bound_problem_candidate! (maximization)" begin
         wm = instantiate_model(mn_data, LRDWaterModel, build_mn_wf)
-        JuMP.set_optimizer(wm.model, highs) # Explicitly set an optimizer.
+        JuMP.set_optimizer(wm.model, milp_solver) # Explicitly set an optimizer.
         vid_1 = WaterModels._VariableIndex(1, :pump, :z_pump, 1)
         vid_2 = WaterModels._VariableIndex(1, :pipe, :y_pump, 1)
         problem = WaterModels._PairwiseProblem(JuMP.MAX_SENSE, vid_1, vid_2, 1.0)
@@ -46,7 +46,7 @@
 
     @testset "_get_bound_problem_candidate! (maximization, no solution)" begin
         wm = instantiate_model(mn_data, LRDWaterModel, build_mn_wf)
-        JuMP.set_optimizer(wm.model, highs) # Explicitly set an optimizer.
+        JuMP.set_optimizer(wm.model, milp_solver) # Explicitly set an optimizer.
         vid_1 = WaterModels._VariableIndex(1, :pipe, :y_pipe, 2)
         vid_2 = WaterModels._VariableIndex(1, :pump, :z_pump, 1)
         problem = WaterModels._PairwiseProblem(JuMP.MAX_SENSE, vid_1, vid_2, 1.0)
@@ -55,7 +55,7 @@
 
     @testset "_unfix_bound_problem_variable!" begin
         wm = instantiate_model(mn_data, LRDWaterModel, build_mn_wf)
-        JuMP.set_optimizer(wm.model, highs) # Explicitly set an optimizer.
+        JuMP.set_optimizer(wm.model, milp_solver) # Explicitly set an optimizer.
         vid_1 = WaterModels._VariableIndex(1, :pump, :z_pump, 1)
         vid_2 = WaterModels._VariableIndex(1, :pipe, :y_pipe, 2)
         problem = WaterModels._PairwiseProblem(JuMP.MIN_SENSE, vid_1, vid_2, 0.0)
@@ -66,7 +66,7 @@
 
     @testset "_solve_bound_problem!" begin
         wm = instantiate_model(mn_data, LRDWaterModel, build_mn_wf)
-        JuMP.set_optimizer(wm.model, highs) # Explicitly set an optimizer.
+        JuMP.set_optimizer(wm.model, milp_solver) # Explicitly set an optimizer.
         vid_1 = WaterModels._VariableIndex(1, :pump, :z_pump, 1)
         vid_2 = WaterModels._VariableIndex(1, :pipe, :y_pipe, 2)
         problem = WaterModels._PairwiseProblem(JuMP.MIN_SENSE, vid_1, vid_2, 0.0)
@@ -75,9 +75,9 @@
 
     @testset "_add_pairwise_cuts!(wm; nw = 1)" begin
         wm = instantiate_model(mn_data, LRDWaterModel, build_mn_wf)
-        JuMP.set_optimizer(wm.model, highs) # Explicitly set an optimizer.
+        JuMP.set_optimizer(wm.model, milp_solver) # Explicitly set an optimizer.
         WaterModels._add_pairwise_cuts!(wm; nw = 1)
-        result = WaterModels.optimize_model!(wm, optimizer=highs)
+        result = WaterModels.optimize_model!(wm, optimizer=milp_solver)
         @test result["termination_status"] == OPTIMAL
     end
 end

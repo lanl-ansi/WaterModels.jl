@@ -51,7 +51,7 @@
         @test_throws ErrorException solve_model(
             data,
             type,
-            ipopt,
+            nlp_solver,
             build_wf;
             multinetwork = true,
             relax_integrality = true,
@@ -62,7 +62,7 @@
         result = solve_model(
             network_path,
             NCWaterModel,
-            ipopt,
+            nlp_solver,
             build_wf;
             relax_integrality = true,
         )
@@ -74,7 +74,7 @@
         result = solve_model(
             parse_file(network_path),
             NCWaterModel,
-            ipopt,
+            nlp_solver,
             build_wf;
             relax_integrality = true,
         )
