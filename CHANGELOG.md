@@ -1,14 +1,14 @@
 WaterModels.jl Change Log
 =========================
 
-### Staged
+### v0.9.0
 - Rename `run_` methods to `_solve` and add deprecation warnings.
 - Add `per_unit` option to `parse_file`.
 - Update to InfrastructureModels v0.7.
 - Update to JuMP v0.22 and v0.23.
 - Increase Julia lower bound to v1.6.
 - Drop dependency on MathOptInterface.
-- Replace Cbc with HiGHS in tests.
+- Replace CBC with HiGHS in tests.
 - Replace uses of `Int64` with `Int` for portability.
 
 ### v0.8.0
