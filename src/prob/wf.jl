@@ -142,6 +142,10 @@ function build_mn_wf(wm::AbstractWaterModel)
             constraint_pipe_head_loss(wm, a; nw=n)
         end
 
+        # Ensure design pipes are not present in the problem.
+        @assert length(ids(wm, :des_pipe_arc; nw=n)) == 0
+        @assert length(ids(wm, :des_pipe; nw=n)) == 0
+
         # Constraints on pump flows, heads, and physics.
         for a in ids(wm, :pump; nw=n)
             constraint_on_off_pump_head(wm, a; nw=n)
