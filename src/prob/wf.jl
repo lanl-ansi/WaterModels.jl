@@ -142,20 +142,6 @@ function build_mn_wf(wm::AbstractWaterModel)
             constraint_pipe_head_loss(wm, a; nw=n)
         end
 
-        # Constraints on design pipe flows, heads, and physics.
-        for a in ids(wm, :des_pipe; nw=n)
-            constraint_on_off_des_pipe_flow(wm, a; nw=n)
-            constraint_on_off_des_pipe_head(wm, a; nw=n)
-            constraint_on_off_des_pipe_head_loss(wm, a; nw=n)
-        end
-
-        # Selection of design pipes along unique arcs.
-        for (k, arc) in ref(wm, :des_pipe_arc; nw=n)
-            constraint_des_pipe_flow(wm, k, arc[1], arc[2]; nw=n)
-            constraint_des_pipe_head(wm, k, arc[1], arc[2]; nw=n)
-            constraint_des_pipe_selection(wm, k, arc[1], arc[2]; nw=n)
-        end
-
         # Constraints on pump flows, heads, and physics.
         for a in ids(wm, :pump; nw=n)
             constraint_on_off_pump_head(wm, a; nw=n)
