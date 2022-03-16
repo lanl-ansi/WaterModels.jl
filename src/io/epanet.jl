@@ -173,7 +173,7 @@ end
 
 function _update_time_series!(data::Dict{String,<:Any})
     duration, time_step = data["duration"], data["hydraulic_time_step"]
-    num_steps = convert(Int64, floor(duration * inv(time_step))) + 1
+    num_steps = convert(Int, floor(duration * inv(time_step))) + 1
     data["time_step"] = convert(Float64, time_step)
 
     if num_steps >= 1 && keys(data["pattern"]) != ["1"]
@@ -197,7 +197,7 @@ end
 
 "Standardize component indices to be integers instead of strings."
 function _transform_component_indices(components::Dict{String,<:Any})
-    if all([tryparse(Int64, x["name"]) !== nothing for (i, x) in components])
+    if all([tryparse(Int, x["name"]) !== nothing for (i, x) in components])
         for (name, component) in components
             component["index"] = parse(Int, component["name"])
         end
@@ -334,9 +334,9 @@ function _clock_time_to_seconds(s::AbstractString, am_pm::AbstractString)
     time_tuple = match(r"^(\d+):(\d+):(\d+)$", s)
 
     if time_tuple !== nothing
-        seconds_1 = parse(Int64, time_tuple[1]) * 3600
-        seconds_2 = parse(Int64, time_tuple[2]) * 60
-        seconds_3 = convert(Int64, round(parse(Float64, time_tuple[3])))
+        seconds_1 = parse(Int, time_tuple[1]) * 3600
+        seconds_2 = parse(Int, time_tuple[2]) * 60
+        seconds_3 = convert(Int, round(parse(Float64, time_tuple[3])))
         time_seconds = seconds_1 + seconds_2 + seconds_3
 
         if startswith(s, "12")
@@ -356,8 +356,8 @@ function _clock_time_to_seconds(s::AbstractString, am_pm::AbstractString)
         time_tuple = match(r"^(\d+):(\d+)$", s)
 
         if time_tuple !== nothing
-            seconds_1 = parse(Int64, time_tuple[1]) * 3600
-            seconds_2 = parse(Int64, time_tuple[2]) * 60
+            seconds_1 = parse(Int, time_tuple[1]) * 3600
+            seconds_2 = parse(Int, time_tuple[2]) * 60
 
             if startswith(s, "12")
                 time_seconds -= 3600 * 12
@@ -379,7 +379,7 @@ function _clock_time_to_seconds(s::AbstractString, am_pm::AbstractString)
             time_tuple = match(r"^(\d+)$", s)
 
             if time_tuple !== nothing
-                time_seconds = parse(Int64, time_tuple[1]) * 3600
+                time_seconds = parse(Int, time_tuple[1]) * 3600
 
                 if startswith(s, "12")
                     time_seconds -= 3600 * 12
@@ -418,22 +418,22 @@ function _string_time_to_seconds(s::AbstractString)
     time_tuple = match(r"^(\d+):(\d+):(\d+)$", s)
 
     if time_tuple !== nothing
-        seconds_1 = parse(Int64, time_tuple[1]) * 3600
-        seconds_2 = parse(Int64, time_tuple[2]) * 60
-        seconds_3 = convert(Int64, round(parse(Float64, time_tuple[3])))
+        seconds_1 = parse(Int, time_tuple[1]) * 3600
+        seconds_2 = parse(Int, time_tuple[2]) * 60
+        seconds_3 = convert(Int, round(parse(Float64, time_tuple[3])))
         return seconds_1 + seconds_2 + seconds_3
     else
         time_tuple = match(r"^(\d+):(\d+)$", s)
 
         if time_tuple !== nothing
-            seconds_1 = parse(Int64, time_tuple[1]) * 3600
-            seconds_2 = parse(Int64, time_tuple[2]) * 60
+            seconds_1 = parse(Int, time_tuple[1]) * 3600
+            seconds_2 = parse(Int, time_tuple[2]) * 60
             return seconds_1 + seconds_2
         else
             time_tuple = match(r"^(\d+)$", s)
 
             if time_tuple !== nothing
-                return parse(Int64, time_tuple[1]) * 3600
+                return parse(Int, time_tuple[1]) * 3600
             else
                 Memento.error(_LOGGER, "Time format in INP file not recognized")
             end
@@ -631,7 +631,7 @@ function _read_demand!(data::Dict{String,<:Any})
     data["time_series"]["demand"] = Dict{String,Any}()
 
     # Initialize a temporary index to be updated while parsing.
-    index::Int64 = 0 # This will track the order that demands appear.
+    index::Int = 0 # This will track the order that demands appear.
 
     # Loop over all lines in the [JUNCTIONS] section and parse each.
     for (line_number, line) in data["section"]["[JUNCTIONS]"]
@@ -791,7 +791,7 @@ function _read_pattern!(data::Dict{String,<:Any})
 
         if hydraulic_time_step != pattern_time_step
             # Compute how many pattern steps are in one hydraulic step.
-            factor = convert(Int64, pattern_time_step / hydraulic_time_step)
+            factor = convert(Int, pattern_time_step / hydraulic_time_step)
 
             # For all patterns, ensure they match the hydraulic periods.
             for (pattern_name, pattern) in data["pattern"]
@@ -803,7 +803,7 @@ function _read_pattern!(data::Dict{String,<:Any})
 
     # Get the number of steps that should now exist in each pattern.
     duration, time_step = data["duration"], data["hydraulic_time_step"]
-    num_steps = convert(Int64, floor(duration / time_step))
+    num_steps = convert(Int, floor(duration / time_step))
 
     # Ensure patterns of length one are equal to the real pattern length.
     for (pattern_name, pattern) in data["pattern"]
@@ -832,7 +832,7 @@ function _read_pipe!(data::Dict{String,<:Any})
     data["pipe"] = Dict{String,Dict{String,Any}}()
 
     # Initialize a temporary index to be updated while parsing.
-    index::Int64 = 0
+    index::Int = 0
 
     # Loop over all lines in the [PIPES] section and parse each.
     for (line_number, line) in data["section"]["[PIPES]"]
@@ -902,7 +902,7 @@ function _read_pump!(data::Dict{String,<:Any})
     data["time_series"]["pump"] = Dict{String,Any}()
 
     # Initialize a temporary index to be updated while parsing.
-    index::Int64 = 0
+    index::Int = 0
 
     # Loop over all lines in the [PUMPS] section and parse each.
     for (line_number, line) in data["section"]["[PUMPS]"]
@@ -969,7 +969,7 @@ function _read_reservoir!(data::Dict{String,<:Any})
     data["time_series"]["reservoir"] = Dict{String,Any}()
 
     # Initialize a temporary index to be updated while parsing.
-    index::Int64 = 0
+    index::Int = 0
 
     # Loop over all lines in the [RESERVOIRS] section and parse each.
     for (line_number, line) in data["section"]["[RESERVOIRS]"]
@@ -1040,7 +1040,7 @@ function _read_tank!(data::Dict{String,<:Any})
     data["tank"] = Dict{String,Dict{String,Any}}()
 
     # Initialize a temporary index to be updated while parsing.
-    index::Int64 = 0
+    index::Int = 0
 
     # Loop over all lines in the [TANKS] section and parse each.
     for (line_number, line) in data["section"]["[TANKS]"]
@@ -1129,7 +1129,7 @@ function _read_regulator!(data::Dict{String,<:Any})
     data["regulator"] = Dict{String,Dict{String,Any}}()
 
     # Initialize a temporary index to be updated while parsing.
-    index::Int64 = 0
+    index::Int = 0
 
     # Loop over all lines in the [VALVES] section and parse each.
     for (line_number, line) in data["section"]["[VALVES]"]

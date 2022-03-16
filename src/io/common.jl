@@ -5,7 +5,7 @@ Parses an [EPANET](https://www.epa.gov/water-research/epanet) (.inp) or JavaScri
 Notation (JSON) file from the file path `path`, depending on the file extension, and returns
 a WaterModels data structure (a dictionary of data).
 """
-function parse_file(path::String; skip_correct::Bool = false, per_unit = true)
+function parse_file(path::String; skip_correct::Bool = false, per_unit::Bool = true)
     if endswith(path, ".inp")
         network_data = WaterModels.parse_epanet(path)
     elseif endswith(path, ".json")
@@ -51,7 +51,7 @@ function _read_file_as_string(file_path::String)
 end
 
 
-function correct_network_data!(data::Dict{String, <:Any}; per_unit=true)
+function correct_network_data!(data::Dict{String, <:Any}; per_unit::Bool = true)
     epanet_to_watermodels!(data; import_all = false)
     correct_pipes!(data)
     correct_des_pipes!(data)

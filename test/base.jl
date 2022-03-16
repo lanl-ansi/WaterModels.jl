@@ -51,7 +51,7 @@
         @test_throws ErrorException solve_model(
             data,
             type,
-            ipopt,
+            nlp_solver,
             build_wf;
             multinetwork = true,
             relax_integrality = true,
@@ -62,7 +62,7 @@
         result = solve_model(
             network_path,
             NCWaterModel,
-            ipopt,
+            nlp_solver,
             build_wf;
             relax_integrality = true,
         )
@@ -74,7 +74,7 @@
         result = solve_model(
             parse_file(network_path),
             NCWaterModel,
-            ipopt,
+            nlp_solver,
             build_wf;
             relax_integrality = true,
         )
@@ -89,19 +89,19 @@
 
     @testset "nw_ids helper function" begin
         wm = instantiate_model(network_path, NCWaterModel, build_wf)
-        @test Array{Int64,1}(collect(nw_ids(wm))) == Array{Int64,1}([_IM.nw_id_default])
+        @test Array{Int,1}(collect(nw_ids(wm))) == Array{Int,1}([_IM.nw_id_default])
     end
 
     @testset "nws helper function" begin
         wm = instantiate_model(network_path, NCWaterModel, build_wf)
-        @test Array{Int64,1}(collect(keys(nws(wm)))) == Array{Int64,1}([_IM.nw_id_default])
+        @test Array{Int,1}(collect(keys(nws(wm)))) == Array{Int,1}([_IM.nw_id_default])
     end
 
     @testset "ids helper functions" begin
         wm = instantiate_model(network_path, NCWaterModel, build_wf)
-        @test Array{Int64,1}(collect(ids(wm, _IM.nw_id_default, :pipe))) ==
-              Array{Int64,1}([1])
-        @test Array{Int64,1}(collect(ids(wm, :pipe))) == Array{Int64,1}([1])
+        @test Array{Int,1}(collect(ids(wm, _IM.nw_id_default, :pipe))) ==
+              Array{Int,1}([1])
+        @test Array{Int,1}(collect(ids(wm, :pipe))) == Array{Int,1}([1])
     end
 
     @testset "ref helper functions" begin

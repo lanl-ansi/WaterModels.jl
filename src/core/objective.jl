@@ -9,7 +9,7 @@ Sets the objective function for [Water Flow (WF)](@ref) problem specifications.
 By default, only feasibility must be satisfied.
 """
 function objective_wf(wm::AbstractWaterModel)
-    JuMP.set_objective_sense(wm.model, _MOI.FEASIBILITY_SENSE)
+    JuMP.set_objective_sense(wm.model, JuMP.FEASIBILITY_SENSE)
 end
 
 
@@ -29,7 +29,7 @@ function objective_des(wm::AbstractWaterModel)
         end
     end
 
-    return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
+    return JuMP.@objective(wm.model, JuMP.MIN_SENSE, objective)
 end
 
 
@@ -67,5 +67,5 @@ function objective_owf(wm::AbstractWaterModel)
     objective_scaled = (1.0 / minimum_scalar) * objective
 
     # Minimize the (numerically scaled) cost required to operate pumps.
-    return JuMP.@objective(wm.model, _MOI.MIN_SENSE, objective)
+    return JuMP.@objective(wm.model, JuMP.MIN_SENSE, objective)
 end

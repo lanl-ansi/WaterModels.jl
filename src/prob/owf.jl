@@ -3,20 +3,8 @@ function solve_owf(network, model_constructor, optimizer; kwargs...)
 end
 
 
-function run_owf(network, model_constructor, optimizer; kwargs...)
-    Memento.warn(_LOGGER, "\"run_\" methods should be renamed \"solve_\" and will be deprecated in future versions.")
-    return solve_owf(network, model_constructor, optimizer; kwargs...)
-end
-
-
 function solve_mn_owf(file, model_constructor, optimizer; kwargs...)
     return solve_model(file, model_constructor, optimizer, build_mn_owf; multinetwork=true, kwargs...)
-end
-
-
-function run_mn_owf(network, model_constructor, optimizer; kwargs...)
-    Memento.warn(_LOGGER, "\"run_\" methods should be renamed \"solve_\" and will be deprecated in future versions.")
-    return solve_mn_owf(network, model_constructor, optimizer; kwargs...)
 end
 
 

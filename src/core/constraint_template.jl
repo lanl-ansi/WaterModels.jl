@@ -603,14 +603,14 @@ function constraint_on_off_pump_group(
     pump_indices = ref(wm, nw, :pump_group, k, "pump_indices")
     _initialize_con_dict(wm, :on_off_pump_group, nw = nw, is_array = true)
     con(wm, nw, :on_off_pump_group)[k] = Array{JuMP.ConstraintRef}([])
-    constraint_on_off_pump_group(wm, nw, k, Set{Int64}(pump_indices))
+    constraint_on_off_pump_group(wm, nw, k, Set{Int}(pump_indices))
 end
 
 
 function constraint_on_off_pump_switch(
     wm::AbstractWaterModel,
     a::Int,
-    network_ids::Array{Int64,1};
+    network_ids::Array{Int,1};
     kwargs...,
 )
     _initialize_con_dict(wm, :on_off_pump_switch, nw = network_ids[end], is_array = true)
@@ -633,7 +633,7 @@ function constraint_pump_switch_on(
     network_ids = sort(collect(nw_ids(wm)))
     min_active_time = get(ref(wm, n_2, :pump, a), "min_active_time", 3600.0)
     nw_end = n_2 + Int(floor(min_active_time / ref(wm, n_1, :time_step)))
-    nws_active = Vector{Int64}(collect(n_2:1:min(network_ids[end-1], nw_end)))
+    nws_active = Vector{Int}(collect(n_2:1:min(network_ids[end-1], nw_end)))
     constraint_pump_switch_on(wm, a, n_1, n_2, nws_active)
 end
 
@@ -651,7 +651,7 @@ function constraint_pump_switch_off(
     network_ids = sort(collect(nw_ids(wm)))
     min_inactive_time = get(ref(wm, n_2, :pump, a), "min_inactive_time", 1800.0)
     nw_end = n_2 + Int(floor(min_inactive_time / ref(wm, n_1, :time_step)))
-    nws_inactive = Vector{Int64}(collect(n_2:1:min(network_ids[end-1], nw_end)))
+    nws_inactive = Vector{Int}(collect(n_2:1:min(network_ids[end-1], nw_end)))
     constraint_pump_switch_off(wm, a, n_1, n_2, nws_inactive)
 end
 

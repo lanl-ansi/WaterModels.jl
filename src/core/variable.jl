@@ -10,7 +10,7 @@ end
 
 
 "Sets the start value for a given variable."
-function comp_start_value(comp::Dict{String,<:Any}, key_1::String, key_2::Int64, default=0.0)
+function comp_start_value(comp::Dict{String,<:Any}, key_1::String, key_2::Int, default=0.0)
     return key_1 in keys(comp) ? get(get(comp, key_1, default), key_2, default) : default
 end
 

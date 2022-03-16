@@ -11,9 +11,6 @@ import Memento
 import PolyhedralRelaxations
 import Statistics
 
-import MathOptInterface
-const _MOI = MathOptInterface
-
 # Create our module-level logger (this will get precompiled).
 const _LOGGER = Memento.getlogger(@__MODULE__)
 
@@ -97,6 +94,9 @@ include("util/variable_index.jl")
 include("util/bound_problem.jl")
 include("util/pairwise_cuts.jl")
 include("util/obbt.jl")
+
+# Deprecated functions.
+include("deprecated.jl")
 
 # This must be included last to support automated export.
 include("core/export.jl")

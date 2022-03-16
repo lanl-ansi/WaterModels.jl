@@ -1,6 +1,6 @@
 using WaterModels
 
-import Cbc
+import HiGHS
 import JuMP
 import JSON
 import Ipopt
@@ -9,7 +9,6 @@ import Logging
 import Memento
 
 const _IM = WaterModels._IM
-const _MOI = WaterModels._MOI
 
 # Suppress warnings during testing.
 Memento.setlevel!(Memento.getlogger(_IM), "error")
@@ -21,10 +20,10 @@ Logging.disable_logging(Logging.Info)
 using Test
 
 # Default MIP optimizer
-cbc = JuMP.optimizer_with_attributes(Cbc.Optimizer, "logLevel" => 0)
+milp_solver = JuMP.optimizer_with_attributes(HiGHS.Optimizer, "output_flag" => false)
 
 # Default NLP optimizer.
-ipopt = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "tol" => 1.0e-6, "print_level" => 0, "sb" => "yes")
+nlp_solver = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "tol" => 1.0e-6, "print_level" => 0, "sb" => "yes")
 
 include("common.jl")
 

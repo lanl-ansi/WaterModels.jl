@@ -1,6 +1,6 @@
 # Quick Start Guide
 The following guide walks through the solution of a water network design (`des`) problem using two mixed-integer linear programming (MILP) formulations (PWLRD and LRD) of the problem specification.
-This is to enable solution using the readily-available open-source MILP solver [Cbc](https://github.com/JuliaOpt/Cbc.jl).
+This is to enable solution using the readily-available open-source MILP solver [HiGHS](https://github.com/jump-dev/HiGHS.jl).
 Other formulations rely on the availability of mixed-integer nonlinear programming (MINLP) solvers that support [user-defined nonlinear functions in JuMP](http://www.juliaopt.org/JuMP.jl/dev/nlp/#User-defined-Functions-1).
 However, these solvers (e.g., [Juniper](https://github.com/lanl-ansi/Juniper.jl), [KNITRO](https://github.com/JuliaOpt/KNITRO.jl)) either require additional effort to register user-defined functions or are proprietary and require a commercial license.
 
@@ -39,8 +39,8 @@ set_flow_partitions_si!(data, 50.0, 1.0e-4)
 
 Finally, the PWLRD formulation for the network design specification can be solved using
 ```julia
-import Cbc
-solve_des(data, PWLRDWaterModel, Cbc.Optimizer)
+import HiGHS
+solve_des(data, PWLRDWaterModel, HiGHS.Optimizer)
 ```
 
 The above flow partitioning, however, is somewhat coarse, and the number of points in each partition is typically three, e.g.,
@@ -56,8 +56,8 @@ set_flow_partitions_si!(data, 5.0, 1.0e-4)
 We can then solve the problem with the updated partitioning scheme via
 ```julia
 import JuMP
-cbc = JuMP.optimizer_with_attributes(Cbc.Optimizer, "seconds" => 30.0)
-solve_des(data, PWLRDWaterModel, cbc)
+highs = JuMP.optimizer_with_attributes(HiGHS.Optimizer, "time_limit" => 30.0)
+solve_des(data, PWLRDWaterModel, highs)
 ```
 
 Note that this formulation takes much longer to solve to global optimality due to the use of more binary variables.
@@ -68,7 +68,7 @@ This formulation employs less strict requirements and avoids the use of binary v
 To solve an LRD formulation of the problem using an even finer flow partitioning scheme (but without piecewise inner head loss approximations), the following can be executed:
 ```julia
 set_flow_partitions_si!(data, 0.5, 1.0e-4)
-solve_des(data, LRDWaterModel, Cbc.Optimizer)
+solve_des(data, LRDWaterModel, HiGHS.Optimizer)
 ```
 
 This relaxation of the problem turns out to converge to the known globally optimal objective value.
@@ -79,10 +79,10 @@ For the rest of this tutorial, we will first assume a coarser relaxation by rese
 set_flow_partitions_si!(data, 50.0, 1.0e-4)
 ```
 
-The `run` commands in WaterModels return detailed results data in the form of a Julia `Dict`.
+The `solve` commands in WaterModels return detailed results data in the form of a Julia `Dict`.
 This dictionary can be saved for further processing as follows:
 ```julia
-result = solve_des(data, LRDWaterModel, Cbc.Optimizer)
+result = solve_des(data, LRDWaterModel, HiGHS.Optimizer)
 ```
 
 For example, the algorithm's runtime and final objective value can be accessed with
@@ -111,8 +111,8 @@ For more information about WaterModels result data see the [WaterModels Result D
 
 ## Accessing Different Formulations
 The MILP formulations discussed above assume access to a MILP solver.
-Mixed-integer nonconvex nonlinear programming (MINCP) formulations can be solved with dedicated solvers, as well.
-For example, the MINCP formulation for design (NC) can be solved via
+Nonconvex MINLP formulations can be solved with dedicated solvers, as well.
+For example, the nonconvex MINLP formulation for design (NC) can be solved via
 
 ```julia
 import KNITRO
@@ -122,13 +122,13 @@ solve_des(data, NCWaterModel, KNITRO.Optimizer)
 ## Modifying Network Data
 The following example demonstrates one way to perform multiple WaterModels solves while modifying network data:
 ```julia
-solve_des(data, LRDWaterModel, Cbc.Optimizer)
+solve_des(data, LRDWaterModel, HiGHS.Optimizer)
 
 data["demand"]["3"]["flow_min"] *= 0.5
 data["demand"]["3"]["flow_max"] *= 0.5
 data["demand"]["3"]["flow_nominal"] *= 0.5
 
-solve_des(data, LRDWaterModel, Cbc.Optimizer)
+solve_des(data, LRDWaterModel, HiGHS.Optimizer)
 ```
 
 Note that the smaller demands in the second problem result in an overall smaller design cost.
@@ -142,5 +142,5 @@ wm = instantiate_model(data, LRDWaterModel, WaterModels.build_des);
 
 println(wm.model)
 
-result = optimize_model!(wm, optimizer = Cbc.Optimizer)
+result = optimize_model!(wm, optimizer = HiGHS.Optimizer)
 ```
