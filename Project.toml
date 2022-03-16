@@ -2,7 +2,7 @@ name = "WaterModels"
 uuid = "7c60b362-08f4-5b14-8680-cd67a3e18348"
 authors = ["Byron Tasseff"]
 repo = "https://github.com/lanl-ansi/WaterModels.jl"
-version = "0.8.0"
+version = "0.9.0"
 
 [deps]
 HiGHS = "87dc4568-4c63-4d18-b0c0-bb2238e4078b"
