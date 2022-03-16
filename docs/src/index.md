@@ -29,17 +29,17 @@ Finally, test that the package works as expected by executing
 ## Usage at a Glance
 At least one optimization solver is required to run WaterModels.
 The solver selected typically depends on the type of problem formulation being employed.
-As an example, to solve a mixed-integer linear programming (MILP) formulation of the feasible water flow (`wf`) problem, the open-source MILP solver [CBC](https://github.com/coin-or/Cbc) can be used.
-Installation of the JuMP interface to CBC can be performed via the Julia package manager, i.e.,
+As an example, to solve a mixed-integer linear programming (MILP) formulation of the feasible water flow (`wf`) problem, the open-source MILP solver [HiGHS](https://github.com/jump-dev/HiGHS.jl) can be used.
+Installation of the JuMP interface to HiGHS can be performed via the Julia package manager, i.e.,
 
 ```julia
-] add Cbc
+] add HiGHS
 ```
 
 Then, as one example, a piecewise-linear, relaxation-based convexification of the physics for the well-known [Shamir (two-loop) network](https://github.com/lanl-ansi/WaterModels.jl/blob/master/examples/data/epanet/shamir.inp), using an error tolerance of one meter to model the envelope of each pipe's Hazen-Williams head loss curve, can be solved to feasibility using
 
 ```julia
-using WaterModels, Cbc
+using WaterModels, HiGHS
 
 # Parse the network data from an EPANET file.
 network = parse_file("examples/data/epanet/shamir.inp")
@@ -49,7 +49,7 @@ network = parse_file("examples/data/epanet/shamir.inp")
 set_flow_partitions_si!(network, 1.0, 1.0e-4)
 
 # Solve the corresponding relaxation of the water flow problem.
-result = solve_wf(network, PWLRDWaterModel, Cbc.Optimizer)
+result = solve_wf(network, PWLRDWaterModel, HiGHS.Optimizer)
 ```
 
 After solving the problem, results can then be analyzed, e.g.,
