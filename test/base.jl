@@ -45,6 +45,18 @@
         @test length(ref(wm, :pipe)) == 1
     end
 
+    @testset "run_model (with file path input)" begin
+        result = run_model(
+            network_path,
+            NCWaterModel,
+            nlp_solver,
+            build_wf;
+            relax_integrality = true,
+        )
+
+        @test _is_valid_status(result["termination_status"])
+    end
+
     @testset "solve_model (with non-matching multinetwork)" begin
         data, type = parse_file(network_path), NCWaterModel
 
