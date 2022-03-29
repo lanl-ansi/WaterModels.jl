@@ -1,6 +1,9 @@
 WaterModels.jl Change Log
 =========================
 
+### v0.9.1
+- Add support for JuMP v1.0.
+
 ### v0.9.0
 - Remove design constraints from multinetwork problem specifications.
 - Rename `run_` methods to `_solve` and add deprecation warnings.
