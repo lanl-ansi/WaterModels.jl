@@ -52,3 +52,9 @@ function run_mn_owf(args...; kwargs...)
     @warn("`run_mn_owf` has been replaced with `solve_mn_owf`", maxlog = 1)
     solve_mn_owf(args...; kwargs...)
 end
+
+
+function run_mn_owf_switching(args...; kwargs...)
+    @warn("`run_mn_owf_switching` has been replaced with `solve_mn_owf_switching`", maxlog = 1)
+    solve_mn_owf_switching(args...; kwargs...)
+end

@@ -91,3 +91,14 @@ end
     result = WaterModels.run_mn_owf(network_mn, LRDWaterModel, milp_solver)
     @test result["termination_status"] == OPTIMAL
 end
+
+
+@testset "solve_mn_owf_switching" begin
+    network = WaterModels.parse_file("../test/data/epanet/multinetwork/owf-hw-lps.inp")
+    network_mn = WaterModels.make_multinetwork(network)
+    set_flow_partitions_si!(network_mn, 10.0, 1.0e-4)
+
+    result = WaterModels.solve_mn_owf_switching(network_mn, LRDWaterModel, milp_solver)
+    result = WaterModels.run_mn_owf_switching(network_mn, LRDWaterModel, milp_solver)
+    @test result["termination_status"] == OPTIMAL
+end

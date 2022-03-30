@@ -187,8 +187,8 @@
         network = WaterModels.parse_file("../test/data/epanet/multinetwork/pipe-hw-lps.inp")
         network_mn = WaterModels.make_multinetwork(network)
         network_mn["nw"]["1"]["node"]["1"]["status"] = WaterModels.STATUS_INACTIVE
-
-        @test WaterModels.propagate_topology_status!(network_mn) == true
+        WaterModels.simplify_network!(network_mn) == true
+        
         @test network_mn["nw"]["1"]["pipe"]["1"]["status"] === WaterModels.STATUS_INACTIVE
         @test network_mn["nw"]["2"]["pipe"]["1"]["status"] === WaterModels.STATUS_ACTIVE
     end
