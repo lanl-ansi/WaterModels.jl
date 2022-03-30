@@ -64,6 +64,7 @@ function correct_network_data!(data::Dict{String, <:Any}; per_unit::Bool = true)
     correct_pumps!(data)
     correct_regulators!(data)
     correct_short_pipes!(data)
+    correct_ne_short_pipes!(data)
     correct_valves!(data)
     correct_nodes!(data)
 

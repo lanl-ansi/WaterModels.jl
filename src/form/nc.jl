@@ -424,8 +424,8 @@ function constraint_short_pipe_flow_ne(
     q_min_forward::Float64,
 )
     # Get flow and status variables for the short pipe.
-    q = var(wm, n, :q_ne_short_pipe)
-    z = var(wm, n, :z_ne_short_pipe)
+    q = var(wm, n, :q_ne_short_pipe, a)
+    z = var(wm, n, :z_ne_short_pipe, a)
 
     # Get lower and upper bounds for the expansion short pipe's flow.
     q_lb = JuMP.lower_bound(q)
@@ -480,7 +480,7 @@ function constraint_short_pipe_head_ne(
     c_2 = JuMP.@constraint(wm.model, h_i - h_j <= (1.0 - z) * dh_ub)
 
     # Append the constraint array.
-    append!(con(wm, n, :on_off_short_pipe_head_ne, a), [c_1, c_2])
+    append!(con(wm, n, :short_pipe_head_ne, a), [c_1, c_2])
 end
 
 

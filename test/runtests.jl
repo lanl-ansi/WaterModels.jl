@@ -61,6 +61,8 @@ include("common.jl")
 
     include("mdd.jl")
 
+    include("ne.jl")
+
     include("relax.jl")
 
     include("variable_index.jl")

@@ -28,6 +28,7 @@ function build_wf(wm::AbstractWaterModel)
     variable_pump_indicator(wm)
     variable_regulator_indicator(wm)
     variable_valve_indicator(wm)
+    variable_ne_short_pipe_indicator(wm)
 
     # Create flow-related variables for node attachments.
     variable_demand_flow(wm)
@@ -133,6 +134,7 @@ function build_mn_wf(wm::AbstractWaterModel)
         variable_pump_indicator(wm; nw=n)
         variable_regulator_indicator(wm; nw=n)
         variable_valve_indicator(wm; nw=n)
+        variable_ne_short_pipe_indicator(wm; nw=n)
 
         # Create flow-related variables for node attachments.
         variable_demand_flow(wm; nw=n)
@@ -206,6 +208,14 @@ function build_mn_wf(wm::AbstractWaterModel)
     if length(network_ids) > 1
         # Initialize head variables for the final time index.
         variable_head(wm; nw = network_ids[end])
+
+        # Constraints on network expansion variables.
+        for n_2 in network_ids[2:end-1]
+            # Constrain short pipe selection variables based on the initial time index.
+            for i in ids(wm, :ne_short_pipe; nw = n_2)
+                constraint_ne_short_pipe_selection(wm, i, n_1, n_2)
+            end
+        end
 
         # Constraints on tank volumes.
         for n_2 in network_ids[2:end]

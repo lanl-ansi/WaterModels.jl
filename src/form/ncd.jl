@@ -554,7 +554,7 @@ function constraint_short_pipe_flow_ne(
     c_6 = JuMP.@constraint(wm.model, qn >= qn_min_forward * (z - y))
 
     # Append the constraint array.
-    append!(con(wm, n, :on_off_short_pipe_flow_ne, a), [c_1, c_2, c_3, c_4, c_5, c_6])
+    append!(con(wm, n, :short_pipe_flow_ne, a), [c_1, c_2, c_3, c_4, c_5, c_6])
 end
 
 

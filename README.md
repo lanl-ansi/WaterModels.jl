@@ -12,6 +12,7 @@ This decoupling enables the definition of a wide variety of optimization formula
 * Water Flow (`wf` and `mn_wf`) - obtain feasible flows and heads for a network
 * Optimal Water Flow (`owf` and `mn_owf`) - minimize the cost of network operation
 * Network Design (`des`) - minimize the cost of network design
+* Network Expansion (`ne`) - minimize the cost of network expansion
 
 **Core Network Formulations**
 * NC - nonconvex nonlinear formulation

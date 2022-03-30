@@ -353,6 +353,29 @@ function variable_pump_indicator(wm::AbstractWaterModel; nw::Int=nw_id_default, 
 end
 
 
+"Creates binary variables for all network expansion short pipes in the network, i.e.,
+`z_ne_short_pipe[a]` for `a` in `ne_short_pipe`, where one denotes that the short pipe is
+selected for expansion (i.e., built), and zero indicates that it is not selected."
+function variable_ne_short_pipe_indicator(wm::AbstractWaterModel; nw::Int=nw_id_default, relax::Bool=false, report::Bool=true)
+    if !relax
+        z_ne_short_pipe = var(wm, nw)[:z_ne_short_pipe] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :ne_short_pipe)], base_name = "$(nw)_z_ne_short_pipe", binary = true,
+            start = comp_start_value(ref(wm, nw, :ne_short_pipe, a), "z_ne_short_pipe_start", 1.0))
+    else
+        z_ne_short_pipe = var(wm, nw)[:z_ne_short_pipe] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :ne_short_pipe)], base_name = "$(nw)_z_ne_short_pipe",
+            lower_bound = 0.0, upper_bound = 1.0,
+            start = comp_start_value(ref(wm, nw, :ne_short_pipe, a), "z_ne_short_pipe_start", 1.0))
+    end
+
+    for (a, ne_short_pipe) in ref(wm, nw, :ne_short_pipe)
+        _fix_indicator_variable(z_ne_short_pipe[a], ne_short_pipe, "z")
+    end
+
+    report && sol_component_value(wm, nw, :ne_short_pipe, :status, ids(wm, nw, :ne_short_pipe), z_ne_short_pipe)
+end
+
+
 ""
 function variable_pump_switch_on(wm::AbstractWaterModel; nw::Int=nw_id_default, relax::Bool=false, report::Bool=true)
     if !relax

@@ -70,6 +70,40 @@ end
 
 
 """
+    objective_ne(wm::AbstractWaterModel)::JuMP.AffExpr
+
+Sets the objective function for [Network Expansion (ne)](@ref) problem specifications. The
+cost of building and operating all network expansion components is minimized.
+"""
+function objective_ne(wm::AbstractWaterModel)::JuMP.AffExpr
+    # Get all network IDs in the multinetwork.
+    network_ids = sort(collect(nw_ids(wm)))
+    
+    # Find the network IDs over which the objective will be defined.
+    if length(network_ids) > 1
+        network_ids_status = network_ids[1:end-1]
+    else
+        network_ids_status = network_ids
+    end    
+    
+    # Initialize the objective expression to zero.
+    objective = JuMP.AffExpr(0.0)
+
+    for n in network_ids_status
+        # Get the set of network expansion short pipes at time index `n`.
+        for (a, ne_short_pipe) in ref(wm, n, :ne_short_pipe)
+            # Add the cost of network expansion component `a` at time period `n`.
+            term = ne_short_pipe["construction_cost"] * var(wm, n, :z_ne_short_pipe, a)
+            JuMP.add_to_expression!(objective, term)
+        end
+    end
+
+    # Minimize the total cost of network expansion.
+    return JuMP.@objective(wm.model, JuMP.MIN_SENSE, objective)
+end
+
+
+"""
     objective_owf(wm::AbstractWaterModel)::JuMP.AffExpr
 
 Sets the objective function for [Optimal Water Flow (OWF)](@ref) and [Multinetwork Optimal
