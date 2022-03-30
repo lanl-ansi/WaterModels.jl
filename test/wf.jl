@@ -98,6 +98,19 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             @test result["solution"]["node"]["2"]["h"] > t_h(10.0)
         end
 
+        @testset "Head Gain (Pump), Fix Pump Flow to Zero: $(formulation)" begin
+            network = WaterModels.parse_file("../test/data/epanet/snapshot/pump-hw-lps.inp")
+            network["pump"]["1"]["flow_min_forward"] = 0.0
+            network["pump"]["1"]["flow_min"], network["pump"]["1"]["flow_max"] = 0.0, 0.0
+            t_h = WaterModels._calc_head_per_unit_transform(network)
+            t_q = WaterModels._calc_flow_per_unit_transform(network)
+            set_flow_partitions_si!(network, 10.0, 1.0e-4)
+
+            wm = instantiate_model(network, formulation, build_wf)
+            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, nlp_solver, milp_solver))
+            @test !_is_valid_status(result["termination_status"])
+        end
+
         @testset "Hazen-Williams Head Loss (Tank): $(formulation)" begin
             network = parse_file("../test/data/epanet/snapshot/tank-hw-lps.inp")
             t_h = WaterModels._calc_head_per_unit_transform(network)
@@ -251,7 +264,9 @@ end
         network = WaterModels.parse_file("../test/data/epanet/multinetwork/pipe-hw-lps.inp")
         network_mn = WaterModels.make_multinetwork(network)
         set_flow_partitions_si!(network_mn, 10.0, 1.0e-4)
+
         result = WaterModels.solve_mn_wf(network_mn, LRDWaterModel, milp_solver)
+        result = WaterModels.run_mn_wf(network_mn, LRDWaterModel, milp_solver)
         @test _is_valid_status(result["termination_status"])
     end
 
@@ -259,7 +274,9 @@ end
         network = WaterModels.parse_file("../test/data/epanet/snapshot/pipe-hw-lps.inp")
         network_mn = WaterModels.make_multinetwork(network)
         set_flow_partitions_si!(network_mn, 10.0, 1.0e-4)
+
         result = WaterModels.solve_mn_wf(network_mn, LRDWaterModel, milp_solver)
+        result = WaterModels.run_mn_wf(network_mn, LRDWaterModel, milp_solver)
         @test _is_valid_status(result["termination_status"])
     end
 end

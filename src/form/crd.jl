@@ -6,8 +6,17 @@
 
 
 function constraint_pipe_head_loss(
-    wm::AbstractCRDModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
-    L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
+    wm::AbstractCRDModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    exponent::Float64,
+    L::Float64,
+    r::Float64,
+    q_max_reverse::Float64,
+    q_min_forward::Float64,
+)
     # Gather directed flow and head difference variables.
     y = var(wm, n, :y_pipe, a)
     qp, qn = var(wm, n, :qp_pipe, a), var(wm, n, :qn_pipe, a)
@@ -55,8 +64,17 @@ end
 
 
 function constraint_on_off_des_pipe_head_loss(
-    wm::AbstractCRDModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
-    L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
+    wm::AbstractCRDModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    exponent::Float64,
+    L::Float64,
+    r::Float64,
+    q_max_reverse::Float64,
+    q_min_forward::Float64,
+)
     # Gather directed flow and head difference variables.
     qp, qn = var(wm, n, :qp_des_pipe, a), var(wm, n, :qn_des_pipe, a)
     dhp, dhn = var(wm, n, :dhp_des_pipe, a), var(wm, n, :dhn_des_pipe, a)
@@ -79,7 +97,14 @@ end
 ########################################## PUMPS ##########################################
 
 
-function constraint_on_off_pump_head_gain(wm::AbstractCRDModel, n::Int, a::Int, node_fr::Int, node_to::Int, q_min_forward::Float64)
+function constraint_on_off_pump_head_gain(
+    wm::AbstractCRDModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    q_min_forward::Float64,
+)
     # Gather pump flow, head gain, and status variables.
     qp, g, z = var(wm, n, :qp_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
 
@@ -87,25 +112,30 @@ function constraint_on_off_pump_head_gain(wm::AbstractCRDModel, n::Int, a::Int, 
     head_curve_func_z = _calc_head_curve_function(ref(wm, n, :pump, a), z)
     c_1 = JuMP.@constraint(wm.model, g <= head_curve_func_z(qp))
 
-	 # Append the :on_off_pump_head_gain constraint array.
-	 append!(con(wm, n, :on_off_pump_head_gain)[a], [c_1])
-    
+    # Append the :on_off_pump_head_gain constraint array.
+    append!(con(wm, n, :on_off_pump_head_gain)[a], [c_1])
+
     # Add a constraint that lower-bounds the head gain variable.
     head_curve_func = _calc_head_curve_function(ref(wm, n, :pump, a))
     qp_ub, qp_lb = JuMP.upper_bound(qp), q_min_forward
     f_1, f_2 = head_curve_func(q_min_forward), head_curve_func(JuMP.upper_bound(qp))
 
     if qp_ub > qp_lb
-		 gain_lb_expr = (f_2 - f_1) / (qp_ub - qp_lb) * (qp - qp_lb * z) + f_1 * z
-		 c_2 = JuMP.@constraint(wm.model, gain_lb_expr <= g)
+        gain_lb_expr = (f_2 - f_1) / (qp_ub - qp_lb) * (qp - qp_lb * z) + f_1 * z
+        c_2 = JuMP.@constraint(wm.model, gain_lb_expr <= g)
 
-		 # Append the :on_off_pump_head_gain constraint array.
-		 append!(con(wm, n, :on_off_pump_head_gain)[a], [c_2])
+        # Append the :on_off_pump_head_gain constraint array.
+        append!(con(wm, n, :on_off_pump_head_gain)[a], [c_2])
     end
 end
 
 
-function constraint_on_off_pump_power(wm::AbstractCRDModel, n::Int, a::Int, q_min_forward::Float64)
+function constraint_on_off_pump_power(
+    wm::AbstractCRDModel,
+    n::Int,
+    a::Int,
+    q_min_forward::Float64,
+)
     # Gather pump flow, power, and status variables.
     q, P, z = var(wm, n, :qp_pump, a), var(wm, n, :P_pump, a), var(wm, n, :z_pump, a)
 
