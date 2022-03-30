@@ -12,6 +12,18 @@ function run_des(args...; kwargs...)
 end
 
 
+function run_mdd(args...; kwargs...)
+    @warn("`run_mdd` has been replaced with `solve_mdd`", maxlog = 1)
+    solve_mdd(args...; kwargs...)
+end
+
+
+function run_mn_mdd(args...; kwargs...)
+    @warn("`run_mn_mdd` has been replaced with `solve_mn_mdd`", maxlog = 1)
+    solve_mn_mdd(args...; kwargs...)
+end
+
+
 function run_wf(args...; kwargs...)
     @warn("`run_wf` has been replaced with `solve_wf`", maxlog = 1)
     solve_wf(args...; kwargs...)
