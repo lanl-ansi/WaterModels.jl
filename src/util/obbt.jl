@@ -69,9 +69,9 @@ function _solve_bound_problem!(wm::AbstractWaterModel, bound_problem::BoundProbl
     end
 
     # Update the candidate if it's for a discrete variable.
-    if var_is_discrete && bound_problem.sense === JuMP.MOI.MIN_SENSE
+    if var_is_discrete && bound_problem.sense === JuMP.MIN_SENSE
         candidate = candidate > 0.01 ? 1.0 : candidate
-    elseif var_is_discrete && bound_problem.sense === JuMP.MOI.MAX_SENSE
+    elseif var_is_discrete && bound_problem.sense === JuMP.MAX_SENSE
         candidate = candidate < 0.99 ? 0.0 : candidate
     end
 
@@ -79,9 +79,9 @@ function _solve_bound_problem!(wm::AbstractWaterModel, bound_problem::BoundProbl
     _unfix_indicator.(v_one), _unfix_indicator.(v_zero)
 
     # Return the better of the old and new bounds.
-    if bound_problem.sense === JuMP.MOI.MIN_SENSE
+    if bound_problem.sense === JuMP.MIN_SENSE
         return max(bound_problem.bound, candidate)
-    elseif bound_problem.sense === JuMP.MOI.MAX_SENSE
+    elseif bound_problem.sense === JuMP.MAX_SENSE
         return min(bound_problem.bound, candidate)
     end
 end
@@ -91,7 +91,7 @@ function _set_new_bound!(bound_problem::BoundProblem, candidate::Float64)
     prec = bound_problem.precision
     num_digits = Int(ceil(-log10(prec)))
  
-    if bound_problem.sense === JuMP.MOI.MIN_SENSE
+    if bound_problem.sense === JuMP.MIN_SENSE
         scaled_candidate = floor(candidate; digits = num_digits)
 
         if scaled_candidate > bound_problem.bound
@@ -258,11 +258,11 @@ function _clean_bound_problems(problems::Vector{BoundProblem}, vals::Vector{Floa
         # If the variable of interest is a model binary variable.
         if any(occursin.(["x_", "y_", "z_"], string(vid.variable_symbol)))
             # If the variable can now be fixed to one, append it to the list.
-            is_fixed_to_one = vals[i] == 1.0 && problem.sense === JuMP.MOI.MIN_SENSE
+            is_fixed_to_one = vals[i] == 1.0 && problem.sense === JuMP.MIN_SENSE
             is_fixed_to_one && (append!(fixed_one_vars, [vid]))
 
             # If the variable can now be fixed to zero, append it to the list.
-            is_fixed_to_zero = vals[i] == 0.0 && problem.sense === JuMP.MOI.MAX_SENSE
+            is_fixed_to_zero = vals[i] == 0.0 && problem.sense === JuMP.MAX_SENSE
             is_fixed_to_zero && (append!(fixed_zero_vars, [vid]))
         end
     end

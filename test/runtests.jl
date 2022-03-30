@@ -1,6 +1,6 @@
 using WaterModels
 
-import Cbc
+import HiGHS
 import JuMP
 import JSON
 import Ipopt
@@ -19,11 +19,11 @@ Logging.disable_logging(Logging.Info)
 
 using Test
 
-# Default MIP optimizer.
-cbc = JuMP.optimizer_with_attributes(Cbc.Optimizer, "logLevel" => 0)
+# Default MIP optimizer
+milp_solver = JuMP.optimizer_with_attributes(HiGHS.Optimizer, "output_flag" => false)
 
 # Default NLP optimizer.
-ipopt = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "tol" => 1.0e-6, "print_level" => 0, "sb" => "yes")
+nlp_solver = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "tol" => 1.0e-6, "print_level" => 0, "sb" => "yes")
 
 include("common.jl")
 

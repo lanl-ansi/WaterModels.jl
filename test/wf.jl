@@ -10,7 +10,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
                 set_flow_partitions_si!(network, 10.0, 1.0e-4)
 
                 wm = instantiate_model(network, formulation, build_wf)
-                result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
+                result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, nlp_solver, milp_solver))
 
                 @test _is_valid_status(result["termination_status"])
                 @test isapprox(result["solution"]["node"]["1"]["h"], t_h(10.0), rtol = 1.0e-4)
@@ -26,7 +26,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             set_flow_partitions_si!(network, 10.0, 1.0e-4)
 
             wm = instantiate_model(network, formulation, build_wf)
-            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
+            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, nlp_solver, milp_solver))
 
             @test _is_valid_status(result["termination_status"])
             @test isapprox(result["solution"]["node"]["1"]["h"], t_h(10.0), rtol = 1.0e-4)
@@ -42,7 +42,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             set_flow_partitions_si!(network, 10.0, 1.0e-4)
 
             wm = instantiate_model(network, formulation, build_wf)
-            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
+            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, nlp_solver, milp_solver))
 
             @test _is_valid_status(result["termination_status"])
             @test isapprox(result["solution"]["node"]["1"]["h"], t_h(10.0), rtol = 1.0e-4)
@@ -59,7 +59,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             set_flow_partitions_si!(network, 10.0, 1.0e-4)
 
             wm = instantiate_model(network, formulation, build_wf)
-            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
+            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, nlp_solver, milp_solver))
 
             @test _is_valid_status(result["termination_status"])
             @test isapprox(result["solution"]["node"]["1"]["h"], t_h(10.0), rtol = 1.0e-4)
@@ -75,7 +75,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             set_flow_partitions_si!(network, 10.0, 1.0e-4)
 
             wm = instantiate_model(network, formulation, build_wf)
-            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
+            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, nlp_solver, milp_solver))
 
             @test _is_valid_status(result["termination_status"])
             @test isapprox(result["solution"]["node"]["1"]["h"], t_h(10.0), rtol = 1.0e-4)
@@ -90,7 +90,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             set_flow_partitions_si!(network, 10.0, 1.0e-4)
 
             wm = instantiate_model(network, formulation, build_wf)
-            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
+            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, nlp_solver, milp_solver))
 
             @test _is_valid_status(result["termination_status"])
             @test isapprox(result["solution"]["node"]["1"]["h"], t_h(10.0), rtol = 1.0e-3)
@@ -105,7 +105,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             set_flow_partitions_si!(network, 10.0, 1.0e-4)
 
             wm = instantiate_model(network, formulation, build_wf)
-            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
+            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, nlp_solver, milp_solver))
 
             @test _is_valid_status(result["termination_status"])
             @test isapprox(result["solution"]["node"]["1"]["h"], t_h(20.0), rtol = 1.0e-3)
@@ -125,7 +125,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
                 set_flow_partitions_si!(network, 10.0, 1.0e-4)
 
                 wm = instantiate_model(network, formulation, build_mn_wf)
-                result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
+                result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, nlp_solver, milp_solver))
 
                 @test _is_valid_status(result["termination_status"])
                 @test isapprox(result["solution"]["nw"]["2"]["node"]["1"]["h"], t_h(10.0), rtol=1.0e-3)
@@ -146,7 +146,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             set_flow_partitions_si!(network, 10.0, 1.0e-4)
 
             wm = instantiate_model(network, formulation, build_mn_wf)
-            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
+            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, nlp_solver, milp_solver))
 
             @test _is_valid_status(result["termination_status"])
             @test isapprox(result["solution"]["nw"]["1"]["node"]["1"]["h"], t_h(10.0), rtol = 1.0e-3)
@@ -163,7 +163,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             set_flow_partitions_si!(network, 10.0, 1.0e-4)
 
             wm = instantiate_model(network, formulation, build_mn_wf)
-            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
+            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, nlp_solver, milp_solver))
 
             @test _is_valid_status(result["termination_status"])
             @test isapprox(result["solution"]["nw"]["1"]["node"]["2"]["h"], t_h(2.38), rtol = 2.5e-1)
@@ -187,7 +187,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             set_flow_partitions_si!(network, 10.0, 1.0e-4)
 
             wm = instantiate_model(network, formulation, build_mn_wf)
-            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
+            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, nlp_solver, milp_solver))
 
             @test _is_valid_status(result["termination_status"])
             @test isapprox(result["solution"]["nw"]["1"]["node"]["2"]["h"], t_h(10.0), rtol = 1.0e-3)
@@ -204,7 +204,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             set_flow_partitions_si!(network, 10.0, 1.0e-4)
 
             wm = instantiate_model(network, formulation, build_mn_wf)
-            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
+            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, nlp_solver, milp_solver))
 
             @test _is_valid_status(result["termination_status"])
             @test isapprox(result["solution"]["nw"]["1"]["pump"]["1"]["q"], t_q(0.125), rtol = 1.0e-3)
@@ -222,7 +222,7 @@ for formulation in [NCWaterModel, NCDWaterModel, CRDWaterModel, LAWaterModel, LR
             set_flow_partitions_si!(network, 10.0, 1.0e-4)
 
             wm = instantiate_model(network, formulation, build_mn_wf)
-            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, ipopt, cbc))
+            result = WaterModels.optimize_model!(wm, optimizer = _choose_solver(wm, nlp_solver, milp_solver))
 
             @test _is_valid_status(result["termination_status"])
             @test isapprox(result["solution"]["nw"]["1"]["node"]["1"]["h"], t_h(60.00), rtol = 1.0e-3)
@@ -240,8 +240,8 @@ end
     network = WaterModels.parse_file("../test/data/epanet/snapshot/pipe-hw-lps.inp")
     set_flow_partitions_si!(network, 10.0, 1.0e-4)
     
-    result = WaterModels.solve_wf(network, LRDWaterModel, cbc)
-    result = WaterModels.run_wf(network, LRDWaterModel, cbc)
+    result = WaterModels.solve_wf(network, LRDWaterModel, milp_solver)
+    result = WaterModels.run_wf(network, LRDWaterModel, milp_solver)
     @test _is_valid_status(result["termination_status"])
 end
 
@@ -251,8 +251,8 @@ end
     network_mn = WaterModels.make_multinetwork(network)
     set_flow_partitions_si!(network_mn, 10.0, 1.0e-4)
 
-    result = WaterModels.solve_mn_wf(network_mn, LRDWaterModel, cbc)
-    result = WaterModels.run_mn_wf(network_mn, LRDWaterModel, cbc)
+    result = WaterModels.solve_mn_wf(network_mn, LRDWaterModel, milp_solver)
+    result = WaterModels.run_mn_wf(network_mn, LRDWaterModel, milp_solver)
     @test _is_valid_status(result["termination_status"])
 end
 
@@ -262,8 +262,8 @@ end
     network_mn = WaterModels.make_multinetwork(network)
     set_flow_partitions_si!(network_mn, 10.0, 1.0e-4)
 
-    result = WaterModels.solve_mn_wf_switching(network_mn, LRDWaterModel, cbc)
-    result = WaterModels.run_mn_wf_switching(network_mn, LRDWaterModel, cbc)
+    result = WaterModels.solve_mn_wf_switching(network_mn, LRDWaterModel, milp_solver)
+    result = WaterModels.run_mn_wf_switching(network_mn, LRDWaterModel, milp_solver)
     @test _is_valid_status(result["termination_status"])
 end
 
@@ -275,7 +275,7 @@ end
     WaterModels.correct_network_data!(network)
 
     set_flow_partitions_si!(network, 10.0, 1.0e-4)
-    result = WaterModels.solve_wf(network, LRDWaterModel, cbc)
+    result = WaterModels.solve_wf(network, LRDWaterModel, milp_solver)
     @test _is_valid_status(result["termination_status"])
 end
 
@@ -288,6 +288,6 @@ end
     network_mn = WaterModels.make_multinetwork(network)
     set_flow_partitions_si!(network_mn, 10.0, 1.0e-4)
 
-    result = WaterModels.solve_mn_wf(network_mn, LRDWaterModel, cbc)
+    result = WaterModels.solve_mn_wf(network_mn, LRDWaterModel, milp_solver)
     @test _is_valid_status(result["termination_status"])
 end

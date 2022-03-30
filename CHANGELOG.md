@@ -1,8 +1,18 @@
-WaterModels.jl Change Log
-=========================
+# WaterModels.jl Changelog
+
+### v0.9.1
+- Add support for JuMP v1.0.
 
 ### v0.9.0
-- Remove MathOptInterface dependency in support of JuMP 0.22.
+- Remove design constraints from multinetwork problem specifications.
+- Rename `run_` methods to `_solve` and add deprecation warnings.
+- Add `per_unit` option to `parse_file`.
+- Update to InfrastructureModels v0.7.
+- Update to JuMP v0.22 and v0.23.
+- Increase Julia lower bound to v1.6.
+- Drop dependency on MathOptInterface.
+- Replace CBC with HiGHS in tests.
+- Replace uses of `Int64` with `Int` for portability.
 
 ### v0.8.0
 - Remove the convention of defining the _number_ of flow partitioning points for parameterizing linearized formulations.

@@ -42,13 +42,25 @@
         @test length(ref(wm, :pipe)) == 1
     end
 
+    @testset "run_model (with file path input)" begin
+        result = run_model(
+            network_path,
+            NCWaterModel,
+            nlp_solver,
+            build_wf;
+            relax_integrality = true,
+        )
+
+        @test _is_valid_status(result["termination_status"])
+    end
+
     @testset "solve_model (with non-matching multinetwork)" begin
         data, type = parse_file(network_path), NCWaterModel
 
         @test_throws ErrorException solve_model(
             data,
             type,
-            ipopt,
+            nlp_solver,
             build_wf;
             multinetwork = true,
             relax_integrality = true,
@@ -59,7 +71,7 @@
         result = solve_model(
             network_path,
             NCWaterModel,
-            ipopt,
+            nlp_solver,
             build_wf;
             relax_integrality = true,
         )
@@ -71,7 +83,7 @@
         result = solve_model(
             parse_file(network_path),
             NCWaterModel,
-            ipopt,
+            nlp_solver,
             build_wf;
             relax_integrality = true,
         )
@@ -86,19 +98,18 @@
 
     @testset "nw_ids helper function" begin
         wm = instantiate_model(network_path, NCWaterModel, build_wf)
-        @test Vector{Int64}(collect(nw_ids(wm))) == Vector{Int64}([_IM.nw_id_default])
+        @test Vector{Int}(collect(nw_ids(wm))) == Vector{Int}([_IM.nw_id_default])
     end
 
     @testset "nws helper function" begin
         wm = instantiate_model(network_path, NCWaterModel, build_wf)
-        @test Vector{Int64}(collect(keys(nws(wm)))) == Vector{Int64}([_IM.nw_id_default])
+        @test Vector{Int}(collect(keys(nws(wm)))) == Vector{Int}([_IM.nw_id_default])
     end
 
     @testset "ids helper functions" begin
         wm = instantiate_model(network_path, NCWaterModel, build_wf)
-        @test Vector{Int64}(collect(ids(wm, _IM.nw_id_default, :pipe))) ==
-              Vector{Int64}([1])
-        @test Vector{Int64}(collect(ids(wm, :pipe))) == Vector{Int64}([1])
+        @test Vector{Int}(collect(ids(wm, _IM.nw_id_default, :pipe))) == Vector{Int}([1])
+        @test Vector{Int}(collect(ids(wm, :pipe))) == Vector{Int}([1])
     end
 
     @testset "ref helper functions" begin
