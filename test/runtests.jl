@@ -49,6 +49,8 @@ include("common.jl")
 
     include("data.jl")
 
+    include("variable.jl")
+
     include("io.jl")
 
     include("wf.jl")

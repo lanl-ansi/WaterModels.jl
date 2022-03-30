@@ -425,9 +425,5 @@ function _fix_indicator_variable(v::JuMP.VariableRef, component::Dict{String, <:
         JuMP.fix(v, 1.0; force = true)
     elseif haskey(component, max_name) && component[max_name] < 0.99
         JuMP.fix(v, 0.0; force = true)
-    elseif haskey(component, min_name) && haskey(component, max_name)
-        if component[min_name] == component[max_name]
-            JuMP.fix(v, component[min_name])
-        end
     end
 end

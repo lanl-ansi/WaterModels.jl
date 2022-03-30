@@ -9,6 +9,12 @@ function _choose_solver(wm::AbstractWaterModel, nl_solver::JuMP.MOI.OptimizerWit
     end
 end
 
+
+function _build_null_model(wm::AbstractWaterModel)
+    # No model variables or constraints will be added.
+end
+
+
 function _is_valid_status(status::JuMP.TerminationStatusCode)
     return status in [OPTIMAL, LOCALLY_SOLVED, ALMOST_LOCALLY_SOLVED]
 end

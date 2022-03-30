@@ -247,13 +247,21 @@ end
 
 
 @testset "solve_mn_wf" begin
-    network = WaterModels.parse_file("../test/data/epanet/multinetwork/pipe-hw-lps.inp")
-    network_mn = WaterModels.make_multinetwork(network)
-    set_flow_partitions_si!(network_mn, 10.0, 1.0e-4)
+    @testset "multinetwork data" begin
+        network = WaterModels.parse_file("../test/data/epanet/multinetwork/pipe-hw-lps.inp")
+        network_mn = WaterModels.make_multinetwork(network)
+        set_flow_partitions_si!(network_mn, 10.0, 1.0e-4)
+        result = WaterModels.solve_mn_wf(network_mn, LRDWaterModel, milp_solver)
+        @test _is_valid_status(result["termination_status"])
+    end
 
-    result = WaterModels.solve_mn_wf(network_mn, LRDWaterModel, milp_solver)
-    result = WaterModels.run_mn_wf(network_mn, LRDWaterModel, milp_solver)
-    @test _is_valid_status(result["termination_status"])
+    @testset "single network data" begin
+        network = WaterModels.parse_file("../test/data/epanet/snapshot/pipe-hw-lps.inp")
+        network_mn = WaterModels.make_multinetwork(network)
+        set_flow_partitions_si!(network_mn, 10.0, 1.0e-4)
+        result = WaterModels.solve_mn_wf(network_mn, LRDWaterModel, milp_solver)
+        @test _is_valid_status(result["termination_status"])
+    end
 end
 
 
