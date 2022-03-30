@@ -7,7 +7,7 @@ function variable_flow(
     bounded::Bool = true,
     report::Bool = true,
 )
-    for name in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
+    for name in _LINK_COMPONENTS
         # Create flow variables for each node-connecting component.
         _variable_component_flow(wm, name; nw = nw, bounded = bounded, report = report)
     end

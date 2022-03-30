@@ -107,6 +107,9 @@ function parse_epanet(filename::String)
     # Set up a dictionary containing short pipe objects.
     epanet_data["short_pipe"] = Dict{String,Any}()
 
+    # Set up a dictionary containing expansion short pipe objects.
+    epanet_data["ne_short_pipe"] = Dict{String,Any}()
+
     # Set up a dictionary containing design pipe objects.
     epanet_data["des_pipe"] = Dict{String,Any}()
 
@@ -1218,8 +1221,7 @@ end
 
 
 function _get_max_link_id(data::Dict{String,<:Any})
-    arc_types = ["pipe", "pump", "regulator", "short_pipe", "valve"]
-    return maximum(maximum([x["index"] for (i, x) in data[t]]) for t in arc_types)
+    return maximum(maximum([x["index"] for (i, x) in data[t]]) for t in _LINK_COMPONENTS)
 end
 
 

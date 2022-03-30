@@ -18,7 +18,7 @@ function variable_flow(
     bounded::Bool = true,
     report::Bool = true,
 )
-    for name in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
+    for name in _LINK_COMPONENTS
         # Create undirected flow variables for each component.
         _variable_component_flow(wm, name; nw = nw, bounded = bounded, report = report)
     end
@@ -416,6 +416,30 @@ function constraint_short_pipe_flow(
 end
 
 
+function constraint_short_pipe_flow_ne(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    q_max_reverse::Float64,
+    q_min_forward::Float64,
+)
+    # Get flow and status variables for the short pipe.
+    q = var(wm, n, :q_ne_short_pipe)
+    z = var(wm, n, :z_ne_short_pipe)
+
+    # Get lower and upper bounds for the expansion short pipe's flow.
+    q_lb = JuMP.lower_bound(q)
+    q_ub = JuMP.upper_bound(q)
+
+    # Add constraints limiting the flow based on expansion status.
+    c_1 = JuMP.@constraint(wm.model, q <= q_ub * z)
+    c_2 = JuMP.@constraint(wm.model, q >= q_lb * z)
+
+    # Append the constraint array.
+    append!(con(wm, n, :short_pipe_flow_ne, a), [c_1, c_2])
+end
+
+
 function constraint_short_pipe_head(
     wm::AbstractNCModel,
     n::Int,
@@ -434,6 +458,32 @@ function constraint_short_pipe_head(
 end
 
 
+function constraint_short_pipe_head_ne(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+)
+    # Get expansion shot pipe status variable.
+    z = var(wm, n, :z_ne_short_pipe, a)
+
+    # Get head variables for from and to nodes.
+    h_i, h_j = var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
+
+    # When the short pipe is constructed, negative head loss is not possible.
+    dh_lb = JuMP.lower_bound(h_i) - JuMP.upper_bound(h_j)
+    c_1 = JuMP.@constraint(wm.model, h_i - h_j >= (1.0 - z) * dh_lb)
+
+    # When the short pipe is constructed, positive head loss is not possible.
+    dh_ub = JuMP.upper_bound(h_i) - JuMP.lower_bound(h_j)
+    c_2 = JuMP.@constraint(wm.model, h_i - h_j <= (1.0 - z) * dh_ub)
+
+    # Append the constraint array.
+    append!(con(wm, n, :on_off_short_pipe_head_ne, a), [c_1, c_2])
+end
+
+
 function constraint_intermediate_directionality(
     wm::AbstractNCModel,
     n::Int,
@@ -448,6 +498,8 @@ function constraint_intermediate_directionality(
     regulator_to::Vector{Int},
     short_pipe_fr::Vector{Int},
     short_pipe_to::Vector{Int},
+    ne_short_pipe_fr::Vector{Int},
+    ne_short_pipe_to::Vector{Int},
     valve_fr::Vector{Int},
     valve_to::Vector{Int},
 )
@@ -469,6 +521,8 @@ function constraint_sink_directionality(
     regulator_to::Vector{Int},
     short_pipe_fr::Vector{Int},
     short_pipe_to::Vector{Int},
+    ne_short_pipe_fr::Vector{Int},
+    ne_short_pipe_to::Vector{Int},
     valve_fr::Vector{Int},
     valve_to::Vector{Int},
 )
@@ -490,6 +544,8 @@ function constraint_source_directionality(
     regulator_to::Vector{Int},
     short_pipe_fr::Vector{Int},
     short_pipe_to::Vector{Int},
+    ne_short_pipe_fr::Vector{Int},
+    ne_short_pipe_to::Vector{Int},
     valve_fr::Vector{Int},
     valve_to::Vector{Int},
 )

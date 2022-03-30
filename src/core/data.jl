@@ -367,8 +367,9 @@ function _calc_median_abs_flow_midpoint(data::Dict{String,<:Any})
     q_pump = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["pump"]]
     q_regulator = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["regulator"]]
     q_short_pipe = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["short_pipe"]]
+    q_ne_short_pipe = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["ne_short_pipe"]]
     q_valve = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["valve"]]
-    q = vcat(q_des_pipe, q_pipe, q_pump, q_regulator, q_short_pipe, q_valve)
+    q = vcat(q_des_pipe, q_pipe, q_pump, q_regulator, q_short_pipe, q_ne_short_pipe, q_valve)
 
     # Calculate the median of all values computed above.
     q_median = Statistics.median(q)
@@ -538,7 +539,7 @@ function make_single_network(data::Dict{String, <:Any})
     nw_1_str = string(nws[1])
 
     for comp_type in ["tank", "regulator", "pump", "des_pipe", "pump_group", "demand",
-        "tank_group", "reservoir", "node", "short_pipe", "valve", "pipe"]
+        "tank_group", "reservoir", "node", "short_pipe", "ne_short_pipe", "valve", "pipe"]
         if !haskey(data_s["nw"][nw_1_str], comp_type)
             continue
         end
@@ -619,6 +620,7 @@ function _set_flow_start!(data::Dict{String,<:Any})
     set_start!(data, "pump", "q", "q_pump_start")
     set_start!(data, "regulator", "q", "q_regulator_start")
     set_start!(data, "short_pipe", "q", "q_short_pipe_start")
+    set_start!(data, "ne_short_pipe", "q", "q_ne_short_pipe_start")
     set_start!(data, "valve", "q", "q_valve_start")
     set_start!(data, "reservoir", "q", "q_reservoir_start")
     set_start!(data, "tank", "q", "q_tank_start")
@@ -635,6 +637,7 @@ function _set_flow_direction_start!(data::Dict{String,<:Any})
     set_direction_start_from_flow!(data, "pump", "q", "y_pump_start")
     set_direction_start_from_flow!(data, "regulator", "q", "y_regulator_start")
     set_direction_start_from_flow!(data, "short_pipe", "q", "y_short_pipe_start")
+    set_direction_start_from_flow!(data, "ne_short_pipe", "q", "y_ne_short_pipe_start")
     set_direction_start_from_flow!(data, "valve", "q", "y_valve_start")
 end
 
@@ -683,6 +686,7 @@ end
 function _fix_all_flow_directions!(data::Dict{String,<:Any})
     _fix_flow_directions!(data, "pipe")
     _fix_flow_directions!(data, "short_pipe")
+    _fix_flow_directions!(data, "ne_short_pipe")
     _fix_flow_directions!(data, "pump")
     _fix_flow_directions!(data, "regulator")
     _fix_flow_directions!(data, "valve")
@@ -906,7 +910,7 @@ end
 function _make_per_unit_flows!(data::Dict{String,<:Any}, transform_flow::Function)
     wm_data = get_wm_data(data)
 
-    for type in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
+    for type in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "ne_short_pipe", "valve"]
         map(x -> _transform_flows!(x, transform_flow), values(wm_data[type]))
 
         if haskey(wm_data, "time_series") && haskey(wm_data["time_series"], type)
@@ -1103,6 +1107,7 @@ function _set_warm_start!(data::Dict{String, <:Any})
     _set_pipe_warm_start!(data)
     _set_pump_warm_start!(data)
     _set_short_pipe_warm_start!(data)
+    _set_ne_short_pipe_warm_start!(data)
     _set_valve_warm_start!(data)
 end
 
@@ -1216,6 +1221,14 @@ function _propagate_topology_status!(data::Dict{String,<:Any})
         push!(incident_short_pipe[short_pipe["node_to"]], short_pipe)
     end
 
+    # Compute what active network expansion short pipes are incident to each node.
+    incident_ne_short_pipe = Dict{Int, Any}(node["index"] => [] for (i, node) in data["node"])
+
+    for ne_short_pipe in values(data["ne_short_pipe"])
+        push!(incident_ne_short_pipe[ne_short_pipe["node_fr"]], ne_short_pipe)
+        push!(incident_ne_short_pipe[ne_short_pipe["node_to"]], ne_short_pipe)
+    end
+
     # Compute what active valves are incident to each node.
     incident_valve = Dict{Int, Any}(node["index"] => [] for (i, node) in data["node"])
 
@@ -1226,7 +1239,7 @@ function _propagate_topology_status!(data::Dict{String,<:Any})
 
     revised = false
 
-    for comp_type in ["pipe", "des_pipe", "pump", "regulator", "short_pipe", "valve"]
+    for comp_type in _LINK_COMPONENTS
         for (i, comp) in data[comp_type]
             if comp["status"] != STATUS_INACTIVE
                 node_fr = nodes[comp["node_fr"]]

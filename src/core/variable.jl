@@ -166,7 +166,7 @@ function variable_reservoir_flow(wm::AbstractWaterModel; nw::Int=nw_id_default, 
         for (i, reservoir) in ref(wm, nw, :reservoir)
             flow_min, flow_max = 0.0, 0.0
 
-            for name in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
+            for name in _LINK_COMPONENTS
                 edges_fr = ref(wm, nw, Symbol(name * "_fr"), reservoir["node"])
                 edges_to = ref(wm, nw, Symbol(name * "_to"), reservoir["node"])
 
@@ -206,7 +206,7 @@ function variable_demand_flow(wm::AbstractWaterModel; nw::Int=nw_id_default, bou
         for (i, demand) in ref(wm, nw, :dispatchable_demand)
             flow_min, flow_max = 0.0, 0.0
 
-            for name in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
+            for name in _LINK_COMPONENTS
                 edges_fr = ref(wm, nw, Symbol(name * "_fr"), demand["node"])
                 edges_to = ref(wm, nw, Symbol(name * "_to"), demand["node"])
 
@@ -251,7 +251,7 @@ function variable_tank_flow(wm::AbstractWaterModel; nw::Int=nw_id_default, bound
         for (i, tank) in ref(wm, nw, :tank)
             flow_min, flow_max = 0.0, 0.0
 
-            for name in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
+            for name in _LINK_COMPONENTS
                 edges_fr = ref(wm, nw, Symbol(name * "_fr"), tank["node"])
                 edges_to = ref(wm, nw, Symbol(name * "_to"), tank["node"])
 

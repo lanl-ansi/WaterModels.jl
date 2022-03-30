@@ -54,6 +54,7 @@ function _relax_all_direction_variables!(wm::AbstractWaterModel)
     _relax_variables_with_symbol!(wm, :y_pump)
     _relax_variables_with_symbol!(wm, :y_regulator)
     _relax_variables_with_symbol!(wm, :y_short_pipe)
+    _relax_variables_with_symbol!(wm, :y_ne_short_pipe)
     _relax_variables_with_symbol!(wm, :y_valve)
 end
 

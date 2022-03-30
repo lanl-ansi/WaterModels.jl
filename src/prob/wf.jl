@@ -85,6 +85,12 @@ function build_wf(wm::AbstractWaterModel)
         constraint_short_pipe_flow(wm, a)
     end
 
+    # Constraints on expansion short pipe flows and heads.
+    for (a, ne_short_pipe) in ref(wm, :ne_short_pipe)
+        constraint_short_pipe_head_ne(wm, a)
+        constraint_short_pipe_flow_ne(wm, a)
+    end
+
     # Constraints on tank volumes.
     for (i, tank) in ref(wm, :tank)
         # Set the initial tank volume.
@@ -173,6 +179,12 @@ function build_mn_wf(wm::AbstractWaterModel)
         for a in ids(wm, :short_pipe; nw=n)
             constraint_short_pipe_head(wm, a; nw=n)
             constraint_short_pipe_flow(wm, a; nw=n)
+        end
+
+        # Constraints on expansion short pipe flows and heads.
+        for a in ids(wm, :ne_short_pipe; nw=n)
+            constraint_short_pipe_head_ne(wm, a; nw=n)
+            constraint_short_pipe_flow_ne(wm, a; nw=n)
         end
 
         # Constraints on valve flows and heads.

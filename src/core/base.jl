@@ -186,11 +186,12 @@ also converts data types, filters deactivated components, and stores values that
 computed from systemwide analysis of the original input data. Some of the most important
 keys of this dictionary describe common network components, including:
 * `:pipe` -- the set of pipes,
-* `:des_pipe` -- the set of design pipes,
 * `:pump` -- the set of pumps,
 * `:regulator` -- the set of pressure regulating valves,
 * `:short_pipe` -- the set of short pipes,
 * `:valve` -- the set of gate and check valves,
+* `:des_pipe` -- the set of design pipes,
+* `:ne_short_pipe` -- the set of network expansion short pipes,
 * `:node` -- the set of nodes,
 * `:demand` -- the set of demands,
 * `:reservoir` -- the set of reservoirs,

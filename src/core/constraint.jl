@@ -6,8 +6,9 @@
 """
     constraint_flow_conservation(
         wm, n, i, pipe_fr, pipe_to, des_pipe_fr, des_pipe_to, pump_fr, pump_to,
-        regulator_fr, regulator_to, short_pipe_fr, short_pipe_to, valve_fr, valve_to,
-        reservoirs, tanks, dispatachable_demands, fixed_demand)
+        regulator_fr, regulator_to, short_pipe_fr, short_pipe_to, ne_short_pipe_fr,
+        ne_short_pipe_to, valve_fr, valve_to, reservoirs, tanks,
+        dispatachable_demands, fixed_demand)
 
 Adds a constraint that ensures flow conservation at a node in the network.
 """
@@ -15,16 +16,16 @@ function constraint_flow_conservation(
     wm::AbstractWaterModel, n::Int, i::Int, pipe_fr::Vector{Int},
     pipe_to::Vector{Int}, des_pipe_fr::Vector{Int}, des_pipe_to::Vector{Int},
     pump_fr::Vector{Int}, pump_to::Vector{Int}, regulator_fr::Vector{Int},
-    regulator_to::Vector{Int}, short_pipe_fr::Vector{Int},
-    short_pipe_to::Vector{Int}, valve_fr::Vector{Int}, valve_to::Vector{Int},
-    reservoirs::Vector{Int}, tanks::Vector{Int}, dispatchable_demands::Vector{Int},
-    fixed_demand::Float64)
+    regulator_to::Vector{Int}, short_pipe_fr::Vector{Int}, short_pipe_to::Vector{Int},
+    ne_short_pipe_fr::Vector{Int}, ne_short_pipe_to::Vector{Int}, valve_fr::Vector{Int},
+    valve_to::Vector{Int}, reservoirs::Vector{Int}, tanks::Vector{Int},
+    dispatchable_demands::Vector{Int}, fixed_demand::Float64)
     # Collect flow variable references per component.
     q_pipe, q_des_pipe = var(wm, n, :q_pipe), var(wm, n, :q_des_pipe)
     q_pump, q_regulator = var(wm, n, :q_pump), var(wm, n, :q_regulator)
-    q_short_pipe, q_valve = var(wm, n, :q_short_pipe), var(wm, n, :q_valve)
-    q_reservoir, q_tank = var(wm, n, :q_reservoir), var(wm, n, :q_tank)
-    q_demand = var(wm, n, :q_demand)
+    q_short_pipe, q_ne_short_pipe = var(wm, n, :q_short_pipe), var(wm, n, :q_ne_short_pipe)
+    q_valve, q_reservoir = var(wm, n, :q_valve), var(wm, n, :q_reservoir)
+    q_tank, q_demand = var(wm, n, :q_tank), var(wm, n, :q_demand)
 
     # Add the flow conservation constraint.
     con(wm, n, :flow_conservation)[i] = JuMP.@constraint(
@@ -39,6 +40,8 @@ function constraint_flow_conservation(
         + sum(q_regulator[a] for a in regulator_to)
         - sum(q_short_pipe[a] for a in short_pipe_fr)
         + sum(q_short_pipe[a] for a in short_pipe_to)
+        - sum(q_ne_short_pipe[a] for a in ne_short_pipe_fr)
+        + sum(q_ne_short_pipe[a] for a in ne_short_pipe_to)
         - sum(q_valve[a] for a in valve_fr)
         + sum(q_valve[a] for a in valve_to) ==
         - sum(q_reservoir[k] for k in reservoirs)

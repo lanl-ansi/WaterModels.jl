@@ -177,7 +177,7 @@ function variable_flow(
     bounded::Bool = true,
     report::Bool = true,
 )
-    for name in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
+    for name in _LINK_COMPONENTS
         # Create directed flow (`qp` and `qn`) variables for each component.
         _variable_component_flow(wm, name; nw = nw, bounded = bounded, report = report)
 
@@ -530,6 +530,34 @@ function constraint_short_pipe_flow(
 end
 
 
+function constraint_short_pipe_flow_ne(
+    wm::AbstractNCDModel,
+    n::Int,
+    a::Int,
+    q_max_reverse::Float64,
+    q_min_forward::Float64,
+)
+    # Get expansion short pipe flow, direction, and status variables.
+    qp, qn = var(wm, n, :qp_ne_short_pipe, a), var(wm, n, :qn_ne_short_pipe, a)
+    y, z = var(wm, n, :y_ne_short_pipe, a), var(wm, n, :z_ne_short_pipe, a)
+
+    # The expansion short pipe's flow is constrained by direction and build status.
+    qp_ub, qn_ub = JuMP.upper_bound(qp), JuMP.upper_bound(qn)
+    c_1 = JuMP.@constraint(wm.model, qp <= qp_ub * y)
+    c_2 = JuMP.@constraint(wm.model, qn <= qn_ub * (1.0 - y))
+    c_3 = JuMP.@constraint(wm.model, qp <= qp_ub * z)
+    c_4 = JuMP.@constraint(wm.model, qn <= qn_ub * z)
+
+    # Add additional constraints based on active flows.
+    qp_min_forward, qn_min_forward = max(0.0, q_min_forward), max(0.0, -q_max_reverse)
+    c_5 = JuMP.@constraint(wm.model, qp >= qp_min_forward * (y + z - 1.0))
+    c_6 = JuMP.@constraint(wm.model, qn >= qn_min_forward * (z - y))
+
+    # Append the constraint array.
+    append!(con(wm, n, :on_off_short_pipe_flow_ne, a), [c_1, c_2, c_3, c_4, c_5, c_6])
+end
+
+
 function _gather_directionality_data(
     wm::AbstractNCDModel,
     n::Int,
@@ -543,13 +571,16 @@ function _gather_directionality_data(
     regulator_to::Vector{Int},
     short_pipe_fr::Vector{Int},
     short_pipe_to::Vector{Int},
+    ne_short_pipe_fr::Vector{Int},
+    ne_short_pipe_to::Vector{Int},
     valve_fr::Vector{Int},
     valve_to::Vector{Int},
 )
     # Collect direction variable references per component.
     y_pipe, y_des_pipe = var(wm, n, :y_pipe), var(wm, n, :y_des_pipe)
     y_pump, y_regulator = var(wm, n, :y_pump), var(wm, n, :y_regulator)
-    y_short_pipe, y_valve = var(wm, n, :y_short_pipe), var(wm, n, :y_valve)
+    y_short_pipe, y_ne_short_pipe = var(wm, n, :y_short_pipe), var(wm, n, :y_ne_short_pipe)
+    y_valve = var(wm, n, :y_valve)
 
     sum_in = JuMP.@expression(
         wm.model,
@@ -558,6 +589,7 @@ function _gather_directionality_data(
         sum(y_pump[a] for a in pump_to) +
         sum(y_regulator[a] for a in regulator_to) +
         sum(y_short_pipe[a] for a in short_pipe_to) +
+        sum(y_ne_short_pipe[a] for a in ne_short_pipe_to) +
         sum(y_valve[a] for a in valve_to)
     )
 
@@ -568,6 +600,7 @@ function _gather_directionality_data(
         sum(y_pump[a] for a in pump_fr) +
         sum(y_regulator[a] for a in regulator_fr) +
         sum(y_short_pipe[a] for a in short_pipe_fr) +
+        sum(y_ne_short_pipe[a] for a in ne_short_pipe_fr) +
         sum(y_valve[a] for a in valve_fr)
     )
 
@@ -578,6 +611,7 @@ function _gather_directionality_data(
         length(pump_to) +
         length(regulator_to) +
         length(short_pipe_to) +
+        length(ne_short_pipe_to) +
         length(valve_to)
 
     # Get the out degree of node `i`.
@@ -587,6 +621,7 @@ function _gather_directionality_data(
         length(pump_fr) +
         length(regulator_fr) +
         length(short_pipe_fr) +
+        length(ne_short_pipe_fr) +
         length(valve_fr)
 
     return sum_in, sum_out, in_length, out_length
@@ -608,6 +643,8 @@ function constraint_intermediate_directionality(
     regulator_to::Vector{Int},
     short_pipe_fr::Vector{Int},
     short_pipe_to::Vector{Int},
+    ne_short_pipe_fr::Vector{Int},
+    ne_short_pipe_to::Vector{Int},
     valve_fr::Vector{Int},
     valve_to::Vector{Int},
 )
@@ -625,6 +662,8 @@ function constraint_intermediate_directionality(
         regulator_to,
         short_pipe_fr,
         short_pipe_to,
+        ne_short_pipe_fr,
+        ne_short_pipe_to,
         valve_fr,
         valve_to,
     )
@@ -655,6 +694,8 @@ function constraint_source_directionality(
     regulator_to::Vector{Int},
     short_pipe_fr::Vector{Int},
     short_pipe_to::Vector{Int},
+    ne_short_pipe_fr::Vector{Int},
+    ne_short_pipe_to::Vector{Int},
     valve_fr::Vector{Int},
     valve_to::Vector{Int},
 )
@@ -672,6 +713,8 @@ function constraint_source_directionality(
         regulator_to,
         short_pipe_fr,
         short_pipe_to,
+        ne_short_pipe_fr,
+        ne_short_pipe_to,
         valve_fr,
         valve_to,
     )
@@ -697,6 +740,8 @@ function constraint_sink_directionality(
     regulator_to::Vector{Int},
     short_pipe_fr::Vector{Int},
     short_pipe_to::Vector{Int},
+    ne_short_pipe_fr::Vector{Int},
+    ne_short_pipe_to::Vector{Int},
     valve_fr::Vector{Int},
     valve_to::Vector{Int},
 )
@@ -714,6 +759,8 @@ function constraint_sink_directionality(
         regulator_to,
         short_pipe_fr,
         short_pipe_to,
+        ne_short_pipe_fr,
+        ne_short_pipe_to,
         valve_fr,
         valve_to,
     )
