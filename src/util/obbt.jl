@@ -51,10 +51,6 @@ function _solve_bound_problem!(wm::AbstractWaterModel, bound_problem::BoundProbl
     JuMP.optimize!(wm.model)
     termination_status = JuMP.termination_status(wm.model)
 
-    if ismultinetwork(wm)
-        JuMP.set_binary.(vars_relaxed)
-    end
-
     if !(termination_status in [JuMP.INFEASIBLE, JuMP.INFEASIBLE_OR_UNBOUNDED])
         try
             # Store the candidate bound calculated from the optimization.
@@ -66,6 +62,10 @@ function _solve_bound_problem!(wm::AbstractWaterModel, bound_problem::BoundProbl
     else
         bound_problem.infeasible = true
         candidate = bound_problem.bound
+    end
+
+    if ismultinetwork(wm)
+        JuMP.set_binary.(vars_relaxed)
     end
 
     # Update the candidate if it's for a discrete variable.
