@@ -1,7 +1,7 @@
 function correct_pumps!(data::Dict{String, <:Any})
     wm_data = get_wm_data(data)
 
-    if data["per_unit"]
+    if wm_data["per_unit"]
         flow_transform = _calc_flow_per_unit_transform(wm_data)
         flow_epsilon = flow_transform(_FLOW_MIN)
         func = x -> _correct_pumps!(x, flow_epsilon)
