@@ -373,11 +373,7 @@ function _calc_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, 
 
     wm_data = get_wm_data(wm.data)
     flow_transform = _calc_flow_per_unit_transform(wm_data)
-    q_min = min(get(pump, "flow_min_forward",
-        flow_transform(_FLOW_MIN)), flow_transform(_FLOW_MIN))
-
-    q_max = max(q_min, pump["flow_max"])
-    q_build = range(q_min - 1.0e-7, stop = q_max + 1.0e-7, length = num_points)
+    q_build = range(0.0, stop = pump["flow_max"] + 1.0e-7, length = num_points)
     f_build = head_curve_function.(collect(q_build)) .* q_build
 
     if haskey(pump, "efficiency_curve")

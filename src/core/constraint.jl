@@ -137,9 +137,12 @@ function constraint_tank_volume_recovery(wm::AbstractWaterModel, i::Int, n_1::In
     con(wm, n_f, :tank_volume_recovery)[i] = c
 
     # Update the nodal elevation data.
-    tank_1, tank_f = ref(wm, n_1, :tank, i), ref(wm, n_f, :tank, i)
-    node_1, node_f =
-        ref(wm, n_1, :node, tank_1["node"]), ref(wm, n_f, :node, tank_f["node"])
+    tank_1 = ref(wm, n_1, :tank, i)
+    node_1 = ref(wm, n_1, :node, tank_1["node"])
+
+    tank_f = ref(wm, n_f, :tank, i)
+    node_f = ref(wm, n_f, :node, tank_f["node"])
+
     node_f["head_min"] = max(node_f["head_min"], node_1["head_min"])
 end
 
