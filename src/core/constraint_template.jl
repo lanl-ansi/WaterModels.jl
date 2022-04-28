@@ -257,11 +257,6 @@ function constraint_tank_volume_fixed(
     V_min = max(tank["min_vol"], surface_area * tank["min_level"])
     V_max = surface_area * tank["max_level"]
 
-    # Update the nodal elevation data corresponding to the tank.
-    node = ref(wm, nw, :node, tank["node"])
-    head = node["elevation"] + initial_level
-    node["head_nominal"] = node["head_min"] = node["head_max"] = head
-
     # Apply the tank volume constraint at the specified time step.
     _initialize_con_dict(wm, :tank_volume; nw = nw, is_array = true)
     con(wm, nw, :tank_volume)[i] = Array{JuMP.ConstraintRef,1}([])
