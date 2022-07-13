@@ -1,6 +1,12 @@
 WaterModels.jl Change Log
 =========================
 
+### Staged
+- nothing
+
+### v0.9.2
+- Add support for Interpolations v0.14.
+
 ### v0.9.1
 - Add support for JuMP v1.0.
 
