@@ -1,12 +1,6 @@
 # Objective
-```@autodocs
-Modules = [WaterModels]
-Pages   = ["core/objective.jl"]
-Order   = [:type, :function]
-Private  = true
-```
-
-## Objective Functions
 ```@docs
+objective_wf
+objective_des
 objective_owf
 ```
