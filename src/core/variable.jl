@@ -16,8 +16,26 @@ end
 
 
 ### Variables related to nodal components. ###
-"Creates bounded (by default) or unbounded total hydraulic head (or head)
-variables for all nodes in the network, i.e., `h[i]` for `i` in `node`."
+
+"""
+    variable_head(
+        wm::AbstractWaterModel;
+        nw::Int=nw_id_default,
+        bounded::Bool=true,
+        report::Bool=true
+    )
+
+Instantiates bounded (by default) or unbounded total hydraulic head (or head)
+variables for nodes in the network at subnetwork (or time) index `nw`, i.e.,
+`h[i]` for `i` in `node`. Also instantiates JuMP expressions that are affine
+expressions of each head, i.e., pressure, which is computed as `p[i] = h[i] -
+elevation[i]`, and tank volume (at each tank attached to a node), which is
+computed as `V[k] = 0.25 * pi * diameter[k]^2 * (h[i] - elevation[i])`, where
+`k` is the index of the tank; `diameter[k]` is the cross-sectional diameter of
+the (cylindrical) tank; and `i` is the index of the node to which the tank is
+attached. Here, `report` indicates whether or not solution values for head will
+be reported after an optimization problem with these variables has been solved.
+"""
 function variable_head(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     # Initialize variables for total hydraulic head.
     h = var(wm, nw)[:h] = JuMP.@variable(wm.model,
