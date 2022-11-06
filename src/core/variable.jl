@@ -277,8 +277,21 @@ function variable_demand_flow(wm::AbstractWaterModel; nw::Int=nw_id_default, bou
 end
 
 
-"Creates outgoing flow variables for all tanks in the network, i.e., `q_tank[i]`
-for `i` in `tank`. Note that, unlike reservoirs, tanks can have inflow."
+"""
+    variable_tank_flow(
+        wm::AbstractWaterModel;
+        nw::Int=nw_id_default,
+        bounded::Bool=true,
+        report::Bool=true
+    )
+
+Instantiates bounded (by default) or unbounded volumetric flow rate variables
+for tanks in the network at subnetwork (or time) index `nw`, i.e., `q_tank[i]`
+for `i` in `tank`. Note that, unlike reservoirs, tanks can have inflow,
+represented as a negative quantity. Here, `report` indicates whether or not
+solution values will be reported after an optimization problem with these
+variables has been solved.
+"""
 function variable_tank_flow(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     q_tank = var(wm, nw)[:q_tank] = JuMP.@variable(wm.model,
         [i in ids(wm, nw, :tank)], base_name = "$(nw)_q_tank",
