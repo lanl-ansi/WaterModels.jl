@@ -5,4 +5,6 @@ These methods are always defined over `AbstractWaterModel`.
 ## Nodal Variables
 ```@docs
 variable_head
+variable_reservoir_flow
+variable_demand_flow
 ```

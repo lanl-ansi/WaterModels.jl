@@ -170,9 +170,21 @@ function variable_pump_power(wm::AbstractWaterModel; nw::Int=nw_id_default, boun
 end
 
 
-"Instantiates outgoing flow variables for all reservoirs in the network, i.e.,
-`q_reservoir[i]` for `i` in `reservoir`. Note that these variables are always nonnegative,
-since for each reservoir, there will never be incoming flow."
+"""
+    variable_reservoir_flow(
+        wm::AbstractWaterModel;
+        nw::Int=nw_id_default,
+        bounded::Bool=true,
+        report::Bool=true
+    )
+
+Instantiates bounded (by default) or unbounded outgoing volumetric flow rate
+variables for reservoirs in the network at subnetwork (or time) index `nw`,
+i.e., `q_reservoir[i]` for `i` in `reservoir`. Note that these variables are
+always nonnegative, since for each reservoir, there will never be incoming
+flow. Here, `report` indicates whether or not solution values will be reported
+after an optimization problem with these variables has been solved.
+"""
 function variable_reservoir_flow(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     q_reservoir = var(wm, nw)[:q_reservoir] = JuMP.@variable(wm.model,
         [i in ids(wm, nw, :reservoir)], lower_bound=0.0, base_name="$(nw)_q_reservoir",
@@ -211,8 +223,20 @@ function variable_reservoir_flow(wm::AbstractWaterModel; nw::Int=nw_id_default, 
 end
 
 
-"Instantiates demand flow variables for all dispatchable demands in the network, i.e.,
-`demand[i]` for `i` in `dispatchable_demand`."
+"""
+    variable_demand_flow(
+        wm::AbstractWaterModel;
+        nw::Int=nw_id_default,
+        bounded::Bool=true,
+        report::Bool=true
+    )
+
+Instantiates unbounded volumetric flow rate demand variables for all
+_dispatchable_ demands in the network at subnetwork (or time) index `nw`, i.e.,
+`q_demand[i]` for `i` in `dispatchable_demand`. Here, `report` indicates
+whether or not solution values will be reported after an optimization problem
+with these variables has been solved.
+"""
 function variable_demand_flow(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     q_demand = var(wm, nw)[:q_demand] = JuMP.@variable(wm.model,
         [i in ids(wm, nw, :dispatchable_demand)], base_name="$(nw)_q_demand",
