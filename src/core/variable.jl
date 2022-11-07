@@ -33,8 +33,7 @@ elevation[i]`, and tank volume (at each tank attached to a node), which is
 computed as `V[k] = 0.25 * pi * diameter[k]^2 * (h[i] - elevation[i])`, where
 `k` is the index of the tank; `diameter[k]` is the cross-sectional diameter of
 the (cylindrical) tank; and `i` is the index of the node to which the tank is
-attached. Here, `report` indicates whether or not solution values for head will
-be reported after an optimization problem with these variables has been solved.
+attached.
 """
 function variable_head(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     # Initialize variables for total hydraulic head.
@@ -92,6 +91,21 @@ function variable_head(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::B
 end
 
 
+"""
+    variable_pump_head_gain(
+        wm::AbstractWaterModel;
+        nw::Int=nw_id_default,
+        bounded::Bool=true,
+        report::Bool=true
+    )
+
+Creates bounded (by default) or unbounded head gain variables for pumps in
+in the network at subnetwork (or time) index `nw`, i.e., `g_pump[a]` for `a`
+in `pump`. Note that these variables are always nonnegative, since for each
+pump, there will never be negative head gain (i.e., pumps only increase head).
+Head gain is always directed from "node_fr" (i.e., the tail node of the arc) to
+"node_to" (i.e., the head node of the arc).
+"""
 function variable_pump_head_gain(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     # Initialize variables for total hydraulic head gain from a pump.
     g = var(wm, nw)[:g_pump] = JuMP.@variable(wm.model, [a in ids(wm, nw, :pump)],
@@ -120,6 +134,21 @@ function variable_pump_head_gain(wm::AbstractWaterModel; nw::Int=nw_id_default, 
 end
 
 
+"""
+    variable_pump_power(
+        wm::AbstractWaterModel;
+        nw::Int=nw_id_default,
+        bounded::Bool=true,
+        report::Bool=true
+    )
+
+Creates bounded (by default) or unbounded power consumption variables for pumps
+in the network at subnetwork (or time) index `nw`, i.e., `P[a]` for `a` in
+`pump`. Note that these variables are always nonnegative since each pump only
+_consumes_ power. Additionally, two sets of JuMP expressions are also derived
+from these power variables: energy consumption, i.e., `E[a]` for `a` in `pump`
+and cost of pump operation across a time step, i.e., `c[a]` for `a` in `pump`.
+"""
 function variable_pump_power(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     # Compute scaled density and gravity.
     wm_data = get_wm_data(wm.data)
@@ -178,12 +207,11 @@ end
         report::Bool=true
     )
 
-Instantiates bounded (by default) or unbounded outgoing volumetric flow rate
+Creates bounded (by default) or unbounded outgoing volumetric flow rate
 variables for reservoirs in the network at subnetwork (or time) index `nw`,
 i.e., `q_reservoir[i]` for `i` in `reservoir`. Note that these variables are
 always nonnegative, since for each reservoir, there will never be incoming
-flow. Here, `report` indicates whether or not solution values will be reported
-after an optimization problem with these variables has been solved.
+flow.
 """
 function variable_reservoir_flow(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     q_reservoir = var(wm, nw)[:q_reservoir] = JuMP.@variable(wm.model,
@@ -231,11 +259,9 @@ end
         report::Bool=true
     )
 
-Instantiates unbounded volumetric flow rate demand variables for all
-_dispatchable_ demands in the network at subnetwork (or time) index `nw`, i.e.,
-`q_demand[i]` for `i` in `dispatchable_demand`. Here, `report` indicates
-whether or not solution values will be reported after an optimization problem
-with these variables has been solved.
+Creates unbounded volumetric flow rate demand variables for all _dispatchable_
+demands in the network at subnetwork (or time) index `nw`, i.e., `q_demand[i]`
+for `i` in `dispatchable_demand`.
 """
 function variable_demand_flow(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     q_demand = var(wm, nw)[:q_demand] = JuMP.@variable(wm.model,
@@ -285,12 +311,10 @@ end
         report::Bool=true
     )
 
-Instantiates bounded (by default) or unbounded volumetric flow rate variables
+Creates bounded (by default) or unbounded volumetric flow rate variables
 for tanks in the network at subnetwork (or time) index `nw`, i.e., `q_tank[i]`
 for `i` in `tank`. Note that, unlike reservoirs, tanks can have inflow,
-represented as a negative quantity. Here, `report` indicates whether or not
-solution values will be reported after an optimization problem with these
-variables has been solved.
+represented as a negative quantity.
 """
 function variable_tank_flow(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     q_tank = var(wm, nw)[:q_tank] = JuMP.@variable(wm.model,
@@ -332,8 +356,19 @@ end
 
 
 ### Link variables. ###
-"Creates binary variables for valves in the network, i.e., `z_valve[a]` for `a` in `valve`,
-where one denotes that the valve is open and zero denotes that the valve is closed."
+
+"""
+    variable_valve_indicator(
+        wm::AbstractWaterModel;
+        nw::Int=nw_id_default,
+        relax::Bool=false,
+        report::Bool=true
+    )
+
+Creates binary variables for valves in the network at subnetwork (or time)
+index `nw`, i.e., `z_valve[a]` for `a` in `valve`. Here, one denotes that the
+valve is open and zero denotes that the valve is closed.
+"""
 function variable_valve_indicator(wm::AbstractWaterModel; nw::Int=nw_id_default, relax::Bool=false, report::Bool=true)
     if !relax
         z_valve = var(wm, nw)[:z_valve] = JuMP.@variable(wm.model,
@@ -354,8 +389,18 @@ function variable_valve_indicator(wm::AbstractWaterModel; nw::Int=nw_id_default,
 end
 
 
-"Creates binary variables for all regulators in the network, i.e., `z_regulator[a]` for `a` in
-`regulator`, where one denotes that the pressure reducing is currently open and zero otherwise."
+"""
+    variable_regulator_indicator(
+        wm::AbstractWaterModel;
+        nw::Int=nw_id_default,
+        relax::Bool=false,
+        report::Bool=true
+    )
+
+Creates binary variables for regulators in the network at subnetwork (or time)
+index `nw`, i.e., `z_regulator[a]` for `a` in `regulator`, where one denotes
+that the pressure reducing regulator is currently active and zero otherwise.
+"""
 function variable_regulator_indicator(wm::AbstractWaterModel; nw::Int=nw_id_default, relax::Bool=false, report::Bool=true)
     if !relax
         z_regulator = var(wm, nw)[:z_regulator] = JuMP.@variable(wm.model,
@@ -376,9 +421,19 @@ function variable_regulator_indicator(wm::AbstractWaterModel; nw::Int=nw_id_defa
 end
 
 
-"Creates binary variables for all pumps in the network, i.e., `z_pump[a]` for
-`a` in `pump`, where one denotes that the pump is currently operating (i.e.,
-on), and zero indicates that the pump is not operating (i.e., off)."
+"""
+    variable_pump_indicator(
+        wm::AbstractWaterModel;
+        nw::Int=nw_id_default,
+        relax::Bool=false,
+        report::Bool=true
+    )
+
+Creates binary variables for pumps in the network at subnetwork (or time)
+index `nw`, i.e., `z_pump[a]` for `a` in `pump`, where one denotes that the
+pump is currently operating (i.e., on), and zero indicates that the pump is not
+operating (i.e., off).
+"""
 function variable_pump_indicator(wm::AbstractWaterModel; nw::Int=nw_id_default, relax::Bool=false, report::Bool=true)
     if !relax
         z_pump = var(wm, nw)[:z_pump] = JuMP.@variable(wm.model,
@@ -399,7 +454,19 @@ function variable_pump_indicator(wm::AbstractWaterModel; nw::Int=nw_id_default, 
 end
 
 
-""
+"""
+    variable_pump_switch_on(
+        wm::AbstractWaterModel;
+        nw::Int=nw_id_default,
+        relax::Bool=false,
+        report::Bool=true
+    )
+
+Creates binary variables for pumps in the network at subnetwork (or time)
+index `nw`, i.e., `z_switch_on_pump[a]` for `a` in `pump`, where one denotes
+that the pump has been switched to the "on" status at the current subnetwork
+(or time) index, and zero indicates that the pump has had no status change.
+"""
 function variable_pump_switch_on(wm::AbstractWaterModel; nw::Int=nw_id_default, relax::Bool=false, report::Bool=true)
     if !relax
         z_switch_on_pump = var(wm, nw)[:z_switch_on_pump] = JuMP.@variable(wm.model,
@@ -420,7 +487,19 @@ function variable_pump_switch_on(wm::AbstractWaterModel; nw::Int=nw_id_default, 
 end
 
 
-""
+"""
+    variable_pump_switch_off(
+        wm::AbstractWaterModel;
+        nw::Int=nw_id_default,
+        relax::Bool=false,
+        report::Bool=true
+    )
+
+Creates binary variables for pumps in the network at subnetwork (or time)
+index `nw`, i.e., `z_switch_off_pump[a]` for `a` in `pump`, where one denotes
+that the pump has been switched to the "off" status at the current subnetwork
+(or time) index, and zero indicates that the pump has had no status change.
+"""
 function variable_pump_switch_off(wm::AbstractWaterModel; nw::Int=nw_id_default, relax::Bool=false, report::Bool=true)
     if !relax
         z_switch_off_pump = var(wm, nw)[:z_switch_off_pump] = JuMP.@variable(wm.model,
@@ -441,9 +520,19 @@ function variable_pump_switch_off(wm::AbstractWaterModel; nw::Int=nw_id_default,
 end
 
 
-"Creates binary variables for all design pipes in the network, i.e.,
-`z_des_pipe[a]` for `a` in `des_pipe`, where one denotes that the pipe is
-selected within the design, and zero denotes that the pipe is not selected."
+"""
+    variable_des_pipe_indicator(
+        wm::AbstractWaterModel;
+        nw::Int=nw_id_default,
+        relax::Bool=false,
+        report::Bool=true
+    )
+
+Creates binary variables for design pipes in the network at subnetwork (or
+time) index `nw`, i.e., `z_des_pipe[a]` for `a` in `des_pipe`, where one denotes
+that the pipe has been selected within the design at the current subnetwork (or
+time) index, and zero indicates that the design pipe has had not been selected.
+"""
 function variable_des_pipe_indicator(wm::AbstractWaterModel; nw::Int=nw_id_default, relax::Bool=false, report::Bool=true)
     if !relax
         z_des_pipe = var(wm, nw)[:z_des_pipe] = JuMP.@variable(wm.model,
