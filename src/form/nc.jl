@@ -11,7 +11,19 @@
 # negative, flow is assumed to travel from j to i.
 
 
-"Create flow-related variables common to all directed flow models for edge-type components."
+"""
+    variable_flow(
+        wm::AbstractNCModel;
+        nw::Int=nw_id_default,
+        bounded::Bool=true,
+        report::Bool=true
+    )
+
+Creates bounded (by default) or unbounded flow variables for all node-
+connecting components (e.g., pipes, pumps) in the network at subnetwork (or
+time) index `nw`, e.g., `q_pipe[a]` for `a` in `pipe`, `q_pump[a]` for `a` in
+`pump`. Used for non-flow-direction-based network model formulations only.
+"""
 function variable_flow(
     wm::AbstractNCModel;
     nw::Int = nw_id_default,
@@ -25,7 +37,7 @@ function variable_flow(
 end
 
 
-"Create flow variables that are common to all directed flow models for a component."
+"Create flow variables for a particular component type."
 function _variable_component_flow(
     wm::AbstractNCModel,
     component_name::String;

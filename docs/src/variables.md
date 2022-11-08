@@ -24,3 +24,8 @@ variable_pump_switch_on
 variable_regulator_indicator
 variable_valve_indicator
 ```
+
+## Flow Variables
+```@docs
+variable_flow
+```
