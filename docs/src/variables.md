@@ -25,7 +25,9 @@ variable_regulator_indicator
 variable_valve_indicator
 ```
 
-## Flow Variables
+## Flow-related Variables
+In most of the implemented formulations, we model flow-related quantities in different ways.
+The formulation-specific functions used for instantiating the associated variables are described below.
 ```@docs
 variable_flow
 ```
