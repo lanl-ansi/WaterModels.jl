@@ -276,7 +276,11 @@ end
     )
 
 Adds a constraint that limits the number of times a pump can be switched from
-off to on in a multiperiod pump scheduling problem.
+off to on in a multiperiod pump scheduling problem. Here, `wm` is the
+WaterModels object, `a` is the index of the pump, `network_ids` are the network
+(time) indices used in the summation that limits the number of switches, and
+`max_switches` is the number of maximum switches permitted for the pump over
+the set of network indices.
 """
 function constraint_on_off_pump_switch(wm::AbstractWaterModel, a::Int, network_ids::Array{Int, 1}, max_switches::Int)
     z_switch_on_sum = sum(var(wm, n, :z_switch_on_pump, a) for n in network_ids)
@@ -285,6 +289,24 @@ function constraint_on_off_pump_switch(wm::AbstractWaterModel, a::Int, network_i
 end
 
 
+"""
+    constraint_pump_switch_on(
+        wm::AbstractWaterModel,
+        a::Int,
+        n_1::Int,
+        n_2::Int,
+        nws_active::Array{Int,1}
+    )
+
+Adds a constraint that models the switching of a pump from _off_ to _on_ and
+constrains its operation, if switched on, to remain on for a predetermined
+amount of time. Here, `wm` is the WaterModels object; `a` is the index of the
+pump; `n_1` is the first time index modeled by the constraint; `n_2` is the
+adjacent (next) time index modeled by the constraint, which permits limiting
+the change in pump status (i.e., from off to on); and `nws_active` are the
+subnetwork (time) indices where the pump must be constrained to on _if_ the
+pump is indeed switched from off to on between time indices `n_1` and `n_2`.
+"""
 function constraint_pump_switch_on(wm::AbstractWaterModel, a::Int, n_1::Int, n_2::Int, nws_active::Array{Int, 1})
     z_1, z_2 = var(wm, n_1, :z_pump, a), var(wm, n_2, :z_pump, a)
     z_switch_on = var(wm, n_2, :z_switch_on_pump, a)
@@ -299,6 +321,24 @@ function constraint_pump_switch_on(wm::AbstractWaterModel, a::Int, n_1::Int, n_2
  end
 
 
+ """
+    constraint_pump_switch_off(
+        wm::AbstractWaterModel,
+        a::Int,
+        n_1::Int,
+        n_2::Int,
+        nws_inactive::Array{Int,1}
+    )
+
+Adds a constraint that models the switching of a pump from _on_ to _off_ and
+constrains non-operation, if switched off, to remain off for a predetermined
+amount of time. Here, `wm` is the WaterModels object; `a` is the index of the
+pump; `n_1` is the first time index modeled by the constraint; `n_2` is the
+adjacent (next) time index modeled by the constraint, which permits limiting
+the change in pump status (i.e., from on to off); and `nws_inactive` are the
+subnetwork (time) indices where the pump must be constrained to off _if_ the
+pump is indeed switched from on to off between time indices `n_1` and `n_2`.
+"""
  function constraint_pump_switch_off(wm::AbstractWaterModel, a::Int, n_1::Int, n_2::Int, nws_inactive::Array{Int, 1})
     z_1, z_2 = var(wm, n_1, :z_pump, a), var(wm, n_2, :z_pump, a)
     z_switch_off = var(wm, n_2, :z_switch_off_pump, a)
