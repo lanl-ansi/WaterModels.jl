@@ -212,6 +212,27 @@ function variable_flow(
 end
 
 
+"""
+    constraint_pipe_flow(
+        wm::AbstractNCDModel,
+        n::Int,
+        a::Int,
+        q_max_reverse::Float64,
+        q_min_forward::Float64,
+    )
+
+Adds constraints that limit the amount of flow traveling in the positive
+(forward) and negative (reverse) directions. Here, `wm` is the WaterModels
+object, `n` is the index of a subnetwork within a multinetwork, `a` is the
+index of the pipe, `q_max_reverse` is the _maximum_ (negative) amount of flow
+when flow is traveling in the negative direction (which corresponds to the
+_minimum_ magnitude of flow when traveling in the negative direction), and
+`q_min_forward` is the _minimum_ (positive) amount of flow when flow is
+traveling in the positive (forward) direction. Note that, naively,
+`q_max_reverse` and `q_min_forward` could both be assumed as zero, but the
+introduction of these constants allows for strengthening of flow direction
+variable bounds _based on the binary flow direction variables_ used here.
+"""
 function constraint_pipe_flow(
     wm::AbstractNCDModel,
     n::Int,
@@ -237,6 +258,21 @@ function constraint_pipe_flow(
 end
 
 
+"""
+    function constraint_pipe_head(
+        wm::AbstractNCDModel,
+        n::Int,
+        a::Int,
+        node_fr::Int,
+        node_to::Int,
+    )
+
+Adds constraints that limit head losses (differences) in the positive (forward)
+and negative (reverse) flow directions. Here, `wm` is the WaterModels object,
+`n` is the index of a subnetwork within a multinetwork, `a` is the index of the
+pipe, `node_fr` is the index of the tail node of the arc that models the pipe,
+and `node_to` is the index of the head node of the arc that models the pipe.
+"""
 function constraint_pipe_head(
     wm::AbstractNCDModel,
     n::Int,
@@ -288,6 +324,23 @@ function constraint_pipe_head_loss(
 end
 
 
+"""
+    function constraint_on_off_des_pipe_flow(
+        wm::AbstractNCDModel,
+        n::Int,
+        a::Int,
+        q_max_reverse::Float64,
+        q_min_forward::Float64
+    )
+
+Adds constraints that limit the amount of flow traveling in the positive
+(forward) and negative (reverse) directions for a design pipe. Also limits flow
+based on the construction status of the design pipe, i.e., restricting flow to
+zero if a design pipe is not constructed. Here, `wm` is the WaterModels object,
+`n` is the index of a subnetwork within a multinetwork, and `a` is the index of
+the design pipe. The parameters `q_max_reverse` and `q_min_forward` are
+currently unused, although they could be used to strengthen these constraints.
+"""
 function constraint_on_off_des_pipe_flow(
     wm::AbstractNCDModel,
     n::Int,
@@ -311,6 +364,24 @@ function constraint_on_off_des_pipe_flow(
 end
 
 
+"""
+    function constraint_on_off_des_pipe_head(
+        wm::AbstractNCDModel,
+        n::Int,
+        a::Int,
+        node_fr::Int,
+        node_to::Int
+    )
+
+Adds constraints that limit head differences (losses) in the positive (forward)
+and negative (reverse) directions for a design pipe. Also limits losses based
+on the construction status of the design pipe, i.e., restricting both losses to
+zero if a design pipe is not constructed. Here, `wm` is the WaterModels object,
+`n` is the index of a subnetwork within a multinetwork, `a` is the index of
+the design pipe, `node_fr` is the index of the tail node of the arc that models
+the design pipe, and `node_to` is the index of the head node of the arc that
+models the design pipe.
+"""
 function constraint_on_off_des_pipe_head(
     wm::AbstractNCDModel,
     n::Int,
