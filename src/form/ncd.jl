@@ -599,7 +599,33 @@ function _gather_directionality_data(
 end
 
 
-"Constraint to ensure at least one direction is set to take flow away from a source."
+"""
+    constraint_intermediate_directionality(
+        wm::AbstractNCDModel,
+        n::Int,
+        i::Int,
+        pipe_fr::Array{Int,1},
+        pipe_to::Array{Int,1},
+        des_pipe_fr::Array{Int,1},
+        des_pipe_to::Array{Int,1},
+        pump_fr::Array{Int,1},
+        pump_to::Array{Int,1},
+        regulator_fr::Array{Int,1},
+        regulator_to::Array{Int,1},
+        short_pipe_fr::Array{Int,1},
+        short_pipe_to::Array{Int,1},
+        valve_fr::Array{Int,1},
+        valve_to::Array{Int,1}
+    )
+
+Adds a constraint that ensures the direction of incoming flow at the node will
+be equal to the direction of outgoing flow. Note that this constraint should
+only be applied in situations where the degree of the node is two and there is
+zero supply or demand (i.e., the node is a "junction" or pass-through node).
+Here, `n` is the subnetwork (time) index; `i` is the index of the node; and
+`pipe_fr`, `pipe_to`, etc., are indices of node-connecting components that are
+directed _from_ or _to_ node `i`, respectively.
+"""
 function constraint_intermediate_directionality(
     wm::AbstractNCDModel,
     n::Int,
@@ -646,7 +672,31 @@ function constraint_intermediate_directionality(
 end
 
 
-"Constraint to ensure at least one direction is set to take flow away from a source."
+"""
+    constraint_source_directionality(
+        wm::AbstractNCDModel,
+        n::Int,
+        i::Int,
+        pipe_fr::Array{Int,1},
+        pipe_to::Array{Int,1},
+        des_pipe_fr::Array{Int,1},
+        des_pipe_to::Array{Int,1},
+        pump_fr::Array{Int,1},
+        pump_to::Array{Int,1},
+        regulator_fr::Array{Int,1},
+        regulator_to::Array{Int,1},
+        short_pipe_fr::Array{Int,1},
+        short_pipe_to::Array{Int,1},
+        valve_fr::Array{Int,1},
+        valve_to::Array{Int,1}
+    )
+
+Adds a constraint that ensures at least one flow direction variable implies the
+transport of water _from_ (i.e., out of) a source node (e.g., a node with a
+reservoir). Here, `n` is the subnetwork (time) index; `i` is the index of the
+node; and `pipe_fr`, `pipe_to`, etc., are indices of node-connecting components
+that are directed _from_ or _to_ node `i`, respectively.
+"""
 function constraint_source_directionality(
     wm::AbstractNCDModel,
     n::Int,
@@ -688,7 +738,31 @@ function constraint_source_directionality(
 end
 
 
-"Constraint to ensure at least one direction is set to take flow to a node with demand."
+"""
+    constraint_sink_directionality(
+        wm::AbstractNCDModel,
+        n::Int,
+        i::Int,
+        pipe_fr::Array{Int,1},
+        pipe_to::Array{Int,1},
+        des_pipe_fr::Array{Int,1},
+        des_pipe_to::Array{Int,1},
+        pump_fr::Array{Int,1},
+        pump_to::Array{Int,1},
+        regulator_fr::Array{Int,1},
+        regulator_to::Array{Int,1},
+        short_pipe_fr::Array{Int,1},
+        short_pipe_to::Array{Int,1},
+        valve_fr::Array{Int,1},
+        valve_to::Array{Int,1}
+    )
+
+Adds a constraint that ensures at least one flow direction variable implies the
+transport of water _to_ (i.e., into) a node that has flow demands (e.g., a node
+with positive fixed demands). Here, `n` is the subnetwork (time) index; `i` is
+the index of the node; and `pipe_fr`, `pipe_to`, etc., are indices of node-
+connecting components that are directed _from_ or _to_ node `i`, respectively.
+"""
 function constraint_sink_directionality(
     wm::AbstractNCDModel,
     n::Int,
