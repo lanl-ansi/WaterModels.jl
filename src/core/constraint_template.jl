@@ -679,6 +679,20 @@ end
 
 
 ### Pump Constraints ###
+
+"""
+    constraint_on_off_pump_flow(
+        wm::AbstractWaterModel,
+        a::Int;
+        nw::Int=nw_id_default,
+        kwargs...
+    )
+
+Constraint template to add ([`constraint_on_off_pump_flow`](@ref) constraints,
+which restrict the amount of flow transported through a pump based on its
+operating status. Here, `wm` is the WaterModels object, `a` is the index of the
+pump, and `nw` is the index of a subnetwork within a multinetwork.
+"""
 function constraint_on_off_pump_flow(
     wm::AbstractWaterModel,
     a::Int;
@@ -699,6 +713,21 @@ function constraint_on_off_pump_flow(
 end
 
 
+"""
+    constraint_on_off_pump_flow(
+        wm::AbstractWaterModel,
+        a::Int;
+        nw::Int=nw_id_default,
+        kwargs...
+    )
+
+Constraint template to add ([`constraint_on_off_pump_head`](@ref) constraints,
+which disjunctively limit the head difference between nodes connected by the
+pump and, if operating, ensures the head difference between nodes is equal to
+the head gain, constrained by ([`constraint_on_off_pump_head_gain`](@ref).
+Here, `wm` is the WaterModels object, `a` is the index of the pump, and `nw` is
+the index of a subnetwork within a multinetwork.
+"""
 function constraint_on_off_pump_head(
     wm::AbstractWaterModel,
     a::Int;
@@ -713,6 +742,19 @@ function constraint_on_off_pump_head(
 end
 
 
+"""
+    constraint_on_off_pump_head_gain(
+        wm::AbstractWaterModel,
+        a::Int;
+        nw::Int=nw_id_default,
+        kwargs...
+    )
+
+Constraint template to add ([`constraint_on_off_pump_head_gain`](@ref)
+constraints, which, if operating, limit the pump's head gain as a function of
+flow rate. Here, `wm` is the WaterModels object, `a` is the index of the pump,
+and `nw` is the index of a subnetwork within a multinetwork.
+"""
 function constraint_on_off_pump_head_gain(
     wm::AbstractWaterModel,
     a::Int;
@@ -740,6 +782,19 @@ function constraint_on_off_pump_head_gain(
 end
 
 
+"""
+    constraint_on_off_pump_power(
+        wm::AbstractWaterModel,
+        a::Int;
+        nw::Int=nw_id_default,
+        kwargs...
+    )
+
+Constraint template to add ([`constraint_on_off_pump_power`](@ref) constraints,
+which, if operating, model the pump's power according to certain assumptions.
+Here, `wm` is the WaterModels object, `a` is the index of the pump, and `nw` is
+the index of a subnetwork within a multinetwork.
+"""
 function constraint_on_off_pump_power(
     wm::AbstractWaterModel,
     a::Int;
@@ -785,6 +840,20 @@ function constraint_on_off_pump_power(
 end
 
 
+"""
+    constraint_on_off_pump_power(
+        wm::AbstractWaterModel,
+        a::Int;
+        nw::Int=nw_id_default,
+        kwargs...
+    )
+
+Constraint template to add ([`constraint_on_off_pump_group`](@ref) constraints,
+which impose symmetry-breaking lexicographic sorting of pump activation
+statuses on groups of identical pumps operating in parallel along the same arc
+of the network. Here, `wm` is the WaterModels object, `k` is the index of the
+pump group, and `nw` is the index of a subnetwork within a multinetwork.
+"""
 function constraint_on_off_pump_group(
     wm::AbstractWaterModel,
     k::Int;
@@ -798,6 +867,20 @@ function constraint_on_off_pump_group(
 end
 
 
+"""
+    constraint_on_off_pump_switch(
+        wm::AbstractWaterModel,
+        a::Int;
+        network_ids::Array{Int,1};
+        kwargs...
+    )
+
+Constraint template to add ([`constraint_on_off_pump_switch`](@ref)
+constraint, which limits the number of times a pump can be switched from off to
+on in a multiperiod pump scheduling problem. Here, `wm` is the WaterModels
+object, `a` is the index of the pump, and `network_ids` are the network (time)
+indices used in the summation that limits the number of switches.
+"""
 function constraint_on_off_pump_switch(
     wm::AbstractWaterModel,
     a::Int,
