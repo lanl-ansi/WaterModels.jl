@@ -32,6 +32,18 @@ end
 
 
 ### Nodal Constraints ###
+
+"""
+    constraint_flow_conservation(
+        wm::AbstractWaterModel,
+        i::Int;
+        nw::Int=nw_id_default
+    )
+
+Constraint template to add constraints that ensure volumetric flow rate (and
+thus mass) is conserved at node `i` and subnetwork (or time) index `nw` in the
+network. Here, `wm` is the WaterModels object.
+"""
 function constraint_flow_conservation(
     wm::AbstractWaterModel,
     i::Int;
@@ -88,6 +100,21 @@ function constraint_flow_conservation(
 end
 
 
+"""
+    constraint_node_directionality(
+        wm::AbstractWaterModel,
+        i::Int;
+        nw::Int=nw_id_default
+    )
+
+Constraint template to add direction-based constraints
+([`constraint_sink_directionality`](@ref),
+[`constraint_source_directionality`](@ref), or
+[`constraint_intermediate_directionality`](@ref)) when appropriate. Here, `wm`
+is the WaterModels object, `i` is the index of the node for which the
+constraints will be added, if applicable, and `nw` is the subnetwork (or time)
+index.
+"""
 function constraint_node_directionality(
     wm::AbstractWaterModel,
     i::Int;
@@ -219,6 +246,20 @@ end
 
 
 ### Tank Constraints ###
+
+"""
+    constraint_tank_volume(
+        wm::AbstractWaterModel,
+        i::Int;
+        nw::Int=nw_id_default
+    )
+
+Constraint template to add ([`constraint_tank_volume_fixed`](@ref) constraints
+when a tank is not dispatchable, usually at the first time index of a problem
+to fix the tank's initial volume. Here, `wm` is the WaterModels object, `i` is
+the index of the tank for which the constraints will be added, if applicable,
+and `nw` is the subnetwork (or time) index at which the volume will be fixed.
+"""
 function constraint_tank_volume(wm::AbstractWaterModel, i::Int; nw::Int = nw_id_default)
     # Only set the tank state if the tank is nondispatchable.
     if !ref(wm, nw, :tank, i)["dispatchable"]
@@ -244,6 +285,20 @@ function constraint_tank_volume(wm::AbstractWaterModel, i::Int; nw::Int = nw_id_
 end
 
 
+"""
+    constraint_tank_volume(
+        wm::AbstractWaterModel,
+        i::Int,
+        nw_1::Int,
+        nw_2::Int
+    )
+
+Constraint template to add ([`constraint_tank_volume`](@ref) constraints that
+integrate the volume of a tank forward in time. Here, `wm` is the WaterModels
+object, `i` is the index of the tank for which the constraints will be added,
+`nw_1` is the first time index considered in the temporal integration, and
+`nw_2` is the adjacent (second) time index considered in the integration.
+"""
 function constraint_tank_volume(wm::AbstractWaterModel, i::Int, nw_1::Int, nw_2::Int)
     # Only apply the constraint if the tank exists in both subnetworks.
     if haskey(ref(wm, nw_1, :tank), i) && haskey(ref(wm, nw_2, :tank), i)
@@ -262,6 +317,20 @@ end
 
 
 ### Pipe Constraints ###
+
+"""
+    constraint_pipe_flow(
+        wm::AbstractWaterModel,
+        a::Int;
+        nw::Int=nw_id_default,
+        kwargs...
+    )
+
+Constraint template to add ([`constraint_pipe_flow`](@ref) constraints that
+limit the volumetric flow rate across a pipe. Here, `wm` is the WaterModels
+object, `a` is the index of the pipe for which flow will be limited, and `nw`
+is the subnetwork (or time) index that is considered.
+"""
 function constraint_pipe_flow(
     wm::AbstractWaterModel,
     a::Int;
@@ -277,6 +346,19 @@ function constraint_pipe_flow(
 end
 
 
+"""
+    constraint_pipe_head(
+        wm::AbstractWaterModel,
+        a::Int;
+        nw::Int=nw_id_default,
+        kwargs...
+    )
+
+Constraint template to add ([`constraint_pipe_head`](@ref) constraints that
+limit and establish relationships among head difference and head variables.
+Here, `wm` is the WaterModels object, `a` is the index of the pipe, and `nw` is
+the subnetwork (or time) index that is considered.
+"""
 function constraint_pipe_head(
     wm::AbstractWaterModel,
     a::Int;
@@ -290,6 +372,19 @@ function constraint_pipe_head(
 end
 
 
+"""
+    constraint_pipe_head_loss(
+        wm::AbstractWaterModel,
+        a::Int;
+        nw::Int=nw_id_default,
+        kwargs...
+    )
+
+Constraint template to add ([`constraint_pipe_head_loss`](@ref) constraints
+that model head loss relationships along a pipe. Here, `wm` is the WaterModels
+object, `a` is the index of the pipe, and `nw` is the subnetwork (or time)
+index that is considered.
+"""
 function constraint_pipe_head_loss(
     wm::AbstractWaterModel,
     a::Int;
@@ -334,6 +429,26 @@ end
 
 
 ### Design Pipe Constraints ###
+
+"""
+    constraint_des_pipe_flow(
+        wm::AbstractWaterModel,
+        k::Int,
+        node_fr::Int,
+        node_to::Int;
+        nw::Int=nw_id_default,
+        kwargs...,
+    )
+
+Constraint template to add constraints that ensure flow variables for design
+pipes along an arc are equally directed (for direction-based formulations).
+Here, `wm` is the WaterModels object, `k` is the index of the arc that connects
+the two common nodes of each design pipe, `node_fr` is the index of the tail
+node of the arc that models each design pipe, `node_to` is the index of the
+head node of the arc that models each design pipe, `nw` is the index of a
+subnetwork within a multinetwork, and `des_pipes` is the vector of design pipe
+indices for design pipes that reside along the same arc `k`.
+"""
 function constraint_des_pipe_flow(
     wm::AbstractWaterModel,
     k::Int,
@@ -357,6 +472,25 @@ function constraint_des_pipe_flow(
 end
 
 
+"""
+    constraint_des_pipe_head(
+        wm::AbstractWaterModel,
+        k::Int,
+        node_fr::Int,
+        node_to::Int;
+        nw::Int=nw_id_default,
+        kwargs...,
+    )
+
+Constraint template to add constraints that ensure head difference variables
+for design pipes along an arc sum to the actual head difference along that
+arc. Here, `wm` is the WaterModels object, `k` is the index of the arc that
+connects the two common nodes of each design pipe, `node_fr` is the index of
+the tail node of the arc that models each design pipe, `node_to` is the index
+of the head node of the arc that models each design pipe, `nw` is the index of
+a subnetwork within a multinetwork, and `des_pipes` is the vector of design
+pipe indices for design pipes that reside along the same arc `k`.
+"""
 function constraint_des_pipe_head(
     wm::AbstractWaterModel,
     k::Int,
@@ -380,6 +514,24 @@ function constraint_des_pipe_head(
 end
 
 
+"""
+    constraint_des_pipe_selection(
+        wm::AbstractWaterModel,
+        k::Int,
+        node_fr::Int,
+        node_to::Int;
+        nw::Int=nw_id_default,
+        kwargs...
+    )
+
+Constraint template to add ([`constraint_des_pipe_selection`](@ref) constraints
+that enforce the selection of only one design pipe to be constructed along a
+given arc. Here, `wm` is the WaterModels object, `k` is the index of the arc
+that connects the two common nodes of each design pipe, `node_fr` is the index
+of the tail node of the arc that models each design pipe, `node_to` is the
+index of the head node of the arc that models each design pipe, and `nw` is the
+index of a subnetwork within a multinetwork.
+"""
 function constraint_des_pipe_selection(
     wm::AbstractWaterModel,
     k::Int,
@@ -403,6 +555,19 @@ function constraint_des_pipe_selection(
 end
 
 
+"""
+    constraint_on_off_des_pipe_flow(
+        wm::AbstractWaterModel,
+        a::Int;
+        nw::Int=nw_id_default,
+        kwargs...
+    )
+
+Constraint template to add ([`constraint_on_off_des_pipe_flow`](@ref)
+constraints that limit the amount of flow traveling across a design pipe. Here,
+`wm` is the WaterModels object, `a` is the index of the design pipe, and `nw`
+is the index of a subnetwork within a multinetwork.
+"""
 function constraint_on_off_des_pipe_flow(
     wm::AbstractWaterModel,
     a::Int;
@@ -425,6 +590,19 @@ function constraint_on_off_des_pipe_flow(
 end
 
 
+"""
+    constraint_on_off_des_pipe_head(
+        wm::AbstractWaterModel,
+        a::Int;
+        nw::Int=nw_id_default,
+        kwargs...
+    )
+
+Constraint template to add ([`constraint_on_off_des_pipe_head`](@ref)
+constraints that limit the head differences across a design pipe. Here, `wm` is
+the WaterModels object, `a` is the index of the design pipe, and `nw` is the
+index of a subnetwork within a multinetwork.
+"""
 function constraint_on_off_des_pipe_head(
     wm::AbstractWaterModel,
     a::Int;
@@ -443,6 +621,19 @@ function constraint_on_off_des_pipe_head(
 end
 
 
+"""
+    constraint_on_off_des_pipe_head_loss(
+        wm::AbstractWaterModel,
+        a::Int;
+        nw::Int=nw_id_default,
+        kwargs...
+    )
+
+Constraint template to add ([`constraint_on_off_des_pipe_head_loss`](@ref)
+constraints that model the head losses across a design pipe. Here, `wm` is the
+WaterModels object, `a` is the index of the design pipe, and `nw` is the index
+of a subnetwork within a multinetwork.
+"""
 function constraint_on_off_des_pipe_head_loss(
     wm::AbstractWaterModel,
     a::Int;

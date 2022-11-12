@@ -13,6 +13,7 @@ Here, `core/constraint_template.jl` provides higher-level constraint interfaces 
 ## Nodal Constraints
 ```@docs
 constraint_flow_conservation
+constraint_node_directionality
 constraint_sink_directionality
 constraint_source_directionality
 constraint_intermediate_directionality
