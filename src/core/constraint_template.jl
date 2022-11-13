@@ -254,7 +254,7 @@ end
         nw::Int=nw_id_default
     )
 
-Constraint template to add ([`constraint_tank_volume_fixed`](@ref) constraints
+Constraint template to add [`constraint_tank_volume_fixed`](@ref) constraints
 when a tank is not dispatchable, usually at the first time index of a problem
 to fix the tank's initial volume. Here, `wm` is the WaterModels object, `i` is
 the index of the tank for which the constraints will be added, if applicable,
@@ -293,7 +293,7 @@ end
         nw_2::Int
     )
 
-Constraint template to add ([`constraint_tank_volume`](@ref) constraints that
+Constraint template to add [`constraint_tank_volume`](@ref) constraints that
 integrate the volume of a tank forward in time. Here, `wm` is the WaterModels
 object, `i` is the index of the tank for which the constraints will be added,
 `nw_1` is the first time index considered in the temporal integration, and
@@ -326,7 +326,7 @@ end
         kwargs...
     )
 
-Constraint template to add ([`constraint_pipe_flow`](@ref) constraints that
+Constraint template to add [`constraint_pipe_flow`](@ref) constraints that
 limit the volumetric flow rate across a pipe. Here, `wm` is the WaterModels
 object, `a` is the index of the pipe for which flow will be limited, and `nw`
 is the subnetwork (or time) index that is considered.
@@ -354,7 +354,7 @@ end
         kwargs...
     )
 
-Constraint template to add ([`constraint_pipe_head`](@ref) constraints that
+Constraint template to add [`constraint_pipe_head`](@ref) constraints that
 limit and establish relationships among head difference and head variables.
 Here, `wm` is the WaterModels object, `a` is the index of the pipe, and `nw` is
 the subnetwork (or time) index that is considered.
@@ -380,7 +380,7 @@ end
         kwargs...
     )
 
-Constraint template to add ([`constraint_pipe_head_loss`](@ref) constraints
+Constraint template to add [`constraint_pipe_head_loss`](@ref) constraints
 that model head loss relationships along a pipe. Here, `wm` is the WaterModels
 object, `a` is the index of the pipe, and `nw` is the subnetwork (or time)
 index that is considered.
@@ -524,7 +524,7 @@ end
         kwargs...
     )
 
-Constraint template to add ([`constraint_des_pipe_selection`](@ref) constraints
+Constraint template to add [`constraint_des_pipe_selection`](@ref) constraints
 that enforce the selection of only one design pipe to be constructed along a
 given arc. Here, `wm` is the WaterModels object, `k` is the index of the arc
 that connects the two common nodes of each design pipe, `node_fr` is the index
@@ -563,7 +563,7 @@ end
         kwargs...
     )
 
-Constraint template to add ([`constraint_on_off_des_pipe_flow`](@ref)
+Constraint template to add [`constraint_on_off_des_pipe_flow`](@ref)
 constraints that limit the amount of flow traveling across a design pipe. Here,
 `wm` is the WaterModels object, `a` is the index of the design pipe, and `nw`
 is the index of a subnetwork within a multinetwork.
@@ -598,7 +598,7 @@ end
         kwargs...
     )
 
-Constraint template to add ([`constraint_on_off_des_pipe_head`](@ref)
+Constraint template to add [`constraint_on_off_des_pipe_head`](@ref)
 constraints that limit the head differences across a design pipe. Here, `wm` is
 the WaterModels object, `a` is the index of the design pipe, and `nw` is the
 index of a subnetwork within a multinetwork.
@@ -629,7 +629,7 @@ end
         kwargs...
     )
 
-Constraint template to add ([`constraint_on_off_des_pipe_head_loss`](@ref)
+Constraint template to add [`constraint_on_off_des_pipe_head_loss`](@ref)
 constraints that model the head losses across a design pipe. Here, `wm` is the
 WaterModels object, `a` is the index of the design pipe, and `nw` is the index
 of a subnetwork within a multinetwork.
@@ -688,7 +688,7 @@ end
         kwargs...
     )
 
-Constraint template to add ([`constraint_on_off_pump_flow`](@ref) constraints,
+Constraint template to add [`constraint_on_off_pump_flow`](@ref) constraints,
 which restrict the amount of flow transported through a pump based on its
 operating status. Here, `wm` is the WaterModels object, `a` is the index of the
 pump, and `nw` is the index of a subnetwork within a multinetwork.
@@ -721,7 +721,7 @@ end
         kwargs...
     )
 
-Constraint template to add ([`constraint_on_off_pump_head`](@ref) constraints,
+Constraint template to add [`constraint_on_off_pump_head`](@ref) constraints,
 which disjunctively limit the head difference between nodes connected by the
 pump and, if operating, ensures the head difference between nodes is equal to
 the head gain, constrained by ([`constraint_on_off_pump_head_gain`](@ref).
@@ -750,7 +750,7 @@ end
         kwargs...
     )
 
-Constraint template to add ([`constraint_on_off_pump_head_gain`](@ref)
+Constraint template to add [`constraint_on_off_pump_head_gain`](@ref)
 constraints, which, if operating, limit the pump's head gain as a function of
 flow rate. Here, `wm` is the WaterModels object, `a` is the index of the pump,
 and `nw` is the index of a subnetwork within a multinetwork.
@@ -790,7 +790,7 @@ end
         kwargs...
     )
 
-Constraint template to add ([`constraint_on_off_pump_power`](@ref) constraints,
+Constraint template to add [`constraint_on_off_pump_power`](@ref) constraints,
 which, if operating, model the pump's power according to certain assumptions.
 Here, `wm` is the WaterModels object, `a` is the index of the pump, and `nw` is
 the index of a subnetwork within a multinetwork.
@@ -848,7 +848,7 @@ end
         kwargs...
     )
 
-Constraint template to add ([`constraint_on_off_pump_group`](@ref) constraints,
+Constraint template to add [`constraint_on_off_pump_group`](@ref) constraints,
 which impose symmetry-breaking lexicographic sorting of pump activation
 statuses on groups of identical pumps operating in parallel along the same arc
 of the network. Here, `wm` is the WaterModels object, `k` is the index of the
@@ -875,7 +875,7 @@ end
         kwargs...
     )
 
-Constraint template to add ([`constraint_on_off_pump_switch`](@ref) constraint,
+Constraint template to add [`constraint_on_off_pump_switch`](@ref) constraint,
 which limits the number of times a pump can be switched from off to on in a
 multiperiod pump scheduling problem. Here, `wm` is the WaterModels object, `a`
 is the index of the pump, and `network_ids` are the network (time) indices used
@@ -903,7 +903,7 @@ end
         kwargs...
     )
 
-Constraint template to add ([`constraint_pump_switch_on`](@ref) constraints,
+Constraint template to add [`constraint_pump_switch_on`](@ref) constraints,
 which model the switching of a pump from _off_ to _on_ and constrains its
 operation, if switched on, to remain on for at least some minimum amount of
 time. Here, `wm` is the WaterModels object; `a` is the index of the pump; `n_1`
@@ -938,7 +938,7 @@ end
         kwargs...
     )
 
-Constraint template to add ([`constraint_pump_switch_off`](@ref) constraints,
+Constraint template to add [`constraint_pump_switch_off`](@ref) constraints,
 which model the switching of a pump from _on_ to _off_ and constrains non-
 operation, if switched off, to remain off for at least some minimum amount of
 time. Here, `wm` is the WaterModels object; `a` is the index of the pump; `n_1`
@@ -974,7 +974,7 @@ end
         kwargs...
     )
 
-Constraint template to add ([`constraint_short_pipe_flow`](@ref) constraints
+Constraint template to add [`constraint_short_pipe_flow`](@ref) constraints
 that limit the volumetric flow rate across a short pipe. Here, `wm` is the
 WaterModels object, `a` is the index of the short pipe for which flow will be
 limited, and `nw` is the subnetwork (or time) index that is considered.
@@ -1002,7 +1002,7 @@ end
         kwargs...
     )
 
-Constraint template to add ([`constraint_short_pipe_head`](@ref) constraints
+Constraint template to add [`constraint_short_pipe_head`](@ref) constraints
 that limit and establish relationships among head difference and head
 variables. Here, `wm` is the WaterModels object, `a` is the index of the short
 pipe, and `nw` is the subnetwork (or time) index that is considered.
@@ -1032,7 +1032,7 @@ end
         kwargs...
     )
 
-Constraint template to add ([`constraint_on_off_valve_flow`](@ref) constraints
+Constraint template to add [`constraint_on_off_valve_flow`](@ref) constraints
 that limit the volumetric flow rate across a valve based on its operating
 status. Here, `wm` is the WaterModels object, `a` is the index of the valve for
 which flow will be limited, and `nw` is the subnetwork (or time) index that is
@@ -1062,7 +1062,7 @@ end
         kwargs...
     )
 
-Constraint template to add ([`constraint_on_off_valve_head`](@ref) constraints
+Constraint template to add [`constraint_on_off_valve_head`](@ref) constraints
 that limit and establish relationships among head variables based on the
 operating status of the valve. Here, `wm` is the WaterModels object, `a` is the
 index of the valve, and `nw` is the subnetwork (or time) index that is
@@ -1092,7 +1092,7 @@ end
         kwargs...
     )
 
-Constraint template to add ([`constraint_on_off_regulator_flow`](@ref)
+Constraint template to add [`constraint_on_off_regulator_flow`](@ref)
 constraints that limit the volumetric flow rate across a regulator based on its
 operating status. Here, `wm` is the WaterModels object, `a` is the index of the
 valve for which flow will be limited, and `nw` is the subnetwork (or time)
@@ -1125,7 +1125,7 @@ end
         kwargs...
     )
 
-Constraint template to add ([`constraint_on_off_regulator_head`](@ref)
+Constraint template to add [`constraint_on_off_regulator_head`](@ref)
 constraints that limit and establish relationships among head variables based
 on the operating status of the regulator. Here, `wm` is the WaterModels object,
 `a` is the index of the regulator, and `nw` is the subnetwork (or time) index
