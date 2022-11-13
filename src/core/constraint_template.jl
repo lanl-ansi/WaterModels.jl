@@ -875,11 +875,11 @@ end
         kwargs...
     )
 
-Constraint template to add ([`constraint_on_off_pump_switch`](@ref)
-constraint, which limits the number of times a pump can be switched from off to
-on in a multiperiod pump scheduling problem. Here, `wm` is the WaterModels
-object, `a` is the index of the pump, and `network_ids` are the network (time)
-indices used in the summation that limits the number of switches.
+Constraint template to add ([`constraint_on_off_pump_switch`](@ref) constraint,
+which limits the number of times a pump can be switched from off to on in a
+multiperiod pump scheduling problem. Here, `wm` is the WaterModels object, `a`
+is the index of the pump, and `network_ids` are the network (time) indices used
+in the summation that limits the number of switches.
 """
 function constraint_on_off_pump_switch(
     wm::AbstractWaterModel,
@@ -894,6 +894,23 @@ function constraint_on_off_pump_switch(
 end
 
 
+"""
+    constraint_pump_switch_on(
+        wm::AbstractWaterModel,
+        a::Int,
+        n_1::Int,
+        n_2::Int;
+        kwargs...
+    )
+
+Constraint template to add ([`constraint_pump_switch_on`](@ref) constraints,
+which model the switching of a pump from _off_ to _on_ and constrains its
+operation, if switched on, to remain on for at least some minimum amount of
+time. Here, `wm` is the WaterModels object; `a` is the index of the pump; `n_1`
+is the first time index modeled by the constraint; and `n_2` is the adjacent
+(next) time index modeled by the constraint, which permits limiting the change
+in pump status (i.e., from off to on).
+"""
 function constraint_pump_switch_on(
     wm::AbstractWaterModel,
     a::Int,
@@ -912,6 +929,23 @@ function constraint_pump_switch_on(
 end
 
 
+"""
+    function constraint_pump_switch_off(
+        wm::AbstractWaterModel,
+        a::Int,
+        n_1::Int,
+        n_2::Int;
+        kwargs...
+    )
+
+Constraint template to add ([`constraint_pump_switch_off`](@ref) constraints,
+which model the switching of a pump from _on_ to _off_ and constrains non-
+operation, if switched off, to remain off for at least some minimum amount of
+time. Here, `wm` is the WaterModels object; `a` is the index of the pump; `n_1`
+is the first time index modeled by the constraint; `n_2` is the adjacent (next)
+time index modeled by the constraint, which permits limiting the change in pump
+status (i.e., from on to off).
+"""
 function constraint_pump_switch_off(
     wm::AbstractWaterModel,
     a::Int,
@@ -931,6 +965,20 @@ end
 
 
 ### Short Pipe Constraints ###
+
+"""
+    constraint_short_pipe_flow(
+        wm::AbstractWaterModel,
+        a::Int;
+        nw::Int=nw_id_default,
+        kwargs...
+    )
+
+Constraint template to add ([`constraint_short_pipe_flow`](@ref) constraints
+that limit the volumetric flow rate across a short pipe. Here, `wm` is the
+WaterModels object, `a` is the index of the short pipe for which flow will be
+limited, and `nw` is the subnetwork (or time) index that is considered.
+"""
 function constraint_short_pipe_flow(
     wm::AbstractWaterModel,
     a::Int;
@@ -946,6 +994,19 @@ function constraint_short_pipe_flow(
 end
 
 
+"""
+    constraint_short_pipe_head(
+        wm::AbstractWaterModel,
+        a::Int;
+        nw::Int=nw_id_default,
+        kwargs...
+    )
+
+Constraint template to add ([`constraint_short_pipe_head`](@ref) constraints
+that limit and establish relationships among head difference and head
+variables. Here, `wm` is the WaterModels object, `a` is the index of the short
+pipe, and `nw` is the subnetwork (or time) index that is considered.
+"""
 function constraint_short_pipe_head(
     wm::AbstractWaterModel,
     a::Int;
@@ -962,6 +1023,21 @@ end
 
 
 ### Valve Constraints ###
+
+"""
+    constraint_on_off_valve_flow(
+        wm::AbstractWaterModel,
+        a::Int;
+        nw::Int=nw_id_default,
+        kwargs...
+    )
+
+Constraint template to add ([`constraint_on_off_valve_flow`](@ref) constraints
+that limit the volumetric flow rate across a valve based on its operating
+status. Here, `wm` is the WaterModels object, `a` is the index of the valve for
+which flow will be limited, and `nw` is the subnetwork (or time) index that is
+considered.
+"""
 function constraint_on_off_valve_flow(
     wm::AbstractWaterModel,
     a::Int;
@@ -978,6 +1054,20 @@ function constraint_on_off_valve_flow(
 end
 
 
+"""
+    constraint_on_off_valve_head(
+        wm::AbstractWaterModel,
+        a::Int;
+        nw::Int=nw_id_default,
+        kwargs...
+    )
+
+Constraint template to add ([`constraint_on_off_valve_head`](@ref) constraints
+that limit and establish relationships among head variables based on the
+operating status of the valve. Here, `wm` is the WaterModels object, `a` is the
+index of the valve, and `nw` is the subnetwork (or time) index that is
+considered.
+"""
 function constraint_on_off_valve_head(
     wm::AbstractWaterModel,
     a::Int;
@@ -993,6 +1083,21 @@ end
 
 
 ### Regulator Constraints ###
+
+"""
+    constraint_on_off_regulator_flow(
+        wm::AbstractWaterModel,
+        a::Int;
+        nw::Int=nw_id_default,
+        kwargs...
+    )
+
+Constraint template to add ([`constraint_on_off_regulator_flow`](@ref)
+constraints that limit the volumetric flow rate across a regulator based on its
+operating status. Here, `wm` is the WaterModels object, `a` is the index of the
+valve for which flow will be limited, and `nw` is the subnetwork (or time)
+index that is considered.
+"""
 function constraint_on_off_regulator_flow(
     wm::AbstractWaterModel,
     a::Int;
@@ -1012,6 +1117,20 @@ function constraint_on_off_regulator_flow(
 end
 
 
+"""
+    constraint_on_off_regulator_head(
+        wm::AbstractWaterModel,
+        a::Int;
+        nw::Int=nw_id_default,
+        kwargs...
+    )
+
+Constraint template to add ([`constraint_on_off_regulator_head`](@ref)
+constraints that limit and establish relationships among head variables based
+on the operating status of the regulator. Here, `wm` is the WaterModels object,
+`a` is the index of the regulator, and `nw` is the subnetwork (or time) index
+that is considered.
+"""
 function constraint_on_off_regulator_head(
     wm::AbstractWaterModel,
     a::Int;
