@@ -80,6 +80,26 @@ function _variable_component_flow(
 end
 
 
+"""
+    constraint_pipe_flow(
+        wm::AbstractNCModel,
+        n::Int,
+        a::Int,
+        q_max_reverse::Float64,
+        q_min_forward::Float64,
+    )
+
+Currently does nothing for models of type `AbstractNCModel`. Here, `wm` is the
+WaterModels object, `n` is the subnetwork (or time) index that is considered,
+`a` is the index of the pipe for which flow will be limited, `q_max_reverse` is
+the _maximum_ (negative) amount of flow when flow is traveling in the negative
+direction (which corresponds to the _minimum_ magnitude of flow when traveling
+in the negative direction), and `q_min_forward` is the _minimum_ (positive)
+amount of flow when flow is traveling in the positive (forward) direction. For
+`AbstractNCModel` types, no constraints will be added, as in these formulation
+types, flow is not partitioned by direction, and flow bounds are instead
+imposed during variable instantiation in [`variable_flow`](@ref).
+"""
 function constraint_pipe_flow(
     wm::AbstractNCModel,
     n::Int,
@@ -91,6 +111,21 @@ function constraint_pipe_flow(
 end
 
 
+"""
+    constraint_pipe_head(
+        wm::AbstractNCModel,
+        n::Int,
+        a::Int,
+        node_fr::Int,
+        node_to::Int,
+    )
+
+Add constraints that limit the head difference (loss) along a pipe based on the
+lower and upper bounds of head variables at the nodes connecting that pipe.
+Here, `wm` is the WaterModels object, `n` is the subnetwork (or time) index
+that is considered, `a` is the index of the pipe, `node_fr` is the index of the
+tail node of the pipe, and `node_to` is the index of the head node of the pipe.
+"""
 function constraint_pipe_head(
     wm::AbstractNCModel,
     n::Int,
@@ -110,6 +145,7 @@ function constraint_pipe_head(
     # Append the constraint array.
     append!(con(wm, n, :pipe_head, a), [c_1, c_2])
 end
+
 
 "Adds head loss constraint for a pipe in the `NC` formulation."
 function constraint_pipe_head_loss(
@@ -219,7 +255,9 @@ is the index of the arc that connects the two common nodes of each design pipe,
 `node_fr` is the index of the tail node of the arc that models each design
 pipe, `node_to` is the index of the head node of the arc that models each
 design pipe, and `des_pipes` is the vector of design pipes that reside along
-the same arc `k`.
+the same arc `k`. For `AbstractNCModel` types, no constraints will be added, as
+in these formulation types, flow is not partitioned by direction, and flow bounds
+are instead imposed during variable instantiation in [`variable_flow`](@ref).
 """
 function constraint_des_pipe_flow(
     wm::AbstractNCModel,
@@ -452,6 +490,27 @@ function constraint_on_off_valve_head(
 end
 
 
+"""
+    constraint_short_pipe_flow(
+        wm::AbstractNCModel,
+        n::Int,
+        a::Int,
+        q_max_reverse::Float64,
+        q_min_forward::Float64,
+    )
+
+Currently does nothing for models of type `AbstractNCModel`. Here, `wm` is the
+WaterModels object, `n` is the subnetwork (or time) index that is considered,
+`a` is the index of the short pipe for which flow will be limited,
+`q_max_reverse` is the _maximum_ (negative) amount of flow when flow is
+traveling in the negative direction (which corresponds to the _minimum_
+magnitude of flow when traveling in the negative direction), and
+`q_min_forward` is the _minimum_ (positive) amount of flow when flow is
+traveling in the positive (forward) direction. For `AbstractNCModel` types, no
+constraints will be added, as in these formulation types, flow is not
+partitioned by direction, and flow bounds are instead imposed during variable
+instantiation in [`variable_flow`](@ref).
+"""
 function constraint_short_pipe_flow(
     wm::AbstractNCModel,
     n::Int,
@@ -463,6 +522,22 @@ function constraint_short_pipe_flow(
 end
 
 
+"""
+    constraint_short_pipe_head(
+        wm::AbstractNCModel,
+        n::Int,
+        a::Int,
+        node_fr::Int,
+        node_to::Int,
+    )
+
+Adds a constraint that equates the head at the tail node of a short pipe with
+the head at the head node of the short pipe (i.e., since short pipes have no
+loss). Here, `wm` is the WaterModels object, `n` is the subnetwork (or time)
+index that is considered, `a` is the index of the short pipe, `node_fr` is the
+index of the tail node of the short pipe, and `node_to` is the index of the
+head node of the short pipe.
+"""
 function constraint_short_pipe_head(
     wm::AbstractNCModel,
     n::Int,
@@ -481,6 +556,30 @@ function constraint_short_pipe_head(
 end
 
 
+"""
+    constraint_intermediate_directionality(
+        wm::AbstractNCModel,
+        n::Int,
+        i::Int,
+        pipe_fr::Array{Int,1},
+        pipe_to::Array{Int,1},
+        des_pipe_fr::Array{Int,1},
+        des_pipe_to::Array{Int,1},
+        pump_fr::Array{Int,1},
+        pump_to::Array{Int,1},
+        regulator_fr::Array{Int,1},
+        regulator_to::Array{Int,1},
+        short_pipe_fr::Array{Int,1},
+        short_pipe_to::Array{Int,1},
+        valve_fr::Array{Int,1},
+        valve_to::Array{Int,1}
+    )
+
+Currently does nothing for models of type `AbstractNCModel`. Here, `wm` is the
+WaterModels object; `n` is the subnetwork (time) index; `i` is the index of the
+node; and `pipe_fr`, `pipe_to`, etc., are indices of node-connecting components
+that are directed _from_ or _to_ node `i`, respectively.
+"""
 function constraint_intermediate_directionality(
     wm::AbstractNCModel,
     n::Int,
@@ -502,6 +601,30 @@ function constraint_intermediate_directionality(
 end
 
 
+"""
+    constraint_sink_directionality(
+        wm::AbstractNCModel,
+        n::Int,
+        i::Int,
+        pipe_fr::Array{Int,1},
+        pipe_to::Array{Int,1},
+        des_pipe_fr::Array{Int,1},
+        des_pipe_to::Array{Int,1},
+        pump_fr::Array{Int,1},
+        pump_to::Array{Int,1},
+        regulator_fr::Array{Int,1},
+        regulator_to::Array{Int,1},
+        short_pipe_fr::Array{Int,1},
+        short_pipe_to::Array{Int,1},
+        valve_fr::Array{Int,1},
+        valve_to::Array{Int,1}
+    )
+
+Currently does nothing for models of type `AbstractNCModel`. Here, `wm` is the
+WaterModels object; `n` is the subnetwork (time) index; `i` is the index of the
+node; and `pipe_fr`, `pipe_to`, etc., are indices of node-connecting components
+that are directed _from_ or _to_ node `i`, respectively.
+"""
 function constraint_sink_directionality(
     wm::AbstractNCModel,
     n::Int,
@@ -523,6 +646,30 @@ function constraint_sink_directionality(
 end
 
 
+"""
+    constraint_source_directionality(
+        wm::AbstractNCModel,
+        n::Int,
+        i::Int,
+        pipe_fr::Array{Int,1},
+        pipe_to::Array{Int,1},
+        des_pipe_fr::Array{Int,1},
+        des_pipe_to::Array{Int,1},
+        pump_fr::Array{Int,1},
+        pump_to::Array{Int,1},
+        regulator_fr::Array{Int,1},
+        regulator_to::Array{Int,1},
+        short_pipe_fr::Array{Int,1},
+        short_pipe_to::Array{Int,1},
+        valve_fr::Array{Int,1},
+        valve_to::Array{Int,1}
+    )
+
+Currently does nothing for models of type `AbstractNCModel`. Here, `wm` is the
+WaterModels object; `n` is the subnetwork (time) index; `i` is the index of the
+node; and `pipe_fr`, `pipe_to`, etc., are indices of node-connecting components
+that are directed _from_ or _to_ node `i`, respectively.
+"""
 function constraint_source_directionality(
     wm::AbstractNCModel,
     n::Int,
