@@ -451,7 +451,7 @@ end
 Adds constraints that model head differences at the nodes connected by a pump
 based on the operating status of the pump (i.e., heads at connecting nodes are
 decoupled if the pump is inactive, but if the pump is active, the head
-difference is computed from the pump's head gain, which is a function of flow.
+difference is computed from the pump's head gain, which is a function of flow).
 Here, `wm` is the WaterModels object, `n` is the subnetwork (or time) index
 that is considered, `a` is the index of the pump, `node_fr` is the index of the
 tail node of the pump, and `node_to` is the index of the head node of the pump.
@@ -555,6 +555,21 @@ function constraint_on_off_pump_power(
 end
 
 
+"""
+    constraint_on_off_regulator_flow(
+        wm::AbstractNCModel,
+        n::Int,
+        a::Int,
+        q_min_forward::Float64
+    )
+
+Adds constraints that limit the amount of flow across a regulator based on the
+operating status of the regulator (i.e., there is unrestricted but bounded flow
+if the regulator is active and zero flow otherwise). Here, `wm` is the
+WaterModels object, `n` is the subnetwork (or time) index that is considered,
+`a` is the index of the regulator, and `q_min_forward` is the _minimum_
+(positive) amount of flow when the regulator is active.
+"""
 function constraint_on_off_regulator_flow(
     wm::AbstractNCModel,
     n::Int,
@@ -574,6 +589,26 @@ function constraint_on_off_regulator_flow(
 end
 
 
+"""
+    constraint_on_off_regulator_head(
+        wm::AbstractNCModel,
+        n::Int,
+        a::Int,
+        node_fr::Int,
+        node_to::Int,
+        head_setting::Float64
+    )
+
+Adds constraints that model the effects of a pressure-reducing valve (i.e., a
+regulator). When the regulator is operational (active), the regulator will
+ensure head at the node indexed by `node_to` will be equal to `head_setting`.
+When the regulator is inactive, heads at connecting nodes are decoupled.
+Here, `wm` is the WaterModels object, `n` is the subnetwork (or time) index
+that is considered, `a` is the index of the regulator, `node_fr` is the index
+of the tail node of the regulator, `node_to` is the index of the head node of
+the regulator, and `head_setting` is the value of head to be set (if the
+regulator is active) at the (thus downstream) node indexed by `node_to`.
+"""
 function constraint_on_off_regulator_head(
     wm::AbstractNCModel,
     n::Int,
@@ -604,6 +639,26 @@ function constraint_on_off_regulator_head(
 end
 
 
+"""
+    constraint_on_off_valve_flow(
+        wm::AbstractNCModel,
+        n::Int,
+        a::Int,
+        q_max_reverse::Float64,
+        q_min_forward::Float64
+    )
+
+Adds constraints that limit the amount of flow along a valve based on the
+operating status of the valve (i.e., there is bounded flow if the valve is
+active and zero flow if the valve is inactive). Here, `wm` is the WaterModels
+object, `n` is the subnetwork (or time) index that is considered, `a` is the
+index of the valve, `q_max_reverse` is the _maximum_ (negative) amount of flow
+when flow is traveling in the negative direction (which corresponds to the
+_minimum_ magnitude of flow when traveling in the negative direction), and
+`q_min_forward` is the _minimum_ (positive) amount of flow when flow is
+traveling in the positive (forward) direction. For `AbstractNCModel` types,
+however, these direction-based flow limits are unused.
+"""
 function constraint_on_off_valve_flow(
     wm::AbstractNCModel,
     n::Int,
@@ -624,6 +679,23 @@ function constraint_on_off_valve_flow(
 end
 
 
+"""
+    constraint_on_off_valve_head(
+        wm::AbstractNCModel,
+        n::Int,
+        a::Int,
+        node_fr::Int,
+        node_to::Int
+    )
+
+Adds constraints that model head difference between the nodes connected by a
+valve based on the operating status of the valve (i.e., heads at connecting
+nodes are decoupled if the valve is inactive, but if the valve is active, the
+heads at connecting nodes are equal). Here, `wm` is the WaterModels object, `n`
+is the subnetwork (or time) index that is considered, `a` is the index of the
+valve, `node_fr` is the index of the tail node of the valve, and `node_to` is
+the index of the head node of the valve.
+"""
 function constraint_on_off_valve_head(
     wm::AbstractNCModel,
     n::Int,
