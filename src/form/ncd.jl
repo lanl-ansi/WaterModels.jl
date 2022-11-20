@@ -218,7 +218,7 @@ end
         n::Int,
         a::Int,
         q_max_reverse::Float64,
-        q_min_forward::Float64,
+        q_min_forward::Float64
     )
 
 Adds constraints that limit the amount of flow traveling in the positive
@@ -297,6 +297,33 @@ function constraint_pipe_head(
 end
 
 
+"""
+    constraint_pipe_head_loss(
+        wm::AbstractNCDModel,
+        n::Int,
+        a::Int,
+        node_fr::Int,
+        node_to::Int,
+        exponent::Float64,
+        L::Float64,
+        r::Float64,
+        q_max_reverse::Float64,
+        q_min_forward::Float64
+    )
+
+Add constraints that model frictional head loss across a pipe. Here, `wm` is
+the WaterModels object; `n` is the subnetwork (or time) index that is
+considered; `a` is the index of the pipe; `node_fr` is the index of the tail
+node of the pipe; `node_to` is the index of the head node of the pipe;
+`exponent` is the exponent on flow in the head loss function (i.e., 1.852 for
+Hazen-Williams head loss and 2.0 for Darcy-Weisbach head loss); `L` is the
+length of the pipe; `r` is the resistance per unit length of the pipe;
+`q_max_reverse` is the _maximum_ (negative) amount of flow when flow is
+traveling in the negative direction (which corresponds to the _minimum_
+magnitude of flow when traveling in the negative direction); and
+`q_min_forward` is the _minimum_ (positive) amount of flow when flow is
+traveling in the positive (forward) direction.
+"""
 function constraint_pipe_head_loss(
     wm::AbstractNCDModel,
     n::Int,
@@ -333,13 +360,16 @@ end
         q_min_forward::Float64
     )
 
-Adds constraints that limit the amount of flow traveling in the positive
-(forward) and negative (reverse) directions for a design pipe. Also limits flow
-based on the construction status of the design pipe, i.e., restricting flow to
-zero if a design pipe is not constructed. Here, `wm` is the WaterModels object,
-`n` is the index of a subnetwork within a multinetwork, and `a` is the index of
-the design pipe. The parameters `q_max_reverse` and `q_min_forward` are
-currently unused, although they could be used to strengthen these constraints.
+Adds constraints that limit the amount of flow along a design pipe based on the
+construction status of the design pipe (i.e., there is unrestricted flow if the
+pipe is constructed and zero flow if the pipe is not constructed). Here, `wm`
+is the WaterModels object, `n` is the subnetwork (or time) index that is
+considered, `a` is the index of the design pipe, `q_max_reverse` is the
+_maximum_ (negative) amount of flow when flow is traveling in the negative
+direction (which corresponds to the _minimum_ magnitude of flow when traveling
+in the negative direction), and `q_min_forward` is the _minimum_ (positive)
+amount of flow when flow is traveling in the positive (forward) direction.
+Note these direction-based limits are currently unused in these constraints.
 """
 function constraint_on_off_des_pipe_flow(
     wm::AbstractNCDModel,
@@ -358,6 +388,11 @@ function constraint_on_off_des_pipe_flow(
     c_2 = JuMP.@constraint(wm.model, qn <= qn_ub * (1.0 - y))
     c_3 = JuMP.@constraint(wm.model, qp <= qp_ub * z)
     c_4 = JuMP.@constraint(wm.model, qn <= qn_ub * z)
+
+    # TODO: Incorporate constraints for direction-based bounds, `q_max_reverse`
+    # and `q_min_forward`, based on the product of `z` and `y`. This could
+    # potentially strengthen formulations of problems involving design pipes.
+    # See how this is done similarly in `constraint_on_off_valve_flow`.
 
     # Append the constraint array.
     append!(con(wm, n, :on_off_des_pipe_flow, a), [c_1, c_2, c_3, c_4])
@@ -407,7 +442,37 @@ function constraint_on_off_des_pipe_head(
 end
 
 
-"Adds head loss constraint for a design pipe in the `NC` formulation."
+"""
+    constraint_on_off_des_pipe_head_loss(
+        wm::AbstractNCDModel,
+        n::Int,
+        a::Int,
+        node_fr::Int,
+        node_to::Int,
+        exponent::Float64,
+        L::Float64,
+        r::Float64,
+        q_max_reverse::Float64,
+        q_min_forward::Float64
+    )
+
+Add constraints that model frictional head loss across a design pipe. Here,
+`wm` is the WaterModels object; `n` is the subnetwork (or time) index that is
+considered; `a` is the index of the design pipe; `node_fr` is the index of the
+tail node of the design pipe; `node_to` is the index of the head node of the
+design pipe; `exponent` is the exponent on flow in the head loss function
+(i.e., 1.852 for Hazen-Williams head loss and 2.0 for Darcy-Weisbach head
+loss); `L` is the length of the design pipe; `r` is the resistance per unit
+length of the design pipe; `q_max_reverse` is the _maximum_ (negative) amount
+of flow when flow is traveling in the negative direction (which corresponds to
+the _minimum_ magnitude of flow when traveling in the negative direction); and
+`q_min_forward` is the _minimum_ (positive) amount of flow when flow is
+traveling in the positive (forward) direction. Note direction-based flow limits
+are currently unused in these constraints. Also note that, when a design pipe
+is not constructed, flow will be forced to zero by way of
+[`constraint_on_off_des_pipe_flow`](@ref), and head loss, here, will thus be
+constrained to zero by way of the head loss equation.
+"""
 function constraint_on_off_des_pipe_head_loss(
     wm::AbstractNCDModel,
     n::Int,
@@ -509,6 +574,24 @@ function constraint_des_pipe_head(
 end
 
 
+"""
+    constraint_on_off_pump_flow(
+        wm::AbstractNCDModel,
+        n::Int,
+        a::Int,
+        q_min_forward::Float64
+    )
+
+Adds constraints that limit the amount of flow across a pump based on the
+operating status of the pump (i.e., there is unrestricted but bounded flow if
+the pump is active and zero flow otherwise). Here, `wm` is the WaterModels
+object, `n` is the subnetwork (or time) index that is considered, `a` is the
+index of the pump, and `q_min_forward` is the _minimum_ (positive) amount of
+flow when the pump is active. Here, `q_min_forward` could be interpreted as
+some minimum amount of flow recommended by the pump manufacturer to avoid
+pump overheating, or it may be some network- or optimization-based bound (e.g.,
+a flow bound discovered via optimization-based bound tightening).
+"""
 function constraint_on_off_pump_flow(
     wm::AbstractNCDModel,
     n::Int,
@@ -531,6 +614,25 @@ function constraint_on_off_pump_flow(
 end
 
 
+"""
+    constraint_on_off_pump_head_gain(
+        wm::AbstractNCDModel,
+        n::Int,
+        a::Int,
+        node_fr::Int,
+        node_to::Int,
+        q_min_forward::Float64
+    )
+
+Adds constraints that model the pump's head gain, if operating, as a possibly
+nonlinear function of flow rate. If the pump is inactive, the head gain is
+restricted to a value of zero. Here, `wm` is the WaterModels object, `n` is the
+subnetwork (or time) index that is considered, `a` is the index of the pump,
+`node_fr` is the index of the tail node of the pump, `node_to` is the index of
+the head node of the pump, and `q_min_forward` is the _minimum_ (positive)
+amount of flow when the pump is active. Head gain is assumed to be a
+nonnegative quantity that is directed from `node_fr` to `node_to`.
+"""
 function constraint_on_off_pump_head_gain(
     wm::AbstractNCDModel,
     n::Int,
@@ -550,6 +652,21 @@ function constraint_on_off_pump_head_gain(
 end
 
 
+"""
+    constraint_on_off_pump_power(
+        wm::AbstractNCDModel,
+        n::Int,
+        a::Int,
+        q_min_forward::Float64
+    )
+
+Adds constraints that model the pump's power consumption, if operating, as a
+quadratic function of flow rate. If the pump is inactive, the power is
+restricted to a value of zero. Here, `wm` is the WaterModels object, `n` is the
+subnetwork (or time) index that is considered, `a` is the index of the pump,
+and `q_min_forward` is the _minimum_ (positive) amount of flow when the pump is
+active. Note only a quadratic approximation is used for `AbstractNCDModel`.
+"""
 function constraint_on_off_pump_power(
     wm::AbstractNCDModel,
     n::Int,
@@ -569,6 +686,21 @@ function constraint_on_off_pump_power(
 end
 
 
+"""
+    constraint_on_off_regulator_flow(
+        wm::AbstractNCDModel,
+        n::Int,
+        a::Int,
+        q_min_forward::Float64
+    )
+
+Adds constraints that limit the amount of flow across a regulator based on the
+operating status of the regulator (i.e., there is bounded flow if the regulator
+is active and zero flow otherwise). Here, `wm` is the WaterModels object, `n`
+is the subnetwork (or time) index that is considered, `a` is the index of the
+regulator, and `q_min_forward` is the _minimum_ (positive) amount of flow when
+the regulator is active.
+"""
 function constraint_on_off_regulator_flow(
     wm::AbstractNCDModel,
     n::Int,
@@ -590,6 +722,25 @@ function constraint_on_off_regulator_flow(
 end
 
 
+"""
+    constraint_on_off_valve_flow(
+        wm::AbstractNCDModel,
+        n::Int,
+        a::Int,
+        q_max_reverse::Float64,
+        q_min_forward::Float64
+    )
+
+Adds constraints that limit the amount of flow along a valve based on the
+operating status of the valve (i.e., there is bounded flow if the valve is
+active and zero flow if the valve is inactive). Here, `wm` is the WaterModels
+object, `n` is the subnetwork (or time) index that is considered, `a` is the
+index of the valve, `q_max_reverse` is the _maximum_ (negative) amount of flow
+when flow is traveling in the negative direction (which corresponds to the
+_minimum_ magnitude of flow when traveling in the negative direction), and
+`q_min_forward` is the _minimum_ (positive) amount of flow when flow is
+traveling in the positive (forward) direction.
+"""
 function constraint_on_off_valve_flow(
     wm::AbstractNCDModel,
     n::Int,
@@ -618,6 +769,24 @@ function constraint_on_off_valve_flow(
 end
 
 
+"""
+    constraint_short_pipe_flow(
+        wm::AbstractNCDModel,
+        n::Int,
+        a::Int,
+        q_max_reverse::Float64,
+        q_min_forward::Float64
+    )
+
+Adds constraints that limit the amount of flow along a short pipe based on the
+direction of flow through the short pipe. Here, `wm` is the WaterModels object,
+`n` is the subnetwork (or time) index that is considered, `a` is the index of
+the short pipe for which flow will be limited, `q_max_reverse` is the _maximum_
+(negative) amount of flow when flow is traveling in the negative direction
+(which corresponds to the _minimum_ magnitude of flow when traveling in the
+negative direction), and `q_min_forward` is the _minimum_ (positive) amount of
+flow when flow is traveling in the positive (forward) direction.
+"""
 function constraint_short_pipe_flow(
     wm::AbstractNCDModel,
     n::Int,
@@ -644,6 +813,11 @@ function constraint_short_pipe_flow(
 end
 
 
+"""
+Gathers expressions of direction to be used by
+`constraint_intermediate_directionality`, `constraint_source_directionality`,
+and `constraint_sink_directionality`.
+"""
 function _gather_directionality_data(
     wm::AbstractNCDModel,
     n::Int,
