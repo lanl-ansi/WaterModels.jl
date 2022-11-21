@@ -21,7 +21,6 @@ makedocs(
                 "Variables" => "variables.md",
                 "Constraints" => "constraints.md"
             ],
-            "Relaxation Schemes" => "relaxations.md",
             "File I/O" => "parser.md"
         ],
         "Developer" => "developer.md",
