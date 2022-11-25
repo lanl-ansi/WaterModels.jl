@@ -31,8 +31,8 @@ set_flow_partitions_si!(data_mn, 1.0, 1.0e-4)
 highs = JuMP.optimizer_with_attributes(HiGHS.Optimizer, "time_limit" => 60.0)
 result = solve_mn_owf(data_mn, LRDWaterModel, highs)
 ```
-Note that the problem is solved and results are presented in an automatically-applied per-unit system.
-It is also highly challenging, and only a feasible solution is likely returned within the time limit for the script above.
+Note that results are presented in an automatically-applied per-unit system.
+The instance is also challenging, and only a feasible solution is returned within the time limit for the script above.
 
 ## References
 [1] Alperovits, E., & Shamir, U. (1977). Design of optimal water distribution systems. _Water Resources Research_, _13_(6), 885-900.
