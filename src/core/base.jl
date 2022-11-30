@@ -187,6 +187,7 @@ computed from systemwide analysis of the original input data. Some of the most i
 keys of this dictionary describe common network components, including:
 * `:pipe` -- the set of pipes,
 * `:pump` -- the set of pumps,
+* `:ne_pump` -- the set of network expansion pumps,
 * `:regulator` -- the set of pressure regulating valves,
 * `:short_pipe` -- the set of short pipes,
 * `:valve` -- the set of gate and check valves,
@@ -243,6 +244,8 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any})
 
         # Set pump head gain functions and derivatives.
         _set_pump_head_gain_properties!(ref[:pump])
+        # Set expansion pump head gain functions and derivatives.
+        _set_pump_head_gain_properties!(ref[:ne_pump])
     end
 end
 
