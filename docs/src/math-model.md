@@ -16,6 +16,7 @@ In summary, the following sets are commonly used when defining a WaterModels pro
 | $\mathcal{R}$                                    | `wm.ref[:nw][n][:reservoir]`      | [reservoirs](http://wateranalytics.org/EPANET/_resv_page.html)               |
 | $\mathcal{T}$                                    | `wm.ref[:nw][n][:tank]`           | [tanks](http://wateranalytics.org/EPANET/_tanks_page.html)                   |
 | $\mathcal{A} \subset \mathcal{L}$                | `wm.ref[:nw][n][:pipe]`           | [pipes](http://wateranalytics.org/EPANET/_pipes_page.html)                   |
+| $\mathcal{A}^{\textrm{des}} \subset \mathcal{L}$ | `wm.ref[:nw][n][:des_pipe_arc]`   | [design pipes](http://wateranalytics.org/EPANET/_pipes_page.html)                   |
 | $\mathcal{P} \subset \mathcal{L}$                | `wm.ref[:nw][n][:pump]`           | [pumps](http://wateranalytics.org/EPANET/_pumps_page.html)                   |
 | $\mathcal{W} \subset \mathcal{L}$                | `wm.ref[:nw][n][:regulator]`      | [regulators](http://wateranalytics.org/EPANET/_valves_page.html)                   |
 | $\mathcal{S} \subset \mathcal{L}$                | `wm.ref[:nw][n][:short_pipe]`     | [short pipes](http://wateranalytics.org/EPANET/_pipes_page.html)                   |
@@ -91,6 +92,42 @@ Further, note that we make an assumption of constant resistance for the Darcy-We
 This is typically described as a nonlinear function of flow rate.
 
 #### Design Pipes
+```math
+\begin{equation*}
+    \Delta h_{ijr}^{k} = L_{ijr} r q_{ijr}^{k} \left\lvert q_{ijr}^{k} \right\rvert^{\alpha - 1}, \, \forall (i, j) \in \mathcal{A}^{\textrm{des}}, \, \forall r \in \mathcal{A}^{\textrm{des}}_{ij}, \, \forall k \in \mathcal{K} \label{equation:mincp-des-pipe-head-loss}.
+\end{equation*}
+```
+
+```math
+\begin{equation*}
+    \underline{q}_{ijr}^{k} z_{ijr}^{k} \leq q_{ijr}^{k} \leq \overline{q}_{ijr}^{k} z_{ijr}^{k}, \, z_{ijr}^{k} \in \{0, 1\}, \, \forall (i, j) \in \mathcal{A}^{\textrm{des}}, \, \forall r \in \mathcal{A}^{\textrm{des}}_{ij}, \, \forall k \in \mathcal{K} \label{equation:mincp-des-pipe-flow-bounds}.
+\end{equation*}
+```
+
+```math
+\begin{aligned}
+\Delta h_{ijr}^{k} &\geq (\underline{h}_{i}^{k} - \overline{h}_{j}^{k}) z_{ijr}^{k}, \, \forall (i, j) \in \mathcal{A}^{\textrm{des}}, \, \forall r \in \mathcal{A}^{\textrm{des}}_{ij}, \, \forall k \in \mathcal{K} \\
+\Delta h_{ijr}^{k} &\leq (\overline{h}_{i}^{k} - \underline{h}_{j}^{k}) z_{ijr}^{k}, \, \forall (i, j) \in \mathcal{A}^{\textrm{des}}, \, \forall r \in \mathcal{A}^{\textrm{des}}_{ij}, \, \forall k \in \mathcal{K}.
+\end{aligned}
+```
+
+```math
+\begin{equation*}
+    \sum_{r \in \mathcal{A}^{\textrm{des}}_{ij}} \Delta h_{ijr}^{k} = h_{i} - h_{j}, \, \forall (i, j) \in \mathcal{A}^{\textrm{des}}, \, \forall k \in \mathcal{K}.
+\end{equation*}
+```
+
+```math
+\begin{equation*}
+    \sum_{r \in \mathcal{A}^{\textrm{des}}_{ij}} z_{ijr}^{k} = 1, \, \forall (i, j) \in \mathcal{A}^{\textrm{des}}, \, \forall k \in \mathcal{K}.
+\end{equation*}
+```
+
+```math
+\begin{equation*}
+    \sum_{r \in \mathcal{A}^{\textrm{des}}_{ij}} q_{ijr}^{k} = q_{ij}^{k}, \, \forall (i, j) \in \mathcal{A}^{\textrm{des}}, \, \forall k \in \mathcal{K}.
+\end{equation*}
+```
 
 #### Pumps
 
@@ -151,10 +188,15 @@ That is, if $z_{ij}^{k} = 1$, then $h_{i}^{k} = h_{j}^{k}$.
 Otherwise, if $z_{ij}^{k} = 0$, then $h_{i}^{k}$ and $h_{j}^{k}$ are decoupled.
 
 ### Conservation of Flow
+```math
+\sum_{(j, i) \in \delta_{i}^{-}} q_{ji}^{k} - \sum_{(i, j) \in \delta_{i}^{+}} q_{ij}^{k} = \sum_{\ell \in \mathcal{D}_{i}} q_{\ell} - \sum_{\ell \in \mathcal{R}_{i}} q_{\ell}, \, \forall i \in \mathcal{N}, \, \forall k \in \tilde{\mathcal{K}}
+```
 
 ## Nonconvex Nonlinear Program
 
 ## References
 [1] Tasseff, B., Bent, R., Epelman, M. A., Pasqualini, D., & Van Hentenryck, P. (2020). _Exact mixed-integer convex programming formulation for optimal water network design_. _arXiv preprint arXiv:2010.03422_.
 
-[1] Tasseff, B., Bent, R., Coffrin, C., Barrows, C., Sigler, D., Stickel, J., Zamzam, S., Liu, Y. & Van Hentenryck, P. (2022). _Polyhedral relaxations for optimal pump scheduling of potable water distribution networks_. _arXiv preprint arXiv:2208.03551_.
+[2] Tasseff, B., Bent, R., Coffrin, C., Barrows, C., Sigler, D., Stickel, J., Zamzam, S., Liu, Y. & Van Hentenryck, P. (2022). _Polyhedral relaxations for optimal pump scheduling of potable water distribution networks_. _arXiv preprint arXiv:2208.03551_.
+
+[3] Ormsbee, L., & Walski, T. (2016). _Darcy-Weisbach versus Hazen-Williams: No calm in West Palm_. In _World Environmental and Water Resources Congress 2016_ (pp. 455-464).
