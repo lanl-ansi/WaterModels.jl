@@ -16,13 +16,15 @@ In summary, the following sets are commonly used when defining a WaterModels pro
 | $\mathcal{R}$                                    | `wm.ref[:nw][n][:reservoir]`      | [reservoirs](http://wateranalytics.org/EPANET/_resv_page.html)               |
 | $\mathcal{T}$                                    | `wm.ref[:nw][n][:tank]`           | [tanks](http://wateranalytics.org/EPANET/_tanks_page.html)                   |
 | $\mathcal{A} \subset \mathcal{L}$                | `wm.ref[:nw][n][:pipe]`           | [pipes](http://wateranalytics.org/EPANET/_pipes_page.html)                   |
-| $\mathcal{A}^{\textrm{des}} \subset \mathcal{L}$ | `wm.ref[:nw][n][:des_pipe_arc]`   | [design pipes](http://wateranalytics.org/EPANET/_pipes_page.html)                   |
+| $\mathcal{A}^{\textrm{des}} \subset \mathcal{L}$ | `wm.ref[:nw][n][:des_pipe_arc]`   | [design pipe](http://wateranalytics.org/EPANET/_pipes_page.html) arcs                   |
 | $\mathcal{P} \subset \mathcal{L}$                | `wm.ref[:nw][n][:pump]`           | [pumps](http://wateranalytics.org/EPANET/_pumps_page.html)                   |
 | $\mathcal{W} \subset \mathcal{L}$                | `wm.ref[:nw][n][:regulator]`      | [regulators](http://wateranalytics.org/EPANET/_valves_page.html)                   |
 | $\mathcal{S} \subset \mathcal{L}$                | `wm.ref[:nw][n][:short_pipe]`     | [short pipes](http://wateranalytics.org/EPANET/_pipes_page.html)                   |
 | $\mathcal{V} \subset \mathcal{L}$                | `wm.ref[:nw][n][:valve]`          | [valves](http://wateranalytics.org/EPANET/_pipes_page.html) |
 
 ## Physical Feasibility
+Below, we describe the foundational steady-state physical model used by all WaterModels problem specifications.
+
 ### Nodes
 Nodal potentials are denoted by the variables $h_{i}^{k}$, $i \in \mathcal{N}$, $k \in \tilde{\mathcal{K}}$, where each $h_{i}^{k}$ represents the total hydraulic head in units of length.
 This quantity (hereafter referred to as "head") assimilates elevation and pressure heads.
@@ -80,7 +82,7 @@ At zero flow, the flow direction is considered ambiguous.
 
 #### Pipes
 Pipes are the primary means for transporting water in a WDN.
-Water flowing through a pipe will exhibit frictional loss due to contact with the pipe wall.
+Water flowing through a pipe will exhibit frictional energy loss due to contact with the pipe wall.
 In WaterModels, energy loss relationships that link pipe flow and head (i.e., "head loss" equations) are modeled by the Darcy-Weisbach or Hazen-Williams equations [3], requiring the constraints
 ```math
 \begin{equation*}
@@ -92,18 +94,22 @@ Further, note that we make an assumption of constant resistance for the Darcy-We
 This is typically described as a nonlinear function of flow rate.
 
 #### Design Pipes
-```math
-\begin{equation*}
-    \Delta h_{ijr}^{k} = L_{ijr} r q_{ijr}^{k} \left\lvert q_{ijr}^{k} \right\rvert^{\alpha - 1}, \, \forall (i, j) \in \mathcal{A}^{\textrm{des}}, \, \forall r \in \mathcal{A}^{\textrm{des}}_{ij}, \, \forall k \in \mathcal{K} \label{equation:mincp-des-pipe-head-loss}.
-\end{equation*}
-```
-
+In problem specifications involving network design, _design pipes_ are considered pipes that are eligible for construction within an existing WDN.
+For each design pipe, a binary variable $z_{ijr}^{k}$ is used to denote whether or not a design pipe with resistance $r$ is constructed between nodes $i$ and $j$.
+Similarly, the flow transported through a design pipe is denoted by $q_{ijr}^{k}$.
+Note that in both variable notations, $r$ is a required index since multiple potential design pipes may appear along arc $(i, j)$.
+When a design pipe is not constructed, it follows that flow cannot be transported through the design pipe, which is modeled via the constraints
 ```math
 \begin{equation*}
     \underline{q}_{ijr}^{k} z_{ijr}^{k} \leq q_{ijr}^{k} \leq \overline{q}_{ijr}^{k} z_{ijr}^{k}, \, z_{ijr}^{k} \in \{0, 1\}, \, \forall (i, j) \in \mathcal{A}^{\textrm{des}}, \, \forall r \in \mathcal{A}^{\textrm{des}}_{ij}, \, \forall k \in \mathcal{K} \label{equation:mincp-des-pipe-flow-bounds}.
 \end{equation*}
 ```
+Here, $\mathcal{A}^{\textrm{des}}_{ij}$ is the set of design resistances available for constructing a pipe along arc $(i, j)$.
+These constraints imply that, when $z_{ijr}^{k}$ is zero, zero flow can be transported through the pipe.
 
+Similar to the above, for each possible design pipe, a head difference variable $\Delta h_{ijr}^{k}$ is introduced to model the resulting head difference from a design pipe with resistance $r$ along arc $(i, j)$.
+If the design pipe is not constructed, the head difference variable associated with it is assumed to be zero.
+This is modeled via the constraints
 ```math
 \begin{aligned}
 \Delta h_{ijr}^{k} &\geq (\underline{h}_{i}^{k} - \overline{h}_{j}^{k}) z_{ijr}^{k}, \, \forall (i, j) \in \mathcal{A}^{\textrm{des}}, \, \forall r \in \mathcal{A}^{\textrm{des}}_{ij}, \, \forall k \in \mathcal{K} \\
@@ -111,25 +117,60 @@ This is typically described as a nonlinear function of flow rate.
 \end{aligned}
 ```
 
+As with pipes, the head loss along each design pipe is then modeled via
 ```math
 \begin{equation*}
-    \sum_{r \in \mathcal{A}^{\textrm{des}}_{ij}} \Delta h_{ijr}^{k} = h_{i} - h_{j}, \, \forall (i, j) \in \mathcal{A}^{\textrm{des}}, \, \forall k \in \mathcal{K}.
+    \Delta h_{ijr}^{k} = L_{ijr} r q_{ijr}^{k} \left\lvert q_{ijr}^{k} \right\rvert^{\alpha - 1}, \, \forall (i, j) \in \mathcal{A}^{\textrm{des}}, \, \forall r \in \mathcal{A}^{\textrm{des}}_{ij}, \, \forall k \in \mathcal{K} \label{equation:mincp-des-pipe-head-loss}.
 \end{equation*}
 ```
 
+Since only one design pipe can be selected per arc, the following constraints are applied:
 ```math
 \begin{equation*}
     \sum_{r \in \mathcal{A}^{\textrm{des}}_{ij}} z_{ijr}^{k} = 1, \, \forall (i, j) \in \mathcal{A}^{\textrm{des}}, \, \forall k \in \mathcal{K}.
 \end{equation*}
 ```
 
+Since only one design pipe will be constructed, the actual head loss experienced between nodes $i$ and $j$ is modeled with respect to individual design pipe head differences via
+```math
+\begin{equation*}
+    \sum_{r \in \mathcal{A}^{\textrm{des}}_{ij}} \Delta h_{ijr}^{k} = h_{i} - h_{j}, \, \forall (i, j) \in \mathcal{A}^{\textrm{des}}, \, \forall k \in \mathcal{K}.
+\end{equation*}
+```
+
+Finally, similar to the head difference sum above, the sum of flows from all design pipes must be equal to the flow transported between nodes $i$ and $j$, i.e.,
 ```math
 \begin{equation*}
     \sum_{r \in \mathcal{A}^{\textrm{des}}_{ij}} q_{ijr}^{k} = q_{ij}^{k}, \, \forall (i, j) \in \mathcal{A}^{\textrm{des}}, \, \forall k \in \mathcal{K}.
 \end{equation*}
 ```
+We remark that this constraint is not modeled directly by WaterModels but is provided for simplifying the flow conservation relationship described later in this document.
+In actuality, each term along $(i, j)$ where a design pipe appears in the flow conservation constraint is replaced with the left-hand side of each above constraint.
 
 #### Pumps
+Each pump $(i, j) \in \mathcal{P}$ increases the head from node $i$ to $j$ when active and permits only unidirectional flow.
+In WaterModels, we consider only fixed-speed pumps.
+When the pump is off, there is zero flow, and heads at adjacent nodes are decoupled.
+When the pump is on, there is positive flow (greater than or equal to some fixed $\underline{q}_{ij}^{k +}$),
+and the head increase from $i$ to $j$ is modeled by a nonlinear function.
+The variable $z_{ij}^{k} \in \{0, 1\}$ indicates the status of each pump, where $z_{ij}^{k} = 1$ if $q_{ij}^{k} \geq \underline{q}_{ij}^{k +}$ and $z_{ij}^{k} = 0$ if $q_{ij}^{k} < \underline{q}_{ij}^{k +}$.
+This implies the disjunctive bounds
+```math
+\begin{equation*}
+    \underline{q}_{ij}^{k} = 0 \leq \underline{q}_{ij}^{k +} z_{ij}^{k} \leq q_{ij}^{k} \leq \overline{q}_{ij}^{k} z_{ij}^{k}, \, z_{ij}^{k} \in \{0, 1\}, \, \forall (i, j) \in \mathcal{P}, \, \forall k \in \mathcal{K} \label{equation:mincp-pump-flow-bounds}.
+\end{equation*}
+```
+The variable $g_{ij}^{k} \geq 0$ is introduced for each pump to denote the head increase (or gain) that results from that pump. 
+Various methods for modeling head gain relationships are provided by WaterModels, but we forgo their description, here.
+We do remark that the relationship between head gain and flow is typically nonlinear in its most accurate form.
+To ensure the decoupling of hydraulic heads when a pump is off, the following disjunctive constraints are employed:
+```math
+\begin{aligned}
+    h_{i}^{k} - h_{j}^{k} + g_{ij}^{k} &\leq (1 - z_{ij}^{k}) (\overline{h}_{i}^{k} - \underline{h}_{j}^{k}), \, \forall (i, j) \in \mathcal{P}, \, \forall k \in \mathcal{K} \\
+    h_{i}^{k} - h_{j}^{k} + g_{ij}^{k} &\geq (1 - z_{ij}^{k}) (\underline{h}_{i}^{k} - \overline{h}_{j}^{k}), \, \forall (i, j) \in \mathcal{P}, \, \forall k \in \mathcal{K}.
+\end{aligned}
+```
+Note that when $z_{ij}^{k} = 1$, the pump is on, and the head _gain_ between the two nodes is $g_{ij}^{k}$.
 
 #### Regulators
 Large pipes are usually operated at higher pressures than other portions of the WDN.
@@ -161,9 +202,9 @@ Otherwise, if $z_{ij}^{k} = 0$, then $h_{i}^{k}$ and $h_{j}^{k}$ are decoupled, 
 Short pipes are treated as pipes with negligible length, i.e., there is no head loss across a short pipe.
 They are modeled via the constraints
 ```math
-\begin{equation}
+\begin{equation*}
     h_{i}^{k} - h_{j}^{k} = 0, \, \forall (i, j) \in \mathcal{S}, \, \forall k \in \mathcal{K} \label{equation:mincp-short-pipe-head-loss}.
-\end{equation}
+\end{equation*}
 ```
 
 #### Valves
@@ -188,11 +229,17 @@ That is, if $z_{ij}^{k} = 1$, then $h_{i}^{k} = h_{j}^{k}$.
 Otherwise, if $z_{ij}^{k} = 0$, then $h_{i}^{k}$ and $h_{j}^{k}$ are decoupled.
 
 ### Conservation of Flow
+Finally, mass conservation of the system is ensured by equating volumetric flow rate production to demand.
+This is accomplished via the constraints
 ```math
-\sum_{(j, i) \in \delta_{i}^{-}} q_{ji}^{k} - \sum_{(i, j) \in \delta_{i}^{+}} q_{ij}^{k} = \sum_{\ell \in \mathcal{D}_{i}} q_{\ell} - \sum_{\ell \in \mathcal{R}_{i}} q_{\ell}, \, \forall i \in \mathcal{N}, \, \forall k \in \tilde{\mathcal{K}}
+\sum_{(j, i) \in \delta_{i}^{-}} q_{ji}^{k} - \sum_{(i, j) \in \delta_{i}^{+}} q_{ij}^{k} = \sum_{\ell \in \mathcal{D}_{i}} q_{\ell}^{k} - \sum_{\ell \in \mathcal{R}_{i}} q_{\ell}^{k} - \sum_{\ell \in \mathcal{T}_{i}} q_{\ell}^{k}, \, \forall i \in \mathcal{N}, \, \forall k \in \mathcal{K}.
 ```
 
-## Nonconvex Nonlinear Program
+## Remarks
+The different [Network Formulations](@ref) implemented by WaterModels aim at approximating or relaxing nonconvex nonlinearities that model complex physical phenomena in the above system of constraints.
+More specifically, they often aim at approximating or relaxing pipe head loss and pump head gain relationships, which are two of the primary sources of nonlinearity.
+Here, we forgo complete mathematical descriptions of these approximations and relaxations.
+If more details are required, please refer to the references described below, the functions used to implement the constraints for a specific formulation, or contact the WaterModels maintainers.
 
 ## References
 [1] Tasseff, B., Bent, R., Epelman, M. A., Pasqualini, D., & Van Hentenryck, P. (2020). _Exact mixed-integer convex programming formulation for optimal water network design_. _arXiv preprint arXiv:2010.03422_.
