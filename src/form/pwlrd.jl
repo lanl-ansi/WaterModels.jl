@@ -5,7 +5,31 @@
 ########################################## VARIABLES ##########################################
 
 
-"Create flow-related variables common to all directed flow models for node-connecting components."
+"""
+    variable_flow(
+        wm::AbstractPWLRDModel;
+        nw::Int=nw_id_default,
+        bounded::Bool=true,
+        report::Bool=true
+    )
+
+Creates flow-related variables linked to piecewise-linear, relaxation- and
+direction- (PWLRD-) based optimization models. First, creates direction-based
+flow variables for all node-connecting components (e.g., pipes) in the network
+at subnetwork (or time) index `nw`, e.g., `qp_pipe[a]` and `qn_pipe[a]` for `a`
+in `pipe`. Also creates JuMP expressions for direction-valued flow, e.g.,
+`q_pipe[a] = qp_pipe[a] - qn_pipe[a]` for `a` in `pipe`. Also creates binary
+flow direction variables, e.g., `y_pipe[a]` for `a` in `pipe`, where one
+indicates flow traveling from `node_fr` (tail of the arc) to `node_to` (head of
+the arc). Also creates direction-based head difference variables for pipes and
+design pipes in the network, e.g., `dhp_pipe[a]` and `dhn_pipe[a]` for `a` in
+`pipe`. Then, creates continuous convex combination variables used to construct
+necessary piecewise-linear relaxations, e.g., `lambda_p_pipe[a]` and
+`lambda_n_pipe[a]` for `a` in `pipe`, where each is bounded between zero and
+one. Finally, creates binary convex combination variables used for
+piecewise-linear modeling of the relaxation constraints, e.g., `x_p_pipe[a]`
+and `x_n_pipe[a]` for `a` in `pipe`.
+"""
 function variable_flow(wm::AbstractPWLRDModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     for name in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
         # Create directed flow (`qp` and `qn`) variables for each component.
@@ -97,9 +121,46 @@ end
 ########################################## PIPES ##########################################
 
 
+"""
+    constraint_pipe_head_loss(
+        wm::AbstractPWLRDModel,
+        n::Int,
+        a::Int,
+        node_fr::Int,
+        node_to::Int,
+        exponent::Float64,
+        L::Float64,
+        r::Float64,
+        q_max_reverse::Float64,
+        q_min_forward::Float64
+    )
+
+Adds constraints that model frictional head loss across a pipe via outer and
+piecewise-linear inner approximations of the nonlinear, nonconvex head loss
+relationship. Here, `wm` is the WaterModels object; `n` is the subnetwork (or
+time) index that is considered; `a` is the index of the pipe; `node_fr` is the
+index of the tail node of the pipe; `node_to` is the index of the head node of
+the pipe; `exponent` is the exponent on flow in the head loss function (i.e.,
+1.852 for Hazen-Williams head loss and 2.0 for Darcy-Weisbach head loss); `L`
+is the length of the pipe; `r` is the resistance per unit length of the pipe;
+`q_max_reverse` is the _maximum_ (negative) amount of flow when flow is
+traveling in the negative direction (which corresponds to the _minimum_
+magnitude of flow when traveling in the negative direction); and
+`q_min_forward` is the _minimum_ (positive) amount of flow when flow is
+traveling in the positive (forward) direction.
+"""
 function constraint_pipe_head_loss(
-    wm::AbstractPWLRDModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
-    L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
+    wm::AbstractPWLRDModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    exponent::Float64,
+    L::Float64,
+    r::Float64,
+    q_max_reverse::Float64,
+    q_min_forward::Float64
+)
     # Get the variable for flow directionality.
     y = var(wm, n, :y_pipe, a)
 
@@ -193,9 +254,46 @@ function constraint_pipe_head_loss(
 end
 
 
+"""
+    constraint_on_off_des_pipe_head_loss(
+        wm::AbstractPWLRDModel,
+        n::Int,
+        a::Int,
+        node_fr::Int,
+        node_to::Int,
+        exponent::Float64,
+        L::Float64,
+        r::Float64,
+        q_max_reverse::Float64,
+        q_min_forward::Float64
+    )
+
+Adds constraints that model frictional head loss across a design pipe via outer
+and piecewise-linear inner approximations of the nonlinear, nonconvex head loss
+relationship. Here, `wm` is the WaterModels object; `n` is the subnetwork (or
+time) index that is considered; `a` is the index of the design pipe; `node_fr`
+is the index of the tail node of the design pipe; `node_to` is the index of the
+head node of the design pipe; `exponent` is the exponent on flow in the head
+loss function (i.e., 1.852 for Hazen-Williams head loss and 2.0 for Darcy-
+Weisbach head loss); `L` is the length of the design pipe; `r` is the
+resistance per unit length of the design pipe; `q_max_reverse` is the _maximum_
+(negative) amount of flow when flow is traveling in the negative direction
+(which corresponds to the _minimum_ magnitude of flow when traveling in the
+negative direction); and `q_min_forward` is the _minimum_ (positive) amount of
+flow when flow is traveling in the positive (forward) direction.
+"""
 function constraint_on_off_des_pipe_head_loss(
-    wm::AbstractPWLRDModel, n::Int, a::Int, node_fr::Int, node_to::Int, exponent::Float64,
-    L::Float64, r::Float64, q_max_reverse::Float64, q_min_forward::Float64)
+    wm::AbstractPWLRDModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    exponent::Float64,
+    L::Float64,
+    r::Float64,
+    q_max_reverse::Float64,
+    q_min_forward::Float64
+)
     # Gather design pipe flow direction and indicator variables.
     y, z = var(wm, n, :y_des_pipe, a), var(wm, n, :z_des_pipe, a)
 
@@ -306,8 +404,34 @@ end
 ########################################## PUMPS ##########################################
 
 
-"Add constraints associated with modeling a pump's head gain."
-function constraint_on_off_pump_head_gain(wm::AbstractPWLRDModel, n::Int, a::Int, node_fr::Int, node_to::Int, q_min_forward::Float64)
+"""
+    constraint_on_off_pump_head_gain(
+        wm::AbstractPWLRDModel,
+        n::Int,
+        a::Int,
+        node_fr::Int,
+        node_to::Int,
+        q_min_forward::Float64
+    )
+
+Adds constraints that model the pump's head gain, if operating, via outer
+and piecewise-linear inner approximations of the nonlinear function of flow
+rate. If the pump is inactive, the head gain is restricted to a value of zero.
+Here, `wm` is the WaterModels object, `n` is the subnetwork (or time) index
+that is considered, `a` is the index of the pump, `node_fr` is the index of the
+tail node of the pump, `node_to` is the index of the head node of the pump, and
+`q_min_forward` is the _minimum_ (positive) amount of flow when the pump is
+active. Head gain is assumed to be nonnegative and is directed from `node_fr`
+to `node_to`.
+"""
+function constraint_on_off_pump_head_gain(
+    wm::AbstractPWLRDModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    q_min_forward::Float64
+)
     # Gather pump flow, head gain, and status variables.
     qp, g, z = var(wm, n, :qp_pump, a), var(wm, n, :g_pump, a), var(wm, n, :z_pump, a)
 
@@ -359,7 +483,28 @@ function constraint_on_off_pump_head_gain(wm::AbstractPWLRDModel, n::Int, a::Int
 end
 
 
-function constraint_on_off_pump_power(wm::AbstractPWLRDModel, n::Int, a::Int, q_min_forward::Float64)
+"""
+    constraint_on_off_pump_power(
+        wm::AbstractPWLRDModel,
+        n::Int,
+        a::Int,
+        q_min_forward::Float64
+    )
+
+Adds constraints that model the pump's power consumption, if operating, as
+being bounded between piecewise-linear inner and outer approximations of a
+(potentially) nonlinear function of a more accurate model. If the pump is
+inactive, the power is restricted to a value of zero. Here, `wm` is the
+WaterModels object, `n` is the subnetwork (or time) index that is considered,
+`a` is the index of the pump, and `q_min_forward` is the _minimum_ (positive)
+amount of flow when the pump is active.
+"""
+function constraint_on_off_pump_power(
+    wm::AbstractPWLRDModel,
+    n::Int,
+    a::Int,
+    q_min_forward::Float64
+)
     # Gather pump power and status variables.
     P, lambda = var(wm, n, :P_pump, a), var(wm, n, :lambda_pump)
 
