@@ -6,6 +6,7 @@
 """
     constraint_flow_conservation(
         wm, n, i, pipe_fr, pipe_to, des_pipe_fr, des_pipe_to, pump_fr, pump_to,
+        ne_pump_fr, ne_pump_to,
         regulator_fr, regulator_to, short_pipe_fr, short_pipe_to, ne_short_pipe_fr,
         ne_short_pipe_to, valve_fr, valve_to, reservoirs, tanks,
         dispatachable_demands, fixed_demand)
@@ -22,6 +23,8 @@ function constraint_flow_conservation(
     des_pipe_to::Vector{Int},
     pump_fr::Vector{Int},
     pump_to::Vector{Int},
+    ne_pump_to::Vector{Int},
+    ne_pump_fr::Vector{Int},
     regulator_fr::Vector{Int},
     regulator_to::Vector{Int},
     short_pipe_fr::Vector{Int},
@@ -37,7 +40,8 @@ function constraint_flow_conservation(
 )
     # Collect flow variable references per component.
     q_pipe, q_des_pipe = var(wm, n, :q_pipe), var(wm, n, :q_des_pipe)
-    q_pump, q_regulator = var(wm, n, :q_pump), var(wm, n, :q_regulator)
+    q_pump, q_ne_pump = var(wm, n, :q_pump), var(wm, n, :q_ne_pump)
+    q_regulator = var(wm, n, :q_regulator)
     q_short_pipe, q_ne_short_pipe = var(wm, n, :q_short_pipe), var(wm, n, :q_ne_short_pipe)
     q_valve, q_reservoir = var(wm, n, :q_valve), var(wm, n, :q_reservoir)
     q_tank, q_demand = var(wm, n, :q_tank), var(wm, n, :q_demand)
@@ -47,8 +51,11 @@ function constraint_flow_conservation(
         wm.model,
         -sum(q_pipe[a] for a in pipe_fr) + sum(q_pipe[a] for a in pipe_to) -
         sum(q_des_pipe[a] for a in des_pipe_fr) +
-        sum(q_des_pipe[a] for a in des_pipe_to) - sum(q_pump[a] for a in pump_fr) +
-        sum(q_pump[a] for a in pump_to) - sum(q_regulator[a] for a in regulator_fr) +
+        sum(q_des_pipe[a] for a in des_pipe_to) -
+        sum(q_pump[a] for a in pump_fr) + sum(q_pump[a] for a in pump_to) -
+        sum(q_ne_pump[a] for a in ne_pump_fr) +
+        sum(q_ne_pump[a] for a in ne_pump_to) -
+        sum(q_regulator[a] for a in regulator_fr) +
         sum(q_regulator[a] for a in regulator_to) -
         sum(q_short_pipe[a] for a in short_pipe_fr) +
         sum(q_short_pipe[a] for a in short_pipe_to) -
@@ -172,6 +179,31 @@ function constraint_on_off_pump_power_best_efficiency(
     append!(con(wm, n, :on_off_pump_power)[a], [c])
 end
 
+function constraint_on_off_pump_power_best_efficiency_ne(
+    wm::AbstractWaterModel,
+    n::Int,
+    a::Int,
+    density::Float64,
+    gravity::Float64,
+    q_min_forward::Float64,
+)
+    # Gather pump flow, power, and status variables.
+    q, P, z = var(wm, n, :q_ne_pump, a), var(wm, n, :P_ne_pump, a), var(wm, n, :z_ne_pump, a)
+
+    # Get pump best efficiency data required for construction.
+    flow_bep = _calc_pump_best_efficiency_flow(ref(wm, n, :ne_pump, a))
+    power_bep = _calc_pump_best_efficiency_power(ref(wm, n, :ne_pump, a), density, gravity)
+
+    # Compute the linear expression used to calculate power.
+    P_expr = power_bep * (inv(3.0) * q * inv(flow_bep) + z * 2.0 * inv(3.0))
+
+    # Add constraint equating power with respect to the power curve.
+    c = JuMP.@constraint(wm.model, P_expr == P)
+
+    # Append the :on_off_pump_power constraint array.
+    append!(con(wm, n, :on_off_pump_power_ne)[a], [c])
+end
+
 
 function constraint_on_off_pump_power_custom(
     wm::AbstractWaterModel,
@@ -194,6 +226,27 @@ function constraint_on_off_pump_power_custom(
     append!(con(wm, n, :on_off_pump_power)[a], [c])
 end
 
+function constraint_on_off_pump_power_custom_ne(
+    wm::AbstractWaterModel,
+    n::Int,
+    a::Int,
+    power_fixed::Float64,
+    power_variable::Float64,
+)
+    # Gather pump flow, power, and status variables.
+    q = var(wm, n, :q_ne_pump, a)
+    P = var(wm, n, :P_ne_pump, a)
+    z = var(wm, n, :z_ne_pump, a)
+
+    # Add constraint equating power with respect to the linear power curve.
+    lhs = power_fixed * z + power_variable * q
+    scalar = _get_scaling_factor(vcat(lhs.terms.vals, [1.0]))
+    c = JuMP.@constraint(wm.model, scalar * lhs == scalar * P)
+
+    # Append the :on_off_pump_power constraint array.
+    append!(con(wm, n, :on_off_pump_power_ne)[a], [c])
+end
+
 
 function constraint_on_off_pump_group(
     wm::AbstractWaterModel,
@@ -212,6 +265,23 @@ function constraint_on_off_pump_group(
     end
 end
 
+function constraint_on_off_pump_group_ne(
+    wm::AbstractWaterModel,
+    n::Int,
+    k::Int,
+    pump_indices::Set{Int},
+)
+    pump_indices_sorted = sort(collect(pump_indices))
+
+    for i = 1:length(pump_indices_sorted[1:end-1])
+        # Add lexicographic constraint for pump statuses.
+        z_pump_1 = var(wm, n, :z_ne_pump, pump_indices_sorted[i])
+        z_pump_2 = var(wm, n, :z_ne_pump, pump_indices_sorted[i+1])
+        c = JuMP.@constraint(wm.model, z_pump_1 >= z_pump_2)
+        append!(con(wm, n, :on_off_pump_group_ne)[k], [c])
+    end
+end
+
 
 function constraint_on_off_pump_switch(
     wm::AbstractWaterModel,
@@ -222,6 +292,17 @@ function constraint_on_off_pump_switch(
     z_switch_on_sum = sum(var(wm, n, :z_switch_on_pump, a) for n in network_ids)
     c = JuMP.@constraint(wm.model, z_switch_on_sum <= max_switches)
     append!(con(wm, network_ids[end], :on_off_pump_switch)[a], [c])
+end
+
+function constraint_on_off_pump_switch_ne(
+    wm::AbstractWaterModel,
+    a::Int,
+    network_ids::Vector{Int},
+    max_switches::Int,
+)
+    z_switch_on_sum = sum(var(wm, n, :z_switch_on_ne_pump, a) for n in network_ids)
+    c = JuMP.@constraint(wm.model, z_switch_on_sum <= max_switches)
+    append!(con(wm, network_ids[end], :on_off_pump_switch_ne)[a], [c])
 end
 
 
@@ -241,6 +322,25 @@ function constraint_pump_switch_on(
         z_nw = var(wm, nw_active, :z_pump, a)
         c_2 = JuMP.@constraint(wm.model, z_switch_on <= z_nw)
         append!(con(wm, n_2, :pump_switch_on)[a], [c_2])
+    end
+end
+
+function constraint_pump_switch_on_ne(
+    wm::AbstractWaterModel,
+    a::Int,
+    n_1::Int,
+    n_2::Int,
+    nws_active::Vector{Int},
+)
+    z_1, z_2 = var(wm, n_1, :z_ne_pump, a), var(wm, n_2, :z_ne_pump, a)
+    z_switch_on = var(wm, n_2, :z_switch_on_ne_pump, a)
+    c_1 = JuMP.@constraint(wm.model, z_switch_on >= z_2 - z_1)
+    append!(con(wm, n_2, :pump_switch_on_ne)[a], [c_1])
+
+    for nw_active in nws_active
+        z_nw = var(wm, nw_active, :z_ne_pump, a)
+        c_2 = JuMP.@constraint(wm.model, z_switch_on <= z_nw)
+        append!(con(wm, n_2, :pump_switch_on_ne)[a], [c_2])
     end
 end
 
@@ -264,6 +364,38 @@ function constraint_pump_switch_off(
     end
 end
 
+function constraint_pump_switch_off_ne(
+    wm::AbstractWaterModel,
+    a::Int,
+    n_1::Int,
+    n_2::Int,
+    nws_inactive::Vector{Int},
+)
+    z_1, z_2 = var(wm, n_1, :z_ne_pump, a), var(wm, n_2, :z_ne_pump, a)
+    z_switch_off = var(wm, n_2, :z_switch_off_ne_pump, a)
+    c_1 = JuMP.@constraint(wm.model, z_switch_off >= z_1 - z_2)
+    append!(con(wm, n_2, :pump_switch_off_ne)[a], [c_1])
+
+    for nw_inactive in nws_inactive
+        z_nw = var(wm, nw_inactive, :z_ne_pump, a)
+        c_2 = JuMP.@constraint(wm.model, z_nw <= 1.0 - z_switch_off)
+        append!(con(wm, n_2, :pump_switch_off_ne)[a], [c_2])
+    end
+end
+
+function constraint_ne_pump_selection(
+    wm::AbstractWaterModel,
+    k::Int,
+    nw_1::Int,
+    nw_2::Int;
+    kwargs...,
+)
+    _initialize_con_dict(wm, :ne_pump_selection, nw = nw_2)
+    z_1 = var(wm, nw_1, :z_ne_pump, k)
+    z_2 = var(wm, nw_2, :z_ne_pump, k)
+    c = JuMP.@constraint(wm.model, z_1 == z_2)
+    con(wm, nw_2, :ne_pump_selection)[k] = c
+end
 
 function constraint_ne_short_pipe_selection(
     wm::AbstractWaterModel,

@@ -127,11 +127,16 @@ function build_mn_wf(wm::AbstractWaterModel)
         variable_head(wm; nw=n)
         variable_flow(wm; nw=n)
         variable_pump_head_gain(wm; nw=n)
+        variable_ne_pump_head_gain(wm; nw=n)
         variable_pump_power(wm; nw=n)
+        variable_ne_pump_power(wm;nw=n)
+
+
 
         # Indicator (status) variables.
         variable_des_pipe_indicator(wm; nw=n)
         variable_pump_indicator(wm; nw=n)
+        variable_ne_pump_indicator(wm; nw=n)
         variable_regulator_indicator(wm; nw=n)
         variable_valve_indicator(wm; nw=n)
         variable_ne_short_pipe_indicator(wm; nw=n)
@@ -166,10 +171,24 @@ function build_mn_wf(wm::AbstractWaterModel)
             constraint_on_off_pump_power(wm, a; nw=n)
         end
 
+        # Constraints on expansion pump flows, heads, and physics.
+        for a in ids(wm, :ne_pump; nw=n)
+            constraint_on_off_pump_head_ne(wm, a; nw=n)
+            constraint_on_off_pump_head_gain_ne(wm, a; nw=n)
+            constraint_on_off_pump_flow_ne(wm, a; nw=n)
+            constraint_on_off_pump_power_ne(wm, a; nw=n)
+            # constraint_buid_vs_status_pump
+        end
+
         # Constraints on groups of parallel pumps.
         for k in ids(wm, :pump_group; nw=n)
             constraint_on_off_pump_group(wm, k; nw=n)
         end
+
+        # # Constraints on groups of parallel pumps.
+        # for k in ids(wm, :ne_pump_group; nw=n)
+        #     constraint_on_off_pump_group_ne(wm, k; nw=n)
+        # end
 
         # Constraints on short pipe flows and heads.
         for a in ids(wm, :regulator; nw=n)
@@ -216,6 +235,15 @@ function build_mn_wf(wm::AbstractWaterModel)
                 constraint_ne_short_pipe_selection(wm, i, n_1, n_2)
             end
         end
+
+        for n_2 in network_ids[2:end-1]
+            # Constrain pump selection variables based on the initial time index.
+            for i in ids(wm, :ne_pump; nw = n_2)
+                constraint_ne_pump_selection(wm, i, n_1, n_2)
+            end
+        end
+
+
 
         # Constraints on tank volumes.
         for n_2 in network_ids[2:end]

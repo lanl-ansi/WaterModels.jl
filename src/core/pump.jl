@@ -448,7 +448,7 @@ function _calc_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, 
     return q_build, max.(0.0, density * gravity * inv.(eff) .* f_build)
 end
 
-function _calc_ne_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, num_points::Int)
+function _calc_pump_power_points_ne(wm::AbstractWaterModel, nw::Int, pump_id::Int, num_points::Int)
     pump = ref(wm, nw, :ne_pump, pump_id)
     head_curve_function = ref(wm, nw, :ne_pump, pump_id, "head_curve_function")
 
@@ -480,9 +480,36 @@ function _calc_pump_power(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Vect
     return max.(Interpolations.LinearInterpolation(q_true, f_true).(q), 0.0)
 end
 
+function _calc_pump_power_ne(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Vector{Float64})
+    q_true, f_true = _calc_pump_power_points_ne(wm, nw, pump_id, 100)
+    return max.(Interpolations.LinearInterpolation(q_true, f_true).(q), 0.0)
+end
 
 function _calc_pump_power_ua(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Vector{Float64})
     q_true, f_true = _calc_pump_power_points(wm, nw, pump_id, 100)
+    f_interp = Interpolations.LinearInterpolation(q_true, f_true).(q)
+
+    for i in 2:length(q)
+        # Find the indices that will be used in the approximation.
+        true_ids = filter(k -> q_true[k] >= q[i-1] && q_true[k] <= q[i], 1:length(q_true))
+
+        if length(true_ids) == 0
+            true_ids = filter(k -> q_true[k] >= q[i-1], 1:length(q_true))
+            true_ids = vcat(true_ids[1] - 1, true_ids[1])
+        end
+
+        # Shift the approximation by the maximum error, ensuring it's an underapproximation.
+        slope = (f_interp[i] - f_interp[i-1]) / (q[i] - q[i-1])
+        f_est_s = f_interp[i-1] .+ (slope .* (q_true[true_ids] .- q[i-1]))
+        est_err = max(0.0, maximum(f_est_s .- f_true[true_ids]))
+        f_interp[i-1:i] .-= est_err
+    end
+
+    return f_interp
+end
+
+function _calc_pump_power_ua_ne(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Vector{Float64})
+    q_true, f_true = _calc_pump_power_points_ne(wm, nw, pump_id, 100)
     f_interp = Interpolations.LinearInterpolation(q_true, f_true).(q)
 
     for i in 2:length(q)
@@ -520,6 +547,21 @@ function _calc_pump_power_oa(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::V
     return f_interp
 end
 
+function _calc_pump_power_oa_ne(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Vector{Float64})
+    q_true, f_true = _calc_pump_power_points_ne(wm, nw, pump_id, 100)
+    f_interp = Interpolations.LinearInterpolation(q_true, f_true).(q)
+
+    for i in 2:length(q)
+        slope = (f_interp[i] - f_interp[i-1]) / (q[i] - q[i-1])
+        true_ids = filter(x -> q_true[x] >= q[i-1] && q_true[x] <= q[i], 1:length(q_true))
+        f_est_s = f_interp[i-1] .+ (slope .* (q_true[true_ids] .- q[i-1]))
+        est_err = max(0.0, maximum(f_true[true_ids] .- f_est_s))
+        f_interp[i-1:i] .+= est_err
+    end
+
+    return f_interp
+end
+
 
 function _calc_pump_power_quadratic_approximation(wm::AbstractWaterModel, nw::Int, pump_id::Int, z::JuMP.VariableRef)
     # Get good approximations of pump flow and power points.
@@ -538,6 +580,22 @@ function _calc_pump_power_quadratic_approximation(wm::AbstractWaterModel, nw::In
     return x -> sum(linear_coefficients .* [x * x, x, z])
 end
 
+function _calc_pump_power_quadratic_approximation_ne(wm::AbstractWaterModel, nw::Int, pump_id::Int, z::JuMP.VariableRef)
+    # Get good approximations of pump flow and power points.
+    q_true, f_true = _calc_pump_power_points_ne(wm, nw, pump_id, 100)
+
+    # Build a two-dimensional array of the feature points.
+    q_array = hcat(q_true .* q_true, q_true, ones(length(q_true)))
+
+    # Obtain coefficients for the quadratic approximation from a least squares fit.
+    linear_coefficients = q_array \ f_true
+
+    # Ensure that a negative constant term does not exist.
+    linear_coefficients[3] = max(0.0, linear_coefficients[3])
+
+    # Return the least squares-fitted quadratic approximation.
+    return x -> sum(linear_coefficients .* [x * x, x, z])
+end
 
 function _calc_efficiencies(points::Vector{Float64}, curve::Vector{<:Any})
     q, eff = [[x[1] for x in curve], [x[2] for x in curve]]
