@@ -111,6 +111,7 @@ end
 
 function build_mn_wf(wm::AbstractWaterModel)
     # Create head loss functions, if necessary.
+    println("Running Build MN WF")
     _function_head_loss(wm)
 
     # Get all network IDs in the multinetwork.
@@ -162,7 +163,7 @@ function build_mn_wf(wm::AbstractWaterModel)
         # Ensure design pipes are not present in the problem.
         @assert length(ids(wm, :des_pipe_arc; nw=n)) == 0
         @assert length(ids(wm, :des_pipe; nw=n)) == 0
-
+    #
         # Constraints on pump flows, heads, and physics.
         for a in ids(wm, :pump; nw=n)
             constraint_on_off_pump_head(wm, a; nw=n)
@@ -177,6 +178,7 @@ function build_mn_wf(wm::AbstractWaterModel)
             constraint_on_off_pump_head_gain_ne(wm, a; nw=n)
             constraint_on_off_pump_flow_ne(wm, a; nw=n)
             constraint_on_off_pump_power_ne(wm, a; nw=n)
+            println("Yet to relate build to status: NE PUMPS")
             # constraint_buid_vs_status_pump
         end
 
@@ -185,11 +187,12 @@ function build_mn_wf(wm::AbstractWaterModel)
             constraint_on_off_pump_group(wm, k; nw=n)
         end
 
-        # # Constraints on groups of parallel pumps.
+        # Constraints on groups of parallel pumps.
+        println("Warning: Yet to define ne_pump_groups")
         # for k in ids(wm, :ne_pump_group; nw=n)
         #     constraint_on_off_pump_group_ne(wm, k; nw=n)
         # end
-
+    #
         # Constraints on short pipe flows and heads.
         for a in ids(wm, :regulator; nw=n)
             constraint_on_off_regulator_head(wm, a; nw=n)
@@ -223,7 +226,7 @@ function build_mn_wf(wm::AbstractWaterModel)
         # Set initial conditions of tanks.
         constraint_tank_volume(wm, i; nw = n_1)
     end
-
+    #
     if length(network_ids) > 1
         # Initialize head variables for the final time index.
         variable_head(wm; nw = network_ids[end])
@@ -235,16 +238,16 @@ function build_mn_wf(wm::AbstractWaterModel)
                 constraint_ne_short_pipe_selection(wm, i, n_1, n_2)
             end
         end
-
+    #
         for n_2 in network_ids[2:end-1]
             # Constrain pump selection variables based on the initial time index.
             for i in ids(wm, :ne_pump; nw = n_2)
                 constraint_ne_pump_selection(wm, i, n_1, n_2)
             end
         end
-
-
-
+    #
+    #
+    #
         # Constraints on tank volumes.
         for n_2 in network_ids[2:end]
             # Constrain tank volumes after the initial time index.

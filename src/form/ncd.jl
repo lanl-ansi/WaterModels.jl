@@ -687,7 +687,7 @@ function _gather_directionality_data(
         length(pipe_fr) +
         length(des_pipe_fr) +
         length(pump_fr) +
-        length(ne_pump_fr) + 
+        length(ne_pump_fr) +
         length(regulator_fr) +
         length(short_pipe_fr) +
         length(ne_short_pipe_fr) +

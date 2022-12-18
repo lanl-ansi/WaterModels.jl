@@ -440,7 +440,29 @@ function variable_ne_pump_indicator(wm::AbstractWaterModel; nw::Int=nw_id_defaul
         z_ne_pump = var(wm, nw)[:z_ne_pump] = JuMP.@variable(wm.model,
             [a in ids(wm, nw, :ne_pump)], base_name = "$(nw)_ne_pump",
             lower_bound = 0.0, upper_bound = 1.0,
-            start = comp_start_value(ref(wm, nw, :ne_pump, a), "ze_ne_pump_start", 1.0))
+            start = comp_start_value(ref(wm, nw, :ne_pump, a), "z_ne_pump_start", 1.0))
+    end
+
+    for (a, ne_pump) in ref(wm, nw, :ne_pump)
+        _fix_indicator_variable(z_ne_pump[a], ne_pump, "z")
+    end
+
+    report && sol_component_value(wm, nw, :ne_pump, :status, ids(wm, nw, :ne_pump), z_ne_pump)
+end
+
+"Creates binary variables for all network expansion pumps in the network, i.e.,
+`x_ne_pump[a]` for `a` in `ne_pump`, where one denotes that the pump is
+selected for expansion (i.e., built), and zero indicates that it is not selected."
+function variable_ne_pump_build(wm::AbstractWaterModel; nw::Int=nw_id_default, relax::Bool=false, report::Bool=true)
+    if !relax
+        x_ne_pump = var(wm, nw)[:x_ne_pump] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :ne_pump)], base_name = "$(nw)_x_ne_pump", binary = true,
+            start = comp_start_value(ref(wm, nw, :ne_pump, a), "x_ne_pump_start", 1.0))
+    else
+        x_ne_pump = var(wm, nw)[:x_ne_pump] = JuMP.@variable(wm.model,
+            [a in ids(wm, nw, :ne_pump)], base_name = "$(nw)_ne_pump",
+            lower_bound = 0.0, upper_bound = 1.0,
+            start = comp_start_value(ref(wm, nw, :ne_pump, a), "x_ne_pump_start", 1.0))
     end
 
     for (a, ne_pump) in ref(wm, nw, :ne_pump)
