@@ -181,8 +181,8 @@ end
 
 "Transform head values in per-unit units to SI units."
 function _calc_head_per_unit_untransform(data::Dict{String,<:Any})
-    median_midpoint = _calc_node_head_median_midpoint(get_wm_data(data))
-    return x -> x * median_midpoint + median_midpoint
+    wm_data = get_wm_data(data)
+    return x -> x * wm_data["base_head"]
 end
 
 
@@ -918,6 +918,38 @@ function _make_per_unit!(data::Dict{String,<:Any})
         data["time_step"] = time_transform(data["time_step"])
         data["per_unit"] = true
     end
+end
+
+
+"Transforms data to SI units."
+function make_si_units!(data::Dict{String,<:Any})
+    apply_wm!(_make_si_units!, data; apply_to_subnetworks = false)
+end
+
+
+function _make_si_units!(data::Dict{String,<:Any})
+    if get(data, "per_unit", false) == true
+        if _IM.ismultinetwork(data)
+            for (i, _) in data["nw"]
+                pu_to_si!(data, id = i)
+            end
+        else
+            pu_to_si!(data)
+        end
+
+        data["per_unit"] = false
+    end
+end
+
+
+function pu_to_si!(data::Dict{String,<:Any}; id = "0")
+    # Get data "un-per-unit-transformation" functions.
+    wm_data = get_wm_data(data)
+    head_untransform = _calc_head_per_unit_untransform(wm_data)
+
+    # Apply the "untransformations" that were obtained above.
+    wm_nw_data = (id == "0") ? wm_data : wm_data["nw"][id]
+    _make_per_unit_nodes!(wm_nw_data, head_untransform)
 end
 
 
