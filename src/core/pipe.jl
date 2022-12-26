@@ -26,16 +26,18 @@ end
 function correct_pipes!(data::Dict{String, <:Any})
     wm_data = get_wm_data(data)
     head_loss, viscosity = wm_data["head_loss"], wm_data["viscosity"]
-    func! = x -> _correct_pipes!(x, head_loss, viscosity)
+
+    base_length = wm_data["per_unit"] ? wm_data["base_length"] : 1.0
+    base_mass = wm_data["per_unit"] ? wm_data["base_mass"] : 1.0
+    base_time = wm_data["per_unit"] ? wm_data["base_time"] : 1.0
+
+    func! = x -> _correct_pipes!(x, head_loss, viscosity, base_length, base_mass, base_time)
     apply_wm!(func!, data; apply_to_subnetworks = true)
 end
 
 
-function _correct_pipes!(data::Dict{String, <:Any}, head_loss::String, viscosity::Float64)
+function _correct_pipes!(data::Dict{String, <:Any}, head_loss::String, viscosity::Float64, base_length::Float64, base_mass::Float64, base_time::Float64)
     capacity = _calc_capacity_max(data)
-    base_length = get(data, "base_length", 1.0)
-    base_mass = get(data, "base_mass", 1.0)
-    base_time = get(data, "base_time", 1.0)
 
     for pipe in values(data["pipe"])
          # Get common connecting node data for later use.
@@ -73,16 +75,17 @@ end
 function correct_des_pipes!(data::Dict{String, <:Any})
     wm_data = get_wm_data(data)
     head_loss, viscosity = wm_data["head_loss"], wm_data["viscosity"]
-    func! = x -> _correct_des_pipes!(x, head_loss, viscosity)
+    base_length = wm_data["per_unit"] ? wm_data["base_length"] : 1.0
+    base_mass = wm_data["per_unit"] ? wm_data["base_mass"] : 1.0
+    base_time = wm_data["per_unit"] ? wm_data["base_time"] : 1.0
+
+    func! = x -> _correct_des_pipes!(x, head_loss, viscosity, base_length, base_mass, base_time)
     apply_wm!(func!, data; apply_to_subnetworks = true)
 end
 
 
-function _correct_des_pipes!(data::Dict{String, <:Any}, head_loss::String, viscosity::Float64)
+function _correct_des_pipes!(data::Dict{String, <:Any}, head_loss::String, viscosity::Float64, base_length::Float64, base_mass::Float64, base_time::Float64)
     capacity = _calc_capacity_max(data)
-    base_length = get(data, "base_length", 1.0)
-    base_mass = get(data, "base_mass", 1.0)
-    base_time = get(data, "base_time", 1.0)
 
     for des_pipe in values(data["des_pipe"])
         # Get common connecting node data for later use.

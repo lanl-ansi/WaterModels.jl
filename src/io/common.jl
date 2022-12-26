@@ -27,7 +27,7 @@ function parse_file(path::String; skip_correct::Bool = false, per_unit::Bool = t
     end
 
     if !skip_correct
-        correct_network_data!(network_data; per_unit)
+        correct_network_data!(network_data; per_unit=per_unit)
     end
 
     return network_data

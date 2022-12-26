@@ -396,9 +396,9 @@ function constraint_pipe_head_loss(
 
     wm_data = get_wm_data(wm.data)
     head_loss, viscosity = wm_data["head_loss"], wm_data["viscosity"]
-    base_length = get(wm_data, "base_length", 1.0)
-    base_mass = get(wm_data, "base_mass", 1.0)
-    base_time = get(wm_data, "base_time", 1.0)
+    base_length = wm_data["per_unit"] ? wm_data["base_length"] : 1.0
+    base_mass = wm_data["per_unit"] ? wm_data["base_mass"] : 1.0
+    base_time = wm_data["per_unit"] ? wm_data["base_time"] : 1.0
 
     r = _calc_pipe_resistance(
         ref(wm, nw, :pipe, a),
@@ -650,9 +650,9 @@ function constraint_on_off_des_pipe_head_loss(
     exponent = _get_exponent_from_head_loss_form(head_loss)
 
     wm_data = get_wm_data(wm.data)
-    base_length = get(wm_data, "base_length", 1.0)
-    base_mass = get(wm_data, "base_mass", 1.0)
-    base_time = get(wm_data, "base_time", 1.0)
+    base_length = wm_data["per_unit"] ? wm_data["base_length"] : 1.0
+    base_mass = wm_data["per_unit"] ? wm_data["base_mass"] : 1.0
+    base_time = wm_data["per_unit"] ? wm_data["base_time"] : 1.0
 
     r = _calc_pipe_resistance(des_pipe, head_loss, viscosity, base_length, base_mass, base_time)
     q_max_reverse = min(get(des_pipe, "flow_max_reverse", 0.0), 0.0)

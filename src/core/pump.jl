@@ -17,6 +17,7 @@ function correct_pumps!(data::Dict{String, <:Any})
     apply_wm!(_correct_pumps!, data; apply_to_subnetworks = true)
 end
 
+
 function _correct_pumps!(data::Dict{String, <:Any})
     for (idx, pump) in data["pump"]
         # Get common connecting node data for later use.
@@ -356,9 +357,9 @@ function _calc_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, 
     head_curve_function = ref(wm, nw, :pump, pump_id, "head_curve_function")
 
     wm_data = get_wm_data(wm.data)
-    flow_transform = _calc_flow_per_unit_transform(wm_data)
-    q_min = max(get(pump, "flow_min_forward",
-        flow_transform(_FLOW_MIN)), flow_transform(_FLOW_MIN))
+    base_flow = wm_data["per_unit"] ? wm_data["base_flow"] : 1.0
+    _flow_min = _FLOW_MIN / base_flow
+    q_min = max(get(pump, "flow_min_forward", _flow_min), _flow_min)
 
     q_max = max(q_min, pump["flow_max"])
     q_build = range(q_min - 1.0e-7, stop = q_max + 1.0e-7, length = num_points)
@@ -371,10 +372,9 @@ function _calc_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, 
         eff = pump["efficiency"]
     end
 
-    base_mass = 1.0 / _calc_mass_per_unit_transform(wm_data)(1.0)
-    base_time = 1.0 / _calc_time_per_unit_transform(wm_data)(1.0)
-    base_length = 1.0 / _calc_length_per_unit_transform(wm_data)(1.0)
-    flow_transform = 1.0 / _calc_flow_per_unit_transform(wm_data)(1.0)
+    base_mass = wm_data["per_unit"] ? wm_data["base_mass"] : 1.0
+    base_time = wm_data["per_unit"] ? wm_data["base_time"] : 1.0
+    base_length = wm_data["per_unit"] ? wm_data["base_length"] : 1.0
 
     density = _calc_scaled_density(base_mass, base_length)
     gravity = _calc_scaled_gravity(base_length, base_time)
