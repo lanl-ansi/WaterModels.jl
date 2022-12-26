@@ -1,8 +1,23 @@
 @testset "src/core/data.jl" begin
-    @testset "make_per_unit!" begin
-        data = WaterModels.parse_file("../examples/data/json/shamir.json")
-        make_per_unit!(data)
-        @test data["per_unit"] == true
+    @testset "make_per_unit! (des_pipe)" begin
+        # Load the data without making a per-unit transformation.
+        si_data = WaterModels.parse_file("../examples/data/json/shamir.json"; per_unit=false)
+        @test si_data["per_unit"] == false
+
+        # Transform the data to a per-unit system.
+        pu_data = deepcopy(si_data)
+        make_per_unit!(pu_data)
+        @test pu_data["per_unit"] == true
+
+        # Ensure select quantities are correctly transformed.
+        head_in_si = pu_data["node"]["1"]["head_min"] * pu_data["base_head"]
+        @test head_in_si == si_data["node"]["1"]["head_min"]
+        length_in_si = pu_data["des_pipe"]["1"]["length"] * pu_data["base_length"]
+        @test length_in_si == si_data["des_pipe"]["1"]["length"]
+        diameter_in_si = pu_data["des_pipe"]["1"]["diameter"] * pu_data["base_length"]
+        @test diameter_in_si == si_data["des_pipe"]["1"]["diameter"]
+        flow_in_si = pu_data["des_pipe"]["1"]["flow_min"] * pu_data["base_flow"]
+        @test flow_in_si == si_data["des_pipe"]["1"]["flow_min"]
     end
 
     @testset "make_si_units!" begin
