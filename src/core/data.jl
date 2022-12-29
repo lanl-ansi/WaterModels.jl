@@ -131,9 +131,11 @@ function _calc_length_per_unit_transform(data::Dict{String,<:Any})
     wm_data = get_wm_data(data)
 
     if haskey(wm_data, "base_length")
+        @assert wm_data["base_length"] > 0.0
         return x -> x / wm_data["base_length"]
     else
         median_midpoint = _calc_node_head_median_midpoint(wm_data)
+        @assert median_midpoint > 0.0
         return x -> x / median_midpoint
     end
 end
@@ -265,17 +267,31 @@ end
 function _calc_median_abs_flow_midpoint(data::Dict{String,<:Any})
     wm_data = get_wm_data(data)
 
-    # Compute flow midpoints for all possible node-connecting components.
-    q_des_pipe = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["des_pipe"]]
-    q_pipe = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["pipe"]]
-    q_pump = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["pump"]]
-    q_regulator = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["regulator"]]
-    q_short_pipe = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["short_pipe"]]
-    q_valve = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["valve"]]
-    q = vcat(q_des_pipe, q_pipe, q_pump, q_regulator, q_short_pipe, q_valve)
+    if ismultinetwork(data)
+        flow_midpoints = Vector{Float64}([])
+
+        for (n, nw) in data["nw"]
+            q_des_pipe = [_calc_abs_flow_midpoint(x) for (i, x) in nw["des_pipe"]]
+            q_pipe = [_calc_abs_flow_midpoint(x) for (i, x) in nw["pipe"]]
+            q_pump = [_calc_abs_flow_midpoint(x) for (i, x) in nw["pump"]]
+            q_regulator = [_calc_abs_flow_midpoint(x) for (i, x) in nw["regulator"]]
+            q_short_pipe = [_calc_abs_flow_midpoint(x) for (i, x) in nw["short_pipe"]]
+            q_valve = [_calc_abs_flow_midpoint(x) for (i, x) in nw["valve"]]
+            q = vcat(q_des_pipe, q_pipe, q_pump, q_regulator, q_short_pipe, q_valve)
+            append!(flow_midpoints, q)
+        end
+    else
+        q_des_pipe = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["des_pipe"]]
+        q_pipe = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["pipe"]]
+        q_pump = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["pump"]]
+        q_regulator = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["regulator"]]
+        q_short_pipe = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["short_pipe"]]
+        q_valve = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["valve"]]
+        flow_midpoints = vcat(q_des_pipe, q_pipe, q_pump, q_regulator, q_short_pipe, q_valve)
+    end
 
     # Return the median of all values computed above.
-    return Statistics.median(q)
+    return Statistics.median(flow_midpoints)
 end
 
 
@@ -782,21 +798,21 @@ function _apply_flow_unit_transform!(data::Dict{String,<:Any}, transform_flow::F
 end
 
 
-function _apply_pipe_unit_transform!(data::Dict{String,<:Any}, transform_length::Function)
+function _apply_pipe_unit_transform!(data::Dict{String,<:Any}, transform_length::Function, head_loss::String)
     wm_data = get_wm_data(data)
 
     for (i, pipe) in wm_data["pipe"]
         pipe["length"] = transform_length(pipe["length"])
         pipe["diameter"] = transform_length(pipe["diameter"])
 
-        if uppercase(wm_data["head_loss"]) == "D-W"
+        if uppercase(head_loss) == "D-W"
             pipe["roughness"] = transform_length(pipe["roughness"])
         end
     end
 end
 
 
-function _apply_des_pipe_unit_transform!(data::Dict{String,<:Any}, transform_length::Function)
+function _apply_des_pipe_unit_transform!(data::Dict{String,<:Any}, transform_length::Function, head_loss::String)
     wm_data = get_wm_data(data)
 
     for (i, des_pipe) in wm_data["des_pipe"]
@@ -804,7 +820,7 @@ function _apply_des_pipe_unit_transform!(data::Dict{String,<:Any}, transform_len
         des_pipe["diameter"] = transform_length(des_pipe["diameter"])
     end
 
-    if uppercase(wm_data["head_loss"]) == "D-W"
+    if uppercase(head_loss) == "D-W"
         for (i, des_pipe) in wm_data["des_pipe"]
             des_pipe["roughness"] = transform_length(des_pipe["roughness"])
         end
@@ -1065,6 +1081,10 @@ function _transform_nw!(
     # Get the WaterModels subdictionary.
     wm_data = get_wm_data(data)
 
+    # Get the head loss form.
+    head_loss = wm_data["head_loss"]
+    @assert uppercase(head_loss) in ["D-W", "H-W"]
+
     # Ensure the transformation is taking place in the correct direction.
     @assert to_per_unit != get(wm_data, "per_unit", false)
 
@@ -1073,8 +1093,8 @@ function _transform_nw!(
 
     # Apply transformations to node-connecting components.
     _apply_flow_unit_transform!(wm_nw_data, flow_transform)
-    _apply_pipe_unit_transform!(wm_nw_data, length_transform)
-    _apply_des_pipe_unit_transform!(wm_nw_data, length_transform)
+    _apply_pipe_unit_transform!(wm_nw_data, length_transform, head_loss)
+    _apply_des_pipe_unit_transform!(wm_nw_data, length_transform, head_loss)
     _apply_pump_unit_transform!(wm_nw_data, mass_transform,
         flow_transform, length_transform, time_transform)
     _apply_regulator_unit_transform!(wm_nw_data, length_transform)
