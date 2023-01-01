@@ -18,7 +18,7 @@ end
         pu_data = deepcopy(si_data)
         make_per_unit!(pu_data)
 
-        # Ensure select pipe quantities are correctly transformed.
+        # Ensure select node quantities are correctly transformed.
         head_min_in_si = pu_data["node"]["1"]["head_min"] * pu_data["base_head"]
         @test isapprox(head_min_in_si, si_data["node"]["1"]["head_min"])
         head_max_in_si = pu_data["node"]["1"]["head_max"] * pu_data["base_head"]
@@ -94,7 +94,7 @@ end
         # Transform per-unit data back to SI units.
         make_si_units!(data_mn)
 
-        # Ensure select pipe quantities are correctly transformed.
+        # Ensure select node quantities are correctly transformed.
         @test isapprox(data_mn["nw"]["1"]["node"]["1"]["head_min"], si_data_mn["nw"]["1"]["node"]["1"]["head_min"])
         @test isapprox(data_mn["nw"]["1"]["node"]["1"]["head_max"], si_data_mn["nw"]["1"]["node"]["1"]["head_max"])
         @test isapprox(data_mn["nw"]["1"]["node"]["1"]["head_nominal"], si_data_mn["nw"]["1"]["node"]["1"]["head_nominal"])

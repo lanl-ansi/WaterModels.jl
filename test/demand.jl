@@ -40,3 +40,92 @@
         @test mn_data["nw"]["3"]["demand"]["2"]["dispatchable"] == false
     end
 end
+
+
+@testset "make_per_unit! (demand)" begin
+    @testset "demand, single network" begin
+        # Load the data without making a per-unit transformation.
+        network_path = "../test/data/epanet/multinetwork/reservoir-hw-lps.inp"
+        si_data = WaterModels.parse_file(network_path; per_unit=false)
+
+        # Transform the data to a per-unit system.
+        pu_data = deepcopy(si_data)
+        make_per_unit!(pu_data)
+
+        # Ensure select demand quantities are correctly transformed.
+        flow_min_in_si = pu_data["demand"]["2"]["flow_min"] * pu_data["base_flow"]
+        @test isapprox(flow_min_in_si, si_data["demand"]["2"]["flow_min"])
+        flow_max_in_si = pu_data["demand"]["2"]["flow_max"] * pu_data["base_flow"]
+        @test isapprox(flow_max_in_si, si_data["demand"]["2"]["flow_max"])
+        flow_nominal_in_si = pu_data["demand"]["2"]["flow_nominal"] * pu_data["base_flow"]
+        @test isapprox(flow_nominal_in_si, si_data["demand"]["2"]["flow_nominal"])
+        flow_min_ts_in_si = pu_data["time_series"]["demand"]["2"]["flow_min"] * pu_data["base_flow"]
+        @test isapprox(flow_min_ts_in_si, si_data["time_series"]["demand"]["2"]["flow_min"])
+        flow_max_ts_in_si = pu_data["time_series"]["demand"]["2"]["flow_max"] * pu_data["base_flow"]
+        @test isapprox(flow_max_ts_in_si, si_data["time_series"]["demand"]["2"]["flow_max"])
+        flow_nominal_ts_in_si = pu_data["time_series"]["demand"]["2"]["flow_nominal"] * pu_data["base_flow"]
+        @test isapprox(flow_nominal_ts_in_si, si_data["time_series"]["demand"]["2"]["flow_nominal"])
+    end
+
+    @testset "demand, multinetwork" begin
+        # Load the data without making a per-unit transformation.
+        network_path = "../test/data/epanet/multinetwork/reservoir-hw-lps.inp"
+        si_data = WaterModels.parse_file(network_path; per_unit=false)
+        si_data_mn = make_multinetwork(si_data)
+
+        # Transform the data to a per-unit system.
+        pu_data_mn = deepcopy(si_data_mn)
+        make_per_unit!(pu_data_mn)
+
+        # Ensure select demand quantities are correctly transformed.
+        flow_min_in_si = pu_data_mn["nw"]["1"]["demand"]["2"]["flow_min"] * pu_data_mn["base_flow"]
+        @test isapprox(flow_min_in_si, si_data_mn["nw"]["1"]["demand"]["2"]["flow_min"])
+        flow_max_in_si = pu_data_mn["nw"]["1"]["demand"]["2"]["flow_max"] * pu_data_mn["base_flow"]
+        @test isapprox(flow_max_in_si, si_data_mn["nw"]["1"]["demand"]["2"]["flow_max"])
+        flow_nominal_in_si = pu_data_mn["nw"]["1"]["demand"]["2"]["flow_nominal"] * pu_data_mn["base_flow"]
+        @test isapprox(flow_nominal_in_si, si_data_mn["nw"]["1"]["demand"]["2"]["flow_nominal"])        
+    end
+end
+
+
+@testset "make_si_units! (demand)" begin
+    @testset "demand, single network" begin
+        # Load the data without making a per-unit transformation.
+        network_path = "../test/data/epanet/multinetwork/reservoir-hw-lps.inp"
+        si_data = WaterModels.parse_file(network_path; per_unit=false)
+
+        # Transform the data to a per-unit system.
+        data = deepcopy(si_data)
+        make_per_unit!(data)
+
+        # Transform per-unit data back to SI units.
+        make_si_units!(data)
+
+        # Ensure select demand quantities are correctly transformed.
+        @test isapprox(data["demand"]["2"]["flow_min"], si_data["demand"]["2"]["flow_min"])
+        @test isapprox(data["demand"]["2"]["flow_max"], si_data["demand"]["2"]["flow_max"])
+        @test isapprox(data["demand"]["2"]["flow_nominal"], si_data["demand"]["2"]["flow_nominal"])
+        @test isapprox(data["time_series"]["demand"]["2"]["flow_min"], si_data["time_series"]["demand"]["2"]["flow_min"])
+        @test isapprox(data["time_series"]["demand"]["2"]["flow_max"], si_data["time_series"]["demand"]["2"]["flow_max"])
+        @test isapprox(data["time_series"]["demand"]["2"]["flow_nominal"], si_data["time_series"]["demand"]["2"]["flow_nominal"])
+    end
+
+    @testset "demand, multinetwork" begin
+        # Load the data without making a per-unit transformation.
+        network_path = "../test/data/epanet/multinetwork/reservoir-hw-lps.inp"
+        si_data = WaterModels.parse_file(network_path; per_unit=false)
+        si_data_mn = make_multinetwork(si_data)
+
+        # Transform the data to a per-unit system.
+        data_mn = deepcopy(si_data_mn)
+        make_per_unit!(data_mn)
+
+        # Transform per-unit data back to SI units.
+        make_si_units!(data_mn)
+
+        # Ensure select demand quantities are correctly transformed.
+        @test isapprox(data_mn["nw"]["1"]["demand"]["2"]["flow_min"], si_data_mn["nw"]["1"]["demand"]["2"]["flow_min"])
+        @test isapprox(data_mn["nw"]["1"]["demand"]["2"]["flow_max"], si_data_mn["nw"]["1"]["demand"]["2"]["flow_max"])
+        @test isapprox(data_mn["nw"]["1"]["demand"]["2"]["flow_nominal"], si_data_mn["nw"]["1"]["demand"]["2"]["flow_nominal"])
+    end
+end
