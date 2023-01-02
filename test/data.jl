@@ -266,6 +266,57 @@
             head_curve_head_in_si = [x[2] for x in pu_data_mn["nw"]["2"]["pump"]["1"]["head_curve"]] * pu_data_mn["base_head"]
             @test isapprox(head_curve_head_in_si, [x[2] for x in si_data_mn["nw"]["2"]["pump"]["1"]["head_curve"]])
         end
+
+        @testset "short pipe, single network" begin
+            network_path = "../test/data/epanet/snapshot/short-pipe-lps.inp"
+            si_data = WaterModels.parse_file(network_path; per_unit=false)
+            WaterModels.convert_short_pipes!(si_data)
+            si_data["short_pipe"]["1"]["minor_loss"] = 1.0
+            si_data["short_pipe"]["1"]["flow_max_reverse"] = -0.5
+            si_data["short_pipe"]["1"]["flow_min_forward"] = 0.5
+
+            # Transform the data to a per-unit system.
+            pu_data = deepcopy(si_data)
+            make_per_unit!(pu_data)
+
+            # Ensure select short pipe quantities are correctly transformed.
+            flow_min_in_si = pu_data["short_pipe"]["1"]["flow_min"] * pu_data["base_flow"]
+            @test isapprox(flow_min_in_si, si_data["short_pipe"]["1"]["flow_min"])
+            flow_min_forward_in_si = pu_data["short_pipe"]["1"]["flow_min_forward"] * pu_data["base_flow"]
+            @test isapprox(flow_min_forward_in_si, si_data["short_pipe"]["1"]["flow_min_forward"])
+            flow_max_in_si = pu_data["short_pipe"]["1"]["flow_max"] * pu_data["base_flow"]
+            @test isapprox(flow_max_in_si, si_data["short_pipe"]["1"]["flow_max"])
+            flow_max_reverse_in_si = pu_data["short_pipe"]["1"]["flow_max_reverse"] * pu_data["base_flow"]
+            @test isapprox(flow_max_reverse_in_si, si_data["short_pipe"]["1"]["flow_max_reverse"])
+            minor_loss_in_si = pu_data["short_pipe"]["1"]["minor_loss"] * pu_data["base_flow"]
+            @test isapprox(minor_loss_in_si, si_data["short_pipe"]["1"]["minor_loss"])
+        end
+
+        @testset "short pipe, multinetwork" begin
+            network_path = "../test/data/epanet/multinetwork/short-pipe-lps.inp"
+            si_data = WaterModels.parse_file(network_path; per_unit=false)
+            WaterModels.convert_short_pipes!(si_data)
+            si_data["short_pipe"]["1"]["minor_loss"] = 1.0
+            si_data["short_pipe"]["1"]["flow_max_reverse"] = -0.5
+            si_data["short_pipe"]["1"]["flow_min_forward"] = 0.5
+            si_data_mn = make_multinetwork(si_data)
+
+            # Transform the data to a per-unit system.
+            pu_data_mn = deepcopy(si_data_mn)
+            make_per_unit!(pu_data_mn)
+
+            # Ensure select short pipe quantities are correctly transformed.
+            flow_min_in_si = pu_data_mn["nw"]["2"]["short_pipe"]["1"]["flow_min"] * pu_data_mn["base_flow"]
+            @test isapprox(flow_min_in_si, si_data_mn["nw"]["2"]["short_pipe"]["1"]["flow_min"])
+            flow_min_forward_in_si = pu_data_mn["nw"]["2"]["short_pipe"]["1"]["flow_min_forward"] * pu_data_mn["base_flow"]
+            @test isapprox(flow_min_forward_in_si, si_data_mn["nw"]["2"]["short_pipe"]["1"]["flow_min_forward"])
+            flow_max_in_si = pu_data_mn["nw"]["2"]["short_pipe"]["1"]["flow_max"] * pu_data_mn["base_flow"]
+            @test isapprox(flow_max_in_si, si_data_mn["nw"]["2"]["short_pipe"]["1"]["flow_max"])
+            flow_max_reverse_in_si = pu_data_mn["nw"]["2"]["short_pipe"]["1"]["flow_max_reverse"] * pu_data_mn["base_flow"]
+            @test isapprox(flow_max_reverse_in_si, si_data_mn["nw"]["2"]["short_pipe"]["1"]["flow_max_reverse"])
+            minor_loss_in_si = pu_data_mn["nw"]["2"]["short_pipe"]["1"]["minor_loss"] * pu_data_mn["base_flow"]
+            @test isapprox(minor_loss_in_si, si_data_mn["nw"]["2"]["short_pipe"]["1"]["minor_loss"])
+        end
     end
 
     @testset "make_si_units!" begin
@@ -460,6 +511,55 @@
             @test isapprox(data["des_pipe"]["1"]["flow_min"], si_data["des_pipe"]["1"]["flow_min"])
             @test isapprox(data["des_pipe"]["1"]["flow_max"], si_data["des_pipe"]["1"]["flow_max"])
             @test isapprox(data["des_pipe"]["1"]["minor_loss"], si_data["des_pipe"]["1"]["minor_loss"])
+        end
+
+        @testset "short pipe, single network" begin
+            # Load the data without making a per-unit transformation.
+            network_path = "../test/data/epanet/snapshot/short-pipe-lps.inp"
+            si_data = WaterModels.parse_file(network_path; per_unit=false)
+            WaterModels.convert_short_pipes!(si_data)
+            si_data["short_pipe"]["1"]["minor_loss"] = 1.0
+            si_data["short_pipe"]["1"]["flow_max_reverse"] = -0.5
+            si_data["short_pipe"]["1"]["flow_min_forward"] = 0.5
+            
+            # Transform the data to a per-unit system.
+            data = deepcopy(si_data)
+            make_per_unit!(data)
+
+            # Transform per-unit data back to SI units.
+            make_si_units!(data)
+
+            # Ensure select pipe quantities are correctly transformed.
+            @test isapprox(data["short_pipe"]["1"]["flow_min"], si_data["short_pipe"]["1"]["flow_min"])
+            @test isapprox(data["short_pipe"]["1"]["flow_max"], si_data["short_pipe"]["1"]["flow_max"])
+            @test isapprox(data["short_pipe"]["1"]["flow_min_forward"], si_data["short_pipe"]["1"]["flow_min_forward"])
+            @test isapprox(data["short_pipe"]["1"]["flow_max_reverse"], si_data["short_pipe"]["1"]["flow_max_reverse"])
+            @test isapprox(data["short_pipe"]["1"]["minor_loss"], si_data["short_pipe"]["1"]["minor_loss"])
+        end
+
+        @testset "short pipe, multinetwork" begin
+            # Load the data without making a per-unit transformation.
+            network_path = "../test/data/epanet/multinetwork/short-pipe-lps.inp"
+            si_data = WaterModels.parse_file(network_path; per_unit=false)
+            WaterModels.convert_short_pipes!(si_data)
+            si_data["short_pipe"]["1"]["minor_loss"] = 1.0
+            si_data["short_pipe"]["1"]["flow_max_reverse"] = -0.5
+            si_data["short_pipe"]["1"]["flow_min_forward"] = 0.5
+            si_data_mn = make_multinetwork(si_data)
+
+            # Transform the data to a per-unit system.
+            data_mn = deepcopy(si_data_mn)
+            make_per_unit!(data_mn)
+
+            # Transform per-unit data back to SI units.
+            make_si_units!(data_mn)
+
+            # Ensure select pipe quantities are correctly transformed.
+            @test isapprox(data_mn["nw"]["2"]["short_pipe"]["1"]["flow_min"], si_data_mn["nw"]["2"]["short_pipe"]["1"]["flow_min"])
+            @test isapprox(data_mn["nw"]["2"]["short_pipe"]["1"]["flow_max"], si_data_mn["nw"]["2"]["short_pipe"]["1"]["flow_max"])
+            @test isapprox(data_mn["nw"]["2"]["short_pipe"]["1"]["flow_min_forward"], si_data_mn["nw"]["2"]["short_pipe"]["1"]["flow_min_forward"])
+            @test isapprox(data_mn["nw"]["2"]["short_pipe"]["1"]["flow_max_reverse"], si_data_mn["nw"]["2"]["short_pipe"]["1"]["flow_max_reverse"])
+            @test isapprox(data_mn["nw"]["2"]["short_pipe"]["1"]["minor_loss"], si_data_mn["nw"]["2"]["short_pipe"]["1"]["minor_loss"])
         end
 
         @testset "pump, single network" begin
