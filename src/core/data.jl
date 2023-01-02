@@ -706,6 +706,7 @@ function _transform_flows!(comp::Dict{String,<:Any}, transform_flow::Function)
     _transform_flow_key!(comp, "flow_max", transform_flow)
     _transform_flow_key!(comp, "flow_nominal", transform_flow)
     _transform_flow_key!(comp, "flow_min_forward", transform_flow)
+    _transform_flow_key!(comp, "flow_max_reverse", transform_flow)
     _transform_flow_key!(comp, "minor_loss", transform_flow)
     _transform_flow_key!(comp, "flow_partition", transform_flow)
 end
