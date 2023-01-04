@@ -728,6 +728,19 @@ function constraint_on_off_pump_flow_ne(
     constraint_on_off_pump_flow_ne(wm, nw, a, q_min_forward)
 end
 
+# function constraint_on_off_pump_build_ne(
+#     wm::AbstractWaterModel,
+#     a::Int,
+#     nw::Int = nw_id_default,
+#     kwards...,
+#     )
+#
+#     _initialize_con_dict(wm, :on_off_pump_buld_ne, nw = nw, is_array = true)
+#     con(wm, nw, :on_off_pump_buld_ne)[a] = Array{JuMP.ConstraintRef}([])
+#     constraint_on_off_pump_build_ne(wm, nw, a)
+# end
+
+
 function constraint_on_off_pump_head_ne(
     wm::AbstractWaterModel,
     a::Int;

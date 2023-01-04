@@ -96,6 +96,12 @@ function objective_ne(wm::AbstractWaterModel)::JuMP.AffExpr
             term = ne_short_pipe["construction_cost"] * var(wm, n, :z_ne_short_pipe, a)
             JuMP.add_to_expression!(objective, term)
         end
+        # Get the set of network expansion pumps at time index `n`.
+        for (a, ne_pump) in ref(wm, n, :ne_pump)
+            # Add the cost of network expansion component `a` at time period `n`.
+            term = ne_pump["construction_cost"] * var(wm, n, :z_ne_pump, a)
+            JuMP.add_to_expression!(objective, term)
+        end
     end
 
     # Minimize the total cost of network expansion.

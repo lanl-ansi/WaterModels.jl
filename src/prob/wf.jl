@@ -178,8 +178,7 @@ function build_mn_wf(wm::AbstractWaterModel)
             constraint_on_off_pump_head_gain_ne(wm, a; nw=n)
             constraint_on_off_pump_flow_ne(wm, a; nw=n)
             constraint_on_off_pump_power_ne(wm, a; nw=n)
-            println("Yet to relate build to status: NE PUMPS")
-            # constraint_buid_vs_status_pump
+            constraint_on_off_pump_build_ne(wm, a; nw=n)
         end
 
         # Constraints on groups of parallel pumps.
@@ -188,7 +187,11 @@ function build_mn_wf(wm::AbstractWaterModel)
         end
 
         # Constraints on groups of parallel pumps.
-        println("Warning: Yet to define ne_pump_groups")
+        count = 0
+        if(count!=0)
+                println("Warning: Yet to define ne_pump_groups")
+                count += 1
+        end
         # for k in ids(wm, :ne_pump_group; nw=n)
         #     constraint_on_off_pump_group_ne(wm, k; nw=n)
         # end
