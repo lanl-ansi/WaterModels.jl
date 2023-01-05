@@ -2,13 +2,23 @@
     @testset "make_per_unit!" begin
         @testset "metadata" begin
             # Load the data without making a per-unit transformation.
-            si_data = WaterModels.parse_file("../examples/data/json/shamir.json"; per_unit=false)
+            network_path = "../test/data/epanet/multinetwork/reservoir-hw-lps.inp"
+            si_data = WaterModels.parse_file(network_path; per_unit=false)
             @test si_data["per_unit"] == false
 
             # Transform the data to a per-unit system.
             pu_data = deepcopy(si_data)
             make_per_unit!(pu_data)
             @test pu_data["per_unit"] == true
+
+            # Check that metadata has been correctly transformed.
+            @test isapprox(pu_data["time_step"] * pu_data["base_time"], si_data["time_step"])
+            @test isapprox(pu_data["time_series"]["duration"] * pu_data["base_time"], si_data["time_series"]["duration"])
+            @test isapprox(pu_data["time_series"]["time_step"] * pu_data["base_time"], si_data["time_series"]["time_step"])
+
+            # Check that viscosity has been correctly transformed.
+            base_viscosity = pu_data["base_mass"] / (pu_data["base_length"] * pu_data["base_time"])
+            @test isapprox(pu_data["viscosity"] * base_viscosity, si_data["viscosity"])
         end
 
         @testset "node, single network" begin
