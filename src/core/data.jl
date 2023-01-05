@@ -884,11 +884,12 @@ function _apply_pump_unit_transform!(
 end
 
 
-function _apply_regulator_unit_transform!(data::Dict{String,<:Any}, transform_length::Function)
+function _apply_regulator_unit_transform!(data::Dict{String,<:Any}, transform_head::Function, transform_length::Function)
     wm_data = get_wm_data(data)
 
     for (i, regulator) in wm_data["regulator"]
-        regulator["setting"] = transform_length(regulator["setting"])
+        regulator["diameter"] = transform_length(regulator["diameter"])
+        regulator["setting"] = transform_head(regulator["setting"])
     end
 end
 
@@ -1098,7 +1099,7 @@ function _transform_nw!(
     _apply_des_pipe_unit_transform!(wm_nw_data, length_transform, head_loss)
     _apply_pump_unit_transform!(wm_nw_data, mass_transform,
         flow_transform, length_transform, time_transform)
-    _apply_regulator_unit_transform!(wm_nw_data, length_transform)
+    _apply_regulator_unit_transform!(wm_nw_data, head_transform, length_transform)
 
     # Apply transformations to nodal components.
     _apply_node_unit_transform!(wm_nw_data, head_transform)
