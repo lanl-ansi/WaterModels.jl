@@ -373,9 +373,52 @@
         end
 
         @testset "valve, single network" begin
+            network_path = "../test/data/epanet/snapshot/shutoff_valve-hw-lps.inp"
+            si_data = WaterModels.parse_file(network_path; per_unit=false)
+            si_data["valve"]["1"]["minor_loss"] = 1.0
+            si_data["valve"]["1"]["flow_max_reverse"] = -0.5
+            si_data["valve"]["1"]["flow_min_forward"] = 0.5
+
+            # Transform the data to a per-unit system.
+            pu_data = deepcopy(si_data)
+            make_per_unit!(pu_data)
+
+            # Ensure select valve quantities are correctly transformed.
+            flow_min_in_si = pu_data["valve"]["1"]["flow_min"] * pu_data["base_flow"]
+            @test isapprox(flow_min_in_si, si_data["valve"]["1"]["flow_min"])
+            flow_min_forward_in_si = pu_data["valve"]["1"]["flow_min_forward"] * pu_data["base_flow"]
+            @test isapprox(flow_min_forward_in_si, si_data["valve"]["1"]["flow_min_forward"])
+            flow_max_in_si = pu_data["valve"]["1"]["flow_max"] * pu_data["base_flow"]
+            @test isapprox(flow_max_in_si, si_data["valve"]["1"]["flow_max"])
+            flow_max_reverse_in_si = pu_data["valve"]["1"]["flow_max_reverse"] * pu_data["base_flow"]
+            @test isapprox(flow_max_reverse_in_si, si_data["valve"]["1"]["flow_max_reverse"])
+            minor_loss_in_si = pu_data["valve"]["1"]["minor_loss"] * pu_data["base_flow"]
+            @test isapprox(minor_loss_in_si, si_data["valve"]["1"]["minor_loss"])
         end
 
         @testset "valve, multinetwork" begin
+            network_path = "../test/data/epanet/multinetwork/shutoff_valve-hw-lps.inp"
+            si_data = WaterModels.parse_file(network_path; per_unit=false)
+            si_data["valve"]["1"]["minor_loss"] = 1.0
+            si_data["valve"]["1"]["flow_max_reverse"] = -0.5
+            si_data["valve"]["1"]["flow_min_forward"] = 0.5
+            si_data_mn = make_multinetwork(si_data)
+
+            # Transform the data to a per-unit system.
+            pu_data_mn = deepcopy(si_data_mn)
+            make_per_unit!(pu_data_mn)
+
+            # Ensure select valve quantities are correctly transformed.
+            flow_min_in_si = pu_data_mn["nw"]["2"]["valve"]["1"]["flow_min"] * pu_data_mn["base_flow"]
+            @test isapprox(flow_min_in_si, si_data_mn["nw"]["2"]["valve"]["1"]["flow_min"])
+            flow_min_forward_in_si = pu_data_mn["nw"]["2"]["valve"]["1"]["flow_min_forward"] * pu_data_mn["base_flow"]
+            @test isapprox(flow_min_forward_in_si, si_data_mn["nw"]["2"]["valve"]["1"]["flow_min_forward"])
+            flow_max_in_si = pu_data_mn["nw"]["2"]["valve"]["1"]["flow_max"] * pu_data_mn["base_flow"]
+            @test isapprox(flow_max_in_si, si_data_mn["nw"]["2"]["valve"]["1"]["flow_max"])
+            flow_max_reverse_in_si = pu_data_mn["nw"]["2"]["valve"]["1"]["flow_max_reverse"] * pu_data_mn["base_flow"]
+            @test isapprox(flow_max_reverse_in_si, si_data_mn["nw"]["2"]["valve"]["1"]["flow_max_reverse"])
+            minor_loss_in_si = pu_data_mn["nw"]["2"]["valve"]["1"]["minor_loss"] * pu_data_mn["base_flow"]
+            @test isapprox(minor_loss_in_si, si_data_mn["nw"]["2"]["valve"]["1"]["minor_loss"])
         end
     end
 
@@ -719,9 +762,50 @@
         end
 
         @testset "valve, single network" begin
+            # Load the data without making a per-unit transformation.
+            network_path = "../test/data/epanet/snapshot/shutoff_valve-hw-lps.inp"
+            si_data = WaterModels.parse_file(network_path; per_unit=false)
+            si_data["valve"]["1"]["minor_loss"] = 1.0
+            si_data["valve"]["1"]["flow_max_reverse"] = -0.5
+            si_data["valve"]["1"]["flow_min_forward"] = 0.5
+            
+            # Transform the data to a per-unit system.
+            data = deepcopy(si_data)
+            make_per_unit!(data)
+
+            # Transform per-unit data back to SI units.
+            make_si_units!(data)
+
+            # Ensure select valve quantities are correctly transformed.
+            @test isapprox(data["valve"]["1"]["flow_min"], si_data["valve"]["1"]["flow_min"])
+            @test isapprox(data["valve"]["1"]["flow_max"], si_data["valve"]["1"]["flow_max"])
+            @test isapprox(data["valve"]["1"]["flow_min_forward"], si_data["valve"]["1"]["flow_min_forward"])
+            @test isapprox(data["valve"]["1"]["flow_max_reverse"], si_data["valve"]["1"]["flow_max_reverse"])
+            @test isapprox(data["valve"]["1"]["minor_loss"], si_data["valve"]["1"]["minor_loss"])
         end
 
         @testset "valve, multinetwork" begin
+            # Load the data without making a per-unit transformation.
+            network_path = "../test/data/epanet/multinetwork/shutoff_valve-hw-lps.inp"
+            si_data = WaterModels.parse_file(network_path; per_unit=false)
+            si_data["valve"]["1"]["minor_loss"] = 1.0
+            si_data["valve"]["1"]["flow_max_reverse"] = -0.5
+            si_data["valve"]["1"]["flow_min_forward"] = 0.5
+            si_data_mn = make_multinetwork(si_data)
+
+            # Transform the data to a per-unit system.
+            data_mn = deepcopy(si_data_mn)
+            make_per_unit!(data_mn)
+
+            # Transform per-unit data back to SI units.
+            make_si_units!(data_mn)
+
+            # Ensure select valve quantities are correctly transformed.
+            @test isapprox(data_mn["nw"]["2"]["valve"]["1"]["flow_min"], si_data_mn["nw"]["2"]["valve"]["1"]["flow_min"])
+            @test isapprox(data_mn["nw"]["2"]["valve"]["1"]["flow_max"], si_data_mn["nw"]["2"]["valve"]["1"]["flow_max"])
+            @test isapprox(data_mn["nw"]["2"]["valve"]["1"]["flow_min_forward"], si_data_mn["nw"]["2"]["valve"]["1"]["flow_min_forward"])
+            @test isapprox(data_mn["nw"]["2"]["valve"]["1"]["flow_max_reverse"], si_data_mn["nw"]["2"]["valve"]["1"]["flow_max_reverse"])
+            @test isapprox(data_mn["nw"]["2"]["valve"]["1"]["minor_loss"], si_data_mn["nw"]["2"]["valve"]["1"]["minor_loss"])
         end
     end
 
