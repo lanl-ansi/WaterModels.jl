@@ -384,13 +384,13 @@ end
 
 function _calc_pump_power(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Array{Float64, 1})
     q_true, f_true = _calc_pump_power_points(wm, nw, pump_id, 100)
-    return max.(Interpolations.LinearInterpolation(q_true, f_true).(q), 0.0)
+    return max.(Interpolations.linear_interpolation(q_true, f_true).(q), 0.0)
 end
 
 
 function _calc_pump_power_ua(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Vector{Float64})
     q_true, f_true = _calc_pump_power_points(wm, nw, pump_id, 100)
-    f_interp = Interpolations.LinearInterpolation(q_true, f_true).(q)
+    f_interp = Interpolations.linear_interpolation(q_true, f_true).(q)
 
     for i in 2:length(q)
         slope = (f_interp[i] - f_interp[i-1]) * inv(q[i] - q[i-1])
@@ -406,7 +406,7 @@ end
 
 function _calc_pump_power_oa(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Array{Float64, 1})
     q_true, f_true = _calc_pump_power_points(wm, nw, pump_id, 100)
-    f_interp = Interpolations.LinearInterpolation(q_true, f_true).(q)
+    f_interp = Interpolations.linear_interpolation(q_true, f_true).(q)
 
     for i in 2:length(q)
         slope = (f_interp[i] - f_interp[i-1]) * inv(q[i] - q[i-1])
@@ -440,7 +440,7 @@ end
 
 function _calc_efficiencies(points::Array{Float64}, curve::Vector{Tuple{Float64, Float64}})
     q, eff = [[x[1] for x in curve], [x[2] for x in curve]]
-    return Interpolations.LinearInterpolation(q, eff,
+    return Interpolations.linear_interpolation(q, eff,
         extrapolation_bc=Interpolations.Flat()).(points)
 end
 
