@@ -14,11 +14,14 @@ end
 
 
 function correct_pumps!(data::Dict{String, <:Any})
-    apply_wm!(_correct_pumps!, data; apply_to_subnetworks = true)
+    wm_data = get_wm_data(data)
+    base_flow = wm_data["per_unit"] ? wm_data["base_flow"] : 1.0
+    correction_func = x -> _correct_pumps!(x, base_flow)
+    apply_wm!(correction_func, data; apply_to_subnetworks = true)
 end
 
 
-function _correct_pumps!(data::Dict{String, <:Any})
+function _correct_pumps!(data::Dict{String, <:Any}, base_flow::Float64)
     for (idx, pump) in data["pump"]
         # Get common connecting node data for later use.
         node_fr = data["node"][string(pump["node_fr"])]
@@ -28,7 +31,7 @@ function _correct_pumps!(data::Dict{String, <:Any})
         _correct_status!(pump)
         _correct_flow_direction!(pump)
         _correct_pump_head_curve_form!(pump)
-        _correct_pump_flow_bounds!(pump, node_fr, node_to)
+        _correct_pump_flow_bounds!(pump, node_fr, node_to, base_flow)
     end
 end
 
@@ -75,10 +78,10 @@ function _correct_pump_head_curve_form!(pump::Dict{String, <:Any})
 end
 
 
-function _correct_pump_flow_bounds!(pump::Dict{String, <:Any}, node_fr::Dict{String, <:Any}, node_to::Dict{String, <:Any})
+function _correct_pump_flow_bounds!(pump::Dict{String, <:Any}, node_fr::Dict{String, <:Any}, node_to::Dict{String, <:Any}, base_flow::Float64)
     pump["flow_min"] = _calc_pump_flow_min(pump, node_fr, node_to)
     pump["flow_max"] = _calc_pump_flow_max(pump, node_fr, node_to)
-    pump["flow_min_forward"] = _calc_pump_flow_min_forward(pump, node_fr, node_to)
+    pump["flow_min_forward"] = _calc_pump_flow_min_forward(pump, node_fr, node_to, base_flow)
     pump["flow_max_reverse"] = _calc_pump_flow_max_reverse(pump, node_fr, node_to)
 end
 
@@ -88,8 +91,9 @@ function _calc_pump_flow_min(pump::Dict{String, <:Any}, node_fr::Dict{String, <:
 end
 
 
-function _calc_pump_flow_min_forward(pump::Dict{String, <:Any}, node_fr::Dict{String,<: Any}, node_to::Dict{String, <:Any})
-    flow_min_forward = get(pump, "flow_min_forward", _FLOW_MIN)
+function _calc_pump_flow_min_forward(pump::Dict{String, <:Any}, node_fr::Dict{String,<: Any}, node_to::Dict{String, <:Any}, base_flow::Float64)
+    flow_min = _FLOW_MIN / base_flow
+    flow_min_forward = get(pump, "flow_min_forward", flow_min)
     return max(_calc_pump_flow_min(pump, node_fr, node_to), flow_min_forward)
 end
 

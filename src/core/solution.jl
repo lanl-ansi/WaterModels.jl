@@ -10,6 +10,7 @@ function _IM.solution_preprocessor(wm::AbstractWaterModel, solution::Dict)
     solution["it"][wm_it_name]["base_length"] = wm.ref[:it][wm_it_sym][:base_length]
     solution["it"][wm_it_name]["base_mass"] = wm.ref[:it][wm_it_sym][:base_mass]
     solution["it"][wm_it_name]["base_time"] = wm.ref[:it][wm_it_sym][:base_time]
+    solution["it"][wm_it_name]["head_loss"] = wm.ref[:it][wm_it_sym][:head_loss]
 end
 
 

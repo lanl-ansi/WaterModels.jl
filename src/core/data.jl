@@ -702,13 +702,22 @@ end
 
 
 function _transform_flows!(comp::Dict{String,<:Any}, transform_flow::Function)
-    _transform_flow_key!(comp, "flow_min", transform_flow)
-    _transform_flow_key!(comp, "flow_max", transform_flow)
-    _transform_flow_key!(comp, "flow_nominal", transform_flow)
-    _transform_flow_key!(comp, "flow_min_forward", transform_flow)
-    _transform_flow_key!(comp, "flow_max_reverse", transform_flow)
-    _transform_flow_key!(comp, "minor_loss", transform_flow)
-    _transform_flow_key!(comp, "flow_partition", transform_flow)
+    for flow_key in ["flow_min", "flow_max", "flow_nominal", "flow_min_forward",
+        "flow_max_reverse", "minor_loss", "flow_partition", "q", "qp", "qn"]
+        _transform_flow_key!(comp, flow_key, transform_flow)
+    end
+end
+
+
+function _transform_head_difference_key!(comp::Dict{String,<:Any}, key::String, transform_head::Function)
+    haskey(comp, key) && (comp[key] = transform_head.(comp[key]))
+end
+
+
+function _transform_head_differences!(comp::Dict{String,<:Any}, transform_head::Function)
+    for head_difference_key in ["dh", "dhp", "dhn", "g"]
+        _transform_head_difference_key!(comp, head_difference_key, transform_head)
+    end
 end
 
 
@@ -716,10 +725,9 @@ function _apply_node_unit_transform!(data::Dict{String,<:Any}, transform_head::F
     wm_data = get_wm_data(data)
 
     for node in values(wm_data["node"])
-        node["elevation"] = transform_head(node["elevation"])
-        node["head_min"] = transform_head(node["head_min"])
-        node["head_max"] = transform_head(node["head_max"])
-        node["head_nominal"] = transform_head(node["head_nominal"])
+        for head_key in ["elevation", "head", "head_min", "head_max", "head_nominal", "h", "p"]
+            haskey(node, head_key) && (node[head_key] = transform_head.(node[head_key]))
+        end
     end
 
     if haskey(wm_data, "time_series") && haskey(wm_data["time_series"], "node")
@@ -732,20 +740,22 @@ function _apply_node_unit_transform!(data::Dict{String,<:Any}, transform_head::F
 end
 
 
-function _apply_reservoir_unit_transform!(data::Dict{String,<:Any}, transform_head::Function)
+function _apply_reservoir_unit_transform!(data::Dict{String,<:Any}, transform_head::Function, transform_flow::Function)
     wm_data = get_wm_data(data)
 
-    for (i, reservoir) in wm_data["reservoir"]
-        if haskey(reservoir, "head_min")
-            reservoir["head_min"] = transform_head(reservoir["head_min"])
+    if !haskey(wm_data, "reservoir")
+        return
+    end
+
+    for (_, reservoir) in wm_data["reservoir"]
+        for head_key in ["head_min", "head_max", "head_nominal"]
+            if haskey(reservoir, head_key)
+                reservoir[head_key] = transform_head(reservoir[head_key])
+            end
         end
 
-        if haskey(reservoir, "head_max")
-            reservoir["head_max"] = transform_head(reservoir["head_max"])
-        end
-
-        if haskey(reservoir, "head_nominal")
-            reservoir["head_nominal"] = transform_head(reservoir["head_nominal"])
+        if haskey(reservoir, "q")
+            reservoir["q"] = transform_flow(reservoir["q"])
         end
     end
 end
@@ -754,10 +764,16 @@ end
 function _apply_demand_unit_transform!(data::Dict{String,<:Any}, transform_flow::Function)
     wm_data = get_wm_data(data)
 
-    for (i, demand) in wm_data["demand"]
-        demand["flow_min"] = transform_flow(demand["flow_min"])
-        demand["flow_max"] = transform_flow(demand["flow_max"])
-        demand["flow_nominal"] = transform_flow(demand["flow_nominal"])
+    if !haskey(wm_data, "demand")
+        return
+    end
+
+    for (_, demand) in wm_data["demand"]
+        for flow_key in ["flow_min", "flow_max", "flow_nominal", "q"]
+            if haskey(demand, flow_key)
+                demand[flow_key] = transform_flow(demand[flow_key])
+            end
+        end
     end
 
     if haskey(wm_data, "time_series") && haskey(wm_data["time_series"], "demand")
@@ -768,15 +784,29 @@ function _apply_demand_unit_transform!(data::Dict{String,<:Any}, transform_flow:
 end
 
 
-function _apply_tank_unit_transform!(data::Dict{String,<:Any}, transform_length::Function)
+function _apply_tank_unit_transform!(data::Dict{String,<:Any}, transform_length::Function, transform_flow::Function)
     wm_data = get_wm_data(data)
 
+    if !haskey(wm_data, "tank")
+        return
+    end
+
     for tank in values(wm_data["tank"])
-        tank["min_level"] = transform_length(tank["min_level"])
-        tank["max_level"] = transform_length(tank["max_level"])
-        tank["init_level"] = transform_length(tank["init_level"])
-        tank["diameter"] = transform_length(tank["diameter"])
-        tank["min_vol"] *= transform_length(1.0)^3
+        for length_key in ["min_level", "max_level", "init_level", "diameter"]
+            if haskey(tank, length_key)
+                tank[length_key] = transform_length(tank[length_key])
+            end
+        end
+
+        for volume_key in ["min_vol", "V"]
+            if haskey(tank, volume_key)
+                tank[volume_key] *= transform_length(1.0)^3
+            end
+        end
+
+        if haskey(tank, "q")
+            tank["q"] = transform_flow(tank["q"])
+        end
     end
 end
 
@@ -786,11 +816,14 @@ function _make_per_unit_heads!(data::Dict{String,<:Any}, transform_head::Functio
 end
 
 
-function _apply_flow_unit_transform!(data::Dict{String,<:Any}, transform_flow::Function)
+function _apply_link_unit_transform!(data::Dict{String,<:Any}, transform_flow::Function, transform_head::Function)
     wm_data = get_wm_data(data)
 
     for type in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "valve"]
-        map(x -> _transform_flows!(x, transform_flow), values(wm_data[type]))
+        if haskey(wm_data, type)
+            map(x -> _transform_flows!(x, transform_flow), values(wm_data[type]))
+            map(x -> _transform_head_differences!(x, transform_head), values(wm_data[type]))
+        end
 
         if haskey(wm_data, "time_series") && haskey(wm_data["time_series"], type)
             _transform_flows!(wm_data["time_series"][type], transform_flow)
@@ -801,12 +834,21 @@ end
 
 function _apply_pipe_unit_transform!(data::Dict{String,<:Any}, transform_length::Function, head_loss::String)
     wm_data = get_wm_data(data)
+    
+    if !haskey(wm_data, "pipe")
+        return
+    end
 
-    for (i, pipe) in wm_data["pipe"]
-        pipe["length"] = transform_length(pipe["length"])
-        pipe["diameter"] = transform_length(pipe["diameter"])
+    for (_, pipe) in wm_data["pipe"]
+        if haskey(pipe, "length")
+            pipe["length"] = transform_length(pipe["length"])
+        end
 
-        if uppercase(head_loss) == "D-W"
+        if haskey(pipe, "diameter")
+            pipe["diameter"] = transform_length(pipe["diameter"])
+        end
+
+        if uppercase(head_loss) == "D-W" && haskey(pipe, "roughness")
             pipe["roughness"] = transform_length(pipe["roughness"])
         end
     end
@@ -816,13 +858,20 @@ end
 function _apply_des_pipe_unit_transform!(data::Dict{String,<:Any}, transform_length::Function, head_loss::String)
     wm_data = get_wm_data(data)
 
-    for (i, des_pipe) in wm_data["des_pipe"]
-        des_pipe["length"] = transform_length(des_pipe["length"])
-        des_pipe["diameter"] = transform_length(des_pipe["diameter"])
+    if !haskey(wm_data, "des_pipe")
+        return
     end
 
-    if uppercase(head_loss) == "D-W"
-        for (i, des_pipe) in wm_data["des_pipe"]
+    for (_, des_pipe) in wm_data["des_pipe"]
+        if haskey(des_pipe, "length")
+            des_pipe["length"] = transform_length(des_pipe["length"])
+        end
+
+        if haskey(des_pipe, "diameter")
+            des_pipe["diameter"] = transform_length(des_pipe["diameter"])
+        end
+
+        if uppercase(head_loss) == "D-W" && haskey(des_pipe, "roughness")
             des_pipe["roughness"] = transform_length(des_pipe["roughness"])
         end
     end
@@ -834,12 +883,18 @@ function _apply_pump_unit_transform!(
     transform_length::Function, transform_time::Function)
     wm_data = get_wm_data(data)
 
+    if !haskey(wm_data, "pump")
+        return
+    end
+
     power_scalar = transform_mass(1.0) * transform_length(1.0)^2 / transform_time(1.0)^3
     energy_scalar = transform_mass(1.0) * transform_length(1.0)^2 / transform_time(1.0)^2
 
-    for (i, pump) in wm_data["pump"]
-        pump["head_curve"] = [(transform_flow(x[1]), x[2]) for x in pump["head_curve"]]
-        pump["head_curve"] = [(x[1], transform_length(x[2])) for x in pump["head_curve"]]
+    for (_, pump) in wm_data["pump"]
+        if haskey(pump, "head_curve")
+            pump["head_curve"] = [(transform_flow(x[1]), x[2]) for x in pump["head_curve"]]
+            pump["head_curve"] = [(x[1], transform_length(x[2])) for x in pump["head_curve"]]
+        end
 
         if haskey(pump, "efficiency_curve")
             pump["efficiency_curve"] = [(transform_flow(x[1]), x[2]) for x in pump["efficiency_curve"]]
@@ -849,8 +904,20 @@ function _apply_pump_unit_transform!(
             pump["energy_price"] /= energy_scalar
         end
 
+        if haskey(pump, "E")
+            pump["E"] *= energy_scalar
+        end
+
         if haskey(pump, "power_fixed")
             pump["power_fixed"] *= power_scalar
+        end
+
+        if haskey(pump, "P")
+            pump["P"] *= power_scalar
+        end
+
+        if haskey(pump, "c")
+            pump["c"] *= energy_scalar
         end
 
         if haskey(pump, "min_inactive_time")
@@ -887,9 +954,18 @@ end
 function _apply_regulator_unit_transform!(data::Dict{String,<:Any}, transform_head::Function, transform_length::Function)
     wm_data = get_wm_data(data)
 
+    if !haskey(wm_data, "regulator")
+        return
+    end
+
     for (i, regulator) in wm_data["regulator"]
-        regulator["diameter"] = transform_length(regulator["diameter"])
-        regulator["setting"] = transform_head(regulator["setting"])
+        if haskey(regulator, "diameter")
+            regulator["diameter"] = transform_length(regulator["diameter"])
+        end
+
+        if haskey(regulator, "setting")
+            regulator["setting"] = transform_head(regulator["setting"])
+        end
     end
 end
 
@@ -1045,9 +1121,11 @@ function _transform_metadata!(
     # Get the WaterModels subdictionary.
     wm_data = get_wm_data(data)
 
-    # Convert viscosity to per-unit units.
-    wm_data["viscosity"] *= mass_transform(1.0) /
-        (length_transform(1.0) * time_transform(1.0))
+    if haskey(wm_data, "viscosity")
+        # Convert viscosity to per-unit units.
+        wm_data["viscosity"] *= mass_transform(1.0) /
+            (length_transform(1.0) * time_transform(1.0))
+    end
 
     # Store important base values for later conversions.
     if to_per_unit && (!haskey(wm_data, "per_unit") || !wm_data["per_unit"])
@@ -1066,7 +1144,9 @@ function _transform_metadata!(
         wm_data["time_series"]["duration"] = duration
     end
 
-    wm_data["time_step"] = time_transform(wm_data["time_step"])
+    if haskey(wm_data, "time_step")
+        wm_data["time_step"] = time_transform(wm_data["time_step"])
+    end
 end
 
 
@@ -1094,7 +1174,7 @@ function _transform_nw!(
     wm_nw_data = (id == "0") ? wm_data : wm_data["nw"][id]
 
     # Apply transformations to node-connecting components.
-    _apply_flow_unit_transform!(wm_nw_data, flow_transform)
+    _apply_link_unit_transform!(wm_nw_data, flow_transform, head_transform)
     _apply_pipe_unit_transform!(wm_nw_data, length_transform, head_loss)
     _apply_des_pipe_unit_transform!(wm_nw_data, length_transform, head_loss)
     _apply_pump_unit_transform!(wm_nw_data, mass_transform,
@@ -1104,8 +1184,8 @@ function _transform_nw!(
     # Apply transformations to nodal components.
     _apply_node_unit_transform!(wm_nw_data, head_transform)
     _apply_demand_unit_transform!(wm_nw_data, flow_transform)
-    _apply_tank_unit_transform!(wm_nw_data, length_transform)
-    _apply_reservoir_unit_transform!(wm_nw_data, head_transform)
+    _apply_tank_unit_transform!(wm_nw_data, length_transform, flow_transform)
+    _apply_reservoir_unit_transform!(wm_nw_data, head_transform, flow_transform)
 end
 
 
