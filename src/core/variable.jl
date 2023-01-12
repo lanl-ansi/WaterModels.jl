@@ -465,11 +465,11 @@ function variable_ne_pump_build(wm::AbstractWaterModel; nw::Int=nw_id_default, r
             start = comp_start_value(ref(wm, nw, :ne_pump, a), "x_ne_pump_start", 1.0))
     end
 
-    for (a, ne_pump) in ref(wm, nw, :ne_pump)
-        _fix_indicator_variable(z_ne_pump[a], ne_pump, "z")
-    end
+    # for (a, ne_pump) in ref(wm, nw, :ne_pump)
+    #     _fix_indicator_variable(x_ne_pump[a], ne_pump, "x")
+    # end
 
-    report && sol_component_value(wm, nw, :ne_pump, :status, ids(wm, nw, :ne_pump), z_ne_pump)
+    report && sol_component_value(wm, nw, :ne_pump, :build_status, ids(wm, nw, :ne_pump), x_ne_pump)
 end
 
 "Creates binary variables for all network expansion short pipes in the network, i.e.,

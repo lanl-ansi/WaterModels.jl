@@ -141,6 +141,7 @@ function build_mn_wf(wm::AbstractWaterModel)
         variable_regulator_indicator(wm; nw=n)
         variable_valve_indicator(wm; nw=n)
         variable_ne_short_pipe_indicator(wm; nw=n)
+        variable_ne_pump_build(wm; nw=n)
 
         # Create flow-related variables for node attachments.
         variable_demand_flow(wm; nw=n)

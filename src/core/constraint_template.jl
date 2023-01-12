@@ -728,11 +728,31 @@ function constraint_on_off_pump_flow_ne(
     constraint_on_off_pump_flow_ne(wm, nw, a, q_min_forward)
 end
 
+function constraint_on_off_pump_build_ne(
+    wm::AbstractWaterModel,
+    a::Int;
+    nw::Int = nw_id_default,
+    kwargs...,
+)
+
+# Gather build and status variables
+    x, z = var(wm, nw, :x_ne_pump, a), var(wm, nw, :z_ne_pump, a)
+#
+    _initialize_con_dict(wm, :on_off_pump_build_ne, nw = nw, is_array = true)
+    con(wm, nw, :on_off_pump_build_ne)[a] = Array{JuMP.ConstraintRef}([])
+    c = JuMP.@constraint(wm.model, z <= x)
+
+    #Append the :on_off_pump_buld_ne constraint arrat
+    append!(con(wm, nw, :on_off_pump_build_ne)[a], [c])
+
+
+end
+
 # function constraint_on_off_pump_build_ne(
 #     wm::AbstractWaterModel,
 #     a::Int,
 #     nw::Int = nw_id_default,
-#     kwards...,
+#     kwargs...,
 #     )
 #
 #     _initialize_con_dict(wm, :on_off_pump_buld_ne, nw = nw, is_array = true)
@@ -740,6 +760,23 @@ end
 #     constraint_on_off_pump_build_ne(wm, nw, a)
 # end
 
+
+# function constraint_on_off_pump_build_ne(
+#     wm::AbstractWaterModel,
+#     a::Int,
+#     nw::Int = nw_id_default,
+#     kwargs...,
+#     )
+#     println("testing $nw")
+#     #Gather build and status variables
+#     x, z = var(wm, nw, :x_ne_pump, a), var(wm, nw, :z_ne_pump, a)
+#
+#     con(wm, nw, :on_off_pump_build_ne)[a] = Array{JuMP.ConstraintRef}([])
+#     c = JuMP.@constraint(wm.model, z <= x)
+#
+#     #Append the :on_off_pump_buld_ne constraint arrat
+#     append!(con(wm, n, :on_off_pump_buld_ne)[a], [c])
+# end
 
 function constraint_on_off_pump_head_ne(
     wm::AbstractWaterModel,
