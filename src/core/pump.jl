@@ -14,10 +14,14 @@ end
 
 
 function correct_pumps!(data::Dict{String, <:Any})
-    apply_wm!(_correct_pumps!, data; apply_to_subnetworks = true)
+    wm_data = get_wm_data(data)
+    base_flow = wm_data["per_unit"] ? wm_data["base_flow"] : 1.0
+    correction_func = x -> _correct_pumps!(x, base_flow)
+    apply_wm!(correction_func, data; apply_to_subnetworks = true)
 end
 
-function _correct_pumps!(data::Dict{String, <:Any})
+
+function _correct_pumps!(data::Dict{String, <:Any}, base_flow::Float64)
     for (idx, pump) in data["pump"]
         # Get common connecting node data for later use.
         node_fr = data["node"][string(pump["node_fr"])]
@@ -27,7 +31,7 @@ function _correct_pumps!(data::Dict{String, <:Any})
         _correct_status!(pump)
         _correct_flow_direction!(pump)
         _correct_pump_head_curve_form!(pump)
-        _correct_pump_flow_bounds!(pump, node_fr, node_to)
+        _correct_pump_flow_bounds!(pump, node_fr, node_to, base_flow)
     end
 end
 
@@ -74,10 +78,10 @@ function _correct_pump_head_curve_form!(pump::Dict{String, <:Any})
 end
 
 
-function _correct_pump_flow_bounds!(pump::Dict{String, <:Any}, node_fr::Dict{String, <:Any}, node_to::Dict{String, <:Any})
+function _correct_pump_flow_bounds!(pump::Dict{String, <:Any}, node_fr::Dict{String, <:Any}, node_to::Dict{String, <:Any}, base_flow::Float64)
     pump["flow_min"] = _calc_pump_flow_min(pump, node_fr, node_to)
     pump["flow_max"] = _calc_pump_flow_max(pump, node_fr, node_to)
-    pump["flow_min_forward"] = _calc_pump_flow_min_forward(pump, node_fr, node_to)
+    pump["flow_min_forward"] = _calc_pump_flow_min_forward(pump, node_fr, node_to, base_flow)
     pump["flow_max_reverse"] = _calc_pump_flow_max_reverse(pump, node_fr, node_to)
 end
 
@@ -87,8 +91,9 @@ function _calc_pump_flow_min(pump::Dict{String, <:Any}, node_fr::Dict{String, <:
 end
 
 
-function _calc_pump_flow_min_forward(pump::Dict{String, <:Any}, node_fr::Dict{String,<: Any}, node_to::Dict{String, <:Any})
-    flow_min_forward = get(pump, "flow_min_forward", _FLOW_MIN)
+function _calc_pump_flow_min_forward(pump::Dict{String, <:Any}, node_fr::Dict{String,<: Any}, node_to::Dict{String, <:Any}, base_flow::Float64)
+    flow_min = _FLOW_MIN / base_flow
+    flow_min_forward = get(pump, "flow_min_forward", flow_min)
     return max(_calc_pump_flow_min(pump, node_fr, node_to), flow_min_forward)
 end
 
@@ -356,9 +361,9 @@ function _calc_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, 
     head_curve_function = ref(wm, nw, :pump, pump_id, "head_curve_function")
 
     wm_data = get_wm_data(wm.data)
-    flow_transform = _calc_flow_per_unit_transform(wm_data)
-    q_min = max(get(pump, "flow_min_forward",
-        flow_transform(_FLOW_MIN)), flow_transform(_FLOW_MIN))
+    base_flow = wm_data["per_unit"] ? wm_data["base_flow"] : 1.0
+    _flow_min = _FLOW_MIN / base_flow
+    q_min = max(get(pump, "flow_min_forward", _flow_min), _flow_min)
 
     q_max = max(q_min, pump["flow_max"])
     q_build = range(q_min - 1.0e-7, stop = q_max + 1.0e-7, length = num_points)
@@ -371,10 +376,9 @@ function _calc_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, 
         eff = pump["efficiency"]
     end
 
-    base_mass = 1.0 / _calc_mass_per_unit_transform(wm_data)(1.0)
-    base_time = 1.0 / _calc_time_per_unit_transform(wm_data)(1.0)
-    base_length = 1.0 / _calc_length_per_unit_transform(wm_data)(1.0)
-    flow_transform = 1.0 / _calc_flow_per_unit_transform(wm_data)(1.0)
+    base_mass = wm_data["per_unit"] ? wm_data["base_mass"] : 1.0
+    base_time = wm_data["per_unit"] ? wm_data["base_time"] : 1.0
+    base_length = wm_data["per_unit"] ? wm_data["base_length"] : 1.0
 
     density = _calc_scaled_density(base_mass, base_length)
     gravity = _calc_scaled_gravity(base_length, base_time)
@@ -384,13 +388,13 @@ end
 
 function _calc_pump_power(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Array{Float64, 1})
     q_true, f_true = _calc_pump_power_points(wm, nw, pump_id, 100)
-    return max.(Interpolations.LinearInterpolation(q_true, f_true).(q), 0.0)
+    return max.(Interpolations.linear_interpolation(q_true, f_true).(q), 0.0)
 end
 
 
 function _calc_pump_power_ua(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Vector{Float64})
     q_true, f_true = _calc_pump_power_points(wm, nw, pump_id, 100)
-    f_interp = Interpolations.LinearInterpolation(q_true, f_true).(q)
+    f_interp = Interpolations.linear_interpolation(q_true, f_true).(q)
 
     for i in 2:length(q)
         slope = (f_interp[i] - f_interp[i-1]) * inv(q[i] - q[i-1])
@@ -406,7 +410,7 @@ end
 
 function _calc_pump_power_oa(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Array{Float64, 1})
     q_true, f_true = _calc_pump_power_points(wm, nw, pump_id, 100)
-    f_interp = Interpolations.LinearInterpolation(q_true, f_true).(q)
+    f_interp = Interpolations.linear_interpolation(q_true, f_true).(q)
 
     for i in 2:length(q)
         slope = (f_interp[i] - f_interp[i-1]) * inv(q[i] - q[i-1])
@@ -440,7 +444,7 @@ end
 
 function _calc_efficiencies(points::Array{Float64}, curve::Vector{Tuple{Float64, Float64}})
     q, eff = [[x[1] for x in curve], [x[2] for x in curve]]
-    return Interpolations.LinearInterpolation(q, eff,
+    return Interpolations.linear_interpolation(q, eff,
         extrapolation_bc=Interpolations.Flat()).(points)
 end
 

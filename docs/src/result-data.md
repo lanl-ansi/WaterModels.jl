@@ -220,3 +220,7 @@ Note also that per-unit base quantities are also reported in the solution data d
 # Should return `true`.
 result["solution"]["base_flow"] == data["base_flow"]
 ```
+For convenience, solution data can be transformed to SI units using
+```julia
+make_si_units!(result["solution"])
+```
