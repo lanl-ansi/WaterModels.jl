@@ -179,20 +179,6 @@ function constraint_on_off_pump_power_best_efficiency(
     append!(con(wm, n, :on_off_pump_power)[a], [c])
 end
 
-# function constraint_on_off_pump_build_ne(
-#     wm::AbstractWaterModel,
-#     a::Int,
-#     n::Int = nw_id_default,
-#     )
-#     println("testing $n")
-#     #Gather build and status variables
-#     x, z = var(wm, n, :x_ne_pump, a), var(wm, n, :z_ne_pump, a)
-#
-#     c = JuMP.@constraint(wm.model, z <= x)
-#
-#     #Append the :on_off_pump_buld_ne constraint arrat
-#     append!(con(wm, n, :on_off_pump_buld_ne)[a], [c])
-# end
 
 function constraint_on_off_pump_power_best_efficiency_ne(
     wm::AbstractWaterModel,

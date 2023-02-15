@@ -70,6 +70,14 @@ function build_wf(wm::AbstractWaterModel)
         constraint_on_off_pump_power(wm, a)
     end
 
+    # Constraints on pump flows, heads, and physics.
+    for (a, pump) in ref(wm, :ne_pump)
+        constraint_on_off_pump_head_ne(wm, a)
+        constraint_on_off_pump_head_gain_ne(wm, a)
+        constraint_on_off_pump_flow_ne(wm, a)
+        constraint_on_off_pump_power_ne(wm, a)
+    end
+
     for (k, pump_group) in ref(wm, :pump_group)
         constraint_on_off_pump_group(wm, k)
     end
@@ -105,7 +113,8 @@ function build_wf(wm::AbstractWaterModel)
     end
 
     # Add the objective.
-    objective_wf(wm)
+    # objective_wf(wm)
+    println(wm.model)
 end
 
 
@@ -266,6 +275,7 @@ function build_mn_wf(wm::AbstractWaterModel)
 
     # Add the objective.
     objective_wf(wm)
+    println(wm.model)
 end
 
 

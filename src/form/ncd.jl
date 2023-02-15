@@ -395,6 +395,9 @@ function constraint_on_off_pump_flow(
     a::Int,
     q_min_forward::Float64,
 )
+    if(n==1)
+        println("Running ncd pump flow constraint")
+    end
     # Get pump status variable.
     qp = var(wm, n, :qp_pump, a)
     y = var(wm, n, :y_pump, a)
@@ -418,6 +421,9 @@ function constraint_on_off_pump_flow_ne(
     a::Int,
     q_min_forward::Float64,
 )
+    if(n == 1)
+        println("Running NCD pump flow ne constraint")
+    end
     # Get pump status variable.
     qp = var(wm, n, :qp_ne_pump, a)
     y = var(wm, n, :y_ne_pump, a)
@@ -464,6 +470,9 @@ function constraint_on_off_pump_head_gain_ne(
     node_to::Int,
     q_min_forward::Float64,
 )
+    if(n==1)
+        println("Running NCD pump head gain ne constraint")
+    end
     # Gather pump flow, head gain, and status variables.
     qp = var(wm, n, :qp_ne_pump, a)
     g = var(wm, n, :g_ne_pump, a)
@@ -482,6 +491,9 @@ function constraint_on_off_pump_power(
     a::Int,
     q_min_forward::Float64,
 )
+    # if(n==1)
+        println("Running ncd pump $a power constraint")
+    # end
     # Gather pump flow, power, and status variables.
     q = var(wm, n, :qp_pump, a)
     P = var(wm, n, :P_pump, a)
@@ -502,6 +514,9 @@ function constraint_on_off_pump_power_ne(
     a::Int,
     q_min_forward::Float64,
 )
+    if(n == 1)
+        println("Running NCD pump power ne constraint")
+    end
     # Gather pump flow, power, and status variables.
     q = var(wm, n, :qp_ne_pump, a)
     P = var(wm, n, :P_ne_pump, a)

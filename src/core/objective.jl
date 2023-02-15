@@ -140,15 +140,17 @@ function objective_owf(wm::AbstractWaterModel)::JuMP.AffExpr
     end
 
     for n in network_ids_flow
+        println("Warning: Changing pump and ne_pump objectives to min power")
         for a in ids(wm, n, :pump)
             # Add pump energy costs to the objective.
-            JuMP.add_to_expression!(objective, var(wm, n, :c_pump, a))
+            JuMP.add_to_expression!(objective, var(wm, n, :P_pump, a))
         end
         for a in ids(wm, n, :ne_pump)
             # Add expansion pump energy costs to the objective.
-            JuMP.add_to_expression!(objective, var(wm, n, :c_ne_pump, a))
+            JuMP.add_to_expression!(objective, var(wm, n, :P_ne_pump, a))
         end
     end
+
 
     # Minimize the cost of network operation.
     # println(objective)

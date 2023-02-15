@@ -223,7 +223,7 @@ function variable_ne_pump_power(wm::AbstractWaterModel; nw::Int=nw_id_default, b
 
     if report
         # Initialize entries to the solution component dictionary for expressions.
-        sol_component_value(wm, nw, :ne_pump, :P, ids(wm, nw, :ne_pump), P)
+        sol_component_value(wm, nw, :ne_pump, :P_ne, ids(wm, nw, :ne_pump), P)
         sol_component_value(wm, nw, :ne_pump, :E, ids(wm, nw, :ne_pump), E)
         sol_component_value(wm, nw, :ne_pump, :c, ids(wm, nw, :ne_pump), c)
     end

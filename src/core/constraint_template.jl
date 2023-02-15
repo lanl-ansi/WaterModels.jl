@@ -618,6 +618,7 @@ function constraint_on_off_pump_power(
     con(wm, nw, :on_off_pump_power)[a] = Array{JuMP.ConstraintRef}([])
 
     if ref(wm, nw, :pump, a)["pump_type"] in [PUMP_QUADRATIC, PUMP_EPANET]
+        # println("here")
         constraint_on_off_pump_power(wm, nw, a, q_min_forward)
     elseif ref(wm, nw, :pump, a)["pump_type"] == PUMP_BEST_EFFICIENCY_POINT
         wm_data = get_wm_data(wm.data)
@@ -744,8 +745,6 @@ function constraint_on_off_pump_build_ne(
 
     #Append the :on_off_pump_buld_ne constraint arrat
     append!(con(wm, nw, :on_off_pump_build_ne)[a], [c])
-
-
 end
 
 # function constraint_on_off_pump_build_ne(

@@ -234,6 +234,9 @@ function constraint_on_off_pump_head_gain(
     node_to::Int,
     q_min_forward::Float64,
 )
+    if(n==1)
+        println("Running LRD pump head gain")
+    end
     # Get variables for positive flow, head difference, and pump status.
     qp = var(wm, n, :qp_pump, a)
     g = var(wm, n, :g_pump, a)
