@@ -234,6 +234,9 @@ function constraint_on_off_pump_head_gain(
     node_to::Int,
     q_min_forward::Float64,
 )
+    if(n==1)
+        println("Running LRD pump head gain")
+    end
     # Get variables for positive flow, head difference, and pump status.
     qp = var(wm, n, :qp_pump, a)
     g = var(wm, n, :g_pump, a)
@@ -278,5 +281,62 @@ function constraint_on_off_pump_head_gain(
 
         # Append the :on_off_pump_head_gain constraint array.
         append!(con(wm, n, :on_off_pump_head_gain)[a], [c_2])
+    end
+end
+
+
+"Add constraints associated with modeling an expansion pump's head gain."
+function constraint_on_off_pump_head_gain_ne(
+    wm::AbstractLRDModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    q_min_forward::Float64,
+)
+    # Get variables for positive flow, head difference, and pump status.
+    qp = var(wm, n, :qp_ne_pump, a)
+    g = var(wm, n, :g_ne_pump, a)
+    z = var(wm, n, :z_ne_pump, a)
+
+    # Calculate the head curve function and its derivative.
+    # Get pump head curve function and its derivative.
+    head_curve_func = ref(wm, n, :ne_pump, a, "head_curve_function")
+    head_curve_deriv = ref(wm, n, :ne_pump, a, "head_curve_derivative")
+    partition = get_pump_flow_partition(ref(wm, n, :ne_pump, a))
+    qp_min, qp_max = minimum(partition), maximum(partition)
+
+    # Loop over partition points strictly between the lower and upper variable bounds.
+    for flow_value in partition
+        # Compute head gain and derivative at the point.
+        f, df = head_curve_func(flow_value), head_curve_deriv(flow_value)
+
+        if abs(df) >= 1.0e-4 # Only add an outer-approximation if the derivative isn't too small.
+            # Compute a scaling factor to normalize the constraint.
+            scalar = _get_scaling_factor([1.0, f, df * flow_value])
+
+            # Add the outer-approximation constraint for the pump.
+            rhs = f * z + df * (qp - flow_value * z)
+            c_1 = JuMP.@constraint(wm.model, scalar * g <= scalar * rhs)
+
+            # Append the :on_off_pump_head_gain constraint array.
+            append!(con(wm, n, :on_off_pump_head_gain_ne)[a], [c_1])
+        end
+    end
+
+    if qp_min < qp_max
+        # Collect relevant expressions for the lower-bounding line.
+        g_1, g_2 = head_curve_func(qp_min), head_curve_func(qp_max)
+        g_slope = (g_2 - g_1) / (qp_max - qp_min)
+        g_lb_line = g_slope * (qp - qp_min * z) + g_1 * z
+
+        # Compute a scaling factor to normalize the constraint.
+        scalar = _get_scaling_factor(vcat([1.0], g_lb_line.terms.vals))
+
+        # Add the lower-bounding line for the head gain curve.
+        c_2 = JuMP.@constraint(wm.model, scalar * g_lb_line <= scalar * g)
+
+        # Append the :on_off_pump_head_gain constraint array.
+        append!(con(wm, n, :on_off_pump_head_gain_ne)[a], [c_2])
     end
 end
