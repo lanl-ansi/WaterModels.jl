@@ -105,7 +105,6 @@ include("util/obbt.jl")
 # Deprecated functions.
 include("deprecated.jl")
 
-println("Test - WM - SK")
 # This must be included last to support automated export.
 include("core/export.jl")
 

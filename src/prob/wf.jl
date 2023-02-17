@@ -114,7 +114,7 @@ function build_wf(wm::AbstractWaterModel)
 
     # Add the objective.
     # objective_wf(wm)
-    println(wm.model)
+    # println(wm.model)
 end
 
 
