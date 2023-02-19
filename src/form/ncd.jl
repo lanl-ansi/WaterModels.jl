@@ -383,7 +383,7 @@ function constraint_des_pipe_head(
 
     # Relate directed head differences with actual head difference.
     dhp_sum = sum(var(wm, n, :dhp_des_pipe, a) for a in des_pipes)
-    dhn_sum = sum(var(wm, n, :dhn_des_pipe, a) for a in des_pipes)    
+    dhn_sum = sum(var(wm, n, :dhn_des_pipe, a) for a in des_pipes)
     c = JuMP.@constraint(wm.model, dhp_sum - dhn_sum == h_i - h_j)
     append!(con(wm, n, :des_pipe_head)[k], [c])
 end
@@ -395,6 +395,9 @@ function constraint_on_off_pump_flow(
     a::Int,
     q_min_forward::Float64,
 )
+    if(n==1)
+        println("Running ncd pump flow constraint")
+    end
     # Get pump status variable.
     qp = var(wm, n, :qp_pump, a)
     y = var(wm, n, :y_pump, a)
@@ -410,6 +413,32 @@ function constraint_on_off_pump_flow(
 
     # Append the constraint array.
     append!(con(wm, n, :on_off_pump_flow, a), [c_1, c_2, c_3])
+end
+
+function constraint_on_off_pump_flow_ne(
+    wm::AbstractNCDModel,
+    n::Int,
+    a::Int,
+    q_min_forward::Float64,
+)
+    if(n == 1)
+        println("Running NCD pump flow ne constraint")
+    end
+    # Get pump status variable.
+    qp = var(wm, n, :qp_ne_pump, a)
+    y = var(wm, n, :y_ne_pump, a)
+    z = var(wm, n, :z_ne_pump, a)
+
+    # If the pump is inactive, flow must be zero.
+    qp_lb, qp_ub = q_min_forward, JuMP.upper_bound(qp)
+    c_1 = JuMP.@constraint(wm.model, qp >= qp_lb * z)
+    c_2 = JuMP.@constraint(wm.model, qp <= qp_ub * z)
+
+    # If the pump is on, the flow direction must be positive.
+    c_3 = JuMP.@constraint(wm.model, y >= z)
+
+    # Append the constraint array.
+    append!(con(wm, n, :on_off_pump_flow_ne, a), [c_1, c_2, c_3])
 end
 
 
@@ -433,6 +462,28 @@ function constraint_on_off_pump_head_gain(
     append!(con(wm, n, :on_off_pump_head_gain, a), [c_1, c_2])
 end
 
+function constraint_on_off_pump_head_gain_ne(
+    wm::AbstractNCDModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    q_min_forward::Float64,
+)
+    if(n==1)
+        println("Running NCD pump head gain ne constraint")
+    end
+    # Gather pump flow, head gain, and status variables.
+    qp = var(wm, n, :qp_ne_pump, a)
+    g = var(wm, n, :g_ne_pump, a)
+    z = var(wm, n, :z_ne_pump, a)
+
+    # Define the (relaxed) head gain relationship for the pump.
+    head_curve_func = _calc_head_curve_function(ref(wm, n, :ne_pump, a), z)
+    c_1 = JuMP.@constraint(wm.model, head_curve_func(qp) <= g)
+    c_2 = JuMP.@constraint(wm.model, head_curve_func(qp) >= g)
+    append!(con(wm, n, :on_off_pump_head_gain_ne, a), [c_1, c_2])
+end
 
 function constraint_on_off_pump_power(
     wm::AbstractNCDModel,
@@ -440,6 +491,9 @@ function constraint_on_off_pump_power(
     a::Int,
     q_min_forward::Float64,
 )
+    # if(n==1)
+        println("Running ncd pump $a power constraint")
+    # end
     # Gather pump flow, power, and status variables.
     q = var(wm, n, :qp_pump, a)
     P = var(wm, n, :P_pump, a)
@@ -452,6 +506,29 @@ function constraint_on_off_pump_power(
 
     # Append the :on_off_pump_power constraint array.
     append!(con(wm, n, :on_off_pump_power)[a], [c_1, c_2])
+end
+
+function constraint_on_off_pump_power_ne(
+    wm::AbstractNCDModel,
+    n::Int,
+    a::Int,
+    q_min_forward::Float64,
+)
+    if(n == 1)
+        println("Running NCD pump power ne constraint")
+    end
+    # Gather pump flow, power, and status variables.
+    q = var(wm, n, :qp_ne_pump, a)
+    P = var(wm, n, :P_ne_pump, a)
+    z = var(wm, n, :z_ne_pump, a)
+
+    # Add constraint equating power with respect to the power curve.
+    power_qa = _calc_pump_power_quadratic_approximation_ne(wm, n, a, z)
+    c_1 = JuMP.@constraint(wm.model, power_qa(q) <= P)
+    c_2 = JuMP.@constraint(wm.model, power_qa(q) >= P)
+
+    # Append the :on_off_pump_power constraint array.
+    append!(con(wm, n, :on_off_pump_power_ne)[a], [c_1, c_2])
 end
 
 
@@ -567,6 +644,8 @@ function _gather_directionality_data(
     des_pipe_to::Vector{Int},
     pump_fr::Vector{Int},
     pump_to::Vector{Int},
+    ne_pump_fr::Vector{Int},
+    ne_pump_to::Vector{Int},
     regulator_fr::Vector{Int},
     regulator_to::Vector{Int},
     short_pipe_fr::Vector{Int},
@@ -579,6 +658,7 @@ function _gather_directionality_data(
     # Collect direction variable references per component.
     y_pipe, y_des_pipe = var(wm, n, :y_pipe), var(wm, n, :y_des_pipe)
     y_pump, y_regulator = var(wm, n, :y_pump), var(wm, n, :y_regulator)
+    y_ne_pump = var(wm, n, :y_ne_pump)
     y_short_pipe, y_ne_short_pipe = var(wm, n, :y_short_pipe), var(wm, n, :y_ne_short_pipe)
     y_valve = var(wm, n, :y_valve)
 
@@ -587,6 +667,7 @@ function _gather_directionality_data(
         sum(y_pipe[a] for a in pipe_to) +
         sum(y_des_pipe[a] for a in des_pipe_to) +
         sum(y_pump[a] for a in pump_to) +
+        sum(y_ne_pump[a] for a in ne_pump_to) +
         sum(y_regulator[a] for a in regulator_to) +
         sum(y_short_pipe[a] for a in short_pipe_to) +
         sum(y_ne_short_pipe[a] for a in ne_short_pipe_to) +
@@ -598,6 +679,7 @@ function _gather_directionality_data(
         sum(y_pipe[a] for a in pipe_fr) +
         sum(y_des_pipe[a] for a in des_pipe_fr) +
         sum(y_pump[a] for a in pump_fr) +
+        sum(y_ne_pump[a] for a in ne_pump_fr) +
         sum(y_regulator[a] for a in regulator_fr) +
         sum(y_short_pipe[a] for a in short_pipe_fr) +
         sum(y_ne_short_pipe[a] for a in ne_short_pipe_fr) +
@@ -609,6 +691,7 @@ function _gather_directionality_data(
         length(pipe_to) +
         length(des_pipe_to) +
         length(pump_to) +
+        length(ne_pump_to) +
         length(regulator_to) +
         length(short_pipe_to) +
         length(ne_short_pipe_to) +
@@ -619,6 +702,7 @@ function _gather_directionality_data(
         length(pipe_fr) +
         length(des_pipe_fr) +
         length(pump_fr) +
+        length(ne_pump_fr) +
         length(regulator_fr) +
         length(short_pipe_fr) +
         length(ne_short_pipe_fr) +
@@ -639,6 +723,8 @@ function constraint_intermediate_directionality(
     des_pipe_to::Vector{Int},
     pump_fr::Vector{Int},
     pump_to::Vector{Int},
+    ne_pump_fr::Vector{Int},
+    ne_pump_to::Vector{Int},
     regulator_fr::Vector{Int},
     regulator_to::Vector{Int},
     short_pipe_fr::Vector{Int},
@@ -658,6 +744,8 @@ function constraint_intermediate_directionality(
         des_pipe_to,
         pump_fr,
         pump_to,
+        ne_pump_fr,
+        ne_pump_to,
         regulator_fr,
         regulator_to,
         short_pipe_fr,
@@ -690,6 +778,8 @@ function constraint_source_directionality(
     des_pipe_to::Vector{Int},
     pump_fr::Vector{Int},
     pump_to::Vector{Int},
+    ne_pump_fr::Vector{Int},
+    ne_pump_to::Vector{Int},
     regulator_fr::Vector{Int},
     regulator_to::Vector{Int},
     short_pipe_fr::Vector{Int},
@@ -709,6 +799,8 @@ function constraint_source_directionality(
         des_pipe_to,
         pump_fr,
         pump_to,
+        ne_pump_fr,
+        ne_pump_to,
         regulator_fr,
         regulator_to,
         short_pipe_fr,
@@ -736,6 +828,8 @@ function constraint_sink_directionality(
     des_pipe_to::Vector{Int},
     pump_fr::Vector{Int},
     pump_to::Vector{Int},
+    ne_pump_fr::Vector{Int},
+    ne_pump_to::Vector{Int},
     regulator_fr::Vector{Int},
     regulator_to::Vector{Int},
     short_pipe_fr::Vector{Int},
@@ -755,6 +849,8 @@ function constraint_sink_directionality(
         des_pipe_to,
         pump_fr,
         pump_to,
+        ne_pump_fr,
+        ne_pump_to,
         regulator_fr,
         regulator_to,
         short_pipe_fr,

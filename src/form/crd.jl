@@ -129,6 +129,37 @@ function constraint_on_off_pump_head_gain(
     end
 end
 
+function constraint_on_off_pump_head_gain_ne(
+    wm::AbstractCRDModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    q_min_forward::Float64,
+)
+    # Gather pump flow, head gain, and status variables.
+    qp, g, z = var(wm, n, :qp_ne_pump, a), var(wm, n, :g_ne_pump, a), var(wm, n, :z_ne_pump, a)
+
+    # Define the (relaxed) head gain relationship for the pump.
+    head_curve_func_z = _calc_head_curve_function(ref(wm, n, :ne_pump, a), z)
+    c_1 = JuMP.@constraint(wm.model, g <= head_curve_func_z(qp))
+
+    # Append the :on_off_pump_head_gain constraint array.
+    append!(con(wm, n, :on_off_pump_head_gain_ne)[a], [c_1])
+
+    # Add a constraint that lower-bounds the head gain variable.
+    head_curve_func = _calc_head_curve_function(ref(wm, n, :ne_pump, a))
+    qp_ub, qp_lb = JuMP.upper_bound(qp), q_min_forward
+    f_1, f_2 = head_curve_func(q_min_forward), head_curve_func(JuMP.upper_bound(qp))
+
+    if qp_ub > qp_lb
+        gain_lb_expr = (f_2 - f_1) / (qp_ub - qp_lb) * (qp - qp_lb * z) + f_1 * z
+        c_2 = JuMP.@constraint(wm.model, gain_lb_expr <= g)
+
+        # Append the :on_off_pump_head_gain constraint array.
+        append!(con(wm, n, :on_off_pump_head_gain_ne)[a], [c_2])
+    end
+end
 
 function constraint_on_off_pump_power(
     wm::AbstractCRDModel,
@@ -154,6 +185,34 @@ function constraint_on_off_pump_power(
             power_expr = slope * (q - q_lb * z) + f_ua[1] * z
             c = JuMP.@constraint(wm.model, power_expr <= P)
             append!(con(wm, n, :on_off_pump_power)[a], [c])
+        end
+    end
+end
+
+function constraint_on_off_pump_power_ne(
+    wm::AbstractCRDModel,
+    n::Int,
+    a::Int,
+    q_min_forward::Float64,
+)
+    # Gather pump flow, power, and status variables.
+    q, P, z = var(wm, n, :qp_ne_pump, a), var(wm, n, :P_ne_pump, a), var(wm, n, :z_ne_pump, a)
+
+    # Compute pump flow and power partitioning.
+    q_lb, q_ub = q_min_forward, JuMP.upper_bound(q)
+
+    if q_lb == 0.0 && q_ub == 0.0
+        c = JuMP.@constraint(wm.model, P == 0.0)
+        append!(con(wm, n, :on_off_pump_power_ne)[a], [c])
+    else
+        f_ua = _calc_pump_power_ua_ne(wm, n, a, [q_lb, q_ub])
+
+        if f_ua[1] != f_ua[2]
+            # Build a linear under-approximation of the power.
+            slope = (f_ua[2] - f_ua[1]) / (q_ub - q_lb)
+            power_expr = slope * (q - q_lb * z) + f_ua[1] * z
+            c = JuMP.@constraint(wm.model, power_expr <= P)
+            append!(con(wm, n, :on_off_pump_power_ne)[a], [c])
         end
     end
 end

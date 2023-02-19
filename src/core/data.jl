@@ -225,6 +225,17 @@ function _set_flow_partitions_num!(data::Dict{String, <:Any}, num_points::Int)
             pump["flow_partition"] = [flow_min]
         end
     end
+
+    for pump in values(get(data, "ne_pump", Dict{String, Any}()))
+        flow_min, flow_max = pump["flow_min_forward"], pump["flow_max"]
+
+        if flow_min < flow_max
+            partition = range(flow_min, flow_max; length = num_points)
+            pump["flow_partition"] = collect(partition)
+        else
+            pump["flow_partition"] = [flow_min]
+        end
+    end
 end
 
 
@@ -264,6 +275,11 @@ function _set_flow_partitions_si!(
 
     # Set partitions for all pumps in the network.
     for pump in values(get(data, "pump", Dict{String, Any}()))
+        set_pump_flow_partition!(pump, error_tolerance, length_tolerance)
+    end
+
+    # Set partitions for all expansion pumps in the network.
+    for pump in values(get(data, "ne_pump", Dict{String, Any}()))
         set_pump_flow_partition!(pump, error_tolerance, length_tolerance)
     end
 end
@@ -365,11 +381,12 @@ function _calc_median_abs_flow_midpoint(data::Dict{String,<:Any})
     q_des_pipe = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["des_pipe"]]
     q_pipe = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["pipe"]]
     q_pump = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["pump"]]
+    q_ne_pump = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["ne_pump"]]
     q_regulator = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["regulator"]]
     q_short_pipe = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["short_pipe"]]
     q_ne_short_pipe = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["ne_short_pipe"]]
     q_valve = [_calc_abs_flow_midpoint(x) for (i, x) in wm_data["valve"]]
-    q = vcat(q_des_pipe, q_pipe, q_pump, q_regulator, q_short_pipe, q_ne_short_pipe, q_valve)
+    q = vcat(q_des_pipe, q_pipe, q_pump, q_ne_pump, q_regulator, q_short_pipe, q_ne_short_pipe, q_valve)
 
     # Calculate the median of all values computed above.
     q_median = Statistics.median(q)
@@ -490,7 +507,7 @@ function make_ts_metadata!(data::Dict{String, <:Any})
     if !haskey(data, "time_series")
         data["time_series"] = Dict{String, Any}()
     end
-    
+
     data["time_series"]["duration"] = data["duration"]
     data["time_series"]["num_steps"] = length(data["nw"])
     data["time_series"]["time_step"] = data["time_step"]
@@ -500,7 +517,7 @@ end
 function make_component_ts!(data::Dict{String, <:Any}, comp_type::String, key::String)
     @assert ismultinetwork(data) # Ensure data is multinetwork.
     nws = sort([parse(Int, x) for x in keys(data["nw"])])
-    
+
     if !haskey(data, "time_series")
         data["time_series"] = Dict{String, Any}()
     end
@@ -538,12 +555,12 @@ function make_single_network(data::Dict{String, <:Any})
     nws = sort([parse(Int, x) for x in keys(data["nw"])])
     nw_1_str = string(nws[1])
 
-    for comp_type in ["tank", "regulator", "pump", "des_pipe", "pump_group", "demand",
+    for comp_type in ["tank", "regulator", "pump", "ne_pump", "des_pipe", "pump_group", "demand",
         "tank_group", "reservoir", "node", "short_pipe", "ne_short_pipe", "valve", "pipe"]
         if !haskey(data_s["nw"][nw_1_str], comp_type)
             continue
         end
-        
+
         comp_keys = keys(data_s["nw"][nw_1_str][comp_type])
         make_component_ts!.(Ref(data_s), comp_type, comp_keys)
 
@@ -618,6 +635,7 @@ end
 function _set_flow_start!(data::Dict{String,<:Any})
     set_start!(data, "pipe", "q", "q_pipe_start")
     set_start!(data, "pump", "q", "q_pump_start")
+    set_start!(data, "ne_pump", "q", "q_ne_pump_start")
     set_start!(data, "regulator", "q", "q_regulator_start")
     set_start!(data, "short_pipe", "q", "q_short_pipe_start")
     set_start!(data, "ne_short_pipe", "q", "q_ne_short_pipe_start")
@@ -635,6 +653,7 @@ end
 function _set_flow_direction_start!(data::Dict{String,<:Any})
     set_direction_start_from_flow!(data, "pipe", "q", "y_pipe_start")
     set_direction_start_from_flow!(data, "pump", "q", "y_pump_start")
+    set_direction_start_from_flow!(data, "ne_pump", "q", "y_ne_pump_start")
     set_direction_start_from_flow!(data, "regulator", "q", "y_regulator_start")
     set_direction_start_from_flow!(data, "short_pipe", "q", "y_short_pipe_start")
     set_direction_start_from_flow!(data, "ne_short_pipe", "q", "y_ne_short_pipe_start")
@@ -688,6 +707,7 @@ function _fix_all_flow_directions!(data::Dict{String,<:Any})
     _fix_flow_directions!(data, "short_pipe")
     _fix_flow_directions!(data, "ne_short_pipe")
     _fix_flow_directions!(data, "pump")
+    _fix_flow_directions!(data, "ne_pump")
     _fix_flow_directions!(data, "regulator")
     _fix_flow_directions!(data, "valve")
 end
@@ -778,7 +798,7 @@ function _set_bounds_from_time_series!(data::Dict{String,<:Any})
         for link in _LINK_COMPONENTS
             # Set link component data based on time series bounds.
             _set_link_bounds_from_time_series!.(values(data[link]), link, time_series)
-        end        
+        end
     end
 end
 
@@ -910,7 +930,7 @@ end
 function _make_per_unit_flows!(data::Dict{String,<:Any}, transform_flow::Function)
     wm_data = get_wm_data(data)
 
-    for type in ["des_pipe", "pipe", "pump", "regulator", "short_pipe", "ne_short_pipe", "valve"]
+    for type in ["des_pipe", "pipe", "pump", "ne_pump", "regulator", "short_pipe", "ne_short_pipe", "valve"]
         map(x -> _transform_flows!(x, transform_flow), values(wm_data[type]))
 
         if haskey(wm_data, "time_series") && haskey(wm_data["time_series"], type)
@@ -976,11 +996,11 @@ function _make_per_unit_pumps!(
 
         if haskey(pump, "min_inactive_time")
             pump["min_inactive_time"] = transform_time(pump["min_inactive_time"])
-        end 
+        end
 
         if haskey(pump, "min_active_time")
             pump["min_active_time"] = transform_time(pump["min_active_time"])
-        end 
+        end
 
         if haskey(pump, "power_per_unit_flow")
             pump["power_per_unit_flow"] *= power_scalar / transform_flow(1.0)
@@ -989,6 +1009,60 @@ function _make_per_unit_pumps!(
 
     if haskey(wm_data, "time_series") && haskey(wm_data["time_series"], "pump")
         for pump in values(wm_data["time_series"]["pump"])
+            if haskey(pump, "energy_price")
+                pump["energy_price"] ./= energy_scalar
+            end
+
+            if haskey(pump, "power_fixed")
+                pump["power_fixed"] .*= power_scalar
+            end
+
+            if haskey(pump, "power_per_unit_flow")
+                pump["power_per_unit_flow"] .*= power_scalar / transform_flow(1.0)
+            end
+        end
+    end
+end
+
+function _make_per_unit_ne_pumps!(
+    data::Dict{String,<:Any}, transform_mass::Function, transform_flow::Function,
+    transform_length::Function, transform_time::Function)
+    wm_data = get_wm_data(data)
+
+    power_scalar = transform_mass(1.0) * transform_length(1.0)^2 / transform_time(1.0)^3
+    energy_scalar = transform_mass(1.0) * transform_length(1.0)^2 / transform_time(1.0)^2
+
+    for (i, pump) in wm_data["ne_pump"]
+        pump["head_curve"] = [(transform_flow(x[1]), x[2]) for x in pump["head_curve"]]
+        pump["head_curve"] = [(x[1], transform_length(x[2])) for x in pump["head_curve"]]
+
+        if haskey(pump, "efficiency_curve")
+            pump["efficiency_curve"] = [(transform_flow(x[1]), x[2]) for x in pump["efficiency_curve"]]
+        end
+
+        if haskey(pump, "energy_price")
+            pump["energy_price"] /= energy_scalar
+        end
+
+        if haskey(pump, "power_fixed")
+            pump["power_fixed"] *= power_scalar
+        end
+
+        if haskey(pump, "min_inactive_time")
+            pump["min_inactive_time"] = transform_time(pump["min_inactive_time"])
+        end
+
+        if haskey(pump, "min_active_time")
+            pump["min_active_time"] = transform_time(pump["min_active_time"])
+        end
+
+        if haskey(pump, "power_per_unit_flow")
+            pump["power_per_unit_flow"] *= power_scalar / transform_flow(1.0)
+        end
+    end
+
+    if haskey(wm_data, "time_series") && haskey(wm_data["time_series"], "ne_pump")
+        for pump in values(wm_data["time_series"]["ne_pump"])
             if haskey(pump, "energy_price")
                 pump["energy_price"] ./= energy_scalar
             end
@@ -1022,7 +1096,7 @@ end
 function _calc_scaled_gravity(data::Dict{String, <:Any})
     wm_data = get_wm_data(data)
     base_time = 1.0 / _calc_time_per_unit_transform(wm_data)(1.0)
-    base_length = 1.0 / _calc_length_per_unit_transform(wm_data)(1.0) 
+    base_length = 1.0 / _calc_length_per_unit_transform(wm_data)(1.0)
     return _GRAVITY * (base_time)^2 / base_length
 end
 
@@ -1059,6 +1133,8 @@ function _make_per_unit!(data::Dict{String,<:Any})
         _make_per_unit_pipes!(data, length_transform)
         _make_per_unit_des_pipes!(data, length_transform)
         _make_per_unit_pumps!(data, mass_transform,
+            flow_transform, length_transform, time_transform)
+        _make_per_unit_ne_pumps!(data, mass_transform,
             flow_transform, length_transform, time_transform)
         _make_per_unit_regulators!(data, length_transform)
 
@@ -1106,6 +1182,7 @@ function _set_warm_start!(data::Dict{String, <:Any})
 
     _set_pipe_warm_start!(data)
     _set_pump_warm_start!(data)
+    _set_ne_pump_warm_start!(data)
     _set_short_pipe_warm_start!(data)
     _set_ne_short_pipe_warm_start!(data)
     _set_valve_warm_start!(data)
@@ -1205,6 +1282,14 @@ function _propagate_topology_status!(data::Dict{String,<:Any})
         push!(incident_pump[pump["node_to"]], pump)
     end
 
+    # Compute what active expansion pumps are incident to each node.
+    incident_ne_pump = Dict{Int, Any}(node["index"] => [] for (i, node) in data["node"])
+
+    for ne_pump in values(data["ne_pump"])
+        push!(incident_ne_pump[ne_pump["node_fr"]], ne_pump)
+        push!(incident_ne_pump[ne_pump["node_to"]], ne_pump)
+    end
+
     # Compute what active regulators are incident to each node.
     incident_regulator = Dict{Int, Any}(node["index"] => [] for (i, node) in data["node"])
 
@@ -1300,6 +1385,6 @@ function node_comp_lookup(comp_data::Dict{String,<:Any}, node_data::Dict{String,
     for comp in values(comp_data)
         push!(node_comp[comp["node"]], comp)
     end
-    
+
     return node_comp
 end

@@ -78,14 +78,14 @@ cost of building and operating all network expansion components is minimized.
 function objective_ne(wm::AbstractWaterModel)::JuMP.AffExpr
     # Get all network IDs in the multinetwork.
     network_ids = sort(collect(nw_ids(wm)))
-    
+
     # Find the network IDs over which the objective will be defined.
     if length(network_ids) > 1
         network_ids_status = network_ids[1:end-1]
     else
         network_ids_status = network_ids
-    end    
-    
+    end
+
     # Initialize the objective expression to zero.
     objective = JuMP.AffExpr(0.0)
 
@@ -94,6 +94,12 @@ function objective_ne(wm::AbstractWaterModel)::JuMP.AffExpr
         for (a, ne_short_pipe) in ref(wm, n, :ne_short_pipe)
             # Add the cost of network expansion component `a` at time period `n`.
             term = ne_short_pipe["construction_cost"] * var(wm, n, :z_ne_short_pipe, a)
+            JuMP.add_to_expression!(objective, term)
+        end
+        # Get the set of network expansion pumps at time index `n`.
+        for (a, ne_pump) in ref(wm, n, :ne_pump)
+            # Add the cost of network expansion component `a` at time period `n`.
+            term = ne_pump["construction_cost"] * var(wm, n, :z_ne_pump, a)
             JuMP.add_to_expression!(objective, term)
         end
     end
@@ -110,6 +116,7 @@ Sets the objective function for [Optimal Water Flow (OWF)](@ref) and [Multinetwo
 Water Flow (MN OWF)](@ref) problem specifications.
 """
 function objective_owf(wm::AbstractWaterModel)::JuMP.AffExpr
+    println("running owf objective")
     # Get all network IDs in the multinetwork.
     network_ids = sort(collect(nw_ids(wm)))
 
@@ -133,12 +140,19 @@ function objective_owf(wm::AbstractWaterModel)::JuMP.AffExpr
     end
 
     for n in network_ids_flow
+        println("Warning: Changing pump and ne_pump objectives to min power")
         for a in ids(wm, n, :pump)
             # Add pump energy costs to the objective.
-            JuMP.add_to_expression!(objective, var(wm, n, :c_pump, a))
+            JuMP.add_to_expression!(objective, var(wm, n, :P_pump, a))
+        end
+        for a in ids(wm, n, :ne_pump)
+            # Add expansion pump energy costs to the objective.
+            JuMP.add_to_expression!(objective, var(wm, n, :P_ne_pump, a))
         end
     end
 
+
     # Minimize the cost of network operation.
+    # println(objective)
     return JuMP.@objective(wm.model, JuMP.MIN_SENSE, objective)
 end
