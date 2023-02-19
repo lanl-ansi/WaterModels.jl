@@ -12,6 +12,7 @@ function correct_pumps!(data::Dict{String, <:Any})
     apply_wm!(func, data; apply_to_subnetworks = true)
 end
 
+
 function correct_ne_pumps!(data::Dict{String, <:Any})
     wm_data = get_wm_data(data)
 
@@ -26,6 +27,7 @@ function correct_ne_pumps!(data::Dict{String, <:Any})
     apply_wm!(func, data; apply_to_subnetworks = true)
 end
 
+
 function _correct_pumps!(data::Dict{String, <:Any}, flow_epsilon::Float64)
     for (idx, pump) in data["pump"]
         # Get common connecting node data for later use.
@@ -39,6 +41,7 @@ function _correct_pumps!(data::Dict{String, <:Any}, flow_epsilon::Float64)
         _correct_pump_flow_bounds!(pump, node_fr, node_to, flow_epsilon)
     end
 end
+
 
 function _correct_ne_pumps!(data::Dict{String, <:Any}, flow_epsilon::Float64)
     for (idx, pump) in data["ne_pump"]
@@ -55,12 +58,14 @@ function _correct_ne_pumps!(data::Dict{String, <:Any}, flow_epsilon::Float64)
     end
 end
 
+
 function _correct_ne_pump_data!(ne_pump:: Dict{String, <:Any})
     ne_pump["head_curve"] = eval(Meta.parse(ne_pump["head_curve"]))
     ne_pump["pump_type"] = eval(Meta.parse(ne_pump["pump_type"]))
     ne_pump["status"] = eval(Meta.parse(ne_pump["status"]))
     ne_pump["flow_direction"] = eval(Meta.parse(ne_pump["flow_direction"]))
 end
+
 
 function set_pump_flow_partition!(
     pump::Dict{String, <:Any}, error_tolerance::Float64, length_tolerance::Float64)
@@ -97,6 +102,7 @@ function _correct_pump_types!(data::Dict{String,<:Any})
     _correct_pump_type!.(components)
 end
 
+
 function _correct_ne_pump_types!(data::Dict{String,<:Any})
     components = values(get(data, "ne_pump", Dict{String,Any}()))
     _correct_ne_pump_type!.(components)
@@ -112,6 +118,7 @@ function _correct_pump_type!(pump::Dict{String, <:Any})
         pump["pump_type"] = PUMP(head_curve_tmp)
     end
 end
+
 
 function _correct_ne_pump_type!(ne_pump::Dict{String, <:Any})
     head_curve_tmp = get(ne_pump, "pump_type", PUMP_QUADRATIC)
@@ -267,6 +274,7 @@ function _calc_head_curve_function(pump::Dict{String, <:Any}, z::JuMP.VariableRe
     end
 end
 
+
 function _calc_head_curve_derivative(pump::Dict{String, <:Any})
     if pump["pump_type"] == PUMP_QUADRATIC
         coeff = _calc_head_curve_coefficients_quadratic(pump)
@@ -296,6 +304,7 @@ function _calc_head_curve_coefficients_epanet(pump::Dict{String, <:Any})
     # Return the vector of function parameters.
     return Vector{Float64}(params)
 end
+
 
 function _calc_head_curve_coefficients_quadratic(pump::Dict{String, <:Any})
     if length(pump["head_curve"]) > 1
@@ -448,6 +457,7 @@ function _calc_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, 
     return q_build, max.(0.0, density * gravity * inv.(eff) .* f_build)
 end
 
+
 function _calc_pump_power_points_ne(wm::AbstractWaterModel, nw::Int, pump_id::Int, num_points::Int)
     pump = ref(wm, nw, :ne_pump, pump_id)
     head_curve_function = ref(wm, nw, :ne_pump, pump_id, "head_curve_function")
@@ -480,10 +490,12 @@ function _calc_pump_power(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Vect
     return max.(Interpolations.LinearInterpolation(q_true, f_true).(q), 0.0)
 end
 
+
 function _calc_pump_power_ne(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Vector{Float64})
     q_true, f_true = _calc_pump_power_points_ne(wm, nw, pump_id, 100)
     return max.(Interpolations.LinearInterpolation(q_true, f_true).(q), 0.0)
 end
+
 
 function _calc_pump_power_ua(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Vector{Float64})
     q_true, f_true = _calc_pump_power_points(wm, nw, pump_id, 100)
@@ -507,6 +519,7 @@ function _calc_pump_power_ua(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::V
 
     return f_interp
 end
+
 
 function _calc_pump_power_ua_ne(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Vector{Float64})
     q_true, f_true = _calc_pump_power_points_ne(wm, nw, pump_id, 100)
@@ -547,6 +560,7 @@ function _calc_pump_power_oa(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::V
     return f_interp
 end
 
+
 function _calc_pump_power_oa_ne(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Vector{Float64})
     q_true, f_true = _calc_pump_power_points_ne(wm, nw, pump_id, 100)
     f_interp = Interpolations.LinearInterpolation(q_true, f_true).(q)
@@ -580,6 +594,7 @@ function _calc_pump_power_quadratic_approximation(wm::AbstractWaterModel, nw::In
     return x -> sum(linear_coefficients .* [x * x, x, z])
 end
 
+
 function _calc_pump_power_quadratic_approximation_ne(wm::AbstractWaterModel, nw::Int, pump_id::Int, z::JuMP.VariableRef)
     # Get good approximations of pump flow and power points.
     q_true, f_true = _calc_pump_power_points_ne(wm, nw, pump_id, 100)
@@ -596,6 +611,7 @@ function _calc_pump_power_quadratic_approximation_ne(wm::AbstractWaterModel, nw:
     # Return the least squares-fitted quadratic approximation.
     return x -> sum(linear_coefficients .* [x * x, x, z])
 end
+
 
 function _calc_efficiencies(points::Vector{Float64}, curve::Vector{<:Any})
     q, eff = [[x[1] for x in curve], [x[2] for x in curve]]
@@ -629,6 +645,7 @@ function set_pump_warm_start!(data::Dict{String, <:Any})
     apply_wm!(_set_pump_warm_start!, data)
 end
 
+
 function set_ne_pump_warm_start!(data::Dict{String, <:Any})
     apply_wm!(_set_ne_pump_warm_start!, data)
 end
@@ -648,6 +665,7 @@ function _relax_pumps!(data::Dict{String,<:Any})
         end
     end
 end
+
 
 function _relax_ne_pumps!(data::Dict{String,<:Any})
     if !_IM.ismultinetwork(data)
@@ -680,6 +698,7 @@ function _set_pump_warm_start!(data::Dict{String, <:Any})
         pump["z_pump_start"] = get(pump, "q", 0.0) > 0.0 ? 1.0 : 0.0
     end
 end
+
 
 function _set_ne_pump_warm_start!(data::Dict{String, <:Any})
     for pump in values(data["ne_pump"])

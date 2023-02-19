@@ -702,7 +702,9 @@ function constraint_pump_switch_off(
     constraint_pump_switch_off(wm, a, n_1, n_2, nws_inactive)
 end
 
-### Network expansion pump Constraints ###
+
+### Network Expansion Pump Constraints ###
+
 
 function constraint_on_off_pump_flow_ne(
     wm::AbstractWaterModel,
@@ -710,7 +712,6 @@ function constraint_on_off_pump_flow_ne(
     nw::Int = nw_id_default,
     kwargs...,
 )
-    node_fr, node_to = ref(wm, nw, :ne_pump, a)["node_fr"], ref(wm, nw, :ne_pump, a)["node_to"]
     wm_data = get_wm_data(wm.data)
     flow_transform = _calc_flow_per_unit_transform(wm_data)
     q_min_forward = max(
@@ -723,14 +724,14 @@ function constraint_on_off_pump_flow_ne(
     constraint_on_off_pump_flow_ne(wm, nw, a, q_min_forward)
 end
 
+
 function constraint_on_off_pump_build_ne(
     wm::AbstractWaterModel,
     a::Int;
     nw::Int = nw_id_default,
     kwargs...,
 )
-
-# Gather build and status variables
+    # Gather build and status variables
     x, z = var(wm, nw, :x_ne_pump, a), var(wm, nw, :z_ne_pump, a)
 
     _initialize_con_dict(wm, :on_off_pump_build_ne, nw = nw, is_array = true)
@@ -741,35 +742,6 @@ function constraint_on_off_pump_build_ne(
     append!(con(wm, nw, :on_off_pump_build_ne)[a], [c])
 end
 
-# function constraint_on_off_pump_build_ne(
-#     wm::AbstractWaterModel,
-#     a::Int,
-#     nw::Int = nw_id_default,
-#     kwargs...,
-#     )
-#
-#     _initialize_con_dict(wm, :on_off_pump_buld_ne, nw = nw, is_array = true)
-#     con(wm, nw, :on_off_pump_buld_ne)[a] = Array{JuMP.ConstraintRef}([])
-#     constraint_on_off_pump_build_ne(wm, nw, a)
-# end
-
-
-# function constraint_on_off_pump_build_ne(
-#     wm::AbstractWaterModel,
-#     a::Int,
-#     nw::Int = nw_id_default,
-#     kwargs...,
-#     )
-#     println("testing $nw")
-#     #Gather build and status variables
-#     x, z = var(wm, nw, :x_ne_pump, a), var(wm, nw, :z_ne_pump, a)
-#
-#     con(wm, nw, :on_off_pump_build_ne)[a] = Array{JuMP.ConstraintRef}([])
-#     c = JuMP.@constraint(wm.model, z <= x)
-#
-#     #Append the :on_off_pump_buld_ne constraint arrat
-#     append!(con(wm, n, :on_off_pump_buld_ne)[a], [c])
-# end
 
 function constraint_on_off_pump_head_ne(
     wm::AbstractWaterModel,
@@ -777,12 +749,14 @@ function constraint_on_off_pump_head_ne(
     nw::Int = nw_id_default,
     kwargs...,
 )
-    node_fr, node_to = ref(wm, nw, :ne_pump, a)["node_fr"], ref(wm, nw, :ne_pump, a)["node_to"]
-
     _initialize_con_dict(wm, :on_off_pump_head_ne, nw = nw, is_array = true)
     con(wm, nw, :on_off_pump_head_ne)[a] = Array{JuMP.ConstraintRef}([])
+
+    node_fr = ref(wm, nw, :ne_pump, a)["node_fr"]
+    node_to = ref(wm, nw, :ne_pump, a)["node_to"]
     constraint_on_off_pump_head_ne(wm, nw, a, node_fr, node_to)
 end
+
 
 function constraint_on_off_pump_head_gain_ne(
     wm::AbstractWaterModel,
@@ -790,8 +764,6 @@ function constraint_on_off_pump_head_gain_ne(
     nw::Int = nw_id_default,
     kwargs...,
 )
-    node_fr, node_to = ref(wm, nw, :ne_pump, a)["node_fr"], ref(wm, nw, :ne_pump, a)["node_to"]
-
     wm_data = get_wm_data(wm.data)
     flow_transform = _calc_flow_per_unit_transform(wm_data)
     q_min_forward = max(
@@ -800,14 +772,18 @@ function constraint_on_off_pump_head_gain_ne(
     )
 
     if ref(wm, nw, :ne_pump, a, "pump_type") == PUMP_EPANET && isa(wm, AbstractNonlinearModel)
-        message = "NE PUMP_EPANET head curves are not currently supported for nonlinear models."
+        message = "PUMP_EPANET head curves are not currently supported for nonlinear models."
         Memento.error(_LOGGER, message)
     end
 
     _initialize_con_dict(wm, :on_off_pump_head_gain_ne, nw = nw, is_array = true)
     con(wm, nw, :on_off_pump_head_gain_ne)[a] = Array{JuMP.ConstraintRef}([])
+
+    node_fr = ref(wm, nw, :ne_pump, a)["node_fr"]
+    node_to = ref(wm, nw, :ne_pump, a)["node_to"]
     constraint_on_off_pump_head_gain_ne(wm, nw, a, node_fr, node_to, q_min_forward)
 end
+
 
 function constraint_on_off_pump_power_ne(
     wm::AbstractWaterModel,
@@ -855,6 +831,7 @@ function constraint_on_off_pump_power_ne(
     end
 end
 
+
 function constraint_on_off_pump_group_ne(
     wm::AbstractWaterModel,
     k::Int;
@@ -867,6 +844,7 @@ function constraint_on_off_pump_group_ne(
     constraint_on_off_pump_group_ne(wm, nw, k, Set{Int}(pump_indices))
 end
 
+
 function constraint_on_off_pump_switch_ne(
     wm::AbstractWaterModel,
     a::Int,
@@ -878,6 +856,7 @@ function constraint_on_off_pump_switch_ne(
     max_switches = get(ref(wm, network_ids[end], :ne_pump, a), "max_switches", 6)
     constraint_on_off_pump_switch_ne(wm, a, network_ids, max_switches)
 end
+
 
 function constraint_pump_switch_on_ne(
     wm::AbstractWaterModel,
@@ -895,6 +874,7 @@ function constraint_pump_switch_on_ne(
     nws_active = Vector{Int}(collect(n_2:1:min(network_ids[end-1], nw_end)))
     constraint_pump_switch_on_ne(wm, a, n_1, n_2, nws_active)
 end
+
 
 function constraint_pump_switch_off_ne(
     wm::AbstractWaterModel,

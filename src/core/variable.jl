@@ -103,6 +103,7 @@ function variable_pump_head_gain(wm::AbstractWaterModel; nw::Int=nw_id_default, 
     report && sol_component_value(wm, nw, :pump, :g, ids(wm, nw, :pump), g)
 end
 
+
 function variable_ne_pump_head_gain(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     # Initialize variables for total hydraulic head gain from an expansion pump.
     g = var(wm, nw)[:g_ne_pump] = JuMP.@variable(wm.model, [a in ids(wm, nw, :ne_pump)],
@@ -179,6 +180,7 @@ function variable_pump_power(wm::AbstractWaterModel; nw::Int=nw_id_default, boun
         sol_component_value(wm, nw, :pump, :c, ids(wm, nw, :pump), c)
     end
 end
+
 
 function variable_ne_pump_power(wm::AbstractWaterModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     # Compute scaled density and gravity.
@@ -428,6 +430,7 @@ function variable_pump_indicator(wm::AbstractWaterModel; nw::Int=nw_id_default, 
     report && sol_component_value(wm, nw, :pump, :status, ids(wm, nw, :pump), z_pump)
 end
 
+
 "Creates binary variables for all network expansion pumps in the network, i.e.,
 `z_ne_pump[a]` for `a` in `ne_pump`, where one denotes that the pump is
 selected for expansion (i.e., built), and zero indicates that it is not selected."
@@ -450,6 +453,7 @@ function variable_ne_pump_indicator(wm::AbstractWaterModel; nw::Int=nw_id_defaul
     report && sol_component_value(wm, nw, :ne_pump, :status, ids(wm, nw, :ne_pump), z_ne_pump)
 end
 
+
 "Creates binary variables for all network expansion pumps in the network, i.e.,
 `x_ne_pump[a]` for `a` in `ne_pump`, where one denotes that the pump is
 selected for expansion (i.e., built), and zero indicates that it is not selected."
@@ -471,6 +475,7 @@ function variable_ne_pump_build(wm::AbstractWaterModel; nw::Int=nw_id_default, r
 
     report && sol_component_value(wm, nw, :ne_pump, :build_status, ids(wm, nw, :ne_pump), x_ne_pump)
 end
+
 
 "Creates binary variables for all network expansion short pipes in the network, i.e.,
 `z_ne_short_pipe[a]` for `a` in `ne_short_pipe`, where one denotes that the short pipe is
@@ -514,6 +519,7 @@ function variable_pump_switch_on(wm::AbstractWaterModel; nw::Int=nw_id_default, 
 
     report && sol_component_value(wm, nw, :pump, :switch_on, ids(wm, nw, :pump), z_switch_on_pump)
 end
+
 
 ""
 function variable_ne_pump_switch_on(wm::AbstractWaterModel; nw::Int=nw_id_default, relax::Bool=false, report::Bool=true)

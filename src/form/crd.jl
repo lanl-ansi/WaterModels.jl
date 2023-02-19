@@ -129,6 +129,7 @@ function constraint_on_off_pump_head_gain(
     end
 end
 
+
 function constraint_on_off_pump_head_gain_ne(
     wm::AbstractCRDModel,
     n::Int,
@@ -161,6 +162,7 @@ function constraint_on_off_pump_head_gain_ne(
     end
 end
 
+
 function constraint_on_off_pump_power(
     wm::AbstractCRDModel,
     n::Int,
@@ -188,6 +190,7 @@ function constraint_on_off_pump_power(
         end
     end
 end
+
 
 function constraint_on_off_pump_power_ne(
     wm::AbstractCRDModel,

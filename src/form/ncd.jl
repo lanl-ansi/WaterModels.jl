@@ -412,6 +412,7 @@ function constraint_on_off_pump_flow(
     append!(con(wm, n, :on_off_pump_flow, a), [c_1, c_2, c_3])
 end
 
+
 function constraint_on_off_pump_flow_ne(
     wm::AbstractNCDModel,
     n::Int,
@@ -456,6 +457,7 @@ function constraint_on_off_pump_head_gain(
     append!(con(wm, n, :on_off_pump_head_gain, a), [c_1, c_2])
 end
 
+
 function constraint_on_off_pump_head_gain_ne(
     wm::AbstractNCDModel,
     n::Int,
@@ -495,6 +497,7 @@ function constraint_on_off_pump_power(
     # Append the :on_off_pump_power constraint array.
     append!(con(wm, n, :on_off_pump_power)[a], [c_1, c_2])
 end
+
 
 function constraint_on_off_pump_power_ne(
     wm::AbstractNCDModel,

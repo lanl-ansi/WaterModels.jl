@@ -96,6 +96,7 @@ function objective_ne(wm::AbstractWaterModel)::JuMP.AffExpr
             term = ne_short_pipe["construction_cost"] * var(wm, n, :z_ne_short_pipe, a)
             JuMP.add_to_expression!(objective, term)
         end
+
         # Get the set of network expansion pumps at time index `n`.
         for (a, ne_pump) in ref(wm, n, :ne_pump)
             # Add the cost of network expansion component `a` at time period `n`.
@@ -141,15 +142,14 @@ function objective_owf(wm::AbstractWaterModel)::JuMP.AffExpr
     for n in network_ids_flow
         for a in ids(wm, n, :pump)
             # Add pump energy costs to the objective.
-            JuMP.add_to_expression!(objective, var(wm, n, :P_pump, a))
+            JuMP.add_to_expression!(objective, var(wm, n, :c_pump, a))
         end
 
         for a in ids(wm, n, :ne_pump)
             # Add expansion pump energy costs to the objective.
-            JuMP.add_to_expression!(objective, var(wm, n, :P_ne_pump, a))
+            JuMP.add_to_expression!(objective, var(wm, n, :c_ne_pump, a))
         end
     end
-
 
     # Minimize the cost of network operation.
     return JuMP.@objective(wm.model, JuMP.MIN_SENSE, objective)

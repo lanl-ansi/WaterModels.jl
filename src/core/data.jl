@@ -226,14 +226,14 @@ function _set_flow_partitions_num!(data::Dict{String, <:Any}, num_points::Int)
         end
     end
 
-    for pump in values(get(data, "ne_pump", Dict{String, Any}()))
-        flow_min, flow_max = pump["flow_min_forward"], pump["flow_max"]
+    for ne_pump in values(get(data, "ne_pump", Dict{String, Any}()))
+        flow_min, flow_max = ne_pump["flow_min_forward"], ne_pump["flow_max"]
 
         if flow_min < flow_max
             partition = range(flow_min, flow_max; length = num_points)
-            pump["flow_partition"] = collect(partition)
+            ne_pump["flow_partition"] = collect(partition)
         else
-            pump["flow_partition"] = [flow_min]
+            ne_pump["flow_partition"] = [flow_min]
         end
     end
 end
@@ -1023,6 +1023,7 @@ function _make_per_unit_pumps!(
         end
     end
 end
+
 
 function _make_per_unit_ne_pumps!(
     data::Dict{String,<:Any}, transform_mass::Function, transform_flow::Function,
