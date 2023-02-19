@@ -2585,5 +2585,6 @@
     "tank": {},
     "time_step": 3600.0,
     "valve": {},
+    "ne_pump": {},
     "viscosity": 0.001
 }

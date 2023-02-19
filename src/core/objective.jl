@@ -116,7 +116,6 @@ Sets the objective function for [Optimal Water Flow (OWF)](@ref) and [Multinetwo
 Water Flow (MN OWF)](@ref) problem specifications.
 """
 function objective_owf(wm::AbstractWaterModel)::JuMP.AffExpr
-    println("running owf objective")
     # Get all network IDs in the multinetwork.
     network_ids = sort(collect(nw_ids(wm)))
 
@@ -140,11 +139,11 @@ function objective_owf(wm::AbstractWaterModel)::JuMP.AffExpr
     end
 
     for n in network_ids_flow
-        println("Warning: Changing pump and ne_pump objectives to min power")
         for a in ids(wm, n, :pump)
             # Add pump energy costs to the objective.
             JuMP.add_to_expression!(objective, var(wm, n, :P_pump, a))
         end
+
         for a in ids(wm, n, :ne_pump)
             # Add expansion pump energy costs to the objective.
             JuMP.add_to_expression!(objective, var(wm, n, :P_ne_pump, a))
@@ -153,6 +152,5 @@ function objective_owf(wm::AbstractWaterModel)::JuMP.AffExpr
 
 
     # Minimize the cost of network operation.
-    # println(objective)
     return JuMP.@objective(wm.model, JuMP.MIN_SENSE, objective)
 end

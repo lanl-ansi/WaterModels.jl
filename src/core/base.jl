@@ -244,6 +244,7 @@ function _ref_add_core!(nw_refs::Dict{Int,<:Any})
 
         # Set pump head gain functions and derivatives.
         _set_pump_head_gain_properties!(ref[:pump])
+
         # Set expansion pump head gain functions and derivatives.
         _set_pump_head_gain_properties!(ref[:ne_pump])
     end

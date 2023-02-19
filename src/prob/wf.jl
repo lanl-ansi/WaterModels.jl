@@ -113,14 +113,12 @@ function build_wf(wm::AbstractWaterModel)
     end
 
     # Add the objective.
-    # objective_wf(wm)
-    # println(wm.model)
+    objective_wf(wm)
 end
 
 
 function build_mn_wf(wm::AbstractWaterModel)
     # Create head loss functions, if necessary.
-    println("Running Build MN WF")
     _function_head_loss(wm)
 
     # Get all network IDs in the multinetwork.
@@ -197,15 +195,10 @@ function build_mn_wf(wm::AbstractWaterModel)
         end
 
         # Constraints on groups of parallel pumps.
-        count = 0
-        if(count!=0)
-                println("Warning: Yet to define ne_pump_groups")
-                count += 1
-        end
         # for k in ids(wm, :ne_pump_group; nw=n)
         #     constraint_on_off_pump_group_ne(wm, k; nw=n)
         # end
-    #
+
         # Constraints on short pipe flows and heads.
         for a in ids(wm, :regulator; nw=n)
             constraint_on_off_regulator_head(wm, a; nw=n)
@@ -275,7 +268,6 @@ function build_mn_wf(wm::AbstractWaterModel)
 
     # Add the objective.
     objective_wf(wm)
-    println(wm.model)
 end
 
 
