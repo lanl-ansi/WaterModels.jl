@@ -1,7 +1,9 @@
 # WaterModels.jl Changelog
 
 ### Staged
-- nothing
+- Removed functionality for automatically detecting parallel, identical pumps.
+- Remove unused network and component aggregation functions.
+
 
 ### v0.9.3
 - Add a `make_si_units!` function for transforming network data.

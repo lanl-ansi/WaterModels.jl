@@ -470,32 +470,6 @@ function _calc_head_loss_oa(
 end
 
 
-function _relax_pipes!(data::Dict{String,<:Any})
-    if !_IM.ismultinetwork(data)
-        if haskey(data, "time_series") && haskey(data["time_series"], "pipe")
-            ts = data["time_series"]["pipe"]
-            pipes = values(filter(x -> x.first in keys(ts), data["pipe"]))
-            map(x -> x["flow_min"] = minimum(ts[string(x["index"])]["flow_min"]), pipes)
-            map(
-                x ->
-                    x["flow_min_forward"] =
-                        minimum(ts[string(x["index"])]["flow_min_forward"]),
-                pipes,
-            )
-            map(x -> x["flow_max"] = maximum(ts[string(x["index"])]["flow_max"]), pipes)
-            map(
-                x ->
-                    x["flow_max_reverse"] =
-                        maximum(ts[string(x["index"])]["flow_max_reverse"]),
-                pipes,
-            )
-            map(x -> x["y_min"] = minimum(ts[string(x["index"])]["y_min"]), pipes)
-            map(x -> x["y_max"] = maximum(ts[string(x["index"])]["y_max"]), pipes)
-        end
-    end
-end
-
-
 function set_pipe_warm_start!(data::Dict{String,<:Any})
     apply_wm!(_set_pipe_warm_start!, data)
 end

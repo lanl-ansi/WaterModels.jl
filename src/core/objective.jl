@@ -72,7 +72,7 @@ function objective_max_demand(wm::AbstractWaterModel)::JuMP.AffExpr
         end
     end
 
-    # Maximize the total amount of water volume delivered.
+    # Maximize the total amount of prioritized water volume delivered.
     return JuMP.@objective(wm.model, JuMP.MAX_SENSE, objective)
 end
 
@@ -89,15 +89,15 @@ function objective_ne(wm::AbstractWaterModel)::JuMP.AffExpr
 
     # Find the network IDs over which the objective will be defined.
     if length(network_ids) > 1
-        network_ids_status = network_ids[1:end-1]
+        network_ids_flow = network_ids[1:end-1]
     else
-        network_ids_status = network_ids
+        network_ids_flow = network_ids
     end
 
     # Initialize the objective expression to zero.
     objective = JuMP.AffExpr(0.0)
 
-    for n in network_ids_status
+    for n in network_ids_flow
         # Get the set of network expansion short pipes at time index `n`.
         for (a, ne_short_pipe) in ref(wm, n, :ne_short_pipe)
             # Add the cost of network expansion component `a` at time period `n`.
