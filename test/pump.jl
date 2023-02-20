@@ -31,11 +31,4 @@
             @test _is_valid_status(result["termination_status"])
         end
     end
-
-    @testset "error when building nonconvex model with PUMP_EPANET" begin
-        network_path = "../test/data/epanet/snapshot/pump-hw-lps-eff-curve.inp"
-        network = WaterModels.parse_file(network_path)
-        map(x -> x["pump_type"] = PUMP_EPANET, values(network["pump"]))
-        @test_throws ErrorException instantiate_model(network, NCWaterModel, build_wf)
-    end
 end

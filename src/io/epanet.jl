@@ -56,13 +56,17 @@ end
 
 
 """
-    parse_epanet(path)
+    parse_epanet(path::String)
 
 Parses an [EPANET](https://www.epa.gov/water-research/epanet) (.inp) file from
 the file path `path` and returns a WaterModels data structure (a dictionary of
-data). See the [OpenWaterAnalytics
-Wiki](https://github.com/OpenWaterAnalytics/EPANET/wiki/Input-File-Format) for
-a thorough description of the EPANET format and its components.
+data). See the [OpenWaterAnalytics Wiki]
+(http://wateranalytics.org/EPANET/_inp_file.html) for a thorough description of
+the EPANET format and its components. Note also that this parsing routine does
+not necessarily preserve topology nor one-to-one correspondence with the
+original EPANET model, e.g., each pipe with a valve (check or shutoff) is
+transformed into a WaterModels pipe component _and_ a valve component. Does not
+perform data correction nor per-unit translations of the data model.
 """
 function parse_epanet(filename::String)
     # Read in raw sectional EPANET data.
@@ -1243,20 +1247,20 @@ end
 
 function _convert_short_pipes!(data::Dict{String,<:Any}, head_loss::String, viscosity::Float64)
     exponent = _get_exponent_from_head_loss_form(head_loss)
-    max_flow_exp = abs(calc_capacity_max(data))^exponent
+    max_flow_exp = abs(_calc_capacity_max(data))^exponent
 
     wm_data = get_wm_data(data)
-    head_transform = _calc_head_per_unit_transform(wm_data)
-    base_length = 1.0 / _calc_length_per_unit_transform(wm_data)(1.0)
-    base_mass = 1.0 / _calc_mass_per_unit_transform(wm_data)(1.0)
-    base_time = 1.0 / _calc_time_per_unit_transform(wm_data)(1.0)
+    base_head = wm_data["per_unit"] ? wm_data["base_head"] : 1.0
+    base_length = wm_data["per_unit"] ? wm_data["base_length"] : 1.0
+    base_mass = wm_data["per_unit"] ? wm_data["base_mass"] : 1.0
+    base_time = wm_data["per_unit"] ? wm_data["base_time"] : 1.0
 
     for (a, pipe) in data["pipe"]
         r = _calc_pipe_resistance(pipe, head_loss, viscosity, base_length, base_mass, base_time)
         dh_max = pipe["length"] * r * max_flow_exp
 
         # If maximum head loss is less than one centimeter...
-        if dh_max <= head_transform(0.01)
+        if dh_max <= 0.01 / base_head
             # Delete unnecessary fields.
             delete!(pipe, "diameter")
             delete!(pipe, "length")

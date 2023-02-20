@@ -43,4 +43,4 @@ const _DENSITY = 1000.0 # In kilograms per cubic meter.
 const _NODE_CONNECTED_COMPONENTS = ["demand", "reservoir", "tank"]
 
 "Defines a convenient vector for node-connecting component types."
-const _LINK_COMPONENTS = ["pipe", "pump", "ne_pump", "regulator", "short_pipe", "valve", "des_pipe", "ne_short_pipe"]
+const _LINK_COMPONENTS = ["pipe", "pump", "ne_pump", "regulator", "short_pipe", "ne_short_pipe", "valve", "des_pipe"]

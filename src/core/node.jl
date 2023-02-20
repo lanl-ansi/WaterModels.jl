@@ -145,7 +145,7 @@ end
 
 
 function _calc_node_head_median_midpoint(data::Dict{String,Any})
-    if _IM.ismultinetwork(data)
+    if ismultinetwork(data)
         head_medians = Vector{Float64}([])
 
         for (n, nw) in data["nw"]

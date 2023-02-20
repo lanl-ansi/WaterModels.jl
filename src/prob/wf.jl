@@ -171,7 +171,7 @@ function build_mn_wf(wm::AbstractWaterModel)
         # Ensure design pipes are not present in the problem.
         @assert length(ids(wm, :des_pipe_arc; nw=n)) == 0
         @assert length(ids(wm, :des_pipe; nw=n)) == 0
-    #
+
         # Constraints on pump flows, heads, and physics.
         for a in ids(wm, :pump; nw=n)
             constraint_on_off_pump_head(wm, a; nw=n)
@@ -232,7 +232,7 @@ function build_mn_wf(wm::AbstractWaterModel)
         # Set initial conditions of tanks.
         constraint_tank_volume(wm, i; nw = n_1)
     end
-    #
+
     if length(network_ids) > 1
         # Initialize head variables for the final time index.
         variable_head(wm; nw = network_ids[end])
@@ -244,16 +244,14 @@ function build_mn_wf(wm::AbstractWaterModel)
                 constraint_ne_short_pipe_selection(wm, i, n_1, n_2)
             end
         end
-    #
+
         for n_2 in network_ids[2:end-1]
             # Constrain pump selection variables based on the initial time index.
             for i in ids(wm, :ne_pump; nw = n_2)
                 constraint_ne_pump_selection(wm, i, n_1, n_2)
             end
         end
-    #
-    #
-    #
+
         # Constraints on tank volumes.
         for n_2 in network_ids[2:end]
             # Constrain tank volumes after the initial time index.

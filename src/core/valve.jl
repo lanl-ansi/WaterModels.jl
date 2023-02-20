@@ -4,7 +4,7 @@ end
 
 
 function _correct_valves!(data::Dict{String, <:Any})
-    capacity = calc_capacity_max(data)
+    capacity = _calc_capacity_max(data)
 
     for (idx, valve) in data["valve"]
         _correct_status!(valve)

@@ -4,7 +4,7 @@ This is to enable solution using the readily-available open-source MILP solver [
 Other formulations rely on the availability of mixed-integer nonlinear programming (MINLP) solvers that support [user-defined nonlinear functions in JuMP](http://www.juliaopt.org/JuMP.jl/dev/nlp/#User-defined-Functions-1).
 However, these solvers (e.g., [Juniper](https://github.com/lanl-ansi/Juniper.jl), [KNITRO](https://github.com/JuliaOpt/KNITRO.jl)) either require additional effort to register user-defined functions or are proprietary and require a commercial license.
 
-## Installation
+## Installation of WaterModels
 The latest stable release of WaterModels can be installed using the Julia package manager with
 ```julia
 ] add WaterModels
@@ -18,6 +18,14 @@ For the current development version, install the package using
 Finally, test that the package works as expected by executing
 ```julia
 ] test WaterModels
+```
+
+## Installation of an Optimization Solver
+At least one optimization solver is required to run WaterModels.
+The solver selected typically depends on the type of problem formulation being employed. Because in this example, we will be studying the linearization-based PWLRD and LRD formulations, we will leverage the open-source MILP solver HiGHS.
+Installation of the JuMP interface to HiGHS can be performed via the Julia package manager, i.e.,
+```julia
+] add HiGHS
 ```
 
 ## Solving a Network Design Problem
@@ -86,24 +94,24 @@ result = solve_des(data, LRDWaterModel, HiGHS.Optimizer)
 ```
 
 For example, the algorithm's runtime and final objective value can be accessed with
-```
-result["solve_time"]
-result["objective"]
+```julia
+result["solve_time"] # Total solve time required (seconds).
+result["objective"] # Final objective value (in units of the objective).
 ```
 
-The `"solution"` field contains detailed information about the solution produced by the `run` method.
+The `"solution"` field contains detailed information about the solution produced by the `solve` method.
 For example, the following dictionary comprehension can be used to inspect the flows in the solution:
-```
+```julia
 flows = Dict(name => data["q"] for (name, data) in result["solution"]["des_pipe"])
 ```
 
 To determine the design pipes that were selected via the optimization, the following can be used:
-```
+```julia
 pipes_selected = filter(x -> x.second["status"] == 1, result["solution"]["des_pipe"])
 ```
 
 To retrieve the subset of the original pipe dataset, the following can be used:
-```
+```julia
 pipes_subset = filter(x -> x.first in keys(pipes_selected), data["des_pipe"])
 ```
 
@@ -143,4 +151,11 @@ wm = instantiate_model(data, LRDWaterModel, WaterModels.build_des);
 println(wm.model)
 
 result = optimize_model!(wm, optimizer = HiGHS.Optimizer)
+```
+
+## Solution Unit Conversion
+The default behavior of WaterModels produces solution results in non-dimensionalized units.
+To recover solutions in SI units, the following function can be used:
+```julia
+make_si_units!(result["solution"])
 ```

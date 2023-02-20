@@ -1,47 +1,30 @@
-function correct_pipes!(data::Dict{String,<:Any})
-    # Get the WaterModels portion of the data dictionary.
+function correct_pipes!(data::Dict{String, <:Any})
     wm_data = get_wm_data(data)
+    head_loss, viscosity = wm_data["head_loss"], wm_data["viscosity"]
 
-    # Get nondimensionalization entries, if they exist.
-    base_length = get(wm_data, "base_length", 1.0)
-    base_mass = get(wm_data, "base_mass", 1.0)
-    base_time = get(wm_data, "base_time", 1.0)
+    base_length = wm_data["per_unit"] ? wm_data["base_length"] : 1.0
+    base_mass = wm_data["per_unit"] ? wm_data["base_mass"] : 1.0
+    base_time = wm_data["per_unit"] ? wm_data["base_time"] : 1.0
 
-    # Get the global head loss and viscosity parameters.
-    head_loss = wm_data["head_loss"]
-    viscosity = wm_data["viscosity"]
-
-    # Define a function using the above parameters that operates on `x`.
     func! = x -> _correct_pipes!(x, head_loss, viscosity, base_length, base_mass, base_time)
-
-    # Apply the above function to all subnetworks.
     apply_wm!(func!, data; apply_to_subnetworks = true)
 end
 
 
-function _correct_pipes!(
-    data::Dict{String,<:Any},
-    head_loss::String,
-    viscosity::Float64,
-    base_length::Float64,
-    base_mass::Float64,
-    base_time::Float64,
-)
+function _correct_pipes!(data::Dict{String, <:Any}, head_loss::String, viscosity::Float64, base_length::Float64, base_mass::Float64, base_time::Float64)
+    capacity = _calc_capacity_max(data)
+
     for pipe in values(data["pipe"])
+         # Get common connecting node data for later use.
+        node_fr = data["node"][string(pipe["node_fr"])]
+        node_to = data["node"][string(pipe["node_to"])]
+
         # Correct various pipe properties. The sequence is important, here.
         _correct_status!(pipe)
         _correct_flow_direction!(pipe)
         _correct_pipe_flow_bounds!(
-            pipe,
-            data["node"][string(pipe["node_fr"])],
-            data["node"][string(pipe["node_to"])],
-            head_loss,
-            viscosity,
-            calc_capacity_max(data),
-            base_length,
-            base_mass,
-            base_time,
-        )
+            pipe, node_fr, node_to, head_loss,
+            viscosity, capacity, base_length, base_mass, base_time)
     end
 end
 
@@ -73,6 +56,34 @@ function get_pipe_flow_partition_negative(pipe::Dict{String,<:Any})
     else
         flow_min = length(flows) > 0 ? minimum(flows) : upper_bound
         return upper_bound != flow_min ? vcat(flows, upper_bound) : [upper_bound]
+    end
+end
+
+
+function correct_des_pipes!(data::Dict{String, <:Any})
+    wm_data = get_wm_data(data)
+    head_loss, viscosity = wm_data["head_loss"], wm_data["viscosity"]
+    base_length = wm_data["per_unit"] ? wm_data["base_length"] : 1.0
+    base_mass = wm_data["per_unit"] ? wm_data["base_mass"] : 1.0
+    base_time = wm_data["per_unit"] ? wm_data["base_time"] : 1.0
+
+    func! = x -> _correct_des_pipes!(x, head_loss, viscosity, base_length, base_mass, base_time)
+    apply_wm!(func!, data; apply_to_subnetworks = true)
+end
+
+
+function _correct_des_pipes!(data::Dict{String, <:Any}, head_loss::String, viscosity::Float64, base_length::Float64, base_mass::Float64, base_time::Float64)
+    capacity = _calc_capacity_max(data)
+
+    for des_pipe in values(data["des_pipe"])
+        # Get common connecting node data for later use.
+        node_fr = data["node"][string(des_pipe["node_fr"])]
+        node_to = data["node"][string(des_pipe["node_to"])]
+
+        # Correct various pipe properties. The sequence is important, here.
+        _correct_flow_direction!(des_pipe)
+        _correct_pipe_flow_bounds!(des_pipe, node_fr, node_to,
+            head_loss, viscosity, capacity, base_length, base_mass, base_time)
     end
 end
 
@@ -185,6 +196,13 @@ function _correct_pipe_flow_bounds!(
     pipe["flow_min_forward"] = min(pipe["flow_min_forward"], pipe["flow_max"])
     pipe["flow_max_reverse"] = min(pipe["flow_max_reverse"], pipe["flow_max"])
     pipe["flow_max_reverse"] = max(pipe["flow_max_reverse"], pipe["flow_min"])
+
+    if get(pipe, "z_max", 1.0) == 0.0
+        pipe["flow_min"] = 0.0
+        pipe["flow_max"] = 0.0
+        pipe["flow_min_forward"] = 0.0
+        pipe["flow_max_reverse"] = 0.0
+    end
 
     @assert pipe["flow_min"] <= pipe["flow_max"]
     @assert get(pipe, "flow_min_forward", 0.0) <= max(0.0, pipe["flow_max"])

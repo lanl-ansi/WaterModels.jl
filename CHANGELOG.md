@@ -1,5 +1,15 @@
 # WaterModels.jl Changelog
 
+### Staged
+- nothing
+
+### v0.9.3
+- Add a `make_si_units!` function for transforming network data.
+- Correct per-unit transformations that were not previously being made.
+
+### v0.9.2
+- Add support for Interpolations v0.14.
+
 ### v0.9.1
 - Add support for JuMP v1.0.
 

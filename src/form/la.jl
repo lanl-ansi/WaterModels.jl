@@ -1,6 +1,22 @@
 # Define LA (linear approximation-based) implementations of water models.
 
-"Creates flow variables for `LA` formulations (`q`, `lambda`, `x_pw`)."
+"""
+    variable_flow(
+        wm::AbstractLAModel;
+        nw::Int=nw_id_default,
+        bounded::Bool=true,
+        report::Bool=true
+    )
+
+Creates flow-related variables related to linear approximation- (LA-) based
+optimization models. First, creates flow variables for all node-connecting
+components (e.g., pipes) in the network at subnetwork (or time) index `nw`,
+e.g., `q_pipe[a]` for `a` in `pipe`. Then, creates continuous convex
+combination variables used to construct necessary linear approximations, e.g.,
+`lambda_pipe[a]` for `a` in `pipe`, where each is bounded between zero and one.
+Finally, creates binary convex combination variables used for piecewise-linear
+modeling of the approximating constraints, e.g., `x_pipe[a]` for `a` in `pipe`.
+"""
 function variable_flow(
     wm::AbstractLAModel;
     nw::Int = nw_id_default,
@@ -89,6 +105,35 @@ function variable_flow(
 end
 
 
+"""
+    constraint_pipe_head_loss(
+        wm::AbstractLAModel,
+        n::Int,
+        a::Int,
+        node_fr::Int,
+        node_to::Int,
+        exponent::Float64,
+        L::Float64,
+        r::Float64,
+        q_max_reverse::Float64,
+        q_min_forward::Float64
+    )
+
+Adds constraints that model frictional head loss across a pipe via a piecewise-
+linear approximation of the nonlinear, nonconvex head loss relationship. Here,
+`wm` is the WaterModels object; `n` is the subnetwork (or time) index that is
+considered; `a` is the index of the pipe; `node_fr` is the index of the tail
+node of the pipe; `node_to` is the index of the head node of the pipe;
+`exponent` is the exponent on flow in the head loss function (i.e., 1.852 for
+Hazen-Williams head loss and 2.0 for Darcy-Weisbach head loss); `L` is the
+length of the pipe; `r` is the resistance per unit length of the pipe;
+`q_max_reverse` is the _maximum_ (negative) amount of flow when flow is
+traveling in the negative direction (which corresponds to the _minimum_
+magnitude of flow when traveling in the negative direction); and
+`q_min_forward` is the _minimum_ (positive) amount of flow when flow is
+traveling in the positive (forward) direction. Note that `q_max_reverse` and
+`q_min_forward` are unused in this formulation since it is not direction-based.
+"""
 function constraint_pipe_head_loss(
     wm::AbstractLAModel,
     n::Int,
@@ -137,6 +182,35 @@ function constraint_pipe_head_loss(
 end
 
 
+"""
+    constraint_on_off_des_pipe_head_loss(
+        wm::AbstractLAModel,
+        n::Int,
+        a::Int,
+        node_fr::Int,
+        node_to::Int,
+        exponent::Float64,
+        L::Float64,
+        r::Float64,
+        q_max_reverse::Float64,
+        q_min_forward::Float64
+    )
+
+Add constraints that model frictional head loss across a design pipe via a
+piecewise-linear approximation of the nonlinear, nonconvex head loss
+relationship. Here, `wm` is the WaterModels object; `n` is the subnetwork (or
+time) index that is considered; `a` is the index of the design pipe; `node_fr`
+is the index of the tail node of the design pipe; `node_to` is the index of the
+head node of the design pipe; `exponent` is the exponent on flow in the head
+loss function (i.e., 1.852 for Hazen-Williams head loss and 2.0 for Darcy-
+Weisbach head loss); `L` is the length of the design pipe; `r` is the
+resistance per unit length of the design pipe; `q_max_reverse` is the _maximum_
+(negative) amount of flow when flow is traveling in the negative direction
+(which corresponds to the _minimum_ magnitude of flow when traveling in the
+negative direction); and `q_min_forward` is the _minimum_ (positive) amount of
+flow when flow is traveling in the positive (forward) direction. Note
+direction-based flow limits are currently unused in these constraints.
+"""
 function constraint_on_off_des_pipe_head_loss(
     wm::AbstractLAModel,
     n::Int,
@@ -188,6 +262,25 @@ function constraint_on_off_des_pipe_head_loss(
 end
 
 
+"""
+    constraint_on_off_pump_head_gain(
+        wm::AbstractLAModel,
+        n::Int,
+        a::Int,
+        node_fr::Int,
+        node_to::Int,
+        q_min_forward::Float64
+    )
+
+Adds constraints that model the pump's head gain, if operating, as a piecewise-
+linear approximation of a nonlinear function of flow rate. If the pump is
+inactive, the head gain is restricted to a value of zero. Here, `wm` is the
+WaterModels object, `n` is the subnetwork (or time) index that is considered,
+`a` is the index of the pump, `node_fr` is the index of the tail node of the
+pump, `node_to` is the index of the head node of the pump, and `q_min_forward`
+is the _minimum_ (positive) amount of flow when the pump is active. Head gain
+is assumed to be nonnegative and is directed from `node_fr` to `node_to`.
+"""
 function constraint_on_off_pump_head_gain(
     wm::AbstractLAModel,
     n::Int,
@@ -235,6 +328,21 @@ function constraint_on_off_pump_head_gain(
 end
 
 
+"""
+    constraint_on_off_pump_power(
+        wm::AbstractLAModel,
+        n::Int,
+        a::Int,
+        q_min_forward::Float64
+    )
+
+Adds constraints that model the pump's power consumption, if operating, as a
+piecewise-linear approximation of a (potentially) nonlinear function of a more
+accurate model. If the pump is inactive, the power is restricted to a value of
+zero. Here, `wm` is the WaterModels object, `n` is the subnetwork (or time)
+index that is considered, `a` is the index of the pump, and `q_min_forward` is
+the _minimum_ (positive) amount of flow when the pump is active.
+"""
 function constraint_on_off_pump_power(
     wm::AbstractLAModel,
     n::Int,

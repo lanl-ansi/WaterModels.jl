@@ -57,12 +57,15 @@ After solving the problem, results can then be analyzed, e.g.,
 # The termination status of the optimization solver.
 result["termination_status"]
 
+# Transform solution data to SI units.
+make_si_units!(result["solution"])
+
 # The flow along pipe 4 in cubic meters per second.
-result["solution"]["pipe"]["4"]["q"] * result["solution"]["base_flow"]
+result["solution"]["pipe"]["4"]["q"]
 
 # The total hydraulic head at node 2 in meters.
-result["solution"]["node"]["2"]["h"] * result["solution"]["base_head"]
+result["solution"]["node"]["2"]["h"]
 
 # The pressure head at node 2 in meters.
-result["solution"]["node"]["2"]["p"] * result["solution"]["base_head"]
+result["solution"]["node"]["2"]["p"]
 ```

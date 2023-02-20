@@ -66,7 +66,6 @@ include("core/tank.jl")
 
 include("core/link.jl")
 include("core/pipe.jl")
-include("core/des_pipe.jl")
 include("core/pump.jl")
 include("core/regulator.jl")
 include("core/short_pipe.jl")

@@ -17,16 +17,14 @@ makedocs(
             "Network Formulations" => "formulations.md",
             "Problem Specifications" => "specifications.md",
             "Modeling Components" => [
-                "WaterModel" => "model.md",
                 "Objective" => "objective.md",
                 "Variables" => "variables.md",
                 "Constraints" => "constraints.md"
             ],
-            "Relaxation Schemes" => "relaxations.md",
             "File I/O" => "parser.md"
         ],
         "Developer" => "developer.md",
-        "Benchmarks" => "benchmarks.md"
+        "Examples" => "examples.md"
     ]
 )
 

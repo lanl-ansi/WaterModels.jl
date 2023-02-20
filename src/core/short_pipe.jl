@@ -9,7 +9,7 @@ end
 
 
 function _correct_short_pipes!(data::Dict{String, <:Any})
-    capacity = calc_capacity_max(data)
+    capacity = _calc_capacity_max(data)
 
     for (idx, short_pipe) in data["short_pipe"]
         _correct_status!(short_pipe)
@@ -20,7 +20,7 @@ end
 
 
 function _correct_ne_short_pipes!(data::Dict{String, <:Any})
-    capacity = calc_capacity_max(data)
+    capacity = _calc_capacity_max(data)
 
     for (idx, ne_short_pipe) in data["ne_short_pipe"]
         _correct_status!(ne_short_pipe)
