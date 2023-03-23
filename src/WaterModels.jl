@@ -102,6 +102,7 @@ include("util/obbt.jl")
 # Deprecated functions.
 include("deprecated.jl")
 
+println("Running the cleaned up version of WaterModels.jl")
 # This must be included last to support automated export.
 include("core/export.jl")
 

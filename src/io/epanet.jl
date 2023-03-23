@@ -4,6 +4,13 @@ function _initialize_epanet_dictionary()
     return data # Return an empty dictionary of the sectional data.
 end
 
+function _initialize_epanet_ne_dictionary(data::Dict{String,<:Any})
+    ne_data = Dict{String,Any}("time_series" => Dict{String,Any}(), "top_comments" => [])
+    ne_data["section"] = Dict{String,Array}(x => [] for x in _NE_INP_SECTIONS)
+    merge!(data["section"],ne_data["section"])
+    return data # Return an empty dictionary of the sectional data.
+end
+
 
 function _read_epanet_sections(file_path::String)
     # Initialize the dictionary that stores raw EPANET data.
@@ -54,6 +61,55 @@ function _read_epanet_sections(file_path::String)
     return data # Return the "raw" EPANET data dictionary.
 end
 
+function _read_epanet_ne_sections(file_path::String, data::Dict{String,<:Any})
+    # Initialize the dictionary that stores raw EPANET NE data.
+    data = _initialize_epanet_ne_dictionary(data)
+
+    # Instantiate metadata used in parsing EPANET NE sections.
+    section, line_number = nothing, 0
+
+    # Populate sections in the NE EPANET dictionary.
+    for line in eachline(file_path)
+        # Update important data associated with the line.
+        line, line_number = strip(line), line_number + 1
+
+        if length(line) == 0
+            # If the line is empty, continue to the next line.
+            continue
+        elseif startswith(line, "[")
+            # If the line starts with "[", it must be a section.
+            values = split(line; limit = 1)
+            section_tmp = uppercase(values[1])
+
+            if section_tmp in _NE_INP_SECTIONS
+                # If the section title is valid, store it as the current.
+                section = section_tmp
+                continue
+            elseif section_tmp == "[END]"
+                # If the section title is "[END]", parsing is complete.
+                break
+            else
+                # If the section title is not valid, throw an error.
+                msg = "File \"$(file_path)\", line $(line_number) has invalid section \"$(section_tmp)\"."
+                Memento.error(_LOGGER, msg)
+            end
+        elseif section === nothing && startswith(line, ";")
+            # If there is no current section and the section is a comment, store it.
+            data["top_comments"] = vcat(data["top_comments"], line[2:end])
+            continue
+        elseif section === nothing && !startswith(line, ";")
+            # If there is no current section and the line is not a comment, throw an error.
+            msg = "File \"$(file_path)\", line $(line_number) has invalid syntax."
+            Memento.error(_LOGGER, msg)
+        end
+
+        # Append a tuple of the line number and the line string to the dictionary.
+        push!(data["section"][section], (line_number, line))
+    end
+
+    return data # Return the "raw" EPANET NE data dictionary.
+end
+
 
 """
     parse_epanet(path::String)
@@ -68,10 +124,12 @@ original EPANET model, e.g., each pipe with a valve (check or shutoff) is
 transformed into a WaterModels pipe component _and_ a valve component. Does not
 perform data correction nor per-unit translations of the data model.
 """
-function parse_epanet(filename::String)
+function parse_epanet(filename::String; ne_filename::String = "")
     # Read in raw sectional EPANET data.
     epanet_data = _read_epanet_sections(filename)
-
+    if(!isempty(ne_filename))
+        epanet_data = _read_epanet_ne_sections(ne_filename,epanet_data)
+    end
     # Parse [OPTIONS] section.
     _parse_epanet_options(epanet_data)
 
@@ -92,6 +150,11 @@ function parse_epanet(filename::String)
 
     # Parse [TANKS] section.
     _read_tank!(epanet_data)
+
+    # Parse [NE_TANKS] section.
+    if(!isempty(ne_filename))
+        _read_ne_tank!(epanet_data)
+    end
 
     # Add nodes for components with nodal properties.
     _add_nodes!(epanet_data)
@@ -120,9 +183,18 @@ function parse_epanet(filename::String)
     # Set up a dictionary containing design pipe objects.
     epanet_data["des_pipe"] = Dict{String,Any}()
 
+    # Parse [NE_SHORT_PIPES] section.
+    if(!isempty(ne_filename))
+        _read_ne_short_pipe!(epanet_data)
+    end
+
     # Parse [PUMPS] section.
     _read_pump!(epanet_data)
 
+    # Parse [NE_PUMPS] section.
+    if(!isempty(ne_filename))
+        _read_ne_pump!(epanet_data)
+    end
     # Parse [VALVES] section.
     _read_regulator!(epanet_data)
 
@@ -137,6 +209,11 @@ function parse_epanet(filename::String)
 
     # Update pump data using data from the [ENERGY] section.
     _update_pump_energy!(epanet_data)
+
+    # Update expansion pump data using data from the [ENERGY] section.
+    if(!isempty(ne_filename))
+        _update_ne_pump_energy!(epanet_data)
+    end
 
     # Parse [COORDINATES] section.
     _read_coordinate!(epanet_data)
@@ -166,6 +243,7 @@ function parse_epanet(filename::String)
         "duration",
         "start_time",
         "demand_charge",
+        "ne_demand_charge"
     ]
         key in keys(epanet_data) && delete!(epanet_data, key)
     end
@@ -494,6 +572,7 @@ function _read_curve!(data::Dict{String,<:Any})
     end
 end
 
+
 function _read_energy!(data::Dict{String,<:Any})
     # Loop over all lines in the [ENERGY] section and parse each.
     for (line_number, line) in data["section"]["[ENERGY]"]
@@ -553,11 +632,53 @@ function _read_energy!(data::Dict{String,<:Any})
             else
                 Memento.warn(_LOGGER, "Unknown entry in ENERGY section: $(line)")
             end
+
+        elseif uppercase(current[1]) == "NE_PUMP"
+            # Get the corresponding pump data object.
+            ne_pump_key = findfirst(x -> current[2] == x["source_id"][2], data["ne_pump"])
+            ne_pump = data["ne_pump"][ne_pump_key]
+
+            if uppercase(current[3]) == "PRICE"
+                # Parse the cost of pump operation.
+                price = parse(Float64, current[4]) # Price per kilowatt hour.
+                ne_pump["energy_price"] = price * inv(3.6e6) # Price per Joule.
+            elseif uppercase(current[3]) == "PATTERN"
+                # Read in the pattern for scaling the pump's energy price.
+                ne_pump["energy_pattern"] = current[4]
+            elseif uppercase(current[3]) in ["EFFIC", "EFFICIENCY"]
+                # Obtain and scale head-versus-flow pump curve.
+                x = first.(data["curve"][current[4]]) # Flow rate.
+                y = 0.01 .* last.(data["curve"][current[4]]) # Efficiency.
+
+                if data["flow_units"] == "LPS" # If liters per second...
+                    # Convert from liters per second to cubic meters per second.
+                    x *= 1.0e-3
+                elseif data["flow_units"] == "CMH" # If cubic meters per hour...
+                    # Convert from cubic meters per hour to cubic meters per second.
+                    x *= inv(3600.0)
+                elseif data["flow_units"] == "GPM" # If gallons per minute...
+                    # Convert from gallons per minute to cubic meters per second.
+                    x *= 6.30902e-5
+                else
+                    Memento.error(_LOGGER, "Could not find a valid \"units\" option type.")
+                end
+
+                for k = 1:length(y)
+                    y[k] = x[k] > 0.0 && y[k] > 1.0e-2 ? y[k] : 1.0e-2
+                end
+
+                # Curve of efficiency (unitless) versus the flow rate through a pump.
+                ne_pump["efficiency_curve"] = Array([(x[j], y[j]) for j = 1:length(x)])
+            else
+                Memento.warn(_LOGGER, "Unknown entry in ENERGY section: $(line)")
+            end
         else
             Memento.warn(_LOGGER, "Unknown entry in ENERGY section: $(line)")
         end
     end
 end
+
+
 
 function _read_status!(data::Dict{String,<:Any})
     # Loop over all lines in the [STATUS] section and parse each.
@@ -630,6 +751,54 @@ function _update_pump_energy!(data::Dict{String,<:Any})
 
             # Delete the "energy_pattern" data from the pump.
             delete!(pump, "energy_pattern")
+        end
+    end
+end
+
+function _update_ne_pump_energy!(data::Dict{String,<:Any})
+    # Use data previously parsed to infer missing pump data.
+    for (ne_pump_id, ne_pump) in data["ne_pump"]
+        # If the pump does not have an efficiency curve, assume a default value.
+        if !("efficiency_curve" in keys(ne_pump)) && "energy_efficiency" in keys(data)
+            # If the pump does not have an efficiency, assume the global option.
+            ne_pump["efficiency"] = data["energy_efficiency"]
+        elseif !("efficiency_curve" in keys(ne_pump))
+            # Otherwise, assume the pump is perfectly efficient.
+            Memento.warn(
+                _LOGGER,
+                "Efficiency for ne pump \"$(ne_pump["name"])\" could not be found.",
+            )
+            ne_pump["efficiency"] = 1.0
+        end
+
+        # If the pump does not have an energy pattern, assume the global option.
+        if !("energy_pattern" in keys(ne_pump)) && "energy_pattern" in keys(data)
+            ne_pump["energy_pattern"] = data["energy_pattern"]
+        end
+
+        # If the energy price is not specified for the pump, set a reasonable value.
+        if !("energy_price" in keys(ne_pump)) && "energy_price" in keys(data)
+            # If the pump does not have an energy price, assume the global option.
+            ne_pump["energy_price"] = data["energy_price"]
+        elseif !("energy_price" in keys(ne_pump)) # If there is no energy price...
+            # Otherwise, assume the pump does not have an energy price.
+            Memento.warn(_LOGGER, "Price for ne pump \"$(ne_pump["name"])\" could not be found.")
+            ne_pump["energy_price"] = 0.0
+        end
+
+        # If an energy pattern is specified, store the time series of prices.
+        if "energy_pattern" in keys(ne_pump)
+            # Build the pattern of prices using existing data.
+            pattern_name = ne_pump["energy_pattern"]
+            price_pattern = ne_pump["energy_price"] .* data["pattern"][pattern_name]
+            push!(price_pattern, minimum(price_pattern))
+
+            # Add the varying price data to the pump time series entry.
+            entry = Dict{String,Array{Float64}}("energy_price" => price_pattern)
+            data["time_series"]["ne_pump"][ne_pump_id] = entry
+
+            # Delete the "energy_pattern" data from the pump.
+            delete!(ne_pump, "energy_pattern")
         end
     end
 end
@@ -906,6 +1075,36 @@ function _read_pipe!(data::Dict{String,<:Any})
     data["pipe"] = _transform_component_indices(data["pipe"])
 end
 
+function _read_ne_short_pipe!(data::Dict{String,<:Any})
+    # Initialize dictionary associated with expansion short pipes.
+    data["ne_short_pipe"] = Dict{String,Dict{String,Any}}()
+
+    # Initialize a temporary index to be updated while parsing.
+    index::Int = 0
+
+    # Loop over all lines in the [PIPES] section and parse each.
+    for (line_number, line) in data["section"]["[NE_SHORT_PIPES]"]
+        current = split(split(line, ";")[1])
+        length(current) == 0 && continue # Skip.
+
+        # Initialize the pipe entry to be added.
+        ne_short_pipe = Dict{String,Any}("name" => current[1], "status" => STATUS_UNKNOWN)
+        ne_short_pipe["source_id"] = ["ne_short_pipe", current[1]]
+        ne_short_pipe["node_fr"] = data["node_map"][current[2]]
+        ne_short_pipe["node_to"] = data["node_map"][current[3]]
+        ne_short_pipe["construction_cost"] = parse(Float64, current[5])
+
+        # Add a temporary index to be used in the data dictionary.
+        ne_short_pipe["index"] = string(index += 1)
+
+        # Append the pipe entry to the data dictionary.
+        data["ne_short_pipe"][current[1]] = ne_short_pipe
+    end
+
+    # Replace with new dictionaries that use integer component indices.
+    data["ne_short_pipe"] = _transform_component_indices(data["ne_short_pipe"])
+end
+
 function _read_pump!(data::Dict{String,<:Any})
     # Initialize dictionaries associated with pumps.
     data["pump"] = Dict{String,Dict{String,Any}}()
@@ -963,7 +1162,7 @@ function _read_pump!(data::Dict{String,<:Any})
                 end
 
                 # Curve of head (meters) versus flow (cubic meters per second).
-                pump["head_curve"] = Array([(flow[j], head[j]) for j = 1:length(flow)])     
+                pump["head_curve"] = Array([(flow[j], head[j]) for j = 1:length(flow)])
             elseif uppercase(current[i]) != "HEAD"
                 Memento.error(_LOGGER, "Pump keyword in INP file not recognized.")
             end
@@ -984,6 +1183,87 @@ function _read_pump!(data::Dict{String,<:Any})
     data["time_series"]["pump"] = _transform_time_series_indices(
         data["pump"], data["time_series"]["pump"])
 end
+
+function _read_ne_pump!(data::Dict{String,<:Any})
+    # Initialize dictionaries associated with  expansion pumps.
+    data["ne_pump"] = Dict{String,Dict{String,Any}}()
+    data["time_series"]["ne_pump"] = Dict{String,Any}()
+
+    # Initialize a temporary index to be updated while parsing.
+    index::Int = 0
+
+    # Loop over all lines in the [NE_PUMPS] section and parse each.
+    for (line_number, line) in data["section"]["[NE_PUMPS]"]
+        current = split(split(line, ";")[1])
+        length(current) == 0 && continue # Skip.
+
+        # Initialize the pipe entry to be added.
+        ne_pump = Dict{String,Any}("name" => current[1], "status" => STATUS_UNKNOWN)
+        ne_pump["source_id"] = ["ne_pump", current[1]]
+        ne_pump["node_fr"] = data["node_map"][current[2]]
+        ne_pump["node_to"] = data["node_map"][current[3]]
+        ne_pump["construction_cost"] = parse(Float64,current[length(current)])
+
+        # Loop over remaining entries and store remaining properties.
+        for i in range(4; stop = length(current)-1, step = 2)
+            if uppercase(current[i]) == "POWER"
+                # Memento.error(_LOGGER, "Constant power pumps are not supported.")
+                ne_pump["pump_type"] = PUMP_CONSTANT_POWER
+
+                # Parse the head of the reservoir (in meters).
+                if data["flow_units"] == "LPS" || data["flow_units"] == "CMH"
+                    # Conver power from kilowatts to watts.
+                    ne_pump["power"] = 1.0e3 * parse(Float64, current[i+1])
+                elseif data["flow_units"] == "GPM" # If gallons per minute...
+                    # Convert power from horsepower to watts.
+                    ne_pump["power"] = 745.7 * parse(Float64, current[i+1])
+                else
+                    Memento.error(_LOGGER, "Could not find a valid \"units\" option type.")
+                end
+            elseif uppercase(current[i]) == "HEAD"
+                # Obtain and scale head-versus-flow pump curve.
+                flow = first.(data["curve"][current[i+1]]) # Flow.
+                head = last.(data["curve"][current[i+1]]) # Head.
+
+                if data["flow_units"] == "LPS" # If liters per second...
+                    # Convert from liters per second to cubic meters per second.
+                    flow *= 1.0e-3
+                elseif data["flow_units"] == "CMH" # If cubic meters per hour...
+                    # Convert from cubic meters per hour to cubic meters per second.
+                    flow *= inv(3600.0)
+                elseif data["flow_units"] == "GPM" # If gallons per minute...
+                    # Convert from gallons per minute to cubic meters per second.
+                    flow *= 6.30902e-5
+
+                    # Convert head from feet to meters.
+                    head *= 0.3048
+                else
+                    Memento.error(_LOGGER, "Could not find a valid \"units\" option type.")
+                end
+
+                # Curve of head (meters) versus flow (cubic meters per second).
+                ne_pump["head_curve"] = Array([(flow[j], head[j]) for j = 1:length(flow)])
+            elseif uppercase(current[i]) != "HEAD"
+                Memento.error(_LOGGER, "Ne Pump keyword in INP file not recognized.")
+            end
+        end
+
+        # Flow is always in the positive direction for pumps.
+        ne_pump["flow_direction"] = FLOW_DIRECTION_POSITIVE
+
+        # Add a temporary index to be used in the data dictionary.
+        ne_pump["index"] = string(index += 1)
+
+        # Append the ne_pump entry to the data dictionary.
+        data["ne_pump"][current[1]] = ne_pump
+    end
+
+    # Replace with new dictionaries that use integer component indices.
+    data["ne_pump"] = _transform_component_indices(data["ne_pump"])
+    data["time_series"]["ne_pump"] = _transform_time_series_indices(
+        data["ne_pump"], data["time_series"]["ne_pump"])
+end
+
 
 function _read_reservoir!(data::Dict{String,<:Any})
     # Initialize dictionaries associated with reservoirs.
@@ -1110,6 +1390,62 @@ function _read_tank!(data::Dict{String,<:Any})
 
     # Replace with new dictionaries that use integer component indices.
     data["tank"] = _transform_component_indices(data["tank"])
+end
+
+function _read_ne_tank!(data::Dict{String,<:Any})
+    # Initialize dictionaries associated with tanks.
+    data["ne_tank"] = Dict{String,Dict{String,Any}}()
+
+    # Initialize a temporary index to be updated while parsing.
+    index::Int = 0
+
+    # Loop over all lines in the [TANKS] section and parse each.
+    for (line_number, line) in data["section"]["[NE_TANKS]"]
+        current = split(split(line, ";")[1])
+        length(current) == 0 && continue # Skip.
+
+        # Initialize the tank entry to be added.
+        ne_tank = Dict{String,Any}("name" => current[1], "status" => STATUS_ACTIVE)
+        ne_tank["source_id"] = ["tank", current[1]]
+        ne_tank["dispatchable"] = false
+
+        # Store all measurements associated with expansion tanks in metric units.
+        if data["flow_units"] == "LPS" || data["flow_units"] == "CMH"
+            # Retain the original length values (in meters).
+            ne_tank["elevation"] = parse(Float64, current[2])
+            ne_tank["init_level"] = parse(Float64, current[3])
+            ne_tank["min_level"] = parse(Float64, current[4])
+            ne_tank["max_level"] = parse(Float64, current[5])
+            ne_tank["diameter"] = parse(Float64, current[6])
+
+            # Retain the original minimum volume (in cubic meters).
+            ne_tank["min_vol"] = parse(Float64, current[7])
+        elseif data["flow_units"] == "GPM" # If gallons per minute...
+            # Convert length values from feet to meters.
+            ne_tank["elevation"] = 0.3048 * parse(Float64, current[2])
+            ne_tank["init_level"] = 0.3048 * parse(Float64, current[3])
+            ne_tank["min_level"] = 0.3048 * parse(Float64, current[4])
+            ne_tank["max_level"] = 0.3048 * parse(Float64, current[5])
+            ne_tank["diameter"] = 0.3048 * parse(Float64, current[6])
+
+            # Convert minimum volume from cubic feet to cubic meters.
+            ne_tank["min_vol"] = 0.3048^3 * parse(Float64, current[7])
+        else
+            Memento.error(_LOGGER, "Could not find a valid \"Units\" option type.")
+        end
+
+        # Add a temporary index to be used in the data dictionary.
+        ne_tank["index"] = string(index += 1)
+
+        # Append the tank entry to the data dictionary.
+        data["ne_tank"][current[1]] = ne_tank
+    end
+
+    # Replace with new dictionaries that use integer component indices.
+    data["ne_tank"] = _transform_component_indices(data["ne_tank"])
+    println("Warning: Temporarily labeled the source_id of ne_tanks as tanks and merged them into regular tanks")
+    merge!(data["tank"],data["ne_tank"])
+    delete!(data, "ne_tank")
 end
 
 function _read_time!(data::Dict{String,<:Any})
@@ -1401,4 +1737,10 @@ _INP_SECTIONS = [
     "[LABELS]",
     "[BACKDROP]",
     "[TAGS]",
+]
+
+_NE_INP_SECTIONS = [
+    "[NE_PUMPS]",
+    "[NE_TANKS]",
+    "[NE_SHORT_PIPES]",
 ]

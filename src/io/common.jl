@@ -12,9 +12,9 @@ dictionary of data). Here, `skip_correct` will skip data correction routines
 (e.g., component status propagation) if set to `true`, and `per_unit` will
 translate the data model to a per-unit measurement system if set to `true`.
 """
-function parse_file(path::String; skip_correct::Bool = false, per_unit::Bool = true)
+function parse_file(path::String; ne_path::String = "", skip_correct::Bool = false, per_unit::Bool = true)
     if endswith(path, ".inp")
-        network_data = WaterModels.parse_epanet(path)
+        network_data = WaterModels.parse_epanet(path,ne_filename = ne_path)
     elseif endswith(path, ".json")
         network_data = WaterModels.parse_json(path)
         correct_enums!(network_data)
@@ -70,7 +70,9 @@ function correct_network_data!(data::Dict{String, <:Any}; per_unit::Bool = true)
     correct_pipes!(data)
     correct_des_pipes!(data)
     correct_pumps!(data)
-    correct_ne_pumps!(data)
+    if(haskey(data,"ne_pump"))
+        correct_ne_pumps!(data)
+    end
     correct_regulators!(data)
     correct_short_pipes!(data)
     correct_ne_short_pipes!(data)

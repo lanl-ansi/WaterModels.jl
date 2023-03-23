@@ -180,7 +180,6 @@ function constraint_on_off_pump_power(
         append!(con(wm, n, :on_off_pump_power)[a], [c])
     else
         f_ua = _calc_pump_power_ua(wm, n, a, [q_lb, q_ub])
-
         if f_ua[1] != f_ua[2]
             # Build a linear under-approximation of the power.
             slope = (f_ua[2] - f_ua[1]) / (q_ub - q_lb)
@@ -209,7 +208,6 @@ function constraint_on_off_pump_power_ne(
         append!(con(wm, n, :on_off_pump_power_ne)[a], [c])
     else
         f_ua = _calc_pump_power_ua_ne(wm, n, a, [q_lb, q_ub])
-
         if f_ua[1] != f_ua[2]
             # Build a linear under-approximation of the power.
             slope = (f_ua[2] - f_ua[1]) / (q_ub - q_lb)

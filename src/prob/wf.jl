@@ -21,14 +21,18 @@ function build_wf(wm::AbstractWaterModel)
     variable_head(wm)
     variable_flow(wm)
     variable_pump_head_gain(wm)
+    variable_ne_pump_head_gain(wm)
     variable_pump_power(wm)
+    variable_ne_pump_power(wm)
 
     # Indicator (status) variables.
     variable_des_pipe_indicator(wm)
     variable_pump_indicator(wm)
+    variable_ne_pump_indicator(wm)
     variable_regulator_indicator(wm)
     variable_valve_indicator(wm)
     variable_ne_short_pipe_indicator(wm)
+    variable_ne_pump_build(wm)
 
     # Create flow-related variables for node attachments.
     variable_demand_flow(wm)
@@ -76,6 +80,7 @@ function build_wf(wm::AbstractWaterModel)
         constraint_on_off_pump_head_gain_ne(wm, a)
         constraint_on_off_pump_flow_ne(wm, a)
         constraint_on_off_pump_power_ne(wm, a)
+        constraint_on_off_pump_build_ne(wm, a)
     end
 
     for (k, pump_group) in ref(wm, :pump_group)
@@ -114,6 +119,7 @@ function build_wf(wm::AbstractWaterModel)
 
     # Add the objective.
     objective_wf(wm)
+    println(wm.model)
 end
 
 
@@ -266,6 +272,7 @@ function build_mn_wf(wm::AbstractWaterModel)
 
     # Add the objective.
     objective_wf(wm)
+    println(wm.model)
 end
 
 
