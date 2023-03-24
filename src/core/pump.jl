@@ -7,12 +7,10 @@ end
 
 
 function correct_ne_pumps!(data::Dict{String, <:Any})
-    if(haskey(data,"ne_pump"))
-        wm_data = get_wm_data(data)
-        base_flow = wm_data["per_unit"] ? wm_data["base_flow"] : 1.0
-        correction_func = x -> _correct_ne_pumps!(x, base_flow)
-        apply_wm!(correction_func, data; apply_to_subnetworks = true)
-    end
+    wm_data = get_wm_data(data)
+    base_flow = wm_data["per_unit"] ? wm_data["base_flow"] : 1.0
+    correction_func = x -> _correct_ne_pumps!(x, base_flow)
+    apply_wm!(correction_func, data; apply_to_subnetworks = true)
 end
 
 
@@ -409,7 +407,7 @@ function _calc_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, 
     q_min = max(get(pump, "flow_min_forward", _flow_min), _flow_min)
 
     q_max = max(q_min, pump["flow_max"])
-    q_build = range(q_min - 1.0e-7, stop = q_max + 1.0e-7, length = num_points)
+    q_build = range(0.0, stop = q_max + 1.0e-7, length = num_points)
     f_build = head_curve_function.(collect(q_build)) .* q_build
 
     if haskey(pump, "efficiency_curve")
@@ -429,7 +427,7 @@ function _calc_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, 
 end
 
 
-function _calc_pump_power_points_ne(wm::AbstractWaterModel, nw::Int, pump_id::Int, num_points::Int)
+function _calc_ne_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, num_points::Int)
     ne_pump = ref(wm, nw, :ne_pump, pump_id)
     head_curve_function = ref(wm, nw, :ne_pump, pump_id, "head_curve_function")
 
@@ -467,7 +465,7 @@ end
 
 function _calc_pump_power_ne(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Vector{Float64})
     q_true, f_true = _calc_pump_power_points_ne(wm, nw, pump_id, 100)
-    return max.(Interpolations.LinearInterpolation(q_true, f_true).(q), 0.0)
+    return max.(Interpolations.linear_interpolation(q_true, f_true).(q), 0.0)
 end
 
 
