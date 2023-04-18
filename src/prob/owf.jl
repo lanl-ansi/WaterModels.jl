@@ -32,8 +32,16 @@ function build_mn_owf(wm::AbstractWaterModel)
     # Ensure tanks recover their initial volume.
     n_1, n_f = network_ids[1], network_ids[end]
 
-    for i in ids(wm, n_f, :tank)
-        constraint_tank_volume_recovery(wm, i, n_1, n_f)
+    if(haskey(wm.ref[:it][wm_it_sym],:tank_volume_recovery_time_points))
+        tank_volume_recovery_time_points  = wm.ref[:it][wm_it_sym][:tank_volume_recovery_time_points]
+    else
+        tank_volume_recovery_time_points  = Set([])
+    end
+    union(tank_volume_recovery_time_points ,n_f)
+    for n_tank in tank_volume_recovery_time_points
+        for i in ids(wm, n_tank, :tank)
+            constraint_tank_volume_recovery(wm, i, n_1, n_tank)
+        end
     end
 
     # Add the optimal water flow objective.

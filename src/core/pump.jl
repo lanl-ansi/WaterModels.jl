@@ -427,7 +427,7 @@ function _calc_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, 
 end
 
 
-function _calc_ne_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, num_points::Int)
+function _calc_pump_power_points_ne(wm::AbstractWaterModel, nw::Int, pump_id::Int, num_points::Int)
     ne_pump = ref(wm, nw, :ne_pump, pump_id)
     head_curve_function = ref(wm, nw, :ne_pump, pump_id, "head_curve_function")
 

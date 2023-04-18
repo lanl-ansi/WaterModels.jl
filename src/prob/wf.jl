@@ -232,7 +232,6 @@ function build_mn_wf(wm::AbstractWaterModel)
     # Start with the first network, representing the initial time step.
     n_1 = network_ids[1]
 
-    # Constraints on tank volumes.
     for i in ids(wm, :tank; nw = n_1)
         # Set initial conditions of tanks.
         constraint_tank_volume(wm, i; nw = n_1)
@@ -271,7 +270,6 @@ function build_mn_wf(wm::AbstractWaterModel)
 
     # Add the objective.
     objective_wf(wm)
-    println(wm.model)
 end
 
 
