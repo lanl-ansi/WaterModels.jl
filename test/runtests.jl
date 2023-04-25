@@ -1,3 +1,6 @@
+import Pkg
+Pkg.pkg"add JuMP#od/nlp-expr MathOptInterface#od/nlp-expr Ipopt#od/nlp-expr"
+
 using WaterModels
 
 import HiGHS

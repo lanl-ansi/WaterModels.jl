@@ -1,12 +1,6 @@
 # Problem Specifications
 ## Water Flow (WF)
 
-### Functions
-```julia
-# Create head loss functions, if necessary.
-_function_head_loss(wm)
-```
-
 ### Objective
 ```julia
 objective_wf(wm)
@@ -99,12 +93,6 @@ end
 ```
 
 ## Multinetwork Water Flow (MN WF)
-
-### Functions
-```julia
-# Create head loss functions, if necessary.
-_function_head_loss(wm)
-```
 
 ### Objective
 ```julia

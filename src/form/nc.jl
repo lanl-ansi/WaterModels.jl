@@ -190,8 +190,8 @@ function constraint_pipe_head_loss(
     q, h_i, h_j = var(wm, n, :q_pipe, a), var(wm, n, :h, node_fr), var(wm, n, :h, node_to)
 
     # Add nonconvex constraint for the head loss relationship.
-    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(q) <= (h_i - h_j) / L)
-    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(q) >= (h_i - h_j) / L)
+    c_1 = JuMP.@constraint(wm.model, r * head_loss(wm, q) <= (h_i - h_j) / L)
+    c_2 = JuMP.@constraint(wm.model, r * head_loss(wm, q) >= (h_i - h_j) / L)
 
     # Append the :pipe_head_loss constraint array.
     append!(con(wm, n, :pipe_head_loss)[a], [c_1, c_2])
@@ -323,8 +323,8 @@ function constraint_on_off_des_pipe_head_loss(
     q, dh = var(wm, n, :q_des_pipe, a), var(wm, n, :dh_des_pipe, a)
 
     # Add nonconvex constraint for the head loss relationship.
-    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(q) <= dh / L)
-    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(q) >= dh / L)
+    c_1 = JuMP.@constraint(wm.model, r * head_loss(wm, q) <= dh / L)
+    c_2 = JuMP.@constraint(wm.model, r * head_loss(wm, q) >= dh / L)
 
     # Append the :pipe_head_loss constraint array.
     append!(con(wm, n, :on_off_des_pipe_head_loss)[a], [c_1, c_2])
