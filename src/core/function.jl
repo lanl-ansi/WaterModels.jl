@@ -13,8 +13,8 @@ end
 function head_loss(wm::Union{NCDWaterModel,CRDWaterModel}, x)
     p = _get_alpha(wm)
     # An expression equivalent to abspower(x, p) = abs(x)^p
-    # return JuMP.@expression(model, ifelse(x > 0, x^p, (-x)^p))
-    return JuMP.@expression(model, (x^2)^(p / 2))
+    # return JuMP.@expression(wm.model, ifelse(x > 0, x^p, (-x)^p))
+    return JuMP.@expression(wm.model, (x^2)^(p / 2))
 end
 
 function head_loss(wm::AbstractNonlinearModel, x)
