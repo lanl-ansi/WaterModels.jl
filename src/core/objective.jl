@@ -89,7 +89,8 @@ function objective_ne(wm::AbstractWaterModel)::JuMP.AffExpr
 
     # Find the network IDs over which the objective will be defined.
     if length(network_ids) > 1
-        network_ids_flow = network_ids[1:end-1]
+        network_ids_flow = network_ids[1]
+        # network_ids_flow = network_ids[1:end-1]
     else
         network_ids_flow = network_ids
     end
@@ -108,9 +109,10 @@ function objective_ne(wm::AbstractWaterModel)::JuMP.AffExpr
         # Get the set of network expansion pumps at time index `n`.
         for (a, ne_pump) in ref(wm, n, :ne_pump)
             # Add the cost of network expansion component `a` at time period `n`.
-            term = ne_pump["construction_cost"] * var(wm, n, :z_ne_pump, a)
+            term = ne_pump["construction_cost"] * var(wm, n, :x_ne_pump, a)
             JuMP.add_to_expression!(objective, term)
         end
+
     end
 
     # Minimize the total cost of network expansion.

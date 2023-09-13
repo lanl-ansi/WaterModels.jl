@@ -561,7 +561,7 @@ function _calc_pump_power_quadratic_approximation(wm::AbstractWaterModel, nw::In
 
     # Ensure that a negative constant term does not exist.
     linear_coefficients[3] = max(0.0, linear_coefficients[3])
-
+    
     # Return the least squares-fitted quadratic approximation.
     return x -> sum(linear_coefficients .* [x * x, x, z])
 end
