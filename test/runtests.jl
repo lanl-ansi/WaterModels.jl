@@ -1,6 +1,3 @@
-import Pkg
-Pkg.pkg"add JuMP#master Statistics"
-
 using WaterModels
 
 import HiGHS
