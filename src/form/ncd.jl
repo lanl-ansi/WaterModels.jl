@@ -735,10 +735,11 @@ function constraint_on_off_pump_power(
     z = var(wm, n, :z_pump, a)
 
     # Add constraint equating power with respect to the power curve.
-    power_qa = _calc_pump_power_linear_coeff(wm, n, z)
-    # power_qa = _calc_pump_power_quadratic_approximation(wm, n, a, z)
-    c_1 = JuMP.@constraint(wm.model, power(q) <= P)
-    c_2 = JuMP.@constraint(wm.model, power(q) >= P)
+    power_la = _calc_pump_power_linear_coeff(wm, n, z)
+        println("power_la = $power_la")
+    # power_la = _calc_pump_power_quadratic_approximation(wm, n, a, z)
+    c_1 = JuMP.@constraint(wm.model, power_la(q) <= P)
+    c_2 = JuMP.@constraint(wm.model, power_la(q) >= P)
 
     # Append the :on_off_pump_power constraint array.
     append!(con(wm, n, :on_off_pump_power)[a], [c_1, c_2])
@@ -757,9 +758,10 @@ function constraint_on_off_pump_power_ne(
     z = var(wm, n, :z_ne_pump, a)
 
     # Add constraint equating power with respect to the power curve.
-    power = _calc_pump_power_linear_coeff(wm, n, z)
-    c_1 = JuMP.@constraint(wm.model, power(q) <= P)
-    c_2 = JuMP.@constraint(wm.model, power(q) >= P)
+    # power_la = _calc_pump_power_quadratic_approximation_ne(wm, n, a, z)
+    power_la = _calc_pump_power_linear_coeff(wm, n, z)
+    c_1 = JuMP.@constraint(wm.model, power_la(q) <= P)
+    c_2 = JuMP.@constraint(wm.model, power_la(q) >= P)
 
     # Append the :on_off_pump_power constraint array.
     append!(con(wm, n, :on_off_pump_power_ne)[a], [c_1, c_2])
