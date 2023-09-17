@@ -14,9 +14,6 @@ end
 
 
 function build_wf(wm::AbstractWaterModel)
-    # Create head loss functions, if necessary.
-    _function_head_loss(wm)
-
     # Physical variables.
     variable_head(wm)
     variable_flow(wm)
@@ -103,9 +100,6 @@ end
 
 
 function build_mn_wf(wm::AbstractWaterModel)
-    # Create head loss functions, if necessary.
-    _function_head_loss(wm)
-
     # Get all network IDs in the multinetwork.
     network_ids = sort(collect(nw_ids(wm)))
 

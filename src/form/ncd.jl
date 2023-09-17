@@ -338,13 +338,13 @@ function constraint_pipe_head_loss(
 )
     # Add constraints for positive flow and head difference.
     qp, dhp = var(wm, n, :qp_pipe, a), var(wm, n, :dhp_pipe, a)
-    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= dhp / L)
-    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) >= dhp / L)
+    c_1 = JuMP.@constraint(wm.model, r * head_loss(wm, qp) <= dhp / L)
+    c_2 = JuMP.@constraint(wm.model, r * head_loss(wm, qp) >= dhp / L)
 
     # Add constraints for negative flow and head difference.
     qn, dhn = var(wm, n, :qn_pipe, a), var(wm, n, :dhn_pipe, a)
-    c_3 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) <= dhn / L)
-    c_4 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) >= dhn / L)
+    c_3 = JuMP.@constraint(wm.model, r * head_loss(wm, qn) <= dhn / L)
+    c_4 = JuMP.@constraint(wm.model, r * head_loss(wm, qn) >= dhn / L)
 
     # Append the :pipe_head_loss constraint array.
     append!(con(wm, n, :pipe_head_loss)[a], [c_1, c_2, c_3, c_4])
@@ -490,10 +490,10 @@ function constraint_on_off_des_pipe_head_loss(
     dhp, dhn = var(wm, n, :dhp_des_pipe, a), var(wm, n, :dhn_des_pipe, a)
 
     # Add nonconvex constraint for the head loss relationship.
-    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= dhp / L)
-    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) >= dhp / L)
-    c_3 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) <= dhn / L)
-    c_4 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) >= dhn / L)
+    c_1 = JuMP.@constraint(wm.model, r * head_loss(wm, qp) <= dhp / L)
+    c_2 = JuMP.@constraint(wm.model, r * head_loss(wm, qp) >= dhp / L)
+    c_3 = JuMP.@constraint(wm.model, r * head_loss(wm, qn) <= dhn / L)
+    c_4 = JuMP.@constraint(wm.model, r * head_loss(wm, qn) >= dhn / L)
 
     # Append the :pipe_head_loss constraint array.
     append!(con(wm, n, :on_off_des_pipe_head_loss)[a], [c_1, c_2, c_3, c_4])

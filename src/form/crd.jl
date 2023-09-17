@@ -13,8 +13,8 @@ function constraint_pipe_head_loss(
     dhp, dhn = var(wm, n, :dhp_pipe, a), var(wm, n, :dhn_pipe, a)
 
     # Add relaxed constraints for head loss in the positive and negative directions.
-    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= dhp / L)
-    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) <= dhn / L)
+    c_1 = JuMP.@constraint(wm.model, r * head_loss(wm, qp) <= dhp / L)
+    c_2 = JuMP.@constraint(wm.model, r * head_loss(wm, qn) <= dhn / L)
 
     # Add linear upper bounds on the above convex relaxations.
     rhs_p = r * JuMP.upper_bound(qp)^(exponent - 1.0) * qp
@@ -35,8 +35,8 @@ function constraint_on_off_des_pipe_head_loss(
     dhp, dhn = var(wm, n, :dhp_des_pipe, a), var(wm, n, :dhn_des_pipe, a)
 
     # Add relaxed constraints for head loss in the positive and negative directions.
-    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= dhp / L)
-    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) <= dhn / L)
+    c_1 = JuMP.@constraint(wm.model, r * head_loss(wm, qp) <= dhp / L)
+    c_2 = JuMP.@constraint(wm.model, r * head_loss(wm, qn) <= dhn / L)
 
     # Add linear upper bounds on the above convex relaxations.
     rhs_p = r * JuMP.upper_bound(qp)^(exponent - 1.0) * qp
@@ -59,7 +59,7 @@ function constraint_on_off_pump_head_gain(wm::AbstractCRDModel, n::Int, a::Int, 
     # Define the (relaxed) head gain relationship for the pump.
     head_curve_func_z = _calc_head_curve_function(ref(wm, n, :pump, a), z)
     c_1 = JuMP.@constraint(wm.model, g <= head_curve_func_z(qp))
-    
+
     # Add a constraint that lower-bounds the head gain variable.
     head_curve_func = _calc_head_curve_function(ref(wm, n, :pump, a))
     qp_ub, qp_lb = JuMP.upper_bound(qp), q_min_forward
