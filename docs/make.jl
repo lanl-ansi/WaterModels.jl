@@ -25,7 +25,8 @@ makedocs(
         ],
         "Developer" => "developer.md",
         "Examples" => "examples.md"
-    ]
+    ],
+    warnonly = true
 )
 
 deploydocs(
