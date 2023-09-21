@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Problem Specifications · WaterModels</title><script async src="https://www.googletagmanager.com/gtag/js?id=UA-367975-10"></script><script>  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-367975-10', {'page_path': location.pathname + location.search + location.hash});
+</script><script data-outdated-warner src="assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="index.html"><img src="assets/logo.svg" alt="WaterModels logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="index.html">WaterModels</a></span></div><form class="docs-search" action="search.html"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="index.html">Home</a></li><li><span class="tocitem">Manual</span><ul><li><a class="tocitem" href="quickguide.html">Getting Started</a></li><li><a class="tocitem" href="network-data.html">Network Data Format</a></li><li><a class="tocitem" href="result-data.html">Result Data Format</a></li><li><a class="tocitem" href="math-model.html">Mathematical Models</a></li></ul></li><li><span class="tocitem">Library</span><ul><li><a class="tocitem" href="formulations.html">Network Formulations</a></li><li class="is-active"><a class="tocitem" href="specifications.html">Problem Specifications</a><ul class="internal"><li><a class="tocitem" href="#Water-Flow-(WF)"><span>Water Flow (WF)</span></a></li><li><a class="tocitem" href="#Multinetwork-Water-Flow-(MN-WF)"><span>Multinetwork Water Flow (MN WF)</span></a></li><li><a class="tocitem" href="#Multinetwork-Water-Flow-with-Switching-Constraints-(MN-WF-SWITCHING)"><span>Multinetwork Water Flow with Switching Constraints (MN WF SWITCHING)</span></a></li><li><a class="tocitem" href="#Optimal-Water-Flow-(OWF)"><span>Optimal Water Flow (OWF)</span></a></li><li><a class="tocitem" href="#Multinetwork-Optimal-Water-Flow-(MN-OWF)"><span>Multinetwork Optimal Water Flow (MN OWF)</span></a></li><li><a class="tocitem" href="#Optimal-Design-(DES)"><span>Optimal Design (DES)</span></a></li></ul></li><li><input class="collapse-toggle" id="menuitem-3-3" type="checkbox"/><label class="tocitem" for="menuitem-3-3"><span class="docs-label">Modeling Components</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="objective.html">Objective</a></li><li><a class="tocitem" href="variables.html">Variables</a></li><li><a class="tocitem" href="constraints.html">Constraints</a></li></ul></li><li><a class="tocitem" href="parser.html">File I/O</a></li></ul></li><li><a class="tocitem" href="developer.html">Developer</a></li><li><a class="tocitem" href="examples.html">Examples</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Library</a></li><li class="is-active"><a href="specifications.html">Problem Specifications</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href="specifications.html">Problem Specifications</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/lanl-ansi/WaterModels.jl/blob/master/docs/src/specifications.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Problem-Specifications"><a class="docs-heading-anchor" href="#Problem-Specifications">Problem Specifications</a><a id="Problem-Specifications-1"></a><a class="docs-heading-anchor-permalink" href="#Problem-Specifications" title="Permalink"></a></h1><h2 id="Water-Flow-(WF)"><a class="docs-heading-anchor" href="#Water-Flow-(WF)">Water Flow (WF)</a><a id="Water-Flow-(WF)-1"></a><a class="docs-heading-anchor-permalink" href="#Water-Flow-(WF)" title="Permalink"></a></h2><h3 id="Functions"><a class="docs-heading-anchor" href="#Functions">Functions</a><a id="Functions-1"></a><a class="docs-heading-anchor-permalink" href="#Functions" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Create head loss functions, if necessary.
+_function_head_loss(wm)</code></pre><h3 id="Objective"><a class="docs-heading-anchor" href="#Objective">Objective</a><a id="Objective-1"></a><a class="docs-heading-anchor-permalink" href="#Objective" title="Permalink"></a></h3><pre><code class="language-julia hljs">objective_wf(wm)</code></pre><h3 id="Variables"><a class="docs-heading-anchor" href="#Variables">Variables</a><a id="Variables-1"></a><a class="docs-heading-anchor-permalink" href="#Variables" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Create head loss functions, if necessary.
+variable_head(wm)
+variable_flow(wm)
+variable_pump_head_gain(wm)
+variable_pump_power(wm)
+
+# Indicator (status) variables.
+variable_des_pipe_indicator(wm)
+variable_pump_indicator(wm)
+variable_regulator_indicator(wm)
+variable_valve_indicator(wm)
+
+# Create flow-related variables for node attachments.
+variable_demand_flow(wm)
+variable_reservoir_flow(wm)
+variable_tank_flow(wm)</code></pre><h3 id="Constraints"><a class="docs-heading-anchor" href="#Constraints">Constraints</a><a id="Constraints-1"></a><a class="docs-heading-anchor-permalink" href="#Constraints" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Flow conservation at all nodes.
+for (i, node) in ref(wm, :node)
+    constraint_flow_conservation(wm, i)
+    constraint_node_directionality(wm, i)
+end
+
+# Constraints on pipe flows, heads, and physics.
+for (a, pipe) in ref(wm, :pipe)
+    constraint_pipe_head(wm, a)
+    constraint_pipe_head_loss(wm, a)
+    constraint_pipe_flow(wm, a)
+end
+
+# Selection of design pipes along unique arcs.
+for (k, arc) in ref(wm, :des_pipe_arc)
+    constraint_des_pipe_flow(wm, k, arc[1], arc[2])
+    constraint_des_pipe_head(wm, k, arc[1], arc[2])
+    constraint_des_pipe_selection(wm, k, arc[1], arc[2])
+end
+
+# Constraints on design pipe flows, heads, and physics.
+for (a, des_pipe) in ref(wm, :des_pipe)
+    constraint_on_off_des_pipe_head(wm, a)
+    constraint_on_off_des_pipe_head_loss(wm, a)
+    constraint_on_off_des_pipe_flow(wm, a)
+end
+
+# Constraints on pump flows, heads, and physics.
+for (a, pump) in ref(wm, :pump)
+    constraint_on_off_pump_head(wm, a)
+    constraint_on_off_pump_head_gain(wm, a)
+    constraint_on_off_pump_flow(wm, a)
+    constraint_on_off_pump_power(wm, a)
+end
+
+for (k, pump_group) in ref(wm, :pump_group)
+    constraint_on_off_pump_group(wm, k)
+end
+
+# Constraints on short pipe flows and heads.
+for (a, regulator) in ref(wm, :regulator)
+    constraint_on_off_regulator_head(wm, a)
+    constraint_on_off_regulator_flow(wm, a)
+end
+
+# Constraints on short pipe flows and heads.
+for (a, short_pipe) in ref(wm, :short_pipe)
+    constraint_short_pipe_head(wm, a)
+    constraint_short_pipe_flow(wm, a)
+end
+
+# Constraints on tank volumes.
+for (i, tank) in ref(wm, :tank)
+    # Set the initial tank volume.
+    constraint_tank_volume(wm, i)
+end
+
+# Constraints on valve flows and heads.
+for (a, valve) in ref(wm, :valve)
+    constraint_on_off_valve_head(wm, a)
+    constraint_on_off_valve_flow(wm, a)
+end</code></pre><h2 id="Multinetwork-Water-Flow-(MN-WF)"><a class="docs-heading-anchor" href="#Multinetwork-Water-Flow-(MN-WF)">Multinetwork Water Flow (MN WF)</a><a id="Multinetwork-Water-Flow-(MN-WF)-1"></a><a class="docs-heading-anchor-permalink" href="#Multinetwork-Water-Flow-(MN-WF)" title="Permalink"></a></h2><h3 id="Functions-2"><a class="docs-heading-anchor" href="#Functions-2">Functions</a><a class="docs-heading-anchor-permalink" href="#Functions-2" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Create head loss functions, if necessary.
+_function_head_loss(wm)</code></pre><h3 id="Objective-2"><a class="docs-heading-anchor" href="#Objective-2">Objective</a><a class="docs-heading-anchor-permalink" href="#Objective-2" title="Permalink"></a></h3><pre><code class="language-julia hljs">objective_wf(wm)</code></pre><h3 id="Variables-2"><a class="docs-heading-anchor" href="#Variables-2">Variables</a><a class="docs-heading-anchor-permalink" href="#Variables-2" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Get all network IDs in the multinetwork.
+network_ids = sort(collect(nw_ids(wm)))
+network_ids_inner = length(network_ids) &gt; 1 ? network_ids[1:end-1] : network_ids
+
+for n in network_ids_inner
+    # Physical variables.
+    variable_head(wm; nw=n)
+    variable_flow(wm; nw=n)
+    variable_pump_head_gain(wm; nw=n)
+    variable_pump_power(wm; nw=n)
+
+    # Indicator (status) variables.
+    variable_des_pipe_indicator(wm; nw=n)
+    variable_pump_indicator(wm; nw=n)
+    variable_regulator_indicator(wm; nw=n)
+    variable_valve_indicator(wm; nw=n)
+
+    # Create flow-related variables for node attachments.
+    variable_demand_flow(wm; nw=n)
+    variable_reservoir_flow(wm; nw=n)
+    variable_tank_flow(wm; nw=n)
+end
+
+if length(network_ids) &gt; 1
+    variable_head(wm; nw = network_ids[end])
+end</code></pre><h3 id="Constraints-2"><a class="docs-heading-anchor" href="#Constraints-2">Constraints</a><a class="docs-heading-anchor-permalink" href="#Constraints-2" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Get all network IDs in the multinetwork.
+network_ids = sort(collect(nw_ids(wm)))
+network_ids_inner = length(network_ids) &gt; 1 ? network_ids[1:end-1] : network_ids
+
+for n in network_ids_inner
+    # Flow conservation at all nodes.
+    for i in ids(wm, :node; nw=n)
+        constraint_flow_conservation(wm, i; nw=n)
+        constraint_node_directionality(wm, i; nw=n)
+    end
+
+    # Constraints on pipe flows, heads, and physics.
+    for a in ids(wm, :pipe; nw=n)
+        constraint_pipe_flow(wm, a; nw=n)
+        constraint_pipe_head(wm, a; nw=n)
+        constraint_pipe_head_loss(wm, a; nw=n)
+    end
+
+    # Constraints on pump flows, heads, and physics.
+    for a in ids(wm, :pump; nw=n)
+        constraint_on_off_pump_head(wm, a; nw=n)
+        constraint_on_off_pump_head_gain(wm, a; nw=n)
+        constraint_on_off_pump_flow(wm, a; nw=n)
+        constraint_on_off_pump_power(wm, a; nw=n)
+    end
+
+    # Constraints on groups of parallel pumps.
+    for k in ids(wm, :pump_group; nw=n)
+        constraint_on_off_pump_group(wm, k; nw=n)
+    end
+
+    # Constraints on short pipe flows and heads.
+    for a in ids(wm, :regulator; nw=n)
+        constraint_on_off_regulator_head(wm, a; nw=n)
+        constraint_on_off_regulator_flow(wm, a; nw=n)
+    end
+
+    # Constraints on short pipe flows and heads.
+    for a in ids(wm, :short_pipe; nw=n)
+        constraint_short_pipe_head(wm, a; nw=n)
+        constraint_short_pipe_flow(wm, a; nw=n)
+    end
+
+    # Constraints on valve flows and heads.
+    for a in ids(wm, :valve; nw=n)
+        constraint_on_off_valve_head(wm, a; nw=n)
+        constraint_on_off_valve_flow(wm, a; nw=n)
+    end
+end
+
+# Start with the first network, representing the initial time step.
+n_1 = network_ids[1]
+
+# Constraints on tank volumes.
+for i in ids(wm, :tank; nw = n_1)
+    # Set initial conditions of tanks.
+    constraint_tank_volume(wm, i; nw = n_1)
+end
+
+if length(network_ids) &gt; 1
+    # Constraints on tank volumes.
+    for n_2 in network_ids[2:end]
+        # Constrain tank volumes after the initial time index.
+        for i in ids(wm, :tank; nw = n_2)
+            constraint_tank_volume(wm, i, n_1, n_2)
+        end
+
+        # Update the first network used for integration.
+        n_1 = n_2
+    end
+end</code></pre><h2 id="Multinetwork-Water-Flow-with-Switching-Constraints-(MN-WF-SWITCHING)"><a class="docs-heading-anchor" href="#Multinetwork-Water-Flow-with-Switching-Constraints-(MN-WF-SWITCHING)">Multinetwork Water Flow with Switching Constraints (MN WF SWITCHING)</a><a id="Multinetwork-Water-Flow-with-Switching-Constraints-(MN-WF-SWITCHING)-1"></a><a class="docs-heading-anchor-permalink" href="#Multinetwork-Water-Flow-with-Switching-Constraints-(MN-WF-SWITCHING)" title="Permalink"></a></h2><h3 id="Inherited-Functions,-Variables,-Constraints,-and-Objective"><a class="docs-heading-anchor" href="#Inherited-Functions,-Variables,-Constraints,-and-Objective">Inherited Functions, Variables, Constraints, and Objective</a><a id="Inherited-Functions,-Variables,-Constraints,-and-Objective-1"></a><a class="docs-heading-anchor-permalink" href="#Inherited-Functions,-Variables,-Constraints,-and-Objective" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Build the base multinetwork problem.
+build_mn_wf(wm)</code></pre><h3 id="Variables-3"><a class="docs-heading-anchor" href="#Variables-3">Variables</a><a class="docs-heading-anchor-permalink" href="#Variables-3" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Get all network IDs in the multinetwork.
+network_ids = sort(collect(nw_ids(wm)))
+
+# Get the first network ID in the multinetwork.
+n_1 = network_ids[1]
+
+for n_2 in network_ids[2:end-1]
+    # Add pump switching variables.
+    variable_pump_switch_on(wm; nw = n_2)
+    variable_pump_switch_off(wm; nw = n_2)
+
+    n_1 = n_2
+end</code></pre><h3 id="Constraints-3"><a class="docs-heading-anchor" href="#Constraints-3">Constraints</a><a class="docs-heading-anchor-permalink" href="#Constraints-3" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Get all network IDs in the multinetwork.
+network_ids = sort(collect(nw_ids(wm)))
+
+# Get the first network ID in the multinetwork.
+n_1 = network_ids[1]
+
+for n_2 in network_ids[2:end-1]
+    for a in ids(wm, :pump, nw = n_2)
+        # Add constraints that define switching variables.
+        constraint_pump_switch_on(wm, a, n_1, n_2)
+        constraint_pump_switch_off(wm, a, n_1, n_2)
+    end
+
+    n_1 = n_2
+end
+
+for a in ids(wm, :pump; nw = network_ids[1])
+    # Add constraints on the total number of pump switches.
+    constraint_on_off_pump_switch(wm, a, network_ids[2:end-1])
+end</code></pre><h2 id="Optimal-Water-Flow-(OWF)"><a class="docs-heading-anchor" href="#Optimal-Water-Flow-(OWF)">Optimal Water Flow (OWF)</a><a id="Optimal-Water-Flow-(OWF)-1"></a><a class="docs-heading-anchor-permalink" href="#Optimal-Water-Flow-(OWF)" title="Permalink"></a></h2><h3 id="Inherited-Functions,-Variables,-Constraints,-and-Objective-2"><a class="docs-heading-anchor" href="#Inherited-Functions,-Variables,-Constraints,-and-Objective-2">Inherited Functions, Variables, Constraints, and Objective</a><a class="docs-heading-anchor-permalink" href="#Inherited-Functions,-Variables,-Constraints,-and-Objective-2" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Build the water flow problem.
+build_wf(wm)</code></pre><h3 id="Objective-3"><a class="docs-heading-anchor" href="#Objective-3">Objective</a><a class="docs-heading-anchor-permalink" href="#Objective-3" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Add the optimal water flow objective.
+objective_owf(wm)</code></pre><h2 id="Multinetwork-Optimal-Water-Flow-(MN-OWF)"><a class="docs-heading-anchor" href="#Multinetwork-Optimal-Water-Flow-(MN-OWF)">Multinetwork Optimal Water Flow (MN OWF)</a><a id="Multinetwork-Optimal-Water-Flow-(MN-OWF)-1"></a><a class="docs-heading-anchor-permalink" href="#Multinetwork-Optimal-Water-Flow-(MN-OWF)" title="Permalink"></a></h2><h3 id="Inherited-Functions,-Variables,-Constraints,-and-Objective-3"><a class="docs-heading-anchor" href="#Inherited-Functions,-Variables,-Constraints,-and-Objective-3">Inherited Functions, Variables, Constraints, and Objective</a><a class="docs-heading-anchor-permalink" href="#Inherited-Functions,-Variables,-Constraints,-and-Objective-3" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Build the water flow problem.
+build_mn_wf(wm)</code></pre><h3 id="Objective-4"><a class="docs-heading-anchor" href="#Objective-4">Objective</a><a class="docs-heading-anchor-permalink" href="#Objective-4" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Add the optimal water flow objective.
+objective_owf(wm)</code></pre><h3 id="Constraints-4"><a class="docs-heading-anchor" href="#Constraints-4">Constraints</a><a class="docs-heading-anchor-permalink" href="#Constraints-4" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Get all network IDs in the multinetwork.
+network_ids = sort(collect(nw_ids(wm)))
+
+# Ensure tanks recover their initial volume.
+n_1, n_f = network_ids[1], network_ids[end]
+
+for i in ids(wm, n_f, :tank)
+    constraint_tank_volume_recovery(wm, i, n_1, n_f)
+end</code></pre><h2 id="Optimal-Design-(DES)"><a class="docs-heading-anchor" href="#Optimal-Design-(DES)">Optimal Design (DES)</a><a id="Optimal-Design-(DES)-1"></a><a class="docs-heading-anchor-permalink" href="#Optimal-Design-(DES)" title="Permalink"></a></h2><h3 id="Inherited-Functions,-Variables,-Constraints,-and-Objective-4"><a class="docs-heading-anchor" href="#Inherited-Functions,-Variables,-Constraints,-and-Objective-4">Inherited Functions, Variables, Constraints, and Objective</a><a class="docs-heading-anchor-permalink" href="#Inherited-Functions,-Variables,-Constraints,-and-Objective-4" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Build the water flow problem.
+build_wf(wm)</code></pre><h3 id="Objective-5"><a class="docs-heading-anchor" href="#Objective-5">Objective</a><a class="docs-heading-anchor-permalink" href="#Objective-5" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Add the network design objective.
+objective_des(wm)</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="formulations.html">« Network Formulations</a><a class="docs-footer-nextpage" href="objective.html">Objective »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Sunday 22 January 2023 18:11">Sunday 22 January 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
