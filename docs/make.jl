@@ -27,7 +27,7 @@ Documenter.makedocs(
             ],
             "File I/O" => "parser.md",
         ],
-        "Devegloper" => "developer.md",
+        "Developer" => "developer.md",
         "Examples" => "examples.md",
     ],
     clean = true,
