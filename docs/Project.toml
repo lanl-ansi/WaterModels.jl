@@ -1,2 +1,6 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+WaterModels = "7c60b362-08f4-5b14-8680-cd67a3e18348"
+
+[compat]
+Documenter = "1"

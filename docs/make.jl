@@ -1,17 +1,21 @@
-using Documenter, WaterModels
+import Documenter
+import WaterModels
 
-makedocs(
-    modules = [WaterModels],
-    format = Documenter.HTML(analytics="UA-367975-10", mathengine=Documenter.MathJax(), prettyurls=false),
+Documenter.makedocs(
     sitename = "WaterModels",
     authors = "Byron Tasseff and contributors",
+    format = Documenter.HTML(
+        analytics = "UA-367975-10",
+        mathengine = Documenter.MathJax(),
+        prettyurls = false,
+    ),
     pages = [
         "Home" => "index.md",
         "Manual" => [
             "Getting Started" => "quickguide.md",
             "Network Data Format" => "network-data.md",
             "Result Data Format" => "result-data.md",
-            "Mathematical Models" => "math-model.md"
+            "Mathematical Models" => "math-model.md",
         ],
         "Library" => [
             "Network Formulations" => "formulations.md",
@@ -19,16 +23,19 @@ makedocs(
             "Modeling Components" => [
                 "Objective" => "objective.md",
                 "Variables" => "variables.md",
-                "Constraints" => "constraints.md"
+                "Constraints" => "constraints.md",
             ],
-            "File I/O" => "parser.md"
+            "File I/O" => "parser.md",
         ],
         "Developer" => "developer.md",
-        "Examples" => "examples.md"
+        "Examples" => "examples.md",
     ],
-    warnonly = true
+    clean = true,
+    modules = [WaterModels],
+    warnonly = true,
 )
 
-deploydocs(
+Documenter.deploydocs(
     repo = "github.com/lanl-ansi/WaterModels.jl.git",
+    push_preview = true,
 )
