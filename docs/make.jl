@@ -5,7 +5,7 @@ Documenter.makedocs(
     sitename = "WaterModels",
     authors = "Byron Tasseff and contributors",
     format = Documenter.HTML(
-        analytics="UA-367975-10",
+        analytics = "UA-367975-10",
         mathengine = Documenter.MathJax(),
         prettyurls = false,
     ),
