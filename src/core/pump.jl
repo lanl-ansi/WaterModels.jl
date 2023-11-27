@@ -427,7 +427,7 @@ function _calc_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, 
 end
 
 
-function _calc_ne_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::Int, num_points::Int)
+function _calc_pump_power_points_ne(wm::AbstractWaterModel, nw::Int, pump_id::Int, num_points::Int)
     ne_pump = ref(wm, nw, :ne_pump, pump_id)
     head_curve_function = ref(wm, nw, :ne_pump, pump_id, "head_curve_function")
 
@@ -456,16 +456,39 @@ function _calc_ne_pump_power_points(wm::AbstractWaterModel, nw::Int, pump_id::In
     return q_build, max.(0.0, density * gravity * inv.(eff) .* f_build)
 end
 
+# pump_power_updates
+function modify_pump_power_points(wm::AbstractWaterModel, nw::Int)
+    power_curve_unscaled = ref(wm, nw, :pump_power_curve)
+    bf = wm.ref[:it][wm_it_sym][:base_flow]
+    bm = wm.ref[:it][wm_it_sym][:base_mass]
+    bl = wm.ref[:it][wm_it_sym][:base_length]
+    bt = wm.ref[:it][wm_it_sym][:base_time]
+    bp = bm*(bl^2 / bt^3)
 
-function _calc_pump_power(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Vector{Float64})
-    q_true, f_true = _calc_pump_power_points(wm, nw, pump_id, 100)
-    return max.(Interpolations.linear_interpolation(q_true, f_true).(q), 0.0)
+    q_points_scaled = power_curve_unscaled["q_points"] ./bf
+    f_points_sclaed = power_curve_unscaled["f_points"] ./bp
+
+    return q_points_scaled, f_points_sclaed
+    # make the scaling consistent
+end
+
+function _calc_pump_power_linear_coeff(wm::AbstractWaterModel, nw::Int, z::JuMP.VariableRef)
+    q_true, f_true = modify_pump_power_points(wm, nw)
+    q_array = hcat(q_true, ones(length(q_true)))
+    linear_coefficients = q_array \ f_true
+    return q -> sum(linear_coefficients .*[q, z])
 end
 
 
-function _calc_pump_power_ne(wm::AbstractWaterModel, nw::Int, pump_id::Int, q::Vector{Float64})
+function _calc_pump_power(wm::AbstractWaterModel, nw::Int, pump_id::Int)
+    q_true, f_true = _calc_pump_power_points(wm, nw, pump_id, 100)
+    return q -> max.(Interpolations.linear_interpolation(q_true, f_true).(q), 0.0)
+end
+
+
+function _calc_pump_power_ne(wm::AbstractWaterModel, nw::Int, pump_id::Int)
     q_true, f_true = _calc_pump_power_points_ne(wm, nw, pump_id, 100)
-    return max.(Interpolations.LinearInterpolation(q_true, f_true).(q), 0.0)
+    return q -> max.(Interpolations.linear_interpolation(q_true, f_true).(q), 0.0)
 end
 
 

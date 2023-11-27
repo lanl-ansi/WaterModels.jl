@@ -86,6 +86,7 @@ include("form/crd.jl")
 include("form/la.jl")
 include("form/pwlrd.jl")
 include("form/lrd.jl")
+include("form/scip_constraints_variables.jl")
 
 include("prob/wf.jl")
 include("prob/owf.jl")
