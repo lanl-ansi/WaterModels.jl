@@ -173,3 +173,39 @@ function objective_owf(wm::AbstractWaterModel)::JuMP.AffExpr
     # Minimize the cost of network operation.
     return JuMP.@objective(wm.model, JuMP.MIN_SENSE, objective)
 end
+
+
+
+"""
+    objective_max_demand(wm::AbstractWaterModel)::JuMP.AffExpr
+"""
+function objective_max_scaled_demand(wm::AbstractWaterModel)::JuMP.AffExpr
+    # Get all network IDs in the multinetwork.
+    network_ids = sort(collect(nw_ids(wm)))
+
+    # Find the network IDs over which the objective will be defined.
+    if length(network_ids) > 1
+        network_ids_flow = network_ids[1:end-1]
+    else
+        network_ids_flow = network_ids
+    end
+
+    # Initialize the objective expression to zero.
+    objective = JuMP.AffExpr(0.0)
+
+    scale = 1.0
+    for n in network_ids_flow
+        # Get the set of dispatchable demands at time index `n`.
+        dispatchable_demands = ref(wm, n, :dispatchable_demand)
+
+        for (i, demand) in filter(x -> x.second["flow_min"] >= 0.0, dispatchable_demands)
+            # Add the volume delivered at demand `i` and time period `n`.
+            # coeff = get(demand, "priority", 1.0) * ref(wm, n, :time_step)
+            scale = max(scale,demand["flow_max"])
+            JuMP.add_to_expression!(objective, var(wm, n, :q_demand, i))
+        end
+    end
+    println("Using this scale for water objective $(scale)*****")
+    # Maximize the total amount of prioritized water volume delivered.
+    return JuMP.@objective(wm.model, JuMP.MAX_SENSE, objective/scale)
+end

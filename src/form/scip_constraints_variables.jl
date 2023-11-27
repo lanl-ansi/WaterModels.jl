@@ -59,112 +59,119 @@ function constraint_pipe_head_loss_scip_lp(
     q_max_reverse::Float64,
     q_min_forward::Float64,
 )
-    # Get the variable for flow directionality.
-    y = var(wm, n, :y_pipe, a)
+# Get the variable for flow directionality.
+y = var(wm, n, :y_pipe, a)
 
-    # Get variables for positive flow and head difference.
-    qp = var(wm, n, :qp_pipe, a)
-    dhp = var(wm, n, :dhp_pipe, a)
+# Get variables for positive flow and head difference.
+qp, dhp = var(wm, n, :qp_pipe, a), var(wm, n, :dhp_pipe, a)
 
-    # Get the corresponding positive flow partitioning.
-    partition_p = get_pipe_flow_partition_positive(ref(wm, n, :pipe, a))
+# Get positively-directed convex combination variables.
+lambda_p, x_p = var(wm, n, :lambda_p_pipe), var(wm, n, :x_p_pipe)
 
-    # Loop over consequential points (i.e., those that have nonzero head loss).
-    for flow_value in filter(x -> x > 0.0, partition_p)
-        # Add a linear outer approximation of the convex relaxation at `flow_value`.
-        lhs = r * _calc_head_loss_oa(qp, y, flow_value, exponent)
+# Get the corresponding positive flow partitioning.
+partition_p = get_pipe_flow_partition_positive(ref(wm, n, :pipe, a))
+bp_range, bp_range_m1 = 1:length(partition_p), 1:length(partition_p)-1
 
-        if minimum(abs.(lhs.terms.vals)) >= 1.0e-4
-            # Compute a scaling factor to normalize the constraint.
-            scalar = _get_scaling_factor(vcat(lhs.terms.vals, [1.0 / L]))
+# Add constraints for the positive flow piecewise approximation.
+c_1 = JuMP.@constraint(wm.model, sum(lambda_p[a, k] for k in bp_range) == y)
+qp_sum = sum(partition_p[k] * lambda_p[a, k] for k in bp_range)
+scalar = _get_scaling_factor(vcat(qp_sum.terms.vals, [1.0]))
+c_2 = JuMP.@constraint(wm.model, scalar * qp_sum == scalar * qp)
+append!(con(wm, n, :pipe_head_loss, a), [c_1, c_2])
 
-            # Add outer-approximation of the head loss constraint.
-            c = JuMP.@constraint(wm.model, scalar * lhs <= scalar * dhp / L)
+if length(partition_p) > 1
+    # If there are multiple points, constrain the convex combination.
+    c_3 = JuMP.@constraint(wm.model, sum(x_p[a, k] for k in bp_range_m1) == y)
+    c_4 = JuMP.@constraint(wm.model, lambda_p[a, 1] <= x_p[a, 1])
+    c_5 = JuMP.@constraint(wm.model, lambda_p[a, bp_range[end]] <= x_p[a, bp_range_m1[end]])
+    append!(con(wm, n, :pipe_head_loss, a), [c_3, c_4, c_5])
+end
 
-            # Append the :pipe_head_loss constraint array.
-            append!(con(wm, n, :pipe_head_loss)[a], [c])
-        end
-    end
+# Add a constraint that upper-bounds the head loss variable.
+if maximum(partition_p) != 0.0
+    f_p = r * partition_p.^exponent
+    f_p_ub_expr = sum(f_p[k] * lambda_p[a, k] for k in bp_range)
+    scalar = _get_scaling_factor(vcat(f_p_ub_expr.terms.vals, [1.0 / L]))
+    c_6 = JuMP.@constraint(wm.model, scalar * dhp / L <= scalar * f_p_ub_expr)
+    append!(con(wm, n, :pipe_head_loss, a), [c_6])
+else
+    c_6 = JuMP.@constraint(wm.model, dhp == 0.0)
+    append!(con(wm, n, :pipe_head_loss, a), [c_6])
+end
 
-    # Get the corresponding min/max positive directed flows (when active).
-    qp_min_forward, qp_max = max(0.0, q_min_forward), maximum(partition_p)
+# Loop over consequential points (i.e., those that have nonzero head loss).
+for flow_value in filter(x -> x > 0.0, partition_p)
+    # Add head loss outer (i.e., lower) approximations.
+    lhs_p = r * _calc_head_loss_oa(qp, y, flow_value, exponent)
 
-    if qp_min_forward != qp_max
-        # Compute scaled version of the head loss overapproximation.
-        f_1, f_2 = r * qp_min_forward^exponent, r * qp_max^exponent
-        f_slope = (f_2 - f_1) / (qp_max - qp_min_forward)
-        f_lb_line = f_slope * (qp - qp_min_forward * y) + f_1 * y
-
-        # Compute a scaling factor to normalize the constraint.
-        scalar = _get_scaling_factor(vcat(f_lb_line.terms.vals, [1.0 / L]))
-
-        # Add upper-bounding line of the head loss constraint.
-        c = JuMP.@constraint(wm.model, scalar * dhp / L <= scalar * f_lb_line)
-
-        # Append the :pipe_head_loss constraint array.
-        append!(con(wm, n, :pipe_head_loss)[a], [c])
-    elseif qp_max == 0.0
-        c = JuMP.@constraint(wm.model, dhp == 0.0)
-        append!(con(wm, n, :pipe_head_loss)[a], [c])
-    else
-        f_q = r * qp_max^exponent
-        scalar = _get_scaling_factor([f_q == 0.0 ? 1.0 : f_q, 1.0 / L])
-        c = JuMP.@constraint(wm.model, scalar * dhp / L == scalar * f_q * y)
-        append!(con(wm, n, :pipe_head_loss)[a], [c])
-    end
-
-    # Get variables for negative flow and head difference.
-    qn = var(wm, n, :qn_pipe, a)
-    dhn = var(wm, n, :dhn_pipe, a)
-
-    # Get the corresponding negative flow partitioning (negated).
-    partition_n = sort(-get_pipe_flow_partition_negative(ref(wm, n, :pipe, a)))
-
-    # Loop over consequential points (i.e., those that have nonzero head loss).
-    for flow_value in filter(x -> x > 0.0, partition_n)
-        # Add a linear outer approximation of the convex relaxation at `flow_value`.
-        lhs = r * _calc_head_loss_oa(qn, 1.0 - y, flow_value, exponent)
-
-        if minimum(abs.(lhs.terms.vals)) >= 1.0e-4
-            # Compute a scaling factor to normalize the constraint.
-            scalar = _get_scaling_factor(vcat(lhs.terms.vals, [1.0 / L]))
-
-            # Add outer-approximation of the head loss constraint.
-            c = JuMP.@constraint(wm.model, scalar * lhs <= scalar * dhn / L)
-
-            # Append the :pipe_head_loss constraint array.
-            append!(con(wm, n, :pipe_head_loss)[a], [c])
-        end
-    end
-
-    # Get the corresponding maximum negative directed flow (when active).
-    qn_min_forward, qn_max = max(0.0, -q_max_reverse), maximum(partition_n)
-
-    if qn_min_forward != qn_max
-        # Compute scaled version of the head loss overapproximation.
-        f_1, f_2 = r * qn_min_forward^exponent, r * qn_max^exponent
-        f_slope = (f_2 - f_1) / (qn_max - qn_min_forward)
-        f_lb_line = f_slope * (qn - qn_min_forward * (1.0 - y)) + f_1 * (1.0 - y)
-
-        # Compute a scaling factor to normalize the constraint.
-        scalar = _get_scaling_factor(vcat(f_lb_line.terms.vals, [1.0 / L]))
-
-        # Add upper-bounding line of the head loss constraint.
-        c = JuMP.@constraint(wm.model, scalar * dhn / L <= scalar * f_lb_line)
-
-        # Append the :pipe_head_loss constraint array.
-        append!(con(wm, n, :pipe_head_loss)[a], [c])
-    elseif qn_max == 0.0
-        c = JuMP.@constraint(wm.model, dhn == 0.0)
-        append!(con(wm, n, :pipe_head_loss)[a], [c])
-    else
-        f_q = r * qn_max^exponent
-        scalar = _get_scaling_factor([f_q == 0.0 ? 1.0 : f_q, 1.0 / L])
-        c = JuMP.@constraint(wm.model, scalar * dhn / L == scalar * f_q * (1.0 - y))
-        append!(con(wm, n, :pipe_head_loss)[a], [c])
+    if minimum(abs.(lhs_p.terms.vals)) >= 1.0e-4
+        scalar = _get_scaling_factor(vcat(lhs_p.terms.vals, [1.0 / L]))
+        c_7 = JuMP.@constraint(wm.model, scalar * lhs_p <= scalar * dhp / L)
+        append!(con(wm, n, :pipe_head_loss, a), [c_7])
     end
 end
 
+for k in 2:length(partition_p)-1
+    # Add the adjacency constraints for piecewise variables.
+    c_8 = JuMP.@constraint(wm.model, lambda_p[a, k] <= x_p[a, k-1] + x_p[a, k])
+    append!(con(wm, n, :pipe_head_loss, a), [c_8])
+end
+
+# Get variables for negative flow and head difference.
+qn, dhn = var(wm, n, :qn_pipe, a), var(wm, n, :dhn_pipe, a)
+
+# Get negatively-directed convex combination variable.
+lambda_n, x_n = var(wm, n, :lambda_n_pipe), var(wm, n, :x_n_pipe)
+
+# Get the corresponding negative flow partitioning (negated).
+partition_n = sort(-get_pipe_flow_partition_negative(ref(wm, n, :pipe, a)))
+bn_range, bn_range_m1 = 1:length(partition_n), 1:length(partition_n)-1
+
+# Add constraints for the negative flow piecewise approximation.
+c_9 = JuMP.@constraint(wm.model, sum(lambda_n[a, k] for k in bn_range) == 1.0 - y)
+qn_sum = sum(partition_n[k] * lambda_n[a, k] for k in bn_range)
+scalar = _get_scaling_factor(vcat(qn_sum.terms.vals, [1.0]))
+c_10 = JuMP.@constraint(wm.model, scalar * qn_sum == scalar * qn)
+append!(con(wm, n, :pipe_head_loss, a), [c_9, c_10])
+
+if length(partition_n) > 1
+    # If there are multiple points, constrain the convex combination.
+    c_11 = JuMP.@constraint(wm.model, sum(x_n[a, k] for k in bn_range_m1) == 1.0 - y)
+    c_12 = JuMP.@constraint(wm.model, lambda_n[a, 1] <= x_n[a, 1])
+    c_13 = JuMP.@constraint(wm.model, lambda_n[a, bn_range[end]] <= x_n[a, bn_range_m1[end]])
+    append!(con(wm, n, :pipe_head_loss, a), [c_11, c_12, c_13])
+end
+
+# Add a constraint that upper-bounds the head loss variable.
+if maximum(partition_n) != 0.0
+    f_n = r .* partition_n.^exponent
+    f_n_ub_expr = sum(f_n[k] * lambda_n[a, k] for k in bn_range)
+    scalar = _get_scaling_factor(vcat(f_n_ub_expr.terms.vals, [1.0 / L]))
+    c_14 = JuMP.@constraint(wm.model, scalar * dhn / L <= scalar * f_n_ub_expr)
+    append!(con(wm, n, :pipe_head_loss, a), [c_14])
+else
+    c_14 = JuMP.@constraint(wm.model, dhn == 0.0)
+    append!(con(wm, n, :pipe_head_loss, a), [c_14])
+end
+
+# Loop over consequential points (i.e., those that have nonzero head loss).
+for flow_value in filter(x -> x > 0.0, partition_n)
+    # Add head loss outer (i.e., lower) approximations.
+    lhs_n = r * _calc_head_loss_oa(qn, 1.0 - y, flow_value, exponent)
+
+    if minimum(abs.(lhs_n.terms.vals)) >= 1.0e-4
+        scalar = _get_scaling_factor(vcat(lhs_n.terms.vals, [1.0 / L]))
+        c_15 = JuMP.@constraint(wm.model, scalar * lhs_n <= scalar * dhn / L)
+        append!(con(wm, n, :pipe_head_loss, a), [c_15])
+    end
+end
+
+for k in 2:length(partition_n)-1
+    # Add the adjacency constraints for piecewise variables.
+    c_16 = JuMP.@constraint(wm.model, lambda_n[a, k] <= x_n[a, k-1] + x_n[a, k])
+    append!(con(wm, n, :pipe_head_loss, a), [c_16])
+end
+end
 
 
 

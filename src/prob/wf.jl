@@ -124,7 +124,7 @@ end
 
 function build_mn_wf(wm::AbstractWaterModel)
     # Create head loss functions, if necessary.
-    _function_head_loss(wm)
+    # _function_head_loss(wm)
 
     # Get all network IDs in the multinetwork.
     network_ids = sort(collect(nw_ids(wm)))
@@ -134,7 +134,7 @@ function build_mn_wf(wm::AbstractWaterModel)
     else
         network_ids_inner = network_ids
     end
-    println("Running SCIP friendly (LP) version ******")
+    # println("Running SCIP friendly (LP) version ******")
     for n in network_ids_inner
         # Physical variables.
         variable_head(wm; nw=n)
@@ -170,8 +170,8 @@ function build_mn_wf(wm::AbstractWaterModel)
         for a in ids(wm, :pipe; nw=n)
             constraint_pipe_flow(wm, a; nw=n)
             constraint_pipe_head(wm, a; nw=n)
-            # constraint_pipe_head_loss(wm, a; nw=n)
-            constraint_pipe_head_loss_scip_lp(wm, a; nw=n)
+            constraint_pipe_head_loss(wm, a; nw=n)
+            # constraint_pipe_head_loss_scip_lp(wm, a; nw=n)
         end
         # Ensure design pipes are not present in the problem.
         @assert length(ids(wm, :des_pipe_arc; nw=n)) == 0

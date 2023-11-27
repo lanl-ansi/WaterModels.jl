@@ -343,13 +343,15 @@ function constraint_pipe_head_loss(
 )
     # Add constraints for positive flow and head difference.
     qp, dhp = var(wm, n, :qp_pipe, a), var(wm, n, :dhp_pipe, a)
-    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= dhp / L)
-    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) >= dhp / L)
+    head_loss_form = wm.ref[:it][wm_it_sym][:head_loss]
+    p = uppercase(head_loss_form) == "H-W" ? 1.852 : 2.0
+    c_1 = JuMP.@NLconstraint(wm.model, r * (qp^p) <= dhp / L)
+    c_2 = JuMP.@NLconstraint(wm.model, r * (qp^p) >= dhp / L)
 
     # Add constraints for negative flow and head difference.
     qn, dhn = var(wm, n, :qn_pipe, a), var(wm, n, :dhn_pipe, a)
-    c_3 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) <= dhn / L)
-    c_4 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) >= dhn / L)
+    c_3 = JuMP.@NLconstraint(wm.model, r * (qn^p) <= dhn / L)
+    c_4 = JuMP.@NLconstraint(wm.model, r * (qn^p) >= dhn / L)
 
     # Append the :pipe_head_loss constraint array.
     append!(con(wm, n, :pipe_head_loss)[a], [c_1, c_2, c_3, c_4])
