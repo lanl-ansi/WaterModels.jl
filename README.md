@@ -46,4 +46,4 @@ The primary developer is [Byron Tasseff](https://github.com/tasseff) with suppor
 - [Jonathan Stickel](https://github.com/jjstickel), National Renewable Energy Laboratory
 
 ## License
-This code is provided under a [modified BSD license](https://github.com/lanl-ansi/WaterModels.jl/blob/master/LICENSE.md) as part of the Multi-Infrastructure Control and Optimization Toolkit (MICOT), LA-CC-13-108.
+This code is provided under a [modified BSD license](https://github.com/lanl-ansi/WaterModels.jl/blob/master/LICENSE.md) as part of the Multi-Infrastructure Control and Optimization Toolkit (MICOT), C15024.
