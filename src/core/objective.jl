@@ -193,7 +193,7 @@ function objective_max_scaled_demand(wm::AbstractWaterModel)::JuMP.AffExpr
     # Initialize the objective expression to zero.
     objective = JuMP.AffExpr(0.0)
 
-    scale = 1.0
+    scale = 0.0
     for n in network_ids_flow
         # Get the set of dispatchable demands at time index `n`.
         dispatchable_demands = ref(wm, n, :dispatchable_demand)
@@ -204,6 +204,9 @@ function objective_max_scaled_demand(wm::AbstractWaterModel)::JuMP.AffExpr
             scale = max(scale,demand["flow_max"])
             JuMP.add_to_expression!(objective, var(wm, n, :q_demand, i))
         end
+    end
+    if(scale==0.0)
+        scale = 1.0
     end
     println("Using this scale for water objective $(scale)*****")
     # Maximize the total amount of prioritized water volume delivered.

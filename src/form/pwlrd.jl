@@ -43,7 +43,7 @@ function variable_flow(wm::AbstractPWLRDModel; nw::Int=nw_id_default, bounded::B
         # Create directed head difference (`dhp` and `dhn`) variables for each component.
         _variable_component_head_difference(wm, name; nw = nw, bounded = bounded, report = report)
     end
-    
+
     # Create variables involved in convex combination constraints for pumps.
     pump_partition = Dict{Int, Vector{Float64}}(a =>
         pump["flow_partition"] for (a, pump) in ref(wm, nw, :pump))
@@ -57,6 +57,20 @@ function variable_flow(wm::AbstractPWLRDModel; nw::Int=nw_id_default, bounded::B
         [a in ids(wm, nw, :pump), k in 1:length(pump_partition[a]) - 1],
         base_name = "$(nw)_x", binary = true,
         start = comp_start_value(ref(wm, nw, :pump, a), "x_start"))
+
+    # Create variables involved in convex combination constraints for expansion pumps.
+    pump_partition = Dict{Int, Vector{Float64}}(a =>
+        pump["flow_partition"] for (a, pump) in ref(wm, nw, :ne_pump))
+
+    var(wm, nw)[:lambda_ne_pump] = JuMP.@variable(wm.model,
+        [a in ids(wm, nw, :ne_pump), k in 1:length(pump_partition[a])],
+        base_name = "$(nw)_ne_lambda", lower_bound = 0.0, upper_bound = 1.0,
+        start = comp_start_value(ref(wm, nw, :ne_pump, a), "lambda_start", k))
+
+    var(wm, nw)[:x_con_ne_pump] = JuMP.@variable(wm.model,
+        [a in ids(wm, nw, :ne_pump), k in 1:length(pump_partition[a]) - 1],
+        base_name = "$(nw)_ne_x_con", binary = true,
+        start = comp_start_value(ref(wm, nw, :ne_pump, a), "x_con_ne_start"))
 
     # Create variables involved in convex combination constraints for pipes.
     pipe_partition_p = Dict{Int, Vector{Float64}}(a =>
@@ -110,7 +124,7 @@ function variable_flow(wm::AbstractPWLRDModel; nw::Int=nw_id_default, bounded::B
         [a in ids(wm, nw, :des_pipe), k in 1:length(des_pipe_partition_n[a])],
         base_name = "$(nw)_lambda_n", lower_bound = 0.0, upper_bound = 1.0,
         start = comp_start_value(ref(wm, nw, :des_pipe, a), "lambda_n_start", k))
-    
+
     var(wm, nw)[:x_n_des_pipe] = JuMP.@variable(wm.model,
         [a in ids(wm, nw, :des_pipe), k in 1:length(des_pipe_partition_n[a])-1],
         base_name = "$(nw)_x_n", binary = true,
@@ -205,7 +219,7 @@ function constraint_pipe_head_loss(
     for flow_value in filter(x -> x > 0.0, partition_p)
         # Add head loss outer (i.e., lower) approximations.
         lhs_p = r * _calc_head_loss_oa(qp, y, flow_value, exponent)
-        
+
         if minimum(abs.(lhs_p.terms.vals)) >= 1.0e-4
             scalar = _get_scaling_factor(vcat(lhs_p.terms.vals, [1.0 / L]))
             c_7 = JuMP.@constraint(wm.model, scalar * lhs_p <= scalar * dhp / L)
@@ -243,7 +257,7 @@ function constraint_pipe_head_loss(
         c_13 = JuMP.@constraint(wm.model, lambda_n[a, bn_range[end]] <= x_n[a, bn_range_m1[end]])
         append!(con(wm, n, :pipe_head_loss, a), [c_11, c_12, c_13])
     end
-    
+
     # Add a constraint that upper-bounds the head loss variable.
     if maximum(partition_n) != 0.0
         f_n = r .* partition_n.^exponent
@@ -412,7 +426,7 @@ function constraint_on_off_des_pipe_head_loss(
         lhs_n_2 = r * _calc_head_loss_oa(qn, z, flow_value, exponent)
         scalar = _get_scaling_factor(vcat(lhs_n_2.terms.vals, [1.0 / L]))
         c_17 = JuMP.@constraint(wm.model, scalar * lhs_n_2 <= scalar * dhn / L)
-        
+
         append!(con(wm, n, :on_off_des_pipe_head_loss, a), [c_16, c_17])
     end
 
@@ -428,7 +442,7 @@ function constraint_on_off_des_pipe_head_loss(
     c_19 = JuMP.@constraint(wm.model, x_p_sum + x_n_sum == z)
 
     lambda_p_sum = sum(lambda_p[a, k] for k in bp_range)
-    lambda_n_sum = sum(lambda_n[a, k] for k in bn_range) 
+    lambda_n_sum = sum(lambda_n[a, k] for k in bn_range)
     c_20 = JuMP.@constraint(wm.model, lambda_p_sum + lambda_n_sum == z)
     append!(con(wm, n, :on_off_des_pipe_head_loss, a), [c_19, c_20])
 end
@@ -523,6 +537,91 @@ end
 
 
 """
+    constraint_on_off_pump_head_gain(
+        wm::AbstractPWLRDModel,
+        n::Int,
+        a::Int,
+        node_fr::Int,
+        node_to::Int,
+        q_min_forward::Float64
+    )
+
+Adds constraints that model the pump's head gain, if operating, via outer
+and piecewise-linear inner approximations of the nonlinear function of flow
+rate. If the pump is inactive, the head gain is restricted to a value of zero.
+Here, `wm` is the WaterModels object, `n` is the subnetwork (or time) index
+that is considered, `a` is the index of the pump, `node_fr` is the index of the
+tail node of the pump, `node_to` is the index of the head node of the pump, and
+`q_min_forward` is the _minimum_ (positive) amount of flow when the pump is
+active. Head gain is assumed to be nonnegative and is directed from `node_fr`
+to `node_to`.
+"""
+function constraint_on_off_pump_head_gain_ne(
+    wm::AbstractPWLRDModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    q_min_forward::Float64
+)
+    # Gather pump flow, head gain, and status variables.
+    qp, g, z = var(wm, n, :qp_ne_pump, a), var(wm, n, :g_ne_pump, a), var(wm, n, :z_ne_pump, a)
+
+    # Gather convex combination variables.
+    lambda, x = var(wm, n, :lambda_ne_pump), var(wm, n, :x_con_ne_pump)
+
+    # Get the corresponding flow partitioning.
+    @assert haskey(ref(wm, n, :ne_pump, a), "flow_partition")
+    partition = ref(wm, n, :ne_pump, a, "flow_partition")
+    bp_range, bp_range_m1 = 1:length(partition), 1:length(partition)-1
+
+    # Add the required SOS constraints.
+    c_1 = JuMP.@constraint(wm.model, sum(lambda[a, k] for k in bp_range) == z)
+    c_2 = JuMP.@constraint(wm.model, sum(x[a, k] for k in bp_range_m1) == z)
+    c_3 = JuMP.@constraint(wm.model, lambda[a, 1] <= x[a, 1])
+    c_4 = JuMP.@constraint(wm.model, lambda[a, bp_range[end]] <= x[a, bp_range_m1[end]])
+
+    # Add a constraint for the flow piecewise approximation.
+    qp_lhs = sum(partition[k] * lambda[a, k] for k in bp_range)
+    scalar = _get_scaling_factor(vcat(qp_lhs.terms.vals, [1.0]))
+    c_5 = JuMP.@constraint(wm.model, scalar * qp_lhs == scalar * qp)
+
+    # Get pump head curve function and its derivative.
+    head_curve_function = ref(wm, n, :ne_pump, a, "head_curve_function")
+    head_curve_derivative = ref(wm, n, :ne_pump, a, "head_curve_derivative")
+
+    # Add a constraint that lower-bounds the head gain variable.
+    f_all = map(x -> x = x < 0.0 ? 0.0 : x, head_curve_function.(partition))
+    gain_lb_expr = sum(f_all[k] .* lambda[a, k] for k in bp_range)
+    scalar = _get_scaling_factor(vcat(gain_lb_expr.terms.vals, [1.0]))
+    c_6 = JuMP.@constraint(wm.model, scalar * gain_lb_expr <= scalar * g)
+
+    # Append the constraint array.
+    append!(con(wm, n, :on_off_pump_head_gain_ne, a), [c_1, c_2, c_3, c_4, c_5, c_6])
+
+    for flow_value in filter(q_val -> q_val > 0.0, partition)
+        # Add head gain outer (i.e., upper) approximations.
+        f = head_curve_function(flow_value)
+        df = head_curve_derivative(flow_value)
+
+        if abs(df) >= 1.0e-4 # Only add an outer-approximation if the derivative isn't too small.
+            f_rhs = f * z + df * (qp - flow_value * z)
+            scalar = _get_scaling_factor(vcat(f_rhs.terms.vals, [1.0]))
+            c = JuMP.@constraint(wm.model, scalar * g <= scalar * f_rhs)
+            append!(con(wm, n, :on_off_pump_head_gain_ne, a), [c])
+        end
+    end
+
+    for k in 2:length(partition)-1
+        # Add the adjacency constraints for piecewise variables.
+        adjacency = x[a, k-1] + x[a, k]
+        c = JuMP.@constraint(wm.model, lambda[a, k] <= adjacency)
+        append!(con(wm, n, :on_off_pump_head_gain_ne, a), [c])
+    end
+end
+
+
+"""
     constraint_on_off_pump_power(
         wm::AbstractPWLRDModel,
         n::Int,
@@ -538,35 +637,35 @@ WaterModels object, `n` is the subnetwork (or time) index that is considered,
 `a` is the index of the pump, and `q_min_forward` is the _minimum_ (positive)
 amount of flow when the pump is active.
 """
-function constraint_on_off_pump_power(
-    wm::AbstractPWLRDModel,
-    n::Int,
-    a::Int,
-    q_min_forward::Float64
-)
-    # Gather pump power and status variables.
-    P, lambda = var(wm, n, :P_pump, a), var(wm, n, :lambda_pump)
-
-    # Get the corresponding flow partitioning.
-    @assert haskey(ref(wm, n, :pump, a), "flow_partition")
-    partition = ref(wm, n, :pump, a, "flow_partition")
-    bp_range = 1:length(partition)
-    
-    # Add a constraint that lower-bounds the power variable.
-    if minimum(partition) == 0.0 && maximum(partition) == 0.0
-        c_1 = JuMP.@constraint(wm.model, P == 0.0)
-        append!(con(wm, n, :on_off_pump_power)[a], [c_1])
-    else
-        f_ua = _calc_pump_power_ua(wm, n, a, partition)
-        power_lb_expr = sum(f_ua[k] * lambda[a, k] for k in bp_range)
-        c_1 = JuMP.@constraint(wm.model, power_lb_expr <= P)
-
-        # Add a constraint that upper-bounds the power variable.
-        f_oa = _calc_pump_power_oa(wm, n, a, partition)
-        power_ub_expr = sum(f_oa[k] * lambda[a, k] for k in bp_range)
-        c_2 = JuMP.@constraint(wm.model, P <= power_ub_expr)
-
-        # Append the :on_off_pump_power constraint array.
-        append!(con(wm, n, :on_off_pump_power)[a], [c_1, c_2])
-    end
-end
+# function constraint_on_off_pump_power(
+#     wm::AbstractPWLRDModel,
+#     n::Int,
+#     a::Int,
+#     q_min_forward::Float64
+# )
+#     # Gather pump power and status variables.
+#     P, lambda = var(wm, n, :P_pump, a), var(wm, n, :lambda_pump)
+#
+#     # Get the corresponding flow partitioning.
+#     @assert haskey(ref(wm, n, :pump, a), "flow_partition")
+#     partition = ref(wm, n, :pump, a, "flow_partition")
+#     bp_range = 1:length(partition)
+#
+#     # Add a constraint that lower-bounds the power variable.
+#     if minimum(partition) == 0.0 && maximum(partition) == 0.0
+#         c_1 = JuMP.@constraint(wm.model, P == 0.0)
+#         append!(con(wm, n, :on_off_pump_power)[a], [c_1])
+#     else
+#         f_ua = _calc_pump_power_ua(wm, n, a, partition)
+#         power_lb_expr = sum(f_ua[k] * lambda[a, k] for k in bp_range)
+#         c_1 = JuMP.@constraint(wm.model, power_lb_expr <= P)
+#
+#         # Add a constraint that upper-bounds the power variable.
+#         f_oa = _calc_pump_power_oa(wm, n, a, partition)
+#         power_ub_expr = sum(f_oa[k] * lambda[a, k] for k in bp_range)
+#         c_2 = JuMP.@constraint(wm.model, P <= power_ub_expr)
+#
+#         # Append the :on_off_pump_power constraint array.
+#         append!(con(wm, n, :on_off_pump_power)[a], [c_1, c_2])
+#     end
+# end

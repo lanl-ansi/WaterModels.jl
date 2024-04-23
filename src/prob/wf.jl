@@ -71,6 +71,7 @@ function build_wf(wm::AbstractWaterModel)
         constraint_on_off_pump_head(wm, a)
         constraint_on_off_pump_head_gain(wm, a)
         constraint_on_off_pump_flow(wm, a)
+        # println("*******Disabling pump power constraint*****************")
         constraint_on_off_pump_power(wm, a)
     end
 
@@ -160,6 +161,13 @@ function build_mn_wf(wm::AbstractWaterModel)
         variable_reservoir_flow(wm; nw=n)
         variable_tank_flow(wm; nw=n)
 
+        #
+        if(haskey(wm.ref[:it][wm_it_sym],:sol_from_relaxation))
+            sol_from_relaxation = wm.ref[:it][wm_it_sym][:sol_from_relaxation]
+            println("Fixing Binary Values from relaxed solution")
+            fix_variables_to_relaxed_solutions(wm, sol_from_relaxation; nw=n, continuous_fixing = false)
+        end
+
         # Flow conservation at all nodes.
         for i in ids(wm, :node; nw=n)
             constraint_flow_conservation(wm, i; nw=n)
@@ -227,6 +235,7 @@ function build_mn_wf(wm::AbstractWaterModel)
             constraint_on_off_valve_head(wm, a; nw=n)
             constraint_on_off_valve_flow(wm, a; nw=n)
         end
+
     end
 
     # Start with the first network, representing the initial time step.
@@ -268,6 +277,7 @@ function build_mn_wf(wm::AbstractWaterModel)
         end
     end
 
+    # println(wm.model)
     # Add the objective.
     objective_wf(wm)
 end

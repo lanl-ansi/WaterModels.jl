@@ -99,6 +99,7 @@ include("util/variable_index.jl")
 include("util/bound_problem.jl")
 include("util/pairwise_cuts.jl")
 include("util/obbt.jl")
+include("util/fixing_variables.jl")
 
 # Deprecated functions.
 include("deprecated.jl")

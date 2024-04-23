@@ -738,7 +738,6 @@ function constraint_on_off_pump_power(
 
     # Add constraint equating power with respect to the power curve.
     power_la = _calc_pump_power_linear_coeff(wm, n, z)
-        println("power_la = $power_la")
     # power_la = _calc_pump_power_quadratic_approximation(wm, n, a, z)
     c_1 = JuMP.@constraint(wm.model, power_la(q) <= P)
     c_2 = JuMP.@constraint(wm.model, power_la(q) >= P)
@@ -904,6 +903,7 @@ function constraint_short_pipe_flow_ne(
     q_max_reverse::Float64,
     q_min_forward::Float64,
 )
+# println("Using NCD ******* short pipe *********")
     # Get expansion short pipe flow, direction, and status variables.
     qp, qn = var(wm, n, :qp_ne_short_pipe, a), var(wm, n, :qn_ne_short_pipe, a)
     y, z = var(wm, n, :y_ne_short_pipe, a), var(wm, n, :z_ne_short_pipe, a)
