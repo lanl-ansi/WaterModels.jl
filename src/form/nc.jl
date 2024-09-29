@@ -608,42 +608,48 @@ subnetwork (or time) index that is considered, `a` is the index of the pump,
 and `q_min_forward` is the _minimum_ (positive) amount of flow when the pump is
 active. Note that only a quadratic approximation is used for `AbstractNCModel`.
 """
-# function constraint_on_off_pump_power(
-#     wm::AbstractNCModel,
-#     n::Int,
-#     a::Int,
-#     q_min_forward::Float64,
-# )
-#     # Gather pump flow, scaled power, and status variables.
-#     q, P, z = var(wm, n, :q_pump, a), var(wm, n, :P_pump, a), var(wm, n, :z_pump, a)
-#
-#     # Add constraint equating power with respect to the power curve.
-#     power_qa = _calc_pump_power_quadratic_approximation(wm, n, a, z)
-#     c_1 = JuMP.@constraint(wm.model, power_qa(q) <= P)
-#     c_2 = JuMP.@constraint(wm.model, power_qa(q) >= P)
-#
-#     # Append the :on_off_pump_power constraint array.
-#     append!(con(wm, n, :on_off_pump_power)[a], [c_1, c_2])
-# end
-#
-#
-# function constraint_on_off_pump_power_ne(
-#     wm::AbstractNCModel,
-#     n::Int,
-#     a::Int,
-#     q_min_forward::Float64,
-# )
-#     # Gather pump flow, scaled power, and status variables.
-#     q, P, z = var(wm, n, :q_ne_pump, a), var(wm, n, :P_ne_pump, a), var(wm, n, :z_ne_pump, a)
-#
-#     # Add constraint equating power with respect to the power curve.
-#     power_qa = _calc_pump_power_quadratic_approximation_ne(wm, n, a, z)
-#     c_1 = JuMP.@constraint(wm.model, power_qa(q) <= P)
-#     c_2 = JuMP.@constraint(wm.model, power_qa(q) >= P)
-#
-#     # Append the :on_off_pump_power constraint array.
-#     append!(con(wm, n, :on_off_pump_power_ne)[a], [c_1, c_2])
-# end
+function constraint_on_off_pump_power(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    q_min_forward::Float64,
+)
+        # Gather pump flow, power, and status variables.
+        q = var(wm, n, :q_pump, a)
+        P = var(wm, n, :P_pump, a)
+        z = var(wm, n, :z_pump, a)
+    
+        # Add constraint equating power with respect to the power curve.
+        power_la = _calc_pump_power_linear_coeff(wm, n, z)
+        # power_la = _calc_pump_power_quadratic_approximation(wm, n, a, z)
+        c_1 = JuMP.@constraint(wm.model, power_la(q) <= P)
+        c_2 = JuMP.@constraint(wm.model, power_la(q) >= P)
+    
+        # Append the :on_off_pump_power constraint array.
+        append!(con(wm, n, :on_off_pump_power)[a], [c_1, c_2])
+end
+
+
+function constraint_on_off_pump_power_ne(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    q_min_forward::Float64,
+)
+     # Gather pump flow, power, and status variables.
+     q = var(wm, n, :q_ne_pump, a)
+     P = var(wm, n, :P_ne_pump, a)
+     z = var(wm, n, :z_ne_pump, a)
+ 
+     # Add constraint equating power with respect to the power curve.
+     # power_la = _calc_pump_power_quadratic_approximation_ne(wm, n, a, z)
+     power_la = _calc_pump_power_linear_coeff(wm, n, z)
+     c_1 = JuMP.@constraint(wm.model, power_la(q) <= P)
+     c_2 = JuMP.@constraint(wm.model, power_la(q) >= P)
+ 
+     # Append the :on_off_pump_power constraint array.
+     append!(con(wm, n, :on_off_pump_power_ne)[a], [c_1, c_2])
+end
 
 
 """

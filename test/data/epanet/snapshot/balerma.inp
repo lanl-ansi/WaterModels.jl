@@ -3,9 +3,9 @@ Balerma Network
 
 [JUNCTIONS]
 ;ID              	Elev        	Demand      	Pattern         
- 179001          	60.0000     	5.550000    	                	;
- 179             	60.0000     	5.550000    	                	;
- 177             	58.9000     	5.550000    	                	;
+ 179001          	60.0000     	5.550000    	;
+ 179             	60.0000     	5.550000    	sk_dem            	;
+ 177             	58.9000     	5.550000    	sk_dem            	;
  174             	60.0000     	5.550000    	                	;
  173             	59.3000     	5.550000    	                	;
  171001          	60.0000     	5.550000    	                	;
@@ -19,7 +19,7 @@ Balerma Network
  163             	55.2000     	5.550000    	                	;
  164             	57.8000     	5.550000    	                	;
  162             	55.2000     	5.550000    	                	;
- 161             	55.0000     	5.550000    	                	;
+ 161             	55.0000     	5.550000    	  sk_dem              	;
  106             	54.0000     	5.550000    	                	;
  124             	52.2000     	5.550000    	                	;
  125             	51.1000     	5.550000    	                	;
@@ -930,6 +930,7 @@ Balerma Network
 
 [PATTERNS]
 ;ID              	Multipliers
+sk_dem          1 1 1 1 1 1
 
 [CURVES]
 ;ID              	X-Value     	Y-Value
@@ -973,7 +974,7 @@ Balerma Network
 ;Tank            	Model
 
 [TIMES]
- Duration           	0:00 
+ Duration           	6:00 
  Hydraulic Timestep 	1:00 
  Quality Timestep   	0:06 
  Pattern Timestep   	1:00 

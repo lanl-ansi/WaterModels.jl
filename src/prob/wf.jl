@@ -164,8 +164,10 @@ function build_mn_wf(wm::AbstractWaterModel)
         #
         if(haskey(wm.ref[:it][wm_it_sym],:sol_from_relaxation))
             sol_from_relaxation = wm.ref[:it][wm_it_sym][:sol_from_relaxation]
-            println("Fixing Binary Values from relaxed solution")
-            fix_variables_to_relaxed_solutions(wm, sol_from_relaxation; nw=n, continuous_fixing = false)
+            if(n == 1)
+                println("Fixing Binary Values from relaxed solution ----------------------------")
+            end
+            fix_variables_to_relaxed_solutions(wm, sol_from_relaxation; nw=n)
         end
 
         # Flow conservation at all nodes.
