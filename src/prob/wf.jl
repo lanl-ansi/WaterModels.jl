@@ -15,7 +15,7 @@ end
 
 function build_wf(wm::AbstractWaterModel)
     # Create head loss functions, if necessary.
-    _function_head_loss(wm)
+    # _function_head_loss(wm)
 
     # Physical variables.
     variable_head(wm)
@@ -144,7 +144,6 @@ function build_mn_wf(wm::AbstractWaterModel)
         variable_ne_pump_head_gain(wm; nw=n)
         variable_pump_power(wm; nw=n)
         variable_ne_pump_power(wm;nw=n)
-
 
 
         # Indicator (status) variables.

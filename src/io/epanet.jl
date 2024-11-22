@@ -900,7 +900,6 @@ function _add_node_map!(data::Dict{String,<:Any})
         map = Dict{String,Int}(x["name"] => x["node"] for (i, x) in data[type])
         data["node_map"] = merge(data["node_map"], map)
     end
-
     # Ensure the number of node-type components is equal to the number of nodes.
     num_components = sum(length(data[type]) for type in ["demand", "reservoir", "tank"])
 
@@ -1397,7 +1396,7 @@ function _read_ne_tank!(data::Dict{String,<:Any})
     data["ne_tank"] = Dict{String,Dict{String,Any}}()
 
     # Initialize a temporary index to be updated while parsing.
-    index::Int = 0
+    index::Int = length(data["tank"])
 
     # Loop over all lines in the [TANKS] section and parse each.
     for (line_number, line) in data["section"]["[NE_TANKS]"]
