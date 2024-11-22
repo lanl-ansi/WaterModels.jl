@@ -15,20 +15,24 @@ end
 
 function build_wf(wm::AbstractWaterModel)
     # Create head loss functions, if necessary.
-    _function_head_loss(wm)
+    # _function_head_loss(wm)
 
     # Physical variables.
     variable_head(wm)
     variable_flow(wm)
     variable_pump_head_gain(wm)
+    variable_ne_pump_head_gain(wm)
     variable_pump_power(wm)
+    variable_ne_pump_power(wm)
 
     # Indicator (status) variables.
     variable_des_pipe_indicator(wm)
     variable_pump_indicator(wm)
+    variable_ne_pump_indicator(wm)
     variable_regulator_indicator(wm)
     variable_valve_indicator(wm)
     variable_ne_short_pipe_indicator(wm)
+    variable_ne_pump_build(wm)
 
     # Create flow-related variables for node attachments.
     variable_demand_flow(wm)
@@ -67,6 +71,7 @@ function build_wf(wm::AbstractWaterModel)
         constraint_on_off_pump_head(wm, a)
         constraint_on_off_pump_head_gain(wm, a)
         constraint_on_off_pump_flow(wm, a)
+        # println("*******Disabling pump power constraint*****************")
         constraint_on_off_pump_power(wm, a)
     end
 
@@ -76,6 +81,7 @@ function build_wf(wm::AbstractWaterModel)
         constraint_on_off_pump_head_gain_ne(wm, a)
         constraint_on_off_pump_flow_ne(wm, a)
         constraint_on_off_pump_power_ne(wm, a)
+        constraint_on_off_pump_build_ne(wm, a)
     end
 
     for (k, pump_group) in ref(wm, :pump_group)
@@ -119,7 +125,7 @@ end
 
 function build_mn_wf(wm::AbstractWaterModel)
     # Create head loss functions, if necessary.
-    _function_head_loss(wm)
+    # _function_head_loss(wm)
 
     # Get all network IDs in the multinetwork.
     network_ids = sort(collect(nw_ids(wm)))
@@ -129,7 +135,7 @@ function build_mn_wf(wm::AbstractWaterModel)
     else
         network_ids_inner = network_ids
     end
-
+    # println("Running SCIP friendly (LP) version ******")
     for n in network_ids_inner
         # Physical variables.
         variable_head(wm; nw=n)
@@ -138,7 +144,6 @@ function build_mn_wf(wm::AbstractWaterModel)
         variable_ne_pump_head_gain(wm; nw=n)
         variable_pump_power(wm; nw=n)
         variable_ne_pump_power(wm;nw=n)
-
 
 
         # Indicator (status) variables.
@@ -155,6 +160,15 @@ function build_mn_wf(wm::AbstractWaterModel)
         variable_reservoir_flow(wm; nw=n)
         variable_tank_flow(wm; nw=n)
 
+        #
+        if(haskey(wm.ref[:it][wm_it_sym],:sol_from_relaxation))
+            sol_from_relaxation = wm.ref[:it][wm_it_sym][:sol_from_relaxation]
+            if(n == 1)
+                println("Fixing Binary Values from relaxed solution ----------------------------")
+            end
+            fix_variables_to_relaxed_solutions(wm, sol_from_relaxation; nw=n)
+        end
+
         # Flow conservation at all nodes.
         for i in ids(wm, :node; nw=n)
             constraint_flow_conservation(wm, i; nw=n)
@@ -166,8 +180,8 @@ function build_mn_wf(wm::AbstractWaterModel)
             constraint_pipe_flow(wm, a; nw=n)
             constraint_pipe_head(wm, a; nw=n)
             constraint_pipe_head_loss(wm, a; nw=n)
+            # constraint_pipe_head_loss_scip_lp(wm, a; nw=n)
         end
-
         # Ensure design pipes are not present in the problem.
         @assert length(ids(wm, :des_pipe_arc; nw=n)) == 0
         @assert length(ids(wm, :des_pipe; nw=n)) == 0
@@ -222,12 +236,12 @@ function build_mn_wf(wm::AbstractWaterModel)
             constraint_on_off_valve_head(wm, a; nw=n)
             constraint_on_off_valve_flow(wm, a; nw=n)
         end
+
     end
 
     # Start with the first network, representing the initial time step.
     n_1 = network_ids[1]
 
-    # Constraints on tank volumes.
     for i in ids(wm, :tank; nw = n_1)
         # Set initial conditions of tanks.
         constraint_tank_volume(wm, i; nw = n_1)
@@ -264,6 +278,7 @@ function build_mn_wf(wm::AbstractWaterModel)
         end
     end
 
+    # println(wm.model)
     # Add the objective.
     objective_wf(wm)
 end

@@ -72,17 +72,19 @@ function _check_connectivity(data::Dict{String,<:Any})
     end
 
     for comp_type in _LINK_COMPONENTS
-        for (i, comp) in data[comp_type]
-            if !(comp["node_fr"] in node_ids)
-                error_message = "From node $(comp["node_fr"]) in "
-                error_message *= "$(replace(comp_type, "_" => " ")) $(i) is not defined."
-                Memento.error(_LOGGER, error_message)
-            end
+        if(haskey(data,comp_type))
+            for (i, comp) in data[comp_type]
+                if !(comp["node_fr"] in node_ids)
+                    error_message = "From node $(comp["node_fr"]) in "
+                    error_message *= "$(replace(comp_type, "_" => " ")) $(i) is not defined."
+                    Memento.error(_LOGGER, error_message)
+                end
 
-            if !(comp["node_to"] in node_ids)
-                error_message = "To node $(comp["node_to"]) in "
-                error_message *= "$(replace(comp_type, "_" => " ")) $(i) is not defined."
-                Memento.error(_LOGGER, error_message)
+                if !(comp["node_to"] in node_ids)
+                    error_message = "To node $(comp["node_to"]) in "
+                    error_message *= "$(replace(comp_type, "_" => " ")) $(i) is not defined."
+                    Memento.error(_LOGGER, error_message)
+                end
             end
         end
     end
@@ -112,17 +114,19 @@ function _check_status(data::Dict{String,<:Any})
     end
 
     for comp_type in _LINK_COMPONENTS
-        for (i, comp) in data[comp_type]
-            if comp["status"] != STATUS_INACTIVE && !(comp["node_fr"] in active_node_ids)
-                warning_message = "Active $(comp_type) $(i) is connected to inactive "
-                warning_message *= "from node $(comp["node_fr"])."
-                Memento.warn(_LOGGER, warning_message)
-            end
+        if(haskey(data,comp_type))
+            for (i, comp) in data[comp_type]
+                if comp["status"] != STATUS_INACTIVE && !(comp["node_fr"] in active_node_ids)
+                    warning_message = "Active $(comp_type) $(i) is connected to inactive "
+                    warning_message *= "from node $(comp["node_fr"])."
+                    Memento.warn(_LOGGER, warning_message)
+                end
 
-            if comp["status"] != STATUS_INACTIVE && !(comp["node_to"] in active_node_ids)
-                warning_message = "Active $(comp_type) $(i) is connected to inactive "
-                warning_message *= "to node $(comp["node_to"])."
-                Memento.warn(_LOGGER, warning_message)
+                if comp["status"] != STATUS_INACTIVE && !(comp["node_to"] in active_node_ids)
+                    warning_message = "Active $(comp_type) $(i) is connected to inactive "
+                    warning_message *= "to node $(comp["node_to"])."
+                    Memento.warn(_LOGGER, warning_message)
+                end
             end
         end
     end
@@ -505,6 +509,14 @@ function _calc_head_max(data::Dict{String, <:Any})
     end
 
     for (i, pump) in wm_data["pump"]
+        # Consider possible pump head gains in computation of head_max.
+        node_fr = wm_data["node"][string(pump["node_fr"])]
+        node_to = wm_data["node"][string(pump["node_to"])]
+        head_gain = _calc_pump_head_gain_max(pump, node_fr, node_to)
+        head_max = max(head_max, node_to["elevation"] + head_gain)
+    end
+
+    for (i, pump) in wm_data["ne_pump"]
         # Consider possible pump head gains in computation of head_max.
         node_fr = wm_data["node"][string(pump["node_fr"])]
         node_to = wm_data["node"][string(pump["node_to"])]
@@ -1023,7 +1035,7 @@ end
 
 function _apply_pipe_unit_transform!(data::Dict{String,<:Any}, transform_length::Function, head_loss::String)
     wm_data = get_wm_data(data)
-    
+
     if !haskey(wm_data, "pipe")
         return
     end
@@ -1139,6 +1151,78 @@ function _apply_pump_unit_transform!(
     end
 end
 
+function _apply_ne_pump_unit_transform!(
+    data::Dict{String,<:Any}, transform_mass::Function, transform_flow::Function,
+    transform_length::Function, transform_time::Function)
+    wm_data = get_wm_data(data)
+
+    if !haskey(wm_data, "ne_pump")
+        return
+    end
+
+    power_scalar = transform_mass(1.0) * transform_length(1.0)^2 / transform_time(1.0)^3
+    energy_scalar = transform_mass(1.0) * transform_length(1.0)^2 / transform_time(1.0)^2
+
+    for (_, ne_pump) in wm_data["ne_pump"]
+        if haskey(ne_pump, "head_curve")
+            ne_pump["head_curve"] = [(transform_flow(x[1]), x[2]) for x in ne_pump["head_curve"]]
+            ne_pump["head_curve"] = [(x[1], transform_length(x[2])) for x in ne_pump["head_curve"]]
+        end
+
+        if haskey(ne_pump, "efficiency_curve")
+            ne_pump["efficiency_curve"] = [(transform_flow(x[1]), x[2]) for x in ne_pump["efficiency_curve"]]
+        end
+
+        if haskey(ne_pump, "energy_price")
+            ne_pump["energy_price"] /= energy_scalar
+        end
+
+        if haskey(ne_pump, "E")
+            ne_pump["E"] *= energy_scalar
+        end
+
+        if haskey(ne_pump, "power_fixed")
+            ne_pump["power_fixed"] *= power_scalar
+        end
+
+        if haskey(ne_pump, "P")
+            ne_pump["P"] *= power_scalar
+        end
+
+        if haskey(ne_pump, "c")
+            ne_pump["c"] *= energy_scalar
+        end
+
+        if haskey(ne_pump, "min_inactive_time")
+            ne_pump["min_inactive_time"] = transform_time(ne_pump["min_inactive_time"])
+        end
+
+        if haskey(ne_pump, "min_active_time")
+            ne_pump["min_active_time"] = transform_time(ne_pump["min_active_time"])
+        end
+
+        if haskey(ne_pump, "power_per_unit_flow")
+            ne_pump["power_per_unit_flow"] *= power_scalar / transform_flow(1.0)
+        end
+    end
+
+    if haskey(wm_data, "time_series") && haskey(wm_data["time_series"], "ne_pump")
+        for ne_pump in values(wm_data["time_series"]["ne_pump"])
+            if haskey(ne_pump, "energy_price")
+                ne_pump["energy_price"] ./= energy_scalar
+            end
+
+            if haskey(ne_pump, "power_fixed")
+                ne_pump["power_fixed"] .*= power_scalar
+            end
+
+            if haskey(ne_pump, "power_per_unit_flow")
+                ne_pump["power_per_unit_flow"] .*= power_scalar / transform_flow(1.0)
+            end
+        end
+    end
+end
+
 
 function _apply_regulator_unit_transform!(data::Dict{String,<:Any}, transform_head::Function, transform_length::Function)
     wm_data = get_wm_data(data)
@@ -1169,7 +1253,7 @@ function _calc_scaled_gravity(data::Dict{String, <:Any})
 
     if wm_data["per_unit"]
         base_time = 1.0 / _calc_time_per_unit_transform(wm_data)(1.0)
-        base_length = 1.0 / _calc_length_per_unit_transform(wm_data)(1.0) 
+        base_length = 1.0 / _calc_length_per_unit_transform(wm_data)(1.0)
         return _calc_scaled_gravity(base_length, base_time)
     else
         return _GRAVITY
@@ -1367,6 +1451,8 @@ function _transform_nw!(
     _apply_pipe_unit_transform!(wm_nw_data, length_transform, head_loss)
     _apply_des_pipe_unit_transform!(wm_nw_data, length_transform, head_loss)
     _apply_pump_unit_transform!(wm_nw_data, mass_transform,
+        flow_transform, length_transform, time_transform)
+    _apply_ne_pump_unit_transform!(wm_nw_data, mass_transform,
         flow_transform, length_transform, time_transform)
     _apply_regulator_unit_transform!(wm_nw_data, head_transform, length_transform)
 

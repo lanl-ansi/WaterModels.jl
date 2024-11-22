@@ -343,13 +343,15 @@ function constraint_pipe_head_loss(
 )
     # Add constraints for positive flow and head difference.
     qp, dhp = var(wm, n, :qp_pipe, a), var(wm, n, :dhp_pipe, a)
-    c_1 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) <= dhp / L)
-    c_2 = JuMP.@NLconstraint(wm.model, r * head_loss(qp) >= dhp / L)
+    head_loss_form = wm.ref[:it][wm_it_sym][:head_loss]
+    p = uppercase(head_loss_form) == "H-W" ? 1.852 : 2.0
+    c_1 = JuMP.@NLconstraint(wm.model, r * (qp^p) <= dhp / L)
+    c_2 = JuMP.@NLconstraint(wm.model, r * (qp^p) >= dhp / L)
 
     # Add constraints for negative flow and head difference.
     qn, dhn = var(wm, n, :qn_pipe, a), var(wm, n, :dhn_pipe, a)
-    c_3 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) <= dhn / L)
-    c_4 = JuMP.@NLconstraint(wm.model, r * head_loss(qn) >= dhn / L)
+    c_3 = JuMP.@NLconstraint(wm.model, r * (qn^p) <= dhn / L)
+    c_4 = JuMP.@NLconstraint(wm.model, r * (qn^p) >= dhn / L)
 
     # Append the :pipe_head_loss constraint array.
     append!(con(wm, n, :pipe_head_loss)[a], [c_1, c_2, c_3, c_4])
@@ -735,9 +737,10 @@ function constraint_on_off_pump_power(
     z = var(wm, n, :z_pump, a)
 
     # Add constraint equating power with respect to the power curve.
-    power_qa = _calc_pump_power_quadratic_approximation(wm, n, a, z)
-    c_1 = JuMP.@constraint(wm.model, power_qa(q) <= P)
-    c_2 = JuMP.@constraint(wm.model, power_qa(q) >= P)
+    power_la = _calc_pump_power_linear_coeff(wm, n, z)
+    # power_la = _calc_pump_power_quadratic_approximation(wm, n, a, z)
+    c_1 = JuMP.@constraint(wm.model, power_la(q) <= P)
+    c_2 = JuMP.@constraint(wm.model, power_la(q) >= P)
 
     # Append the :on_off_pump_power constraint array.
     append!(con(wm, n, :on_off_pump_power)[a], [c_1, c_2])
@@ -756,9 +759,10 @@ function constraint_on_off_pump_power_ne(
     z = var(wm, n, :z_ne_pump, a)
 
     # Add constraint equating power with respect to the power curve.
-    power_qa = _calc_pump_power_quadratic_approximation_ne(wm, n, a, z)
-    c_1 = JuMP.@constraint(wm.model, power_qa(q) <= P)
-    c_2 = JuMP.@constraint(wm.model, power_qa(q) >= P)
+    # power_la = _calc_pump_power_quadratic_approximation_ne(wm, n, a, z)
+    power_la = _calc_pump_power_linear_coeff(wm, n, z)
+    c_1 = JuMP.@constraint(wm.model, power_la(q) <= P)
+    c_2 = JuMP.@constraint(wm.model, power_la(q) >= P)
 
     # Append the :on_off_pump_power constraint array.
     append!(con(wm, n, :on_off_pump_power_ne)[a], [c_1, c_2])
@@ -899,6 +903,7 @@ function constraint_short_pipe_flow_ne(
     q_max_reverse::Float64,
     q_min_forward::Float64,
 )
+# println("Using NCD ******* short pipe *********")
     # Get expansion short pipe flow, direction, and status variables.
     qp, qn = var(wm, n, :qp_ne_short_pipe, a), var(wm, n, :qn_ne_short_pipe, a)
     y, z = var(wm, n, :y_ne_short_pipe, a), var(wm, n, :z_ne_short_pipe, a)

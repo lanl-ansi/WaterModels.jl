@@ -86,6 +86,7 @@ include("form/crd.jl")
 include("form/la.jl")
 include("form/pwlrd.jl")
 include("form/lrd.jl")
+include("form/scip_constraints_variables.jl")
 
 include("prob/wf.jl")
 include("prob/owf.jl")
@@ -98,6 +99,7 @@ include("util/variable_index.jl")
 include("util/bound_problem.jl")
 include("util/pairwise_cuts.jl")
 include("util/obbt.jl")
+include("util/fixing_variables.jl")
 
 # Deprecated functions.
 include("deprecated.jl")
