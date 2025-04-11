@@ -4,6 +4,11 @@ WaterModels.jl Change Log
 ### Staged
 - nothing
 
+### v0.9.4
+- Update to the new nonlinear interface of JuMP (#155)
+- Various updates to GitHub action workflows and project compat (#158), (#165), (#167)
+- Fix use of Threads.nthreads and Threads.threadid (#164)
+
 ### v0.9.3
 - Add a `make_si_units!` function for transforming network data.
 - Correct per-unit transformations that were not previously being made.
