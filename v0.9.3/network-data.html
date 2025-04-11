@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Network Data Format · WaterModels</title><script async src="https://www.googletagmanager.com/gtag/js?id=UA-367975-10"></script><script>  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-367975-10', {'page_path': location.pathname + location.search + location.hash});
+</script><script data-outdated-warner src="assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="index.html"><img src="assets/logo.svg" alt="WaterModels logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="index.html">WaterModels</a></span></div><form class="docs-search" action="search.html"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="index.html">Home</a></li><li><span class="tocitem">Manual</span><ul><li><a class="tocitem" href="quickguide.html">Getting Started</a></li><li class="is-active"><a class="tocitem" href="network-data.html">Network Data Format</a><ul class="internal"><li><a class="tocitem" href="#The-Network-Data-Dictionary"><span>The Network Data Dictionary</span></a></li><li><a class="tocitem" href="#Multinetwork-(Time-Series)-Data"><span>Multinetwork (Time Series) Data</span></a></li></ul></li><li><a class="tocitem" href="result-data.html">Result Data Format</a></li><li><a class="tocitem" href="math-model.html">Mathematical Models</a></li></ul></li><li><span class="tocitem">Library</span><ul><li><a class="tocitem" href="formulations.html">Network Formulations</a></li><li><a class="tocitem" href="specifications.html">Problem Specifications</a></li><li><input class="collapse-toggle" id="menuitem-3-3" type="checkbox"/><label class="tocitem" for="menuitem-3-3"><span class="docs-label">Modeling Components</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="objective.html">Objective</a></li><li><a class="tocitem" href="variables.html">Variables</a></li><li><a class="tocitem" href="constraints.html">Constraints</a></li></ul></li><li><a class="tocitem" href="parser.html">File I/O</a></li></ul></li><li><a class="tocitem" href="developer.html">Developer</a></li><li><a class="tocitem" href="examples.html">Examples</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Manual</a></li><li class="is-active"><a href="network-data.html">Network Data Format</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href="network-data.html">Network Data Format</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/lanl-ansi/WaterModels.jl/blob/master/docs/src/network-data.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="WaterModels-Network-Data-Format"><a class="docs-heading-anchor" href="#WaterModels-Network-Data-Format">WaterModels Network Data Format</a><a id="WaterModels-Network-Data-Format-1"></a><a class="docs-heading-anchor-permalink" href="#WaterModels-Network-Data-Format" title="Permalink"></a></h1><h2 id="The-Network-Data-Dictionary"><a class="docs-heading-anchor" href="#The-Network-Data-Dictionary">The Network Data Dictionary</a><a id="The-Network-Data-Dictionary-1"></a><a class="docs-heading-anchor-permalink" href="#The-Network-Data-Dictionary" title="Permalink"></a></h2><p>Internally, WaterModels uses a dictionary to store network data. The dictionary uses strings as key values so it can be serialized to JSON for algorithmic data exchange. When used, the data is assumed to be in per-unit (non-dimenisionalized) or SI units. The network data dictionary structure is organized as follows:</p><pre><code class="language-json hljs">{
+    &quot;name&quot;: &lt;string&gt;,       # Name for the network model.
+    &quot;multinetwork&quot;: &lt;bool&gt;  # Whether or not the network data describes a multinetwork (e.g., a time series of networks).
+    &quot;per_unit&quot;: &lt;bool&gt;,     # Whether the data is in per-unit (non-dimensionalized) or SI units.
+    &quot;base_flow&quot;: &lt;float&gt;,   # Base for non-dimensionalizing volumetric flow rate. SI units are cubic meters per second.
+    &quot;base_head&quot;: &lt;float&gt;,   # Base for non-dimensionalizing total hydraulic head head. SI units are meters.
+    &quot;base_length&quot;: &lt;float&gt;, # Base for non-dimensionalizing length. SI units are meters.
+    &quot;base_mass&quot;: &lt;float&gt;,   # Base for non-dimensionalizing mass. SI units are kilograms.
+    &quot;base_time&quot;: &lt;float&gt;,   # Base for non-dimensionalizing time. SI units are seconds.
+    &quot;head_loss&quot;: &lt;string&gt;,  # Pipe head loss form. Can be &quot;H-W&quot; for Hazen-Williams or &quot;D-W&quot; for Darcy-Weisbach.
+    &quot;time_step&quot;: &lt;float&gt;,   # Time step of network data. In per-unit (non-dimensionalized) or SI units.
+    &quot;viscosity&quot;: &lt;string&gt;,  # Viscosity of water in the system. In per-unit (non-dimensionalized) or SI units.
+    &quot;node&quot;: {
+        &quot;1&quot;: {
+            &quot;index&quot;: &lt;int&gt;,           # Index of the node, which should correspond to the key.
+            &quot;name&quot;: &lt;string&gt;,         # Name of the node, which may or may not correspond to the index.
+            &quot;source_id&quot;: &lt;tuple&gt;,     # Pair (e.g., [&quot;reservoir&quot;, &quot;1&quot;]) describing where the node appears in the source file.
+            &quot;status&quot;: &lt;int&gt;,          # Status of the node (-1 = unknown, 0 = inactive, 1 = active).
+            &quot;elevation&quot;: &lt;float&gt;,     # Elevation of the node above some predefined datum. SI units are meters.
+            &quot;head_min&quot;: &lt;float&gt;,      # Minimum total hydraulic head of the node. SI units are meters.
+            &quot;head_max&quot;: &lt;float&gt;,      # Maximum total hydraulic head of the node. SI units are meters.
+            &quot;head_nominal&quot;: &lt;float&gt;,  # Nominal total hydraulic head of the node. SI units are meters.
+            &quot;coordinates&quot;: &lt;tuple&gt;    # Pair of coordinates (e.g., [-1.0, 1.0]) defining the graphical location of the node.
+        },
+        &quot;2&quot;: {
+            ...
+        },
+        ...
+    },
+    &quot;demand&quot;: {
+        &quot;1&quot;: {
+            &quot;index&quot;: &lt;int&gt;,          # Index of the demand, which should correspond to the key.
+            &quot;node&quot;: &lt;int&gt;,           # Index of the node to which the demand is attached.
+            &quot;name&quot;: &lt;string&gt;,        # Name of the demand, which may or may not correspond to the index.
+            &quot;source_id&quot;: &lt;tuple&gt;,    # Pair (e.g., [&quot;demand&quot;, &quot;1&quot;]) describing where the demand appears in the source file.
+            &quot;status&quot;: &lt;int&gt;,         # Status of the demand (-1 = unknown, 0 = inactive, 1 = active).
+            &quot;dispatchable&quot;: &lt;bool&gt;,  # Whether or not the demand can fluctuate (true) or if it is fixed (false).
+            &quot;flow_min&quot;: &lt;float&gt;,     # Minimum volumetric flow rate demanded. SI units are cubic meters per second.
+            &quot;flow_max&quot;: &lt;float&gt;,     # Maximum volumetric flow rate demanded. SI units are cubic meters per second.
+            &quot;flow_nominal&quot;: &lt;float&gt;  # Nominal volumetric flow rate demanded. SI units are cubic meters per second.
+        },
+        &quot;2&quot;: {
+            ...
+        },
+        ...
+    },
+    &quot;reservoir&quot;: {
+        &quot;1&quot;: {
+            &quot;index&quot;: &lt;int&gt;,          # Index of the reservoir, which should correspond to the key.
+            &quot;node&quot;: &lt;int&gt;,           # Index of the node to which the reservoir is attached.
+            &quot;name&quot;: &lt;string&gt;,        # Name of the reservoir, which may or may not correspond to the index.
+            &quot;source_id&quot;: &lt;tuple&gt;,    # Pair (e.g., [&quot;reservoir&quot;, &quot;1&quot;]) describing where the reservoir appears in the source file.
+            &quot;status&quot;: &lt;int&gt;,         # Status of the reservoir (-1 = unknown, 0 = inactive, 1 = active).
+            &quot;dispatchable&quot;: &lt;bool&gt;,  # Whether or not the reservoir&#39;s head can fluctuate (true) or if it is fixed (false).
+            &quot;head_nominal&quot;: &lt;float&gt;  # Nominal head of the reservoir&#39;s surface. SI units are meters.
+        },
+        &quot;2&quot;: {
+            ...
+        },
+        ...
+    },
+    &quot;tank&quot;: {
+        &quot;1&quot;: {
+            &quot;index&quot;: &lt;int&gt;,          # Index of the tank, which should correspond to the key.
+            &quot;node&quot;: &lt;int&gt;,           # Index of the node to which the tank is attached.
+            &quot;name&quot;: &lt;string&gt;,        # Name of the tank, which may or may not correspond to the index.
+            &quot;source_id&quot;: &lt;tuple&gt;,    # Pair (e.g., [&quot;tank&quot;, &quot;1&quot;]) describing where the tank appears in the source file.
+            &quot;status&quot;: &lt;int&gt;,         # Status of the tank (-1 = unknown, 0 = inactive, 1 = active).
+            &quot;dispatchable&quot;: &lt;bool&gt;,  # Whether or not the tank&#39;s head can fluctuate (true) or if it is fixed (false).
+            &quot;diameter&quot;: &lt;float&gt;,     # Cross-sectional diameter of the cylindrical tank. SI units are meters.
+            &quot;min_vol&quot;: &lt;float&gt;,      # Minimum water volume contained by the tank. SI units are cubic meters.
+            &quot;init_level&quot;: &lt;float&gt;,   # Initial water level of the tank. SI units are meters.
+            &quot;min_level&quot;: &lt;float&gt;,    # Minimum water level of the tank. SI units are meters.
+            &quot;max_level&quot;: &lt;float&gt;     # Maximum water level of the tank. SI units are meters.
+        },
+        &quot;2&quot;: {
+            ...
+        },
+        ...
+    },
+    &quot;pipe&quot;: {
+        &quot;1&quot;: {
+            &quot;index&quot;: &lt;int&gt;,               # Index of the pipe, which should correspond to the key.
+            &quot;node_fr&quot;: &lt;int&gt;,             # Index of the &quot;from&quot; node to which the pipe is connected.
+            &quot;node_to&quot;: &lt;int&gt;,             # Index of the &quot;to&quot; node to which the pipe is connected.
+            &quot;name&quot;: &lt;string&gt;,             # Name of the pipe, which may or may not correspond to the index.
+            &quot;source_id&quot;: &lt;tuple&gt;,         # Pair (e.g., [&quot;pipe&quot;, &quot;1&quot;]) describing where the pipe appears in the source file.
+            &quot;status&quot;: &lt;int&gt;,              # Status of the pipe (-1 = unknown, 0 = inactive, 1 = active).
+            &quot;length&quot;: &lt;float&gt;,            # Length of the pipe. SI units are meters.
+            &quot;diameter&quot;: &lt;float&gt;,          # Interior (inner) diameter of the pipe. SI units are meters.
+            &quot;roughness&quot;: &lt;float&gt;,         # Roughness of the pipe. SI units are meters if &quot;head_loss&quot; is &quot;D-W&quot; and unitless if &quot;H-W&quot;.
+            &quot;flow_direction&quot;: &lt;int&gt;,      # Direction of flow through the pipe (-1 = negative, 0 = unknown, 1 = positive).
+            &quot;flow_min&quot;: &lt;float&gt;,          # Minimum volumetric flow rate through the pipe. SI units are cubic meters per second.
+            &quot;flow_max&quot;: &lt;float&gt;,          # Maximum volumetric flow rate through the pipe. SI units are cubic meters per second.
+            &quot;flow_min_forward&quot;: &lt;float&gt;,  # Minimum volumetric flow rate when positively-directed. SI units are cubic meters per second.
+            &quot;flow_max_reverse&quot;: &lt;float&gt;,  # Maximum volumetric flow rate when negatively-directed. SI units are cubic meters per second.
+            &quot;minor_loss&quot;: &lt;float&gt;         # Used for modeling other minor losses of the pipe. Unitless. Currently unused.
+        },
+        &quot;2&quot;: {
+            ...
+        },
+        ...
+    },
+    &quot;des_pipe&quot;: {
+        &quot;1&quot;: {
+            &quot;index&quot;: &lt;int&gt;,               # Index of the design pipe, which should correspond to the key.
+            &quot;node_fr&quot;: &lt;int&gt;,             # Index of the &quot;from&quot; node to which the design pipe is connected.
+            &quot;node_to&quot;: &lt;int&gt;,             # Index of the &quot;to&quot; node to which the design pipe is connected.
+            &quot;name&quot;: &lt;string&gt;,             # Name of the design pipe, which may or may not correspond to the index.
+            &quot;source_id&quot;: &lt;tuple&gt;,         # Pair (e.g., [&quot;pipe&quot;, &quot;1&quot;]) describing where the design pipe appears in the source file.
+            &quot;status&quot;: &lt;int&gt;,              # Status of the design pipe (-1 = unknown, 0 = inactive, 1 = active).
+            &quot;length&quot;: &lt;float&gt;,            # Length of the design pipe. SI units are meters.
+            &quot;diameter&quot;: &lt;float&gt;,          # Interior (inner) diameter of the design pipe. SI units are meters.
+            &quot;roughness&quot;: &lt;float&gt;,         # Roughness of the design pipe. SI units are meters if &quot;head_loss&quot; is &quot;D-W&quot; and unitless if &quot;H-W&quot;.
+            &quot;flow_direction&quot;: &lt;int&gt;,      # Direction of flow through the design pipe (-1 = negative, 0 = unknown, 1 = positive).
+            &quot;flow_min&quot;: &lt;float&gt;,          # Minimum volumetric flow rate through the design pipe. SI units are cubic meters per second.
+            &quot;flow_max&quot;: &lt;float&gt;,          # Maximum volumetric flow rate through the design pipe. SI units are cubic meters per second.
+            &quot;flow_min_forward&quot;: &lt;float&gt;,  # Minimum volumetric flow rate when positively-directed. SI units are cubic meters per second.
+            &quot;flow_max_reverse&quot;: &lt;float&gt;,  # Maximum volumetric flow rate when negatively-directed. SI units are cubic meters per second.
+            &quot;minor_loss&quot;: &lt;float&gt;,        # Used for modeling other minor losses of the design pipe. Unitless. Currently unused.
+            &quot;cost&quot;: &lt;float&gt;               # Cost of constructing the design pipe, if selected. Standard units are of currency.
+        },
+        &quot;2&quot;: {
+            ...
+        },
+        ...
+    },
+    &quot;short_pipe&quot;: {
+        &quot;1&quot;: {
+            &quot;index&quot;: &lt;int&gt;,               # Index of the short pipe, which should correspond to the key.
+            &quot;node_fr&quot;: &lt;int&gt;,             # Index of the &quot;from&quot; node to which the short pipe is connected.
+            &quot;node_to&quot;: &lt;int&gt;,             # Index of the &quot;to&quot; node to which the short pipe is connected.
+            &quot;name&quot;: &lt;string&gt;,             # Name of the short pipe, which may or may not correspond to the index.
+            &quot;source_id&quot;: &lt;tuple&gt;,         # Pair (e.g., [&quot;short_pipe&quot;, &quot;1&quot;]) describing where the short pipe appears in the source file.
+            &quot;status&quot;: &lt;int&gt;,              # Status of the short pipe (-1 = unknown, 0 = inactive, 1 = active).
+            &quot;flow_direction&quot;: &lt;int&gt;,      # Direction of flow through the short pipe (-1 = negative, 0 = unknown, 1 = positive).
+            &quot;flow_min&quot;: &lt;float&gt;,          # Minimum volumetric flow rate through the short pipe. SI units are cubic meters per second.
+            &quot;flow_max&quot;: &lt;float&gt;,          # Maximum volumetric flow rate through the short pipe. SI units are cubic meters per second.
+            &quot;flow_min_forward&quot;: &lt;float&gt;,  # Minimum volumetric flow rate when positively-directed. SI units are cubic meters per second.
+            &quot;flow_max_reverse&quot;: &lt;float&gt;,  # Maximum volumetric flow rate when negatively-directed. SI units are cubic meters per second.
+            &quot;minor_loss&quot;: &lt;float&gt;         # Used for modeling other minor losses of the short pipe. Unitless. Currently unused.
+        },
+        &quot;2&quot;: {
+            ...
+        },
+        ...
+    },
+    &quot;pump&quot;: {
+        &quot;1&quot;: {
+            &quot;index&quot;: &lt;int&gt;,                   # Index of the pump, which should correspond to the key.
+            &quot;node_fr&quot;: &lt;int&gt;,                 # Index of the &quot;from&quot; node to which the pump is connected.
+            &quot;node_to&quot;: &lt;int&gt;,                 # Index of the &quot;to&quot; node to which the pump is connected.
+            &quot;name&quot;: &lt;string&gt;,                 # Name of the pump, which may or may not correspond to the index.
+            &quot;source_id&quot;: &lt;tuple&gt;,             # Pair (e.g., [&quot;pump&quot;, &quot;1&quot;]) describing where the pump appears in the source file.
+            &quot;status&quot;: &lt;int&gt;,                  # Status of the pump (-1 = unknown, 0 = inactive, 1 = active).
+            &quot;flow_direction&quot;: &lt;int&gt;,          # Direction of flow through the pump (-1 = negative, 0 = unknown, 1 = positive).
+            &quot;flow_min&quot;: &lt;float&gt;,              # Minimum volumetric flow rate through the pump. SI units are cubic meters per second.
+            &quot;flow_max&quot;: &lt;float&gt;,              # Maximum volumetric flow rate through the pump. SI units are cubic meters per second.
+            &quot;flow_min_forward&quot;: &lt;float&gt;,      # Minimum volumetric flow rate when positively-directed. SI units are cubic meters per second.
+            &quot;flow_max_reverse&quot;: &lt;float&gt;,      # Maximum volumetric flow rate when negatively-directed. SI units are cubic meters per second.
+            &quot;head_curve_form&quot;: &lt;int&gt;,         # Form of the head curve function used to model the pump. PUMP_QUADRATIC (0) models the head
+                                              # gain as a quadratic function. PUMP_BEST_EFFICIENCY_POINT (1) models the head gain as a
+                                              # quadratic function parameterized using the pump&#39;s best efficiency point. PUMP_EPANET (2)
+                                              # models the head gain similarly to the model of EPANET, i.e., a + b * q^c, where a, b, and
+                                              # c are fixed constants computed from flow-head gain data present in the &quot;head_curve&quot; list.
+                                              # PUMP_LINEAR_POWER (3) models the head gain function as PUMP_QUADRATIC but power linearly.
+            &quot;head_curve&quot;: &lt;List[...]&gt;,        # List of tuples describing the head gain of the pump, where the first element of the tuple
+                                              # corresponds to a volumetric flow rate (in per-unit or SI units) and the second element of
+                                              # corresponds to the head gain resulting from that flow rate (in per-unit or SI units).
+            &quot;efficiency_curve&quot;: &lt;List[...]&gt;,  # List of tuples describing the efficiency of the pump, where the first element of the tuple
+                                              # corresponds to a volumetric flow rate (in per-unit or SI units) and the second element
+                                              # corresponds to the pump&#39;s power efficiency at that flow rate (a unitless quantity).
+            &quot;energy_price&quot;: &lt;float&gt;,          # Cost of consuming energy (in per-unit or, for SI units, currency per Joule).
+            &quot;power_fixed&quot;: &lt;float&gt;,           # When modeling the pump using PUMP_LINEAR_POWER for &quot;head_curve_form&quot;, this quantity
+                                              # represents the power consumed by the pump at zero volumetric flow. SI units are Watts.
+            &quot;power_per_unit_flow&quot;: &lt;float&gt;,   # When modeling the pump using PUMP_LINEAR_POWER for &quot;head_curve_form&quot;, this quantity
+                                              # represents the power consumed per additional unit of flow. SI units are Watts per
+                                              # (cubic meters per second).
+        },
+        &quot;2&quot;: {
+            ...
+        },
+        ...
+    },
+    &quot;valve&quot;: {
+        &quot;1&quot;: {
+            &quot;index&quot;: &lt;int&gt;,               # Index of the valve, which should correspond to the key.
+            &quot;node_fr&quot;: &lt;int&gt;,             # Index of the &quot;from&quot; node to which the valve is connected.
+            &quot;node_to&quot;: &lt;int&gt;,             # Index of the &quot;to&quot; node to which the valve is connected.
+            &quot;name&quot;: &lt;string&gt;,             # Name of the valve, which may or may not correspond to the index.
+            &quot;source_id&quot;: &lt;tuple&gt;,         # Pair (e.g., [&quot;pipe&quot;, &quot;1&quot;]) describing where the valve appears in the source file.
+            &quot;status&quot;: &lt;int&gt;,              # Status of the valve (-1 = unknown, 0 = inactive, 1 = active).
+            &quot;flow_direction&quot;: &lt;int&gt;,      # Direction of flow through the valve (-1 = negative, 0 = unknown, 1 = positive).
+            &quot;flow_min&quot;: &lt;float&gt;,          # Minimum volumetric flow rate through the valve. SI units are cubic meters per second.
+            &quot;flow_max&quot;: &lt;float&gt;,          # Maximum volumetric flow rate through the valve. SI units are cubic meters per second.
+            &quot;flow_min_forward&quot;: &lt;float&gt;,  # Minimum volumetric flow rate when positively-directed. SI units are cubic meters per second.
+            &quot;flow_max_reverse&quot;: &lt;float&gt;,  # Maximum volumetric flow rate when negatively-directed. SI units are cubic meters per second.
+            &quot;minor_loss&quot;: &lt;float&gt;         # Used for modeling other minor losses of the valve. Unitless. Currently unused.
+        },
+        &quot;2&quot;: {
+            ...
+        },
+        ...
+    },
+    &quot;regulator&quot;: {
+        &quot;1&quot;: {
+            &quot;index&quot;: &lt;int&gt;,               # Index of the regulator, which should correspond to the key.
+            &quot;node_fr&quot;: &lt;int&gt;,             # Index of the &quot;from&quot; node to which the regulator is connected.
+            &quot;node_to&quot;: &lt;int&gt;,             # Index of the &quot;to&quot; node to which the regulator is connected.
+            &quot;name&quot;: &lt;string&gt;,             # Name of the regulator, which may or may not correspond to the index.
+            &quot;source_id&quot;: &lt;tuple&gt;,         # Pair (e.g., [&quot;regulator&quot;, &quot;1&quot;]) describing where the regulator appears in the source file.
+            &quot;status&quot;: &lt;int&gt;,              # Status of the regulator (-1 = unknown, 0 = inactive, 1 = active).
+            &quot;flow_direction&quot;: &lt;int&gt;,      # Direction of flow through the regulator (-1 = negative, 0 = unknown, 1 = positive).
+            &quot;diameter&quot;: &lt;float&gt;,          # (Possibly artificial) diameter of the regulator. SI units are meters. Currently unused.
+            &quot;setting&quot;: &lt;float&gt;,           # Setting of the total hydraulic head at the node downstream of the regulator. SI units are meters.
+            &quot;flow_min&quot;: &lt;float&gt;,          # Minimum volumetric flow rate through the regulator. SI units are cubic meters per second.
+            &quot;flow_max&quot;: &lt;float&gt;,          # Maximum volumetric flow rate through the regulator. SI units are cubic meters per second.
+            &quot;flow_min_forward&quot;: &lt;float&gt;,  # Minimum volumetric flow rate when positively-directed. SI units are cubic meters per second.
+            &quot;flow_max_reverse&quot;: &lt;float&gt;,  # Maximum volumetric flow rate when negatively-directed. SI units are cubic meters per second.
+            &quot;minor_loss&quot;: &lt;float&gt;         # Used for modeling other minor losses of the regulator. Unitless. Currently unused.
+        },
+        &quot;2&quot;: {
+            ...
+        },
+        ...
+    }
+}</code></pre><h2 id="Multinetwork-(Time-Series)-Data"><a class="docs-heading-anchor" href="#Multinetwork-(Time-Series)-Data">Multinetwork (Time Series) Data</a><a id="Multinetwork-(Time-Series)-Data-1"></a><a class="docs-heading-anchor-permalink" href="#Multinetwork-(Time-Series)-Data" title="Permalink"></a></h2><p><a href="network-data.html#The-Network-Data-Dictionary">The Network Data Dictionary</a> outlines the hierarchy for a snapshot of data for a water network at some moment in time. In practice, water network optimization problems often model evolution of the system over time. To model temporal aspects, a similar data hierarchy is used. These &quot;multinetwork&quot; dictionaries are of the form</p><pre><code class="language-json hljs">{
+    &quot;name&quot;: &lt;string&gt;,
+    &quot;multinetwork&quot;: true,
+    &quot;per_unit&quot;: &lt;bool&gt;,
+    ...,
+    &quot;nw&quot;: {
+        &quot;1&quot;: {
+            &quot;name&quot;: &lt;string&gt;,
+            &quot;time_step&quot;: &lt;float&gt;,
+            &quot;node&quot;: {
+                &quot;1&quot;: {
+                    ...
+                },
+                ...
+            },
+            ...
+        },
+        &quot;2&quot;: {
+            ...
+        },
+        ...
+    }
+}</code></pre><p>That is, the <em>component</em> dictionaries, i.e., <code>[&quot;tank&quot;, &quot;regulator&quot;, &quot;pump&quot;, &quot;name&quot;, &quot;des_pipe&quot;, &quot;demand&quot;, &quot;reservoir&quot;, &quot;short_pipe&quot;, &quot;node&quot;, &quot;valve&quot;, &quot;pipe&quot;]</code>, as well as the <code>&quot;time_step&quot;</code> and <code>&quot;name</code>&quot; parameters are stored within an indexed <code>&quot;nw&quot;</code> subdictionary. Here, the <code>&quot;1&quot;</code> subdictionary of <code>&quot;nw&quot;</code> might represent the network at the first time index in the model of interest, and <code>&quot;2&quot;</code> might represent the network at the second time index.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="quickguide.html">« Getting Started</a><a class="docs-footer-nextpage" href="result-data.html">Result Data Format »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Sunday 22 January 2023 18:11">Sunday 22 January 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

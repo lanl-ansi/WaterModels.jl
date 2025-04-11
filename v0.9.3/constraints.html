@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Constraints · WaterModels</title><script async src="https://www.googletagmanager.com/gtag/js?id=UA-367975-10"></script><script>  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-367975-10', {'page_path': location.pathname + location.search + location.hash});
+</script><script data-outdated-warner src="assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="index.html"><img src="assets/logo.svg" alt="WaterModels logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="index.html">WaterModels</a></span></div><form class="docs-search" action="search.html"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="index.html">Home</a></li><li><span class="tocitem">Manual</span><ul><li><a class="tocitem" href="quickguide.html">Getting Started</a></li><li><a class="tocitem" href="network-data.html">Network Data Format</a></li><li><a class="tocitem" href="result-data.html">Result Data Format</a></li><li><a class="tocitem" href="math-model.html">Mathematical Models</a></li></ul></li><li><span class="tocitem">Library</span><ul><li><a class="tocitem" href="formulations.html">Network Formulations</a></li><li><a class="tocitem" href="specifications.html">Problem Specifications</a></li><li><input class="collapse-toggle" id="menuitem-3-3" type="checkbox" checked/><label class="tocitem" for="menuitem-3-3"><span class="docs-label">Modeling Components</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="objective.html">Objective</a></li><li><a class="tocitem" href="variables.html">Variables</a></li><li class="is-active"><a class="tocitem" href="constraints.html">Constraints</a><ul class="internal"><li><a class="tocitem" href="#Constraint-Templates"><span>Constraint Templates</span></a></li><li><a class="tocitem" href="#Nodal-Constraints"><span>Nodal Constraints</span></a></li><li><a class="tocitem" href="#Tank-Constraints"><span>Tank Constraints</span></a></li><li><a class="tocitem" href="#Pipe-Constraints"><span>Pipe Constraints</span></a></li><li><a class="tocitem" href="#Design-Pipe-Constraints"><span>Design Pipe Constraints</span></a></li><li><a class="tocitem" href="#Short-Pipe-Constraints"><span>Short Pipe Constraints</span></a></li><li><a class="tocitem" href="#Pump-Constraints"><span>Pump Constraints</span></a></li><li><a class="tocitem" href="#Valve-Constraints"><span>Valve Constraints</span></a></li><li><a class="tocitem" href="#Regulator-Constraints"><span>Regulator Constraints</span></a></li></ul></li></ul></li><li><a class="tocitem" href="parser.html">File I/O</a></li></ul></li><li><a class="tocitem" href="developer.html">Developer</a></li><li><a class="tocitem" href="examples.html">Examples</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Library</a></li><li><a class="is-disabled">Modeling Components</a></li><li class="is-active"><a href="constraints.html">Constraints</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href="constraints.html">Constraints</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/lanl-ansi/WaterModels.jl/blob/master/docs/src/constraints.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Constraints"><a class="docs-heading-anchor" href="#Constraints">Constraints</a><a id="Constraints-1"></a><a class="docs-heading-anchor-permalink" href="#Constraints" title="Permalink"></a></h1><h2 id="Constraint-Templates"><a class="docs-heading-anchor" href="#Constraint-Templates">Constraint Templates</a><a id="Constraint-Templates-1"></a><a class="docs-heading-anchor-permalink" href="#Constraint-Templates" title="Permalink"></a></h2><p>Constraint templates help simplify data wrangling across multiple optimization formulations by providing an abstraction layer between the network data and network constraint definitions. Each constraint template&#39;s job is to extract the required parameters from a given network data structure and pass the data as arguments to the optimization formulation. These templates should be defined over <code>AbstractWaterModel</code> and should not refer to model variables. For more details, see the files <code>core/constraint_template.jl</code> and <code>core/constraint.jl</code>. Here, <code>core/constraint_template.jl</code> provides higher-level constraint interfaces by processing network data and calling methods defined in <code>core/constraint.jl</code>.</p><h2 id="Nodal-Constraints"><a class="docs-heading-anchor" href="#Nodal-Constraints">Nodal Constraints</a><a id="Nodal-Constraints-1"></a><a class="docs-heading-anchor-permalink" href="#Nodal-Constraints" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_flow_conservation" href="#WaterModels.constraint_flow_conservation"><code>WaterModels.constraint_flow_conservation</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_flow_conservation(
+    wm::AbstractWaterModel,
+    n::Int,
+    i::Int,
+    pipe_fr::Array{Int,1},
+    pipe_to::Array{Int,1},
+    des_pipe_fr::Array{Int,1},
+    des_pipe_to::Array{Int,1},
+    pump_fr::Array{Int,1},
+    pump_to::Array{Int,1},
+    regulator_fr::Array{Int,1},
+    regulator_to::Array{Int,1},
+    short_pipe_fr::Array{Int,1},
+    short_pipe_to::Array{Int,1},
+    valve_fr::Array{Int,1},
+    valve_to::Array{Int,1},
+    reservoirs::Array{Int,1},
+    tanks::Array{Int,1},
+    dispatchable_demands::Array{Int,1},
+    fixed_demand::Float64
+)</code></pre><p>Adds a constraint that ensures volumetric flow rate (and thus mass) is conserved at node <code>i</code> and subnetwork (or time) index <code>n</code> in the network. Here, <code>pipe_fr</code>, <code>pipe_to</code>, etc., are components that are directed <em>from</em> or <em>to</em> node <code>i</code>, respectively. Additionally, <code>reservoirs</code>, <code>tanks</code>, and <code>dispatchable_demands</code> are node-attached components that variably contribute to nodal inflow and outflow at node <code>i</code>. Finally, <code>fixed_demand</code> is the fixed amount of flow demanded at node <code>i</code>, which may be negative <em>or</em> nonnegative.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint.jl#L6-L36">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_flow_conservation(
+    wm::AbstractWaterModel,
+    i::Int;
+    nw::Int=nw_id_default
+)</code></pre><p>Constraint template to add constraints that ensure volumetric flow rate (and thus mass) is conserved at node <code>i</code> and subnetwork (or time) index <code>nw</code> in the network. Here, <code>wm</code> is the WaterModels object.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L36-L46">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_node_directionality" href="#WaterModels.constraint_node_directionality"><code>WaterModels.constraint_node_directionality</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_node_directionality(
+    wm::AbstractWaterModel,
+    i::Int;
+    nw::Int=nw_id_default
+)</code></pre><p>Constraint template to add direction-based constraints (<a href="constraints.html#WaterModels.constraint_sink_directionality"><code>constraint_sink_directionality</code></a>, <a href="constraints.html#WaterModels.constraint_source_directionality"><code>constraint_source_directionality</code></a>, or <a href="constraints.html#WaterModels.constraint_intermediate_directionality"><code>constraint_intermediate_directionality</code></a>) when appropriate. Here, <code>wm</code> is the WaterModels object, <code>i</code> is the index of the node for which the constraints will be added, if applicable, and <code>nw</code> is the subnetwork (or time) index.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L103-L117">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_sink_directionality" href="#WaterModels.constraint_sink_directionality"><code>WaterModels.constraint_sink_directionality</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_sink_directionality(
+    wm::AbstractNCModel,
+    n::Int,
+    i::Int,
+    pipe_fr::Array{Int,1},
+    pipe_to::Array{Int,1},
+    des_pipe_fr::Array{Int,1},
+    des_pipe_to::Array{Int,1},
+    pump_fr::Array{Int,1},
+    pump_to::Array{Int,1},
+    regulator_fr::Array{Int,1},
+    regulator_to::Array{Int,1},
+    short_pipe_fr::Array{Int,1},
+    short_pipe_to::Array{Int,1},
+    valve_fr::Array{Int,1},
+    valve_to::Array{Int,1}
+)</code></pre><p>Currently does nothing for models of type <code>AbstractNCModel</code>. Here, <code>wm</code> is the WaterModels object; <code>n</code> is the subnetwork (time) index; <code>i</code> is the index of the node; and <code>pipe_fr</code>, <code>pipe_to</code>, etc., are indices of node-connecting components that are directed <em>from</em> or <em>to</em> node <code>i</code>, respectively.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/nc.jl#L836-L859">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_sink_directionality(
+    wm::AbstractNCDModel,
+    n::Int,
+    i::Int,
+    pipe_fr::Array{Int,1},
+    pipe_to::Array{Int,1},
+    des_pipe_fr::Array{Int,1},
+    des_pipe_to::Array{Int,1},
+    pump_fr::Array{Int,1},
+    pump_to::Array{Int,1},
+    regulator_fr::Array{Int,1},
+    regulator_to::Array{Int,1},
+    short_pipe_fr::Array{Int,1},
+    short_pipe_to::Array{Int,1},
+    valve_fr::Array{Int,1},
+    valve_to::Array{Int,1}
+)</code></pre><p>Adds a constraint that ensures at least one flow direction variable implies the transport of water <em>to</em> (i.e., into) a node that has flow demands (e.g., a node with positive fixed demands). Here, <code>n</code> is the subnetwork (time) index; <code>i</code> is the index of the node; and <code>pipe_fr</code>, <code>pipe_to</code>, etc., are indices of node- connecting components that are directed <em>from</em> or <em>to</em> node <code>i</code>, respectively.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/ncd.jl#L1023-L1047">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_source_directionality" href="#WaterModels.constraint_source_directionality"><code>WaterModels.constraint_source_directionality</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_source_directionality(
+    wm::AbstractNCModel,
+    n::Int,
+    i::Int,
+    pipe_fr::Array{Int,1},
+    pipe_to::Array{Int,1},
+    des_pipe_fr::Array{Int,1},
+    des_pipe_to::Array{Int,1},
+    pump_fr::Array{Int,1},
+    pump_to::Array{Int,1},
+    regulator_fr::Array{Int,1},
+    regulator_to::Array{Int,1},
+    short_pipe_fr::Array{Int,1},
+    short_pipe_to::Array{Int,1},
+    valve_fr::Array{Int,1},
+    valve_to::Array{Int,1}
+)</code></pre><p>Currently does nothing for models of type <code>AbstractNCModel</code>. Here, <code>wm</code> is the WaterModels object; <code>n</code> is the subnetwork (time) index; <code>i</code> is the index of the node; and <code>pipe_fr</code>, <code>pipe_to</code>, etc., are indices of node-connecting components that are directed <em>from</em> or <em>to</em> node <code>i</code>, respectively.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/nc.jl#L881-L904">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_source_directionality(
+    wm::AbstractNCDModel,
+    n::Int,
+    i::Int,
+    pipe_fr::Array{Int,1},
+    pipe_to::Array{Int,1},
+    des_pipe_fr::Array{Int,1},
+    des_pipe_to::Array{Int,1},
+    pump_fr::Array{Int,1},
+    pump_to::Array{Int,1},
+    regulator_fr::Array{Int,1},
+    regulator_to::Array{Int,1},
+    short_pipe_fr::Array{Int,1},
+    short_pipe_to::Array{Int,1},
+    valve_fr::Array{Int,1},
+    valve_to::Array{Int,1}
+)</code></pre><p>Adds a constraint that ensures at least one flow direction variable implies the transport of water <em>from</em> (i.e., out of) a source node (e.g., a node with a reservoir). Here, <code>n</code> is the subnetwork (time) index; <code>i</code> is the index of the node; and <code>pipe_fr</code>, <code>pipe_to</code>, etc., are indices of node-connecting components that are directed <em>from</em> or <em>to</em> node <code>i</code>, respectively.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/ncd.jl#L957-L981">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_intermediate_directionality" href="#WaterModels.constraint_intermediate_directionality"><code>WaterModels.constraint_intermediate_directionality</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_intermediate_directionality(
+    wm::AbstractNCModel,
+    n::Int,
+    i::Int,
+    pipe_fr::Array{Int,1},
+    pipe_to::Array{Int,1},
+    des_pipe_fr::Array{Int,1},
+    des_pipe_to::Array{Int,1},
+    pump_fr::Array{Int,1},
+    pump_to::Array{Int,1},
+    regulator_fr::Array{Int,1},
+    regulator_to::Array{Int,1},
+    short_pipe_fr::Array{Int,1},
+    short_pipe_to::Array{Int,1},
+    valve_fr::Array{Int,1},
+    valve_to::Array{Int,1}
+)</code></pre><p>Currently does nothing for models of type <code>AbstractNCModel</code>. Here, <code>wm</code> is the WaterModels object; <code>n</code> is the subnetwork (time) index; <code>i</code> is the index of the node; and <code>pipe_fr</code>, <code>pipe_to</code>, etc., are indices of node-connecting components that are directed <em>from</em> or <em>to</em> node <code>i</code>, respectively.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/nc.jl#L791-L814">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_intermediate_directionality(
+    wm::AbstractNCDModel,
+    n::Int,
+    i::Int,
+    pipe_fr::Array{Int,1},
+    pipe_to::Array{Int,1},
+    des_pipe_fr::Array{Int,1},
+    des_pipe_to::Array{Int,1},
+    pump_fr::Array{Int,1},
+    pump_to::Array{Int,1},
+    regulator_fr::Array{Int,1},
+    regulator_to::Array{Int,1},
+    short_pipe_fr::Array{Int,1},
+    short_pipe_to::Array{Int,1},
+    valve_fr::Array{Int,1},
+    valve_to::Array{Int,1}
+)</code></pre><p>Adds a constraint that ensures the direction of incoming flow at the node will be equal to the direction of outgoing flow. Note that this constraint should only be applied in situations where the degree of the node is two and there is zero supply or demand (i.e., the node is a &quot;junction&quot; or pass-through node). Here, <code>n</code> is the subnetwork (time) index; <code>i</code> is the index of the node; and <code>pipe_fr</code>, <code>pipe_to</code>, etc., are indices of node-connecting components that are directed <em>from</em> or <em>to</em> node <code>i</code>, respectively.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/ncd.jl#L884-L910">source</a></section></article><h2 id="Tank-Constraints"><a class="docs-heading-anchor" href="#Tank-Constraints">Tank Constraints</a><a id="Tank-Constraints-1"></a><a class="docs-heading-anchor-permalink" href="#Tank-Constraints" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_tank_volume" href="#WaterModels.constraint_tank_volume"><code>WaterModels.constraint_tank_volume</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_tank_volume(
+    wm::AbstractWaterModel,
+    n_1::Int,
+    n_2::Int,
+    i::Int,
+    time_step::Float64
+)</code></pre><p>Adds a constraint that integrates the volume of a tank forward in time. Here, <code>wm</code> is the WaterModels object, <code>n_1</code> is the index of a subnetwork within a multinetwork, <code>n_2</code> is the index of another subnetwork forward in time, relative to <code>n_1</code>, i is the index of the tank, and <code>time_step</code> is the time step of the interval from network <code>n_1</code> to <code>n_2</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint.jl#L120-L134">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_tank_volume(
+    wm::AbstractWaterModel,
+    i::Int;
+    nw::Int=nw_id_default
+)</code></pre><p>Constraint template to add <a href="constraints.html#WaterModels.constraint_tank_volume_fixed"><code>constraint_tank_volume_fixed</code></a> constraints when a tank is not dispatchable, usually at the first time index of a problem to fix the tank&#39;s initial volume. Here, <code>wm</code> is the WaterModels object, <code>i</code> is the index of the tank for which the constraints will be added, if applicable, and <code>nw</code> is the subnetwork (or time) index at which the volume will be fixed.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L250-L262">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_tank_volume(
+    wm::AbstractWaterModel,
+    i::Int,
+    nw_1::Int,
+    nw_2::Int
+)</code></pre><p>Constraint template to add <a href="constraints.html#WaterModels.constraint_tank_volume"><code>constraint_tank_volume</code></a> constraints that integrate the volume of a tank forward in time. Here, <code>wm</code> is the WaterModels object, <code>i</code> is the index of the tank for which the constraints will be added, <code>nw_1</code> is the first time index considered in the temporal integration, and <code>nw_2</code> is the adjacent (second) time index considered in the integration.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L288-L301">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_tank_volume_fixed" href="#WaterModels.constraint_tank_volume_fixed"><code>WaterModels.constraint_tank_volume_fixed</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_tank_volume_fixed(
+    wm::AbstractWaterModel,
+    n::Int,
+    i::Int,
+    V_0::Float64,
+    time_step::Float64,
+    min_vol::Float64,
+    max_vol::Float64
+)</code></pre><p>Adds a constraint that ensures the volume of a tank at some time index is fixed. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the index of a subnetwork within a multinetwork, <code>i</code> is the index of the tank, and <code>V_0</code> is the fixed volume of the tank that is desired. Also adds constraints that ensure, after integration of volume forward in time, the new volume will reside between predefined lower and upper bounds. To that end, <code>time_step</code> is the time step between the current time index and the next, <code>min_vol</code> is the minimum volume of water that must be present in the tank, and <code>max_vol</code> is the maximum volume of water in the tank.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint.jl#L67-L86">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_tank_volume_recovery" href="#WaterModels.constraint_tank_volume_recovery"><code>WaterModels.constraint_tank_volume_recovery</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_tank_volume_recovery(
+    wm::AbstractWaterModel,
+    i::Int,
+    n_1::Int,
+    n_f::Int
+)</code></pre><p>Adds a constraint that ensures the volume of a tank at the end of the time horizon is greater than or equal to the volume of the tank at the beginning of the time horizon. Here, <code>wm</code> is the WaterModels object, <code>i</code> is the index of the tank, <code>n_1</code> is the index of the first subnetwork within a multinetwork, and <code>n_f</code> is the index of the final subnetwork. Also updates the minimum head in the <code>ref</code> dictionary for node <code>i</code> at the final subnetwork index <code>n_f</code> to take the minimum head value at <code>n_1</code> if it is larger, as implied by this constraint.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint.jl#L143-L158">source</a></section></article><h2 id="Pipe-Constraints"><a class="docs-heading-anchor" href="#Pipe-Constraints">Pipe Constraints</a><a id="Pipe-Constraints-1"></a><a class="docs-heading-anchor-permalink" href="#Pipe-Constraints" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_pipe_flow" href="#WaterModels.constraint_pipe_flow"><code>WaterModels.constraint_pipe_flow</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_pipe_flow(
+    wm::AbstractWaterModel,
+    a::Int;
+    nw::Int=nw_id_default,
+    kwargs...
+)</code></pre><p>Constraint template to add <a href="constraints.html#WaterModels.constraint_pipe_flow"><code>constraint_pipe_flow</code></a> constraints that limit the volumetric flow rate across a pipe. Here, <code>wm</code> is the WaterModels object, <code>a</code> is the index of the pipe for which flow will be limited, and <code>nw</code> is the subnetwork (or time) index that is considered.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L321-L333">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_pipe_flow(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    q_max_reverse::Float64,
+    q_min_forward::Float64
+)</code></pre><p>Currently does nothing for models of type <code>AbstractNCModel</code>. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the pipe for which flow will be limited, <code>q_max_reverse</code> is the <em>maximum</em> (negative) amount of flow when flow is traveling in the negative direction (which corresponds to the <em>minimum</em> magnitude of flow when traveling in the negative direction), and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when flow is traveling in the positive (forward) direction. For <code>AbstractNCModel</code> types, no constraints will be added, as in these formulation types, flow is not partitioned by direction, and flow bounds are instead imposed during variable instantiation in <a href="variables.html#WaterModels.variable_flow"><code>variable_flow</code></a>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/nc.jl#L83-L102">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_pipe_flow(
+    wm::AbstractNCDModel,
+    n::Int,
+    a::Int,
+    q_max_reverse::Float64,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that limit the amount of flow traveling in the positive (forward) and negative (reverse) directions. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the index of a subnetwork within a multinetwork, <code>a</code> is the index of the pipe, <code>q_max_reverse</code> is the <em>maximum</em> (negative) amount of flow when flow is traveling in the negative direction (which corresponds to the <em>minimum</em> magnitude of flow when traveling in the negative direction), and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when flow is traveling in the positive (forward) direction. Note that, naively, <code>q_max_reverse</code> and <code>q_min_forward</code> could both be assumed as zero, but the introduction of these constants allows for strengthening of flow direction variable bounds <em>based on the binary flow direction variables</em> used here.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/ncd.jl#L215-L235">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_pipe_head" href="#WaterModels.constraint_pipe_head"><code>WaterModels.constraint_pipe_head</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_pipe_head(
+    wm::AbstractWaterModel,
+    a::Int;
+    nw::Int=nw_id_default,
+    kwargs...
+)</code></pre><p>Constraint template to add <a href="constraints.html#WaterModels.constraint_pipe_head"><code>constraint_pipe_head</code></a> constraints that limit and establish relationships among head difference and head variables. Here, <code>wm</code> is the WaterModels object, <code>a</code> is the index of the pipe, and <code>nw</code> is the subnetwork (or time) index that is considered.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L349-L361">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_pipe_head(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int
+)</code></pre><p>Add constraints that limit the head difference (loss) along a pipe based on the lower and upper bounds of head variables at the nodes connecting that pipe. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the pipe, <code>node_fr</code> is the index of the tail node of the pipe, and <code>node_to</code> is the index of the head node of the pipe.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/nc.jl#L114-L128">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_pipe_head(
+    wm::AbstractNCDModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+)</code></pre><p>Adds constraints that limit head losses (differences) in the positive (forward) and negative (reverse) flow directions. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the index of a subnetwork within a multinetwork, <code>a</code> is the index of the pipe, <code>node_fr</code> is the index of the tail node of the arc that models the pipe, and <code>node_to</code> is the index of the head node of the arc that models the pipe.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/ncd.jl#L261-L275">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_pipe_head_loss" href="#WaterModels.constraint_pipe_head_loss"><code>WaterModels.constraint_pipe_head_loss</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_pipe_head_loss(
+    wm::AbstractWaterModel,
+    a::Int;
+    nw::Int=nw_id_default,
+    kwargs...
+)</code></pre><p>Constraint template to add <a href="constraints.html#WaterModels.constraint_pipe_head_loss"><code>constraint_pipe_head_loss</code></a> constraints that model head loss relationships along a pipe. Here, <code>wm</code> is the WaterModels object, <code>a</code> is the index of the pipe, and <code>nw</code> is the subnetwork (or time) index that is considered.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L375-L387">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_pipe_head_loss(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    exponent::Float64,
+    L::Float64,
+    r::Float64,
+    q_max_reverse::Float64,
+    q_min_forward::Float64
+)</code></pre><p>Add constraints that model frictional head loss across a pipe. Here, <code>wm</code> is the WaterModels object; <code>n</code> is the subnetwork (or time) index that is considered; <code>a</code> is the index of the pipe; <code>node_fr</code> is the index of the tail node of the pipe; <code>node_to</code> is the index of the head node of the pipe; <code>exponent</code> is the exponent on flow in the head loss function (i.e., 1.852 for Hazen-Williams head loss and 2.0 for Darcy-Weisbach head loss); <code>L</code> is the length of the pipe; <code>r</code> is the resistance per unit length of the pipe; <code>q_max_reverse</code> is the <em>maximum</em> (negative) amount of flow when flow is traveling in the negative direction (which corresponds to the <em>minimum</em> magnitude of flow when traveling in the negative direction); and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when flow is traveling in the positive (forward) direction.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/nc.jl#L150-L176">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_pipe_head_loss(
+    wm::AbstractNCDModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    exponent::Float64,
+    L::Float64,
+    r::Float64,
+    q_max_reverse::Float64,
+    q_min_forward::Float64
+)</code></pre><p>Add constraints that model frictional head loss across a pipe. Here, <code>wm</code> is the WaterModels object; <code>n</code> is the subnetwork (or time) index that is considered; <code>a</code> is the index of the pipe; <code>node_fr</code> is the index of the tail node of the pipe; <code>node_to</code> is the index of the head node of the pipe; <code>exponent</code> is the exponent on flow in the head loss function (i.e., 1.852 for Hazen-Williams head loss and 2.0 for Darcy-Weisbach head loss); <code>L</code> is the length of the pipe; <code>r</code> is the resistance per unit length of the pipe; <code>q_max_reverse</code> is the <em>maximum</em> (negative) amount of flow when flow is traveling in the negative direction (which corresponds to the <em>minimum</em> magnitude of flow when traveling in the negative direction); and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when flow is traveling in the positive (forward) direction.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/ncd.jl#L300-L326">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_pipe_head_loss(
+    wm::AbstractLAModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    exponent::Float64,
+    L::Float64,
+    r::Float64,
+    q_max_reverse::Float64,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that model frictional head loss across a pipe via a piecewise- linear approximation of the nonlinear, nonconvex head loss relationship. Here, <code>wm</code> is the WaterModels object; <code>n</code> is the subnetwork (or time) index that is considered; <code>a</code> is the index of the pipe; <code>node_fr</code> is the index of the tail node of the pipe; <code>node_to</code> is the index of the head node of the pipe; <code>exponent</code> is the exponent on flow in the head loss function (i.e., 1.852 for Hazen-Williams head loss and 2.0 for Darcy-Weisbach head loss); <code>L</code> is the length of the pipe; <code>r</code> is the resistance per unit length of the pipe; <code>q_max_reverse</code> is the <em>maximum</em> (negative) amount of flow when flow is traveling in the negative direction (which corresponds to the <em>minimum</em> magnitude of flow when traveling in the negative direction); and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when flow is traveling in the positive (forward) direction. Note that <code>q_max_reverse</code> and <code>q_min_forward</code> are unused in this formulation since it is not direction-based.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/la.jl#L108-L136">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_pipe_head_loss(
+    wm::AbstractPWLRDModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    exponent::Float64,
+    L::Float64,
+    r::Float64,
+    q_max_reverse::Float64,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that model frictional head loss across a pipe via outer and piecewise-linear inner approximations of the nonlinear, nonconvex head loss relationship. Here, <code>wm</code> is the WaterModels object; <code>n</code> is the subnetwork (or time) index that is considered; <code>a</code> is the index of the pipe; <code>node_fr</code> is the index of the tail node of the pipe; <code>node_to</code> is the index of the head node of the pipe; <code>exponent</code> is the exponent on flow in the head loss function (i.e., 1.852 for Hazen-Williams head loss and 2.0 for Darcy-Weisbach head loss); <code>L</code> is the length of the pipe; <code>r</code> is the resistance per unit length of the pipe; <code>q_max_reverse</code> is the <em>maximum</em> (negative) amount of flow when flow is traveling in the negative direction (which corresponds to the <em>minimum</em> magnitude of flow when traveling in the negative direction); and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when flow is traveling in the positive (forward) direction.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/pwlrd.jl#L124-L151">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_pipe_head_loss(
+    wm::AbstractLRDModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    exponent::Float64,
+    L::Float64,
+    r::Float64,
+    q_max_reverse::Float64,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that model frictional head loss across a pipe via linear outer approximations of the nonlinear, nonconvex head loss relationship. Here, <code>wm</code> is the WaterModels object; <code>n</code> is the subnetwork (or time) index that is considered; <code>a</code> is the index of the pipe; <code>node_fr</code> is the index of the tail node of the pipe; <code>node_to</code> is the index of the head node of the pipe; <code>exponent</code> is the exponent on flow in the head loss function (i.e., 1.852 for Hazen-Williams head loss and 2.0 for Darcy-Weisbach head loss); <code>L</code> is the length of the pipe; <code>r</code> is the resistance per unit length of the pipe; <code>q_max_reverse</code> is the <em>maximum</em> (negative) amount of flow when flow is traveling in the negative direction (which corresponds to the <em>minimum</em> magnitude of flow when traveling in the negative direction); and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when flow is traveling in the positive (forward) direction.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/lrd.jl#L8-L35">source</a></section></article><h2 id="Design-Pipe-Constraints"><a class="docs-heading-anchor" href="#Design-Pipe-Constraints">Design Pipe Constraints</a><a id="Design-Pipe-Constraints-1"></a><a class="docs-heading-anchor-permalink" href="#Design-Pipe-Constraints" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_des_pipe_flow" href="#WaterModels.constraint_des_pipe_flow"><code>WaterModels.constraint_des_pipe_flow</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_des_pipe_flow(
+    wm::AbstractWaterModel,
+    k::Int,
+    node_fr::Int,
+    node_to::Int;
+    nw::Int=nw_id_default,
+    kwargs...,
+)</code></pre><p>Constraint template to add constraints that ensure flow variables for design pipes along an arc are equally directed (for direction-based formulations). Here, <code>wm</code> is the WaterModels object, <code>k</code> is the index of the arc that connects the two common nodes of each design pipe, <code>node_fr</code> is the index of the tail node of the arc that models each design pipe, <code>node_to</code> is the index of the head node of the arc that models each design pipe, <code>nw</code> is the index of a subnetwork within a multinetwork, and <code>des_pipes</code> is the vector of design pipe indices for design pipes that reside along the same arc <code>k</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L433-L451">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_des_pipe_flow(
+    wm::AbstractNCModel,
+    n::Int,
+    k::Int,
+    node_fr::Int,
+    node_to::Int,
+    des_pipes::Array{Int,1}
+)</code></pre><p>Currently does nothing for models of type <code>AbstractNCModel</code>. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the index of a subnetwork within a multinetwork, <code>k</code> is the index of the arc that connects the two common nodes of each design pipe, <code>node_fr</code> is the index of the tail node of the arc that models each design pipe, <code>node_to</code> is the index of the head node of the arc that models each design pipe, and <code>des_pipes</code> is the vector of design pipes that reside along the same arc <code>k</code>. For <code>AbstractNCModel</code> types, no constraints will be added, as in these formulation types, flow is not partitioned by direction, and flow bounds are instead imposed during variable instantiation in <a href="variables.html#WaterModels.variable_flow"><code>variable_flow</code></a>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/nc.jl#L334-L353">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_des_pipe_flow(
+    wm::AbstractNCDModel,
+    n::Int,
+    k::Int,
+    node_fr::Int,
+    node_to::Int,
+    des_pipes::Array{Int,1}
+)</code></pre><p>Adds constraint that ensures direction variables for all design pipes along an arc are equal to one another. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the index of a subnetwork within a multinetwork, <code>k</code> is the index of the arc that connects the two common nodes of each design pipe, <code>node_fr</code> is the index of the tail node of the arc that models each design pipe, <code>node_to</code> is the index of the head node of the arc that models each design pipe, and <code>des_pipes</code> is the vector of design pipes that reside along the same arc <code>k</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/ncd.jl#L503-L520">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_des_pipe_head" href="#WaterModels.constraint_des_pipe_head"><code>WaterModels.constraint_des_pipe_head</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_des_pipe_head(
+    wm::AbstractWaterModel,
+    k::Int,
+    node_fr::Int,
+    node_to::Int;
+    nw::Int=nw_id_default,
+    kwargs...,
+)</code></pre><p>Constraint template to add constraints that ensure head difference variables for design pipes along an arc sum to the actual head difference along that arc. Here, <code>wm</code> is the WaterModels object, <code>k</code> is the index of the arc that connects the two common nodes of each design pipe, <code>node_fr</code> is the index of the tail node of the arc that models each design pipe, <code>node_to</code> is the index of the head node of the arc that models each design pipe, <code>nw</code> is the index of a subnetwork within a multinetwork, and <code>des_pipes</code> is the vector of design pipe indices for design pipes that reside along the same arc <code>k</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L475-L493">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_des_pipe_head(
+    wm::AbstractNCModel,
+    n::Int,
+    k::Int,
+    node_fr::Int,
+    node_to::Int,
+    des_pipes::Array{Int,1}
+)</code></pre><p>Adds constraint that ensures head difference variables for design pipes along an arc sum to the actual head difference along that single arc. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the index of a subnetwork within a multinetwork, <code>k</code> is the index of the arc that connects the two common nodes of each design pipe, <code>node_fr</code> is the index of the tail node of the arc that models each design pipe, <code>node_to</code> is the index of the head node of the arc that models each design pipe, and <code>des_pipes</code> is the vector of design pipes that reside along the same arc <code>k</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/nc.jl#L366-L384">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_des_pipe_head(
+    wm::AbstractNCDModel,
+    n::Int,
+    k::Int,
+    node_fr::Int,
+    node_to::Int,
+    des_pipes::Array{Int,1}
+)</code></pre><p>Adds constraints that ensure head difference variables for design pipes along an arc sum to the actual head difference along that single arc. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the index of a subnetwork within a multinetwork, <code>k</code> is the index of the arc that connects the two common nodes of each design pipe, <code>node_fr</code> is the index of the tail node of the arc that models each design pipe, <code>node_to</code> is the index of the head node of the arc that models each design pipe, and <code>des_pipes</code> is the vector of design pipes that reside along the same arc <code>k</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/ncd.jl#L537-L555">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_on_off_des_pipe_flow" href="#WaterModels.constraint_on_off_des_pipe_flow"><code>WaterModels.constraint_on_off_des_pipe_flow</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_on_off_des_pipe_flow(
+    wm::AbstractWaterModel,
+    a::Int;
+    nw::Int=nw_id_default,
+    kwargs...
+)</code></pre><p>Constraint template to add <a href="constraints.html#WaterModels.constraint_on_off_des_pipe_flow"><code>constraint_on_off_des_pipe_flow</code></a> constraints that limit the amount of flow traveling across a design pipe. Here, <code>wm</code> is the WaterModels object, <code>a</code> is the index of the design pipe, and <code>nw</code> is the index of a subnetwork within a multinetwork.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L558-L570">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_des_pipe_flow(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    q_max_reverse::Float64,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that limit the amount of flow along a design pipe based on the construction status of the design pipe (i.e., there is unrestricted flow if the pipe is constructed and zero flow if the pipe is not constructed). Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the design pipe, <code>q_max_reverse</code> is the <em>maximum</em> (negative) amount of flow when flow is traveling in the negative direction (which corresponds to the <em>minimum</em> magnitude of flow when traveling in the negative direction), and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when flow is traveling in the positive (forward) direction. For <code>AbstractNCModel</code> types, however, these direction-based flow limits are unused.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/nc.jl#L201-L220">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_des_pipe_flow(
+    wm::AbstractNCDModel,
+    n::Int,
+    a::Int,
+    q_max_reverse::Float64,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that limit the amount of flow along a design pipe based on the construction status of the design pipe (i.e., there is unrestricted flow if the pipe is constructed and zero flow if the pipe is not constructed). Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the design pipe, <code>q_max_reverse</code> is the <em>maximum</em> (negative) amount of flow when flow is traveling in the negative direction (which corresponds to the <em>minimum</em> magnitude of flow when traveling in the negative direction), and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when flow is traveling in the positive (forward) direction. Note these direction-based limits are currently unused in these constraints.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/ncd.jl#L354-L373">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_on_off_des_pipe_head" href="#WaterModels.constraint_on_off_des_pipe_head"><code>WaterModels.constraint_on_off_des_pipe_head</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_on_off_des_pipe_head(
+    wm::AbstractWaterModel,
+    a::Int;
+    nw::Int=nw_id_default,
+    kwargs...
+)</code></pre><p>Constraint template to add <a href="constraints.html#WaterModels.constraint_on_off_des_pipe_head"><code>constraint_on_off_des_pipe_head</code></a> constraints that limit the head differences across a design pipe. Here, <code>wm</code> is the WaterModels object, <code>a</code> is the index of the design pipe, and <code>nw</code> is the index of a subnetwork within a multinetwork.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L593-L605">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_des_pipe_head(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int
+)</code></pre><p>Adds constraints that limit the (design pipe-specific) head differences across a design pipe based on the construction status of the design pipe (i.e., there is zero head loss across the design pipe if it is not constructed). Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the design pipe, <code>node_fr</code> is the index of the tail node of the pipe, and <code>node_to</code> is the index of the head node of the pipe.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/nc.jl#L241-L256">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_des_pipe_head(
+    wm::AbstractNCDModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int
+)</code></pre><p>Adds constraints that limit head differences (losses) in the positive (forward) and negative (reverse) directions for a design pipe. Also limits losses based on the construction status of the design pipe, i.e., restricting both losses to zero if a design pipe is not constructed. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the index of a subnetwork within a multinetwork, <code>a</code> is the index of the design pipe, <code>node_fr</code> is the index of the tail node of the arc that models the design pipe, and <code>node_to</code> is the index of the head node of the arc that models the design pipe.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/ncd.jl#L402-L419">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_on_off_des_pipe_head_loss" href="#WaterModels.constraint_on_off_des_pipe_head_loss"><code>WaterModels.constraint_on_off_des_pipe_head_loss</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_on_off_des_pipe_head_loss(
+    wm::AbstractWaterModel,
+    a::Int;
+    nw::Int=nw_id_default,
+    kwargs...
+)</code></pre><p>Constraint template to add <a href="constraints.html#WaterModels.constraint_on_off_des_pipe_head_loss"><code>constraint_on_off_des_pipe_head_loss</code></a> constraints that model the head losses across a design pipe. Here, <code>wm</code> is the WaterModels object, <code>a</code> is the index of the design pipe, and <code>nw</code> is the index of a subnetwork within a multinetwork.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L624-L636">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_des_pipe_head_loss(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    exponent::Float64,
+    L::Float64,
+    r::Float64,
+    q_max_reverse::Float64,
+    q_min_forward::Float64
+)</code></pre><p>Add constraints that model frictional head loss across a design pipe. Here, <code>wm</code> is the WaterModels object; <code>n</code> is the subnetwork (or time) index that is considered; <code>a</code> is the index of the design pipe; <code>node_fr</code> is the index of the tail node of the design pipe; <code>node_to</code> is the index of the head node of the design pipe; <code>exponent</code> is the exponent on flow in the head loss function (i.e., 1.852 for Hazen-Williams head loss and 2.0 for Darcy-Weisbach head loss); <code>L</code> is the length of the design pipe; <code>r</code> is the resistance per unit length of the design pipe; <code>q_max_reverse</code> is the <em>maximum</em> (negative) amount of flow when flow is traveling in the negative direction (which corresponds to the <em>minimum</em> magnitude of flow when traveling in the negative direction); and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when flow is traveling in the positive (forward) direction. For <code>AbstractNCModel</code> types, however, these direction-based flow limits are unused. Note that, when a design pipe is not constructed, flow will be forced to zero by way of <a href="constraints.html#WaterModels.constraint_on_off_des_pipe_flow"><code>constraint_on_off_des_pipe_flow</code></a>, and head loss, here, will thus be constrained to zero by way of the head loss equation.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/nc.jl#L279-L309">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_des_pipe_head_loss(
+    wm::AbstractNCDModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    exponent::Float64,
+    L::Float64,
+    r::Float64,
+    q_max_reverse::Float64,
+    q_min_forward::Float64
+)</code></pre><p>Add constraints that model frictional head loss across a design pipe. Here, <code>wm</code> is the WaterModels object; <code>n</code> is the subnetwork (or time) index that is considered; <code>a</code> is the index of the design pipe; <code>node_fr</code> is the index of the tail node of the design pipe; <code>node_to</code> is the index of the head node of the design pipe; <code>exponent</code> is the exponent on flow in the head loss function (i.e., 1.852 for Hazen-Williams head loss and 2.0 for Darcy-Weisbach head loss); <code>L</code> is the length of the design pipe; <code>r</code> is the resistance per unit length of the design pipe; <code>q_max_reverse</code> is the <em>maximum</em> (negative) amount of flow when flow is traveling in the negative direction (which corresponds to the <em>minimum</em> magnitude of flow when traveling in the negative direction); and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when flow is traveling in the positive (forward) direction. Note direction-based flow limits are currently unused in these constraints. Also note that, when a design pipe is not constructed, flow will be forced to zero by way of <a href="constraints.html#WaterModels.constraint_on_off_des_pipe_flow"><code>constraint_on_off_des_pipe_flow</code></a>, and head loss, here, will thus be constrained to zero by way of the head loss equation.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/ncd.jl#L445-L475">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_des_pipe_head_loss(
+    wm::AbstractLAModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    exponent::Float64,
+    L::Float64,
+    r::Float64,
+    q_max_reverse::Float64,
+    q_min_forward::Float64
+)</code></pre><p>Add constraints that model frictional head loss across a design pipe via a piecewise-linear approximation of the nonlinear, nonconvex head loss relationship. Here, <code>wm</code> is the WaterModels object; <code>n</code> is the subnetwork (or time) index that is considered; <code>a</code> is the index of the design pipe; <code>node_fr</code> is the index of the tail node of the design pipe; <code>node_to</code> is the index of the head node of the design pipe; <code>exponent</code> is the exponent on flow in the head loss function (i.e., 1.852 for Hazen-Williams head loss and 2.0 for Darcy- Weisbach head loss); <code>L</code> is the length of the design pipe; <code>r</code> is the resistance per unit length of the design pipe; <code>q_max_reverse</code> is the <em>maximum</em> (negative) amount of flow when flow is traveling in the negative direction (which corresponds to the <em>minimum</em> magnitude of flow when traveling in the negative direction); and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when flow is traveling in the positive (forward) direction. Note direction-based flow limits are currently unused in these constraints.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/la.jl#L185-L213">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_des_pipe_head_loss(
+    wm::AbstractPWLRDModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    exponent::Float64,
+    L::Float64,
+    r::Float64,
+    q_max_reverse::Float64,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that model frictional head loss across a design pipe via outer and piecewise-linear inner approximations of the nonlinear, nonconvex head loss relationship. Here, <code>wm</code> is the WaterModels object; <code>n</code> is the subnetwork (or time) index that is considered; <code>a</code> is the index of the design pipe; <code>node_fr</code> is the index of the tail node of the design pipe; <code>node_to</code> is the index of the head node of the design pipe; <code>exponent</code> is the exponent on flow in the head loss function (i.e., 1.852 for Hazen-Williams head loss and 2.0 for Darcy- Weisbach head loss); <code>L</code> is the length of the design pipe; <code>r</code> is the resistance per unit length of the design pipe; <code>q_max_reverse</code> is the <em>maximum</em> (negative) amount of flow when flow is traveling in the negative direction (which corresponds to the <em>minimum</em> magnitude of flow when traveling in the negative direction); and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when flow is traveling in the positive (forward) direction.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/pwlrd.jl#L257-L284">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_des_pipe_head_loss(
+    wm::AbstractLRDModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    exponent::Float64,
+    L::Float64,
+    r::Float64,
+    q_max_reverse::Float64,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that model frictional head loss across a design pipe via linear outer approximations of the nonlinear, nonconvex head loss relationship. Here, <code>wm</code> is the WaterModels object; <code>n</code> is the subnetwork (or time) index that is considered; <code>a</code> is the index of the design pipe; <code>node_fr</code> is the index of the tail node of the design pipe; <code>node_to</code> is the index of the head node of the design pipe; <code>exponent</code> is the exponent on flow in the head loss function (i.e., 1.852 for Hazen-Williams head loss and 2.0 for Darcy-Weisbach head loss); <code>L</code> is the length of the design pipe; <code>r</code> is the resistance per unit length of the design pipe; <code>q_max_reverse</code> is the <em>maximum</em> (negative) amount of flow when flow is traveling in the negative direction (which corresponds to the <em>minimum</em> magnitude of flow when traveling in the negative direction); and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when flow is traveling in the positive (forward) direction.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/lrd.jl#L121-L148">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_des_pipe_selection" href="#WaterModels.constraint_des_pipe_selection"><code>WaterModels.constraint_des_pipe_selection</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_des_pipe_selection(
+    wm::AbstractWaterModel,
+    n::Int,
+    k::Int,
+    node_fr::Int,
+    node_to::Int,
+    des_pipes::Array{Int,1}
+)</code></pre><p>Adds a constraint that ensures exactly one design pipe will be selected per arc that comprises one or more design pipe possibilities. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the index of a subnetwork within a multinetwork, <code>k</code> is the index of the arc comprising multiple design pipes, <code>node_fr</code> and <code>node_to</code> are node indices that connect the arc, and <code>des_pipes</code> is the vector of design pipes that reside along the same arc <code>k</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint.jl#L96-L112">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_des_pipe_selection(
+    wm::AbstractWaterModel,
+    k::Int,
+    node_fr::Int,
+    node_to::Int;
+    nw::Int=nw_id_default,
+    kwargs...
+)</code></pre><p>Constraint template to add <a href="constraints.html#WaterModels.constraint_des_pipe_selection"><code>constraint_des_pipe_selection</code></a> constraints that enforce the selection of only one design pipe to be constructed along a given arc. Here, <code>wm</code> is the WaterModels object, <code>k</code> is the index of the arc that connects the two common nodes of each design pipe, <code>node_fr</code> is the index of the tail node of the arc that models each design pipe, <code>node_to</code> is the index of the head node of the arc that models each design pipe, and <code>nw</code> is the index of a subnetwork within a multinetwork.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L517-L534">source</a></section></article><h2 id="Short-Pipe-Constraints"><a class="docs-heading-anchor" href="#Short-Pipe-Constraints">Short Pipe Constraints</a><a id="Short-Pipe-Constraints-1"></a><a class="docs-heading-anchor-permalink" href="#Short-Pipe-Constraints" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_short_pipe_flow" href="#WaterModels.constraint_short_pipe_flow"><code>WaterModels.constraint_short_pipe_flow</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_short_pipe_flow(
+    wm::AbstractWaterModel,
+    a::Int;
+    nw::Int=nw_id_default,
+    kwargs...
+)</code></pre><p>Constraint template to add <a href="constraints.html#WaterModels.constraint_short_pipe_flow"><code>constraint_short_pipe_flow</code></a> constraints that limit the volumetric flow rate across a short pipe. Here, <code>wm</code> is the WaterModels object, <code>a</code> is the index of the short pipe for which flow will be limited, and <code>nw</code> is the subnetwork (or time) index that is considered.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L969-L981">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_short_pipe_flow(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    q_max_reverse::Float64,
+    q_min_forward::Float64,
+)</code></pre><p>Currently does nothing for models of type <code>AbstractNCModel</code>. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the short pipe for which flow will be limited, <code>q_max_reverse</code> is the <em>maximum</em> (negative) amount of flow when flow is traveling in the negative direction (which corresponds to the <em>minimum</em> magnitude of flow when traveling in the negative direction), and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when flow is traveling in the positive (forward) direction. For <code>AbstractNCModel</code> types, no constraints will be added, as in these formulation types, flow is not partitioned by direction, and flow bounds are instead imposed during variable instantiation in <a href="variables.html#WaterModels.variable_flow"><code>variable_flow</code></a>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/nc.jl#L725-L745">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_short_pipe_flow(
+    wm::AbstractNCDModel,
+    n::Int,
+    a::Int,
+    q_max_reverse::Float64,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that limit the amount of flow along a short pipe based on the direction of flow through the short pipe. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the short pipe for which flow will be limited, <code>q_max_reverse</code> is the <em>maximum</em> (negative) amount of flow when flow is traveling in the negative direction (which corresponds to the <em>minimum</em> magnitude of flow when traveling in the negative direction), and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when flow is traveling in the positive (forward) direction.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/ncd.jl#L772-L789">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_short_pipe_head" href="#WaterModels.constraint_short_pipe_head"><code>WaterModels.constraint_short_pipe_head</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_short_pipe_head(
+    wm::AbstractWaterModel,
+    a::Int;
+    nw::Int=nw_id_default,
+    kwargs...
+)</code></pre><p>Constraint template to add <a href="constraints.html#WaterModels.constraint_short_pipe_head"><code>constraint_short_pipe_head</code></a> constraints that limit and establish relationships among head difference and head variables. Here, <code>wm</code> is the WaterModels object, <code>a</code> is the index of the short pipe, and <code>nw</code> is the subnetwork (or time) index that is considered.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L997-L1009">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_short_pipe_head(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+)</code></pre><p>Adds a constraint that equates the head at the tail node of a short pipe with the head at the head node of the short pipe (i.e., since short pipes have no loss). Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the short pipe, <code>node_fr</code> is the index of the tail node of the short pipe, and <code>node_to</code> is the index of the head node of the short pipe.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/nc.jl#L757-L772">source</a></section></article><h2 id="Pump-Constraints"><a class="docs-heading-anchor" href="#Pump-Constraints">Pump Constraints</a><a id="Pump-Constraints-1"></a><a class="docs-heading-anchor-permalink" href="#Pump-Constraints" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_on_off_pump_flow" href="#WaterModels.constraint_on_off_pump_flow"><code>WaterModels.constraint_on_off_pump_flow</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_on_off_pump_flow(
+    wm::AbstractWaterModel,
+    a::Int;
+    nw::Int=nw_id_default,
+    kwargs...
+)</code></pre><p>Constraint template to add <a href="constraints.html#WaterModels.constraint_on_off_pump_flow"><code>constraint_on_off_pump_flow</code></a> constraints, which restrict the amount of flow transported through a pump based on its operating status. Here, <code>wm</code> is the WaterModels object, <code>a</code> is the index of the pump, and <code>nw</code> is the index of a subnetwork within a multinetwork.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L683-L695">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_pump_flow(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that limit the amount of flow across a pump based on the operating status of the pump (i.e., there is unrestricted but bounded flow if the pump is active and zero flow otherwise). Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the pump, and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when the pump is active. Here, <code>q_min_forward</code> could be interpreted as some minimum amount of flow recommended by the pump manufacturer to avoid pump overheating, or it may be some network- or optimization-based bound (e.g., a flow bound discovered via optimization-based bound tightening).</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/nc.jl#L405-L422">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_pump_flow(
+    wm::AbstractNCDModel,
+    n::Int,
+    a::Int,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that limit the amount of flow across a pump based on the operating status of the pump (i.e., there is unrestricted but bounded flow if the pump is active and zero flow otherwise). Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the pump, and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when the pump is active. Here, <code>q_min_forward</code> could be interpreted as some minimum amount of flow recommended by the pump manufacturer to avoid pump overheating, or it may be some network- or optimization-based bound (e.g., a flow bound discovered via optimization-based bound tightening).</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/ncd.jl#L577-L594">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_on_off_pump_head" href="#WaterModels.constraint_on_off_pump_head"><code>WaterModels.constraint_on_off_pump_head</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_on_off_pump_flow(
+    wm::AbstractWaterModel,
+    a::Int;
+    nw::Int=nw_id_default,
+    kwargs...
+)</code></pre><p>Constraint template to add <a href="constraints.html#WaterModels.constraint_on_off_pump_head"><code>constraint_on_off_pump_head</code></a> constraints, which disjunctively limit the head difference between nodes connected by the pump and, if operating, ensures the head difference between nodes is equal to the head gain, constrained by (<a href="constraints.html#WaterModels.constraint_on_off_pump_head_gain"><code>constraint_on_off_pump_head_gain</code></a>. Here, <code>wm</code> is the WaterModels object, <code>a</code> is the index of the pump, and <code>nw</code> is the index of a subnetwork within a multinetwork.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L716-L730">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_pump_head(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int
+)</code></pre><p>Adds constraints that model head differences at the nodes connected by a pump based on the operating status of the pump (i.e., heads at connecting nodes are decoupled if the pump is inactive, but if the pump is active, the head difference is computed from the pump&#39;s head gain, which is a function of flow). Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the pump, <code>node_fr</code> is the index of the tail node of the pump, and <code>node_to</code> is the index of the head node of the pump.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/nc.jl#L442-L458">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_on_off_pump_head_gain" href="#WaterModels.constraint_on_off_pump_head_gain"><code>WaterModels.constraint_on_off_pump_head_gain</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_on_off_pump_head_gain(
+    wm::AbstractWaterModel,
+    a::Int;
+    nw::Int=nw_id_default,
+    kwargs...
+)</code></pre><p>Constraint template to add <a href="constraints.html#WaterModels.constraint_on_off_pump_head_gain"><code>constraint_on_off_pump_head_gain</code></a> constraints, which, if operating, limit the pump&#39;s head gain as a function of flow rate. Here, <code>wm</code> is the WaterModels object, <code>a</code> is the index of the pump, and <code>nw</code> is the index of a subnetwork within a multinetwork.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L745-L757">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_pump_head_gain(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that model the pump&#39;s head gain, if operating, as a possibly nonlinear function of flow rate. If the pump is inactive, the head gain is restricted to a value of zero. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the pump, <code>node_fr</code> is the index of the tail node of the pump, <code>node_to</code> is the index of the head node of the pump, and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when the pump is active. Head gain is assumed to be a nonnegative quantity that is directed from <code>node_fr</code> to <code>node_to</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/nc.jl#L484-L502">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_pump_head_gain(
+    wm::AbstractNCDModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that model the pump&#39;s head gain, if operating, as a possibly nonlinear function of flow rate. If the pump is inactive, the head gain is restricted to a value of zero. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the pump, <code>node_fr</code> is the index of the tail node of the pump, <code>node_to</code> is the index of the head node of the pump, and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when the pump is active. Head gain is assumed to be a nonnegative quantity that is directed from <code>node_fr</code> to <code>node_to</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/ncd.jl#L617-L635">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_pump_head_gain(
+    wm::AbstractLAModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that model the pump&#39;s head gain, if operating, as a piecewise- linear approximation of a nonlinear function of flow rate. If the pump is inactive, the head gain is restricted to a value of zero. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the pump, <code>node_fr</code> is the index of the tail node of the pump, <code>node_to</code> is the index of the head node of the pump, and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when the pump is active. Head gain is assumed to be nonnegative and is directed from <code>node_fr</code> to <code>node_to</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/la.jl#L265-L283">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_pump_head_gain(
+    wm::AbstractPWLRDModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that model the pump&#39;s head gain, if operating, via outer and piecewise-linear inner approximations of the nonlinear function of flow rate. If the pump is inactive, the head gain is restricted to a value of zero. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the pump, <code>node_fr</code> is the index of the tail node of the pump, <code>node_to</code> is the index of the head node of the pump, and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when the pump is active. Head gain is assumed to be nonnegative and is directed from <code>node_fr</code> to <code>node_to</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/pwlrd.jl#L407-L426">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_pump_head_gain(
+    wm::AbstractLRDModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that model the pump&#39;s head gain, if operating, via linear outer approximations of the nonlinear function of flow rate. If the pump is inactive, the head gain is restricted to a value of zero. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the pump, <code>node_fr</code> is the index of the tail node of the pump, <code>node_to</code> is the index of the head node of the pump, and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when the pump is active. Head gain is assumed to be nonnegative and is directed from <code>node_fr</code> to <code>node_to</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/lrd.jl#L245-L263">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_on_off_pump_power" href="#WaterModels.constraint_on_off_pump_power"><code>WaterModels.constraint_on_off_pump_power</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_on_off_pump_power(
+    wm::AbstractWaterModel,
+    a::Int;
+    nw::Int=nw_id_default,
+    kwargs...
+)</code></pre><p>Constraint template to add <a href="constraints.html#WaterModels.constraint_on_off_pump_power"><code>constraint_on_off_pump_power</code></a> constraints, which, if operating, model the pump&#39;s power according to certain assumptions. Here, <code>wm</code> is the WaterModels object, <code>a</code> is the index of the pump, and <code>nw</code> is the index of a subnetwork within a multinetwork.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L785-L797">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_pump_power(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that model the pump&#39;s power consumption, if operating, as a quadratic function of flow rate. If the pump is inactive, the power is restricted to a value of zero. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the pump, and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when the pump is active. Note that only a quadratic approximation is used for <code>AbstractNCModel</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/nc.jl#L524-L538">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_pump_power(
+    wm::AbstractNCDModel,
+    n::Int,
+    a::Int,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that model the pump&#39;s power consumption, if operating, as a quadratic function of flow rate. If the pump is inactive, the power is restricted to a value of zero. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the pump, and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when the pump is active. Note only a quadratic approximation is used for <code>AbstractNCDModel</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/ncd.jl#L655-L669">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_pump_power(
+    wm::AbstractLAModel,
+    n::Int,
+    a::Int,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that model the pump&#39;s power consumption, if operating, as a piecewise-linear approximation of a (potentially) nonlinear function of a more accurate model. If the pump is inactive, the power is restricted to a value of zero. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the pump, and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when the pump is active.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/la.jl#L331-L345">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_pump_power(
+    wm::AbstractPWLRDModel,
+    n::Int,
+    a::Int,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that model the pump&#39;s power consumption, if operating, as being bounded between piecewise-linear inner and outer approximations of a (potentially) nonlinear function of a more accurate model. If the pump is inactive, the power is restricted to a value of zero. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the pump, and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when the pump is active.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/pwlrd.jl#L486-L501">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_on_off_pump_power_best_efficiency" href="#WaterModels.constraint_on_off_pump_power_best_efficiency"><code>WaterModels.constraint_on_off_pump_power_best_efficiency</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_on_off_pump_power_best_efficiency(
+    wm::AbstractWaterModel,
+    n::Int,
+    a::Int,
+    density::Float64,
+    gravity::Float64,
+    q_min_forward::Float64
+)</code></pre><p>Adds a constraint that expresses pump power as a linear expression of flow, where coefficients of this linear expression are computed using an assumption that the pump will be operating at its best efficiency point. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the index of the subnetwork within a multinetwork, <code>a</code> is the index of the pump, <code>density</code> is the density of water, <code>gravity</code> is acceleration due to gravity, and <code>q_min_forward</code> is the minimum amount of flow transported through the pump when it is active (and flow is directed forward).</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint.jl#L172-L189">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_on_off_pump_power_custom" href="#WaterModels.constraint_on_off_pump_power_custom"><code>WaterModels.constraint_on_off_pump_power_custom</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_on_off_pump_power_custom(
+    wm::AbstractWaterModel,
+    n::Int,
+    a::Int,
+    power_fixed::Float64,
+    power_variable::Float64
+)</code></pre><p>Adds a constraint that expresses pump power as a linear expression of flow, where coefficients of this linear expression are given by <code>power_fixed</code> and <code>power_variable</code>. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the index of the subnetwork within a multinetwork, <code>a</code> is the index of the pump, <code>power_fixed</code> is the amount of power consumed by the pump when it is active and transporting no flow (i.e., the point of intersection at zero flow on the vertical axis of a power-versus-flow curve), and <code>power_variable</code> is the amount of power consumed by the pump per unit flow.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint.jl#L211-L228">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_on_off_pump_group" href="#WaterModels.constraint_on_off_pump_group"><code>WaterModels.constraint_on_off_pump_group</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_on_off_pump_group(
+    wm::AbstractWaterModel,
+    n::Int,
+    k::Int,
+    pump_indices::Set{Int}
+)</code></pre><p>Adds a constraint that imposes symmetry-breaking lexicographic sorting of pump activation statuses on groups of identical pumps operating in parallel along the same arc of the network. Reduces the combinatorial complexity of problems involving multiple pumps operating in parallel. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the index of the subnetwork within a multinetwork, <code>k</code> is the index of the arc that includes the group of identical pumps, and <code>pump_indices</code> is the set of pump indices for pumps operating in parallel along arc <code>k</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint.jl#L241-L256">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_pump_power(
+    wm::AbstractWaterModel,
+    a::Int;
+    nw::Int=nw_id_default,
+    kwargs...
+)</code></pre><p>Constraint template to add <a href="constraints.html#WaterModels.constraint_on_off_pump_group"><code>constraint_on_off_pump_group</code></a> constraints, which impose symmetry-breaking lexicographic sorting of pump activation statuses on groups of identical pumps operating in parallel along the same arc of the network. Here, <code>wm</code> is the WaterModels object, <code>k</code> is the index of the pump group, and <code>nw</code> is the index of a subnetwork within a multinetwork.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L843-L856">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_on_off_pump_switch" href="#WaterModels.constraint_on_off_pump_switch"><code>WaterModels.constraint_on_off_pump_switch</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_on_off_pump_switch(
+    wm::AbstractWaterModel,
+    a::Int,
+    network_ids::Array{Int,1},
+    max_switches::Int
+)</code></pre><p>Adds a constraint that limits the number of times a pump can be switched from off to on in a multiperiod pump scheduling problem. Here, <code>wm</code> is the WaterModels object, <code>a</code> is the index of the pump, <code>network_ids</code> are the network (time) indices used in the summation that limits the number of switches, and <code>max_switches</code> is the number of maximum switches permitted for the pump over the set of network indices.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint.jl#L270-L284">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_pump_switch(
+    wm::AbstractWaterModel,
+    a::Int;
+    network_ids::Array{Int,1};
+    kwargs...
+)</code></pre><p>Constraint template to add <a href="constraints.html#WaterModels.constraint_on_off_pump_switch"><code>constraint_on_off_pump_switch</code></a> constraint, which limits the number of times a pump can be switched from off to on in a multiperiod pump scheduling problem. Here, <code>wm</code> is the WaterModels object, <code>a</code> is the index of the pump, and <code>network_ids</code> are the network (time) indices used in the summation that limits the number of switches.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L870-L883">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_pump_switch_on" href="#WaterModels.constraint_pump_switch_on"><code>WaterModels.constraint_pump_switch_on</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_pump_switch_on(
+    wm::AbstractWaterModel,
+    a::Int,
+    n_1::Int,
+    n_2::Int,
+    nws_active::Array{Int,1}
+)</code></pre><p>Adds a constraint that models the switching of a pump from <em>off</em> to <em>on</em> and constrains its operation, if switched on, to remain on for at least some amount of time. Here, <code>wm</code> is the WaterModels object; <code>a</code> is the index of the pump; <code>n_1</code> is the first time index modeled by the constraint; <code>n_2</code> is the adjacent (next) time index modeled by the constraint, which permits limiting the change in pump status (i.e., from off to on); and <code>nws_active</code> are the subnetwork (time) indices where the pump must be constrained to on <em>if</em> the pump is indeed switched from off to on between time indices <code>n_1</code> and <code>n_2</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint.jl#L292-L309">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_pump_switch_on(
+    wm::AbstractWaterModel,
+    a::Int,
+    n_1::Int,
+    n_2::Int;
+    kwargs...
+)</code></pre><p>Constraint template to add <a href="constraints.html#WaterModels.constraint_pump_switch_on"><code>constraint_pump_switch_on</code></a> constraints, which model the switching of a pump from <em>off</em> to <em>on</em> and constrains its operation, if switched on, to remain on for at least some minimum amount of time. Here, <code>wm</code> is the WaterModels object; <code>a</code> is the index of the pump; <code>n_1</code> is the first time index modeled by the constraint; and <code>n_2</code> is the adjacent (next) time index modeled by the constraint, which permits limiting the change in pump status (i.e., from off to on).</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L897-L913">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_pump_switch_off" href="#WaterModels.constraint_pump_switch_off"><code>WaterModels.constraint_pump_switch_off</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_pump_switch_off(
+    wm::AbstractWaterModel,
+    a::Int,
+    n_1::Int,
+    n_2::Int,
+    nws_inactive::Array{Int,1}
+)</code></pre><p>Adds a constraint that models the switching of a pump from <em>on</em> to <em>off</em> and constrains non-operation, if switched off, to remain off for at least some amount of time. Here, <code>wm</code> is the WaterModels object; <code>a</code> is the index of the pump; <code>n_1</code> is the first time index modeled by the constraint; <code>n_2</code> is the adjacent (next) time index modeled by the constraint, which permits limiting the change in pump status (i.e., from on to off); and <code>nws_inactive</code> are the subnetwork (time) indices where the pump must be constrained to off <em>if</em> the pump is indeed switched from on to off between time indices <code>n_1</code> and <code>n_2</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint.jl#L324-L341">source</a></section><section><div><pre><code class="nohighlight hljs">function constraint_pump_switch_off(
+    wm::AbstractWaterModel,
+    a::Int,
+    n_1::Int,
+    n_2::Int;
+    kwargs...
+)</code></pre><p>Constraint template to add <a href="constraints.html#WaterModels.constraint_pump_switch_off"><code>constraint_pump_switch_off</code></a> constraints, which model the switching of a pump from <em>on</em> to <em>off</em> and constrains non- operation, if switched off, to remain off for at least some minimum amount of time. Here, <code>wm</code> is the WaterModels object; <code>a</code> is the index of the pump; <code>n_1</code> is the first time index modeled by the constraint; <code>n_2</code> is the adjacent (next) time index modeled by the constraint, which permits limiting the change in pump status (i.e., from on to off).</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L932-L948">source</a></section></article><h2 id="Valve-Constraints"><a class="docs-heading-anchor" href="#Valve-Constraints">Valve Constraints</a><a id="Valve-Constraints-1"></a><a class="docs-heading-anchor-permalink" href="#Valve-Constraints" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_on_off_valve_flow" href="#WaterModels.constraint_on_off_valve_flow"><code>WaterModels.constraint_on_off_valve_flow</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_on_off_valve_flow(
+    wm::AbstractWaterModel,
+    a::Int;
+    nw::Int=nw_id_default,
+    kwargs...
+)</code></pre><p>Constraint template to add <a href="constraints.html#WaterModels.constraint_on_off_valve_flow"><code>constraint_on_off_valve_flow</code></a> constraints that limit the volumetric flow rate across a valve based on its operating status. Here, <code>wm</code> is the WaterModels object, <code>a</code> is the index of the valve for which flow will be limited, and <code>nw</code> is the subnetwork (or time) index that is considered.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L1027-L1040">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_valve_flow(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    q_max_reverse::Float64,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that limit the amount of flow along a valve based on the operating status of the valve (i.e., there is bounded flow if the valve is active and zero flow if the valve is inactive). Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the valve, <code>q_max_reverse</code> is the <em>maximum</em> (negative) amount of flow when flow is traveling in the negative direction (which corresponds to the <em>minimum</em> magnitude of flow when traveling in the negative direction), and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when flow is traveling in the positive (forward) direction. For <code>AbstractNCModel</code> types, however, these direction-based flow limits are unused.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/nc.jl#L642-L661">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_valve_flow(
+    wm::AbstractNCDModel,
+    n::Int,
+    a::Int,
+    q_max_reverse::Float64,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that limit the amount of flow along a valve based on the operating status of the valve (i.e., there is bounded flow if the valve is active and zero flow if the valve is inactive). Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the valve, <code>q_max_reverse</code> is the <em>maximum</em> (negative) amount of flow when flow is traveling in the negative direction (which corresponds to the <em>minimum</em> magnitude of flow when traveling in the negative direction), and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when flow is traveling in the positive (forward) direction.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/ncd.jl#L725-L743">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_on_off_valve_head" href="#WaterModels.constraint_on_off_valve_head"><code>WaterModels.constraint_on_off_valve_head</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_on_off_valve_head(
+    wm::AbstractWaterModel,
+    a::Int;
+    nw::Int=nw_id_default,
+    kwargs...
+)</code></pre><p>Constraint template to add <a href="constraints.html#WaterModels.constraint_on_off_valve_head"><code>constraint_on_off_valve_head</code></a> constraints that limit and establish relationships among head variables based on the operating status of the valve. Here, <code>wm</code> is the WaterModels object, <code>a</code> is the index of the valve, and <code>nw</code> is the subnetwork (or time) index that is considered.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L1057-L1070">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_valve_head(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int
+)</code></pre><p>Adds constraints that model head difference between the nodes connected by a valve based on the operating status of the valve (i.e., heads at connecting nodes are decoupled if the valve is inactive, but if the valve is active, the heads at connecting nodes are equal). Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the valve, <code>node_fr</code> is the index of the tail node of the valve, and <code>node_to</code> is the index of the head node of the valve.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/nc.jl#L682-L698">source</a></section></article><h2 id="Regulator-Constraints"><a class="docs-heading-anchor" href="#Regulator-Constraints">Regulator Constraints</a><a id="Regulator-Constraints-1"></a><a class="docs-heading-anchor-permalink" href="#Regulator-Constraints" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_on_off_regulator_flow" href="#WaterModels.constraint_on_off_regulator_flow"><code>WaterModels.constraint_on_off_regulator_flow</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_on_off_regulator_flow(
+    wm::AbstractWaterModel,
+    a::Int;
+    nw::Int=nw_id_default,
+    kwargs...
+)</code></pre><p>Constraint template to add <a href="constraints.html#WaterModels.constraint_on_off_regulator_flow"><code>constraint_on_off_regulator_flow</code></a> constraints that limit the volumetric flow rate across a regulator based on its operating status. Here, <code>wm</code> is the WaterModels object, <code>a</code> is the index of the valve for which flow will be limited, and <code>nw</code> is the subnetwork (or time) index that is considered.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L1087-L1100">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_regulator_flow(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that limit the amount of flow across a regulator based on the operating status of the regulator (i.e., there is unrestricted but bounded flow if the regulator is active and zero flow otherwise). Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the regulator, and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when the regulator is active.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/nc.jl#L558-L572">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_regulator_flow(
+    wm::AbstractNCDModel,
+    n::Int,
+    a::Int,
+    q_min_forward::Float64
+)</code></pre><p>Adds constraints that limit the amount of flow across a regulator based on the operating status of the regulator (i.e., there is bounded flow if the regulator is active and zero flow otherwise). Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the regulator, and <code>q_min_forward</code> is the <em>minimum</em> (positive) amount of flow when the regulator is active.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/ncd.jl#L689-L703">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="WaterModels.constraint_on_off_regulator_head" href="#WaterModels.constraint_on_off_regulator_head"><code>WaterModels.constraint_on_off_regulator_head</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">constraint_on_off_regulator_head(
+    wm::AbstractWaterModel,
+    a::Int;
+    nw::Int=nw_id_default,
+    kwargs...
+)</code></pre><p>Constraint template to add <a href="constraints.html#WaterModels.constraint_on_off_regulator_head"><code>constraint_on_off_regulator_head</code></a> constraints that limit and establish relationships among head variables based on the operating status of the regulator. Here, <code>wm</code> is the WaterModels object, <code>a</code> is the index of the regulator, and <code>nw</code> is the subnetwork (or time) index that is considered.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/core/constraint_template.jl#L1120-L1133">source</a></section><section><div><pre><code class="nohighlight hljs">constraint_on_off_regulator_head(
+    wm::AbstractNCModel,
+    n::Int,
+    a::Int,
+    node_fr::Int,
+    node_to::Int,
+    head_setting::Float64
+)</code></pre><p>Adds constraints that model the effects of a pressure-reducing valve (i.e., a regulator). When the regulator is operational (active), the regulator will ensure head at the node indexed by <code>node_to</code> will be equal to <code>head_setting</code>. When the regulator is inactive, heads at connecting nodes are decoupled. Here, <code>wm</code> is the WaterModels object, <code>n</code> is the subnetwork (or time) index that is considered, <code>a</code> is the index of the regulator, <code>node_fr</code> is the index of the tail node of the regulator, <code>node_to</code> is the index of the head node of the regulator, and <code>head_setting</code> is the value of head to be set (if the regulator is active) at the (thus downstream) node indexed by <code>node_to</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/lanl-ansi/WaterModels.jl/blob/df331a2f504b1bceacff3e4ccaaa736f7af79cdc/src/form/nc.jl#L592-L611">source</a></section></article></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="variables.html">« Variables</a><a class="docs-footer-nextpage" href="parser.html">File I/O »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Sunday 22 January 2023 18:11">Sunday 22 January 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
