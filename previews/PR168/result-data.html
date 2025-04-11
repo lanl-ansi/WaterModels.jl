@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Result Data Format · WaterModels</title><meta name="title" content="Result Data Format · WaterModels"/><meta property="og:title" content="Result Data Format · WaterModels"/><meta property="twitter:title" content="Result Data Format · WaterModels"/><meta name="description" content="Documentation for WaterModels."/><meta property="og:description" content="Documentation for WaterModels."/><meta property="twitter:description" content="Documentation for WaterModels."/><script async src="https://www.googletagmanager.com/gtag/js?id=UA-367975-10"></script><script>  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-367975-10', {'page_path': location.pathname + location.search + location.hash});
+</script><script data-outdated-warner src="assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="search_index.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="index.html"><img src="assets/logo.svg" alt="WaterModels logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="index.html">WaterModels</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="index.html">Home</a></li><li><span class="tocitem">Manual</span><ul><li><a class="tocitem" href="quickguide.html">Getting Started</a></li><li><a class="tocitem" href="network-data.html">Network Data Format</a></li><li class="is-active"><a class="tocitem" href="result-data.html">Result Data Format</a><ul class="internal"><li><a class="tocitem" href="#The-Result-Data-Dictionary"><span>The Result Data Dictionary</span></a></li><li><a class="tocitem" href="#Solution-Data"><span>Solution Data</span></a></li><li><a class="tocitem" href="#Transforming-Solution-Data"><span>Transforming Solution Data</span></a></li></ul></li><li><a class="tocitem" href="math-model.html">Mathematical Models</a></li></ul></li><li><span class="tocitem">Library</span><ul><li><a class="tocitem" href="formulations.html">Network Formulations</a></li><li><a class="tocitem" href="specifications.html">Problem Specifications</a></li><li><input class="collapse-toggle" id="menuitem-3-3" type="checkbox"/><label class="tocitem" for="menuitem-3-3"><span class="docs-label">Modeling Components</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="objective.html">Objective</a></li><li><a class="tocitem" href="variables.html">Variables</a></li><li><a class="tocitem" href="constraints.html">Constraints</a></li></ul></li><li><a class="tocitem" href="parser.html">File I/O</a></li></ul></li><li><a class="tocitem" href="developer.html">Developer</a></li><li><a class="tocitem" href="examples.html">Examples</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Manual</a></li><li class="is-active"><a href="result-data.html">Result Data Format</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href="result-data.html">Result Data Format</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/lanl-ansi/WaterModels.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/lanl-ansi/WaterModels.jl/blob/master/docs/src/result-data.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="WaterModels-Result-Data-Format"><a class="docs-heading-anchor" href="#WaterModels-Result-Data-Format">WaterModels Result Data Format</a><a id="WaterModels-Result-Data-Format-1"></a><a class="docs-heading-anchor-permalink" href="#WaterModels-Result-Data-Format" title="Permalink"></a></h1><h2 id="The-Result-Data-Dictionary"><a class="docs-heading-anchor" href="#The-Result-Data-Dictionary">The Result Data Dictionary</a><a id="The-Result-Data-Dictionary-1"></a><a class="docs-heading-anchor-permalink" href="#The-Result-Data-Dictionary" title="Permalink"></a></h2><p>WaterModels uses a dictionary to organize the results of a <code>solve_</code> command. The dictionary uses strings as key values so it can be serialized to JSON for algorithmic data exchange. The data dictionary organization is designed to be consistent with <a href="network-data.html#The-Network-Data-Dictionary">The Network Data Dictionary</a>.</p><p>At the top level, the results data dictionary is structured as follows:</p><pre><code class="language-json hljs">{
+    &quot;optimizer&quot;: &lt;string&gt;,        # name of the solver used to solve the model
+    &quot;termination_status&quot;: &lt;type&gt;, # optimizer status at termination
+    &quot;dual_status&quot;: &lt;type&gt;,        # optimizer dual status at termination
+    &quot;primal_status&quot;: &lt;type&gt;,      # optimizer primal status at termination
+    &quot;solve_time&quot;: &lt;float&gt;,        # reported solve time (in seconds)
+    &quot;objective&quot;: &lt;float&gt;,         # the final evaluation of the objective function
+    &quot;objective_lb&quot;: &lt;float&gt;,      # the final lower bound of the objective function (if available)
+    &quot;solution&quot;: {...}             # complete solution information (details below)
+}</code></pre><h2 id="Solution-Data"><a class="docs-heading-anchor" href="#Solution-Data">Solution Data</a><a id="Solution-Data-1"></a><a class="docs-heading-anchor-permalink" href="#Solution-Data" title="Permalink"></a></h2><p>The <code>&quot;solution&quot;</code> subdictionary provides detailed information about the problem solution produced by the <code>solve_</code> command. The solution is organized similarly to <a href="network-data.html#The-Network-Data-Dictionary">The Network Data Dictionary</a> with the same nested structure and parameter names, when available. For example, for a single-network problem, <code>result[&quot;solution&quot;][&quot;pipe&quot;][&quot;1&quot;]</code> reports all the solution values associated with the pipe at index <code>&quot;1&quot;</code>, e.g.,</p><pre><code class="language-json hljs">{
+    &quot;qn&quot;: 0.0,
+    &quot;qp&quot;: 2.0,
+    &quot;dhn&quot;: 0.0,
+    &quot;q&quot;: 2.0,
+    &quot;dhp&quot;: 0.033770,
+    &quot;y&quot;: 1.0
+}</code></pre><p>Similarly, for a multinetwork problem, as an example, <code>result[&quot;nw&quot;][&quot;3&quot;][&quot;pump&quot;][&quot;2&quot;]</code> reports the solution values associated with the pump at pump index <code>&quot;2&quot;</code> and time index <code>&quot;3&quot;</code>, e.g.,</p><pre><code class="language-json hljs">{
+    &quot;qn&quot;: 0.0,
+    &quot;c&quot;: 0.16850289352749692,
+    &quot;g&quot;: 0.8372647243015188,
+    &quot;P&quot;: 0.00016374541106904265,
+    &quot;status&quot;: 1.0,
+    &quot;qp&quot;: 0.36694422549881334,
+    &quot;q&quot;: 0.36694422549881334,
+    &quot;E&quot;: 1.8023959936938814e-6,
+    &quot;y&quot;: 1.0
+}</code></pre><h3 id="Solution-Data-Schema"><a class="docs-heading-anchor" href="#Solution-Data-Schema">Solution Data Schema</a><a id="Solution-Data-Schema-1"></a><a class="docs-heading-anchor-permalink" href="#Solution-Data-Schema" title="Permalink"></a></h3><p>By default, all solution data are reported in per-unit (non-dimensionalized) units. Below are common outputs of the implemented optimization models, which are sometimes based on flow directionality:</p><pre><code class="language-json hljs">{
+    &quot;multiinfrastructure&quot;: &lt;bool&gt;  # Whether or not the solution data is part of a broader multi-infrastructure solution.
+    &quot;multinetwork&quot;: &lt;bool&gt;         # Whether or not the network data describes a multinetwork (e.g., a time series of networks).
+    &quot;per_unit&quot;: &lt;bool&gt;,            # Whether the data is in per-unit (non-dimensionalized) or SI units.
+    &quot;base_flow&quot;: &lt;float&gt;,          # Base for non-dimensionalizing volumetric flow rate. SI units are cubic meters per second.
+    &quot;base_head&quot;: &lt;float&gt;,          # Base for non-dimensionalizing total hydraulic head head. SI units are meters.
+    &quot;base_length&quot;: &lt;float&gt;,        # Base for non-dimensionalizing length. SI units are meters.
+    &quot;base_mass&quot;: &lt;float&gt;,          # Base for non-dimensionalizing mass. SI units are kilograms.
+    &quot;base_time&quot;: &lt;float&gt;,          # Base for non-dimensionalizing time. SI units are seconds.
+    &quot;node&quot;: {
+        &quot;1&quot;: {
+            &quot;h&quot;: &lt;float&gt;,  # Total hydraulic head of the node. SI units are meters.
+            &quot;p&quot;: &lt;float&gt;   # Pressure head of the node. SI units are meters.
+        },
+        &quot;2&quot;: {
+            ...
+        },
+        ...
+    },
+    &quot;demand&quot;: {
+        &quot;1&quot;: {
+            &quot;q&quot;: &lt;float&gt;  # Demanded volumetric flow rate at the demand point. SI units are cubic meters per second.
+        },
+        &quot;2&quot;: {
+            ...
+        },
+        ...
+    },
+    &quot;reservoir&quot;: {
+        &quot;1&quot;: {
+            &quot;q&quot;: &lt;float&gt;  # Outgoing volumetric flow rate from the reservoir. SI units are cubic meters per second.
+        },
+        &quot;2&quot;: {
+            ...
+        },
+        ...
+    },
+    &quot;tank&quot;: {
+        &quot;1&quot;: {
+            &quot;V&quot;: &lt;float&gt;, # Volume of water contained by the tank. SI units are cubic meters.
+            &quot;q&quot;: &lt;float&gt;  # Outgoing volumetric flow rate from the reservoir. SI units are cubic meters per second.
+        },
+        &quot;2&quot;: {
+            ...
+        },
+        ...
+    },
+    &quot;pipe&quot;: {
+        &quot;1&quot;: {
+            &quot;q&quot;: &lt;float&gt;,    # Volumetric flow rate transported through the pipe. SI units are cubic meters per second.
+            &quot;qp&quot;: &lt;float&gt;,   # Volumetric flow rate transported in the positive direction. SI units are cubic meters per second.
+            &quot;qn&quot;: &lt;float&gt;,   # Volumetric flow rate transported in the negative direction. SI units are cubic meters per second.
+            &quot;dhp&quot;: &lt;float&gt;,  # Total hydraulic head decrease in the positive direction of flow. SI units are meters.
+            &quot;dhn&quot;: &lt;float&gt;,  # Total hydraulic head decrease in the negative direction of flow. SI units are meters.
+            &quot;y&quot;: &lt;float&gt;     # Flow direction, i.e., one if flow is transported _from_ &quot;node_fr&quot; and zero otherwise.
+        },
+        &quot;2&quot;: {
+            ...
+        },
+        ...
+    },
+    &quot;des_pipe&quot;: {
+        &quot;1&quot;: {
+            &quot;q&quot;: &lt;float&gt;,      # Volumetric flow rate transported through the design pipe. SI units are cubic meters per second.
+            &quot;qp&quot;: &lt;float&gt;,     # Volumetric flow rate transported in the positive direction. SI units are cubic meters per second.
+            &quot;qn&quot;: &lt;float&gt;,     # Volumetric flow rate transported in the negative direction. SI units are cubic meters per second.
+            &quot;dhp&quot;: &lt;float&gt;,    # Total hydraulic head decrease in the positive direction of flow. SI units are meters.
+            &quot;dhn&quot;: &lt;float&gt;,    # Total hydraulic head decrease in the negative direction of flow. SI units are meters.
+            &quot;y&quot;: &lt;float&gt;,      # Flow direction, i.e., one if flow is transported _from_ &quot;node_fr&quot; and zero otherwise.
+            &quot;status&quot;: &lt;float&gt;  # Pipe construction status, i.e., one if the pipe is constructed and zero otherwise.
+        },
+        &quot;2&quot;: {
+            ...
+        },
+        ...
+    },
+    &quot;short_pipe&quot;: {
+        &quot;1&quot;: {
+            &quot;q&quot;: &lt;float&gt;,   # Volumetric flow rate transported through the short pipe. SI units are cubic meters per second.
+            &quot;qp&quot;: &lt;float&gt;,  # Volumetric flow rate transported in the positive direction. SI units are cubic meters per second.
+            &quot;qn&quot;: &lt;float&gt;,  # Volumetric flow rate transported in the negative direction. SI units are cubic meters per second.
+            &quot;y&quot;: &lt;float&gt;    # Flow direction, i.e., one if flow is transported _from_ &quot;node_fr&quot; and zero otherwise.
+        },
+        &quot;2&quot;: {
+            ...
+        },
+        ...
+    },
+    &quot;pump&quot;: {
+        &quot;1&quot;: {
+            &quot;q&quot;: &lt;float&gt;,      # Volumetric flow rate transported through the pump. SI units are cubic meters per second.
+            &quot;qp&quot;: &lt;float&gt;,     # Volumetric flow rate transported in the positive direction. SI units are cubic meters per second.
+            &quot;qn&quot;: &lt;float&gt;,     # Volumetric flow rate transported in the negative direction. SI units are cubic meters per second.
+            &quot;y&quot;: &lt;float&gt;,      # Flow direction, i.e., one if flow is transported _from_ &quot;node_fr&quot; and zero otherwise.
+            &quot;g&quot;: &lt;float&gt;,      # Head gain (increase) from &quot;node_fr&quot; to &quot;node_to&quot; resulting from the pump. SI units are meters.
+            &quot;c&quot;: &lt;float&gt;,      # Cost of operating the pump over the time index (step) of interest. Standard units are currency.
+            &quot;P&quot;: &lt;float&gt;,      # Power consumed by the pump over the time index (step) of interest. SI units are Watts.
+            &quot;E&quot;: &lt;float&gt;,      # Energy consumption of the pump over the time index (step) of interest. SI units are Joules.
+            &quot;status&quot;: &lt;float&gt;  # Status of the pump, i.e., one if the pump is active and zero otherwise.
+        },
+        &quot;2&quot;: {
+            ...
+        },
+        ...
+    },
+    &quot;valve&quot;: {
+        &quot;1&quot;: {
+            &quot;q&quot;: &lt;float&gt;,      # Volumetric flow rate transported through the valve. SI units are cubic meters per second.
+            &quot;qp&quot;: &lt;float&gt;,     # Volumetric flow rate transported in the positive direction. SI units are cubic meters per second.
+            &quot;qn&quot;: &lt;float&gt;,     # Volumetric flow rate transported in the negative direction. SI units are cubic meters per second.
+            &quot;y&quot;: &lt;float&gt;       # Flow direction, i.e., one if flow is transported _from_ &quot;node_fr&quot; and zero otherwise.
+            &quot;status&quot;: &lt;float&gt;  # Status of the valve, i.e., one if the valve is opened and zero otherwise.
+        },
+        &quot;2&quot;: {
+            ...
+        },
+        ...
+    },
+    &quot;regulator&quot;: {
+        &quot;1&quot;: {
+            &quot;q&quot;: &lt;float&gt;,      # Volumetric flow rate transported through the regulator. SI units are cubic meters per second.
+            &quot;qp&quot;: &lt;float&gt;,     # Volumetric flow rate transported in the positive direction. SI units are cubic meters per second.
+            &quot;qn&quot;: &lt;float&gt;,     # Volumetric flow rate transported in the negative direction. SI units are cubic meters per second.
+            &quot;y&quot;: &lt;float&gt;       # Flow direction, i.e., one if flow is transported _from_ &quot;node_fr&quot; and zero otherwise.
+            &quot;status&quot;: &lt;float&gt;  # Status of the regulator, i.e., one if the regulator is active and zero otherwise.
+        },
+        &quot;2&quot;: {
+            ...
+        },
+        ...
+    }
+}</code></pre><h2 id="Transforming-Solution-Data"><a class="docs-heading-anchor" href="#Transforming-Solution-Data">Transforming Solution Data</a><a id="Transforming-Solution-Data-1"></a><a class="docs-heading-anchor-permalink" href="#Transforming-Solution-Data" title="Permalink"></a></h2><p>Because the data dictionary and the solution dictionary have the same structure, the InfrastructureModels <code>update_data!</code> helper function can be used to update a data dictionary with values from a solution, e.g.,</p><pre><code class="language-julia hljs">import InfrastructureModels
+
+InfrastructureModels.update_data!(
+  data[&quot;nw&quot;][&quot;3&quot;][&quot;pump&quot;][&quot;1&quot;],
+  result[&quot;solution&quot;][&quot;nw&quot;][&quot;3&quot;][&quot;pump&quot;][&quot;1&quot;]
+)</code></pre><p>Note that, by default, all results are reported in a per-unit (non-dimensionalized) system. Additional data from WaterModels can be used to convert such data back to their dimensionalized forms. For example, the code block below translates a per-unit pump flow rate to SI units, then the more conventional units of liters per second.</p><pre><code class="language-julia hljs"># Get a pump volumetric flow rate solution in the per-unit system.
+flow_per_unit = result[&quot;solution&quot;][&quot;nw&quot;][&quot;3&quot;][&quot;pump&quot;][&quot;1&quot;][&quot;q&quot;]
+
+# Get the per-unit scalar used to convert back to SI units.
+base_flow = data[&quot;base_flow&quot;]
+
+# Compute the volumetric flow rate in SI units (cubic meters per second).
+base_flow * flow_per_unit
+
+# Compute the volumetric flow rate in liters per second.
+base_flow * flow_per_unit * 1000.0</code></pre><p>Note also that per-unit base quantities are also reported in the solution data dictionary for convenience, e.g.,</p><pre><code class="language-julia hljs"># Should return `true`.
+result[&quot;solution&quot;][&quot;base_flow&quot;] == data[&quot;base_flow&quot;]</code></pre><p>For convenience, solution data can be transformed to SI units using</p><pre><code class="language-julia hljs">make_si_units!(result[&quot;solution&quot;])</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="network-data.html">« Network Data Format</a><a class="docs-footer-nextpage" href="math-model.html">Mathematical Models »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.10.1 on <span class="colophon-date" title="Friday 11 April 2025 01:51">Friday 11 April 2025</span>. Using Julia version 1.11.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
